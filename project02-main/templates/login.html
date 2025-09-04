@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+    <html lang="en">
+      <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <title>Capstone - E-Class Record System | ISU CCSICT</title>
+        <link rel="stylesheet" href="{{ url_for('static', filename='css/login.css') }}">
+      </head>
+      <body>
+        <div class="page-bg">
+          <div class="bg-shape shape-a"></div>
+          <div class="bg-shape shape-b"></div>
+          <div class="bg-shape shape-c"></div>
+        </div>
+
+        <main class="layout">
+          <section class="info-panel" aria-labelledby="capstone-title">
+            <header class="project-header">
+              <img src="assets/logo.svg" alt="ISU Logo" class="logo" />
+              <div>
+                <h1 id="capstone-title">E-Class Record System</h1>
+                <p class="sub">Capstone Project - College of Computing Studies, ICT</p>
+              </div>
+            </header>
+
+            <div class="project-card">
+              <h2>Project Overview</h2>
+              <p>
+                A modern, accessible UI for managing class records, attendance,
+                grades, and faculty-student interactions. Built as a responsive
+                prototype for the ISU CCSICT Capstone showcase.
+              </p>
+
+              <div class="project-meta">
+                <div><strong>Status</strong><span class="pill">Prototype</span></div>
+                <div><strong>Supervisor</strong><span>Dr. Maria Santos</span></div>
+                <div><strong>Semester</strong><span>Capstone 2 - 2025</span></div>
+              </div>
+
+              <h3>Key Features (UI Prototype)</h3>
+              <ul class="features">
+                <li>Role-based sign in (Admin / Faculty / Student)</li>
+                <li>Responsive dashboard layout and components</li>
+                <li>Accessible forms and UI states</li>
+                <li>Interactive sample login with demo credentials</li>
+              </ul>
+
+              <h3>Team</h3>
+              <ul class="team">
+                <li>Juan Dela Cruz - Frontend Lead</li>
+                <li>Maria Perez - UX / UI</li>
+                <li>Ramon Santos - Backend Architect</li>
+                <li>Supervisor: Dr. Maria Santos</li>
+              </ul>
+
+              <footer class="card-foot">
+                <small>Use the sign-in panel to the right to try demo accounts.</small>
+              </footer>
+            </div>
+          </section>
+
+          <aside class="auth-panel" aria-labelledby="signin-title">
+            <div class="auth-card">
+              <h2 id="signin-title">Sign In</h2>
+              <p class="auth-sub">Sign in to your Capstone E-Class Record System</p>
+
+              <div class="status success" id="successMessage" role="status" aria-live="polite">
+                Login successful. Redirecting to dashboard...
+              </div>
+
+              <div class="status error" id="errorMessage" role="alert" aria-live="assertive">
+                Invalid credentials. Please try again.
+              </div>
+
+              <form id="loginForm" class="form">
+                  {% if role %}
+                  <input type="hidden" name="role" value="{{ role }}">
+                  {% endif %}
+                <div class="form-row">
+                  <label for="role">Role</label>
+                  <select id="role" name="role" aria-label="Select role">
+                    <option value="student">Student</option>
+                    <option value="faculty">Faculty</option>
+                    <option value="admin">Admin</option>
+                  </select>
+                </div>
+
+                <div class="form-row">
+                  <label for="username">School ID or Email</label>
+                  <div class="input-wrap">
+                    <input type="text" id="username" name="username" required autocomplete="username" />
+                    <span class="icon">👤</span>
+                  </div>
+                </div>
+
+                <div class="form-row">
+                  <label for="password">Password</label>
+                  <div class="input-wrap">
+                    <input type="password" id="password" name="password" required autocomplete="current-password" />
+                    <button type="button" class="show-pass" id="togglePass" aria-label="Toggle password visibility">👁️</button>
+                  </div>
+                </div>
+
+                <div class="form-row flex-between">
+                  <label class="checkbox">
+                    <input type="checkbox" id="remember" name="remember" />
+                    Remember me
+                  </label>
+                  <a href="#" class="link">Forgot Password?</a>
+                </div>
+
+                <button type="submit" class="btn primary" id="loginBtn">Sign In</button>
+
+                <div class="divider">Quick Demo Credentials</div>
+
+                <ul class="demo-list">
+                  <li><strong>admin</strong> / admin123</li>
+                  <li><strong>faculty@isu.edu.ph</strong> / faculty123</li>
+                  <li><strong>student@isu.edu.ph</strong> / student123</li>
+                </ul>
+              </form>
+
+              <div class="small-foot">
+                <p>Need help? Contact IT Support or consult the user guide.</p>
+                <div class="links">
+                  <a href="#" class="link">Contact IT Support</a>
+                  <a href="#" class="link">User Guide</a>
+                </div>
+              </div>
+            </div>
+          </aside>
+        </main>
+
+        <link rel="stylesheet" href="{{ url_for('static', filename='app.js') }}">
+      </body>
+    </html>

@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}{% endblock %}</title>
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='site.css')}}" />
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='login.css')}}" />
+</head>
+
+<body>
+    <div class="navbar">
+        <a href="{{ url_for('home') }}" class="navbar-brand">Home</a>
+        <a href="{{ url_for('login') }}" class="navbar-item">About</a>
+    </div>
+
+    <div class="body-content">
+        {% block content %}
+        {% endblock %}
+
+    </div>
+</body>
+
+</html>

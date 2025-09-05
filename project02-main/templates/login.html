@@ -1,136 +1,387 @@
 <!DOCTYPE html>
-    <html lang="en">
-      <head>
-        <meta charset="utf-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <title>Capstone - E-Class Record System | ISU CCSICT</title>
-        <link rel="stylesheet" href="{{ url_for('static', filename='css/login.css') }}">
-      </head>
-      <body>
-        <div class="page-bg">
-          <div class="bg-shape shape-a"></div>
-          <div class="bg-shape shape-b"></div>
-          <div class="bg-shape shape-c"></div>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>E-Class Record System - ISU Cauayan</title>
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+  <style>
+    :root {
+      --lilac-primary: #9370DB;
+      --lilac-secondary: #DDA0DD;
+      --lilac-dark: #6A4C93;
+      --lilac-light: #B19CD9;
+      --lilac-accent: #E6E6FA;
+      --white: #ffffff;
+      --gray-50: #f9fafb;
+      --gray-100: #f3f4f6;
+      --gray-600: #4b5563;
+      --gray-900: #111827;
+      --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+      --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+      --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: linear-gradient(135deg, var(--lilac-primary) 0%, var(--lilac-dark) 50%, var(--lilac-light) 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      position: relative;
+      overflow-x: hidden;
+    }
+
+    /* Animated background elements */
+    /* Decorative background - use fixed positioning so it doesn't expand document height */
+    body::before {
+      content: '';
+      position: fixed;
+      top: -50vh;
+      left: -50vw;
+      width: 200vw;
+      height: 200vh;
+      background: radial-gradient(circle, rgba(230, 230, 250, 0.1) 0%, transparent 70%);
+      animation: float 20s ease-in-out infinite;
+      z-index: 0;
+      pointer-events: none;
+    }
+
+    body::after {
+      content: '';
+      position: fixed;
+      top: 20vh;
+      right: -20vw;
+      width: 40vw;
+      height: 40vh;
+      background: radial-gradient(circle, rgba(221, 160, 221, 0.05) 0%, transparent 70%);
+      animation: float 25s ease-in-out infinite reverse;
+      z-index: 0;
+      pointer-events: none;
+    }
+
+    @keyframes float {
+      0%, 100% { transform: translateY(0px) rotate(0deg); }
+      50% { transform: translateY(-20px) rotate(5deg); }
+    }
+
+    .container {
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(10px);
+      border-radius: 24px;
+      padding: 48px 40px;
+      box-shadow: var(--shadow-xl);
+      max-width: 480px;
+      width: 100%;
+      text-align: center;
+      position: relative;
+      z-index: 1;
+      border: 1px solid rgba(221, 160, 221, 0.2);
+    }
+
+    .header {
+      margin-bottom: 40px;
+    }
+
+    .logo-container {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 120px;
+      height: 120px;
+      background: linear-gradient(135deg, var(--lilac-primary), var(--lilac-light));
+      border-radius: 28px;
+      margin-bottom: 24px;
+      box-shadow: var(--shadow-lg);
+      position: relative;
+    }
+
+    .logo-container::before {
+      content: '';
+      position: absolute;
+      inset: -2px;
+      background: linear-gradient(135deg, var(--lilac-secondary), var(--lilac-primary));
+      border-radius: 22px;
+      z-index: -1;
+      opacity: 0.3;
+    }
+
+    .logo-container i {
+      font-size: 56px;
+      color: var(--white);
+    }
+
+    .title {
+      font-size: 32px;
+      font-weight: 700;
+      color: var(--gray-900);
+      margin-bottom: 8px;
+      letter-spacing: -0.02em;
+    }
+
+    .subtitle {
+      font-size: 18px;
+      font-weight: 500;
+      color: var(--lilac-primary);
+      margin-bottom: 8px;
+    }
+
+    .university {
+      font-size: 14px;
+      color: var(--gray-600);
+      font-weight: 400;
+    }
+
+    .login-options {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-top: 32px;
+  align-items: center; /* center buttons to avoid horizontal overlap */
+    }
+
+    .login-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      padding: 18px 24px;
+      background: linear-gradient(135deg, var(--lilac-primary), var(--lilac-light));
+      color: var(--white);
+      text-decoration: none;
+      border-radius: 16px;
+      font-weight: 600;
+      font-size: 16px;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      border: 2px solid transparent;
+      position: relative;
+      overflow: hidden;
+  width: 100%;
+  max-width: 380px; /* keep buttons a readable fixed width so they align */
+    }
+
+    .login-btn::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(230, 230, 250, 0.3), transparent);
+      transition: left 0.5s ease;
+    }
+
+    .login-btn:hover::before {
+      left: 100%;
+    }
+
+    .login-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-lg);
+      border-color: var(--lilac-secondary);
+    }
+
+    .login-btn:active {
+      transform: translateY(0);
+    }
+
+    .login-btn i {
+      font-size: 18px;
+    }
+
+    /* Individual button colors */
+    .admin-btn {
+      background: linear-gradient(135deg, #dc2626, #b91c1c);
+    }
+
+    .admin-btn:hover {
+      box-shadow: 0 10px 15px -3px rgba(220, 38, 38, 0.3), 0 4px 6px -2px rgba(220, 38, 38, 0.1);
+    }
+
+    .instructor-btn {
+      background: linear-gradient(135deg, #2563eb, #1d4ed8);
+    }
+
+    .instructor-btn:hover {
+      box-shadow: 0 10px 15px -3px rgba(37, 99, 235, 0.3), 0 4px 6px -2px rgba(37, 99, 235, 0.1);
+    }
+
+    .student-btn {
+      background: linear-gradient(135deg, #1e7b1e, #2d8f2d);
+    }
+
+    .student-btn:hover {
+      box-shadow: 0 10px 15px -3px rgba(30, 123, 30, 0.3), 0 4px 6px -2px rgba(30, 123, 30, 0.1);
+    }
+
+    .footer {
+      margin-top: 32px;
+      padding-top: 24px;
+      border-top: 1px solid var(--gray-100);
+    }
+
+    .footer-text {
+      font-size: 12px;
+      color: var(--gray-600);
+      line-height: 1.5;
+    }
+
+    .version {
+      display: inline-block;
+      background: var(--gray-100);
+      color: var(--gray-600);
+      padding: 4px 8px;
+      border-radius: 6px;
+      font-size: 10px;
+      margin-bottom: 16px;
+    }
+
+    .logo-footer {
+      margin-top: 16px;
+    }
+
+    .footer-logo-container {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+  gap: 16px;
+  flex-wrap: wrap; /* allow logos to wrap on narrow screens to prevent overlap */
+      margin-bottom: 8px;
+    }
+
+    .footer-logo {
+      width: 60px;
+      height: 60px;
+      object-fit: contain;
+      transition: all 0.3s ease;
+      border-radius: 10px;
+      padding: 6px;
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(147, 112, 219, 0.2);
+    }
+
+    .footer-logo:hover {
+      transform: scale(1.1);
+      box-shadow: 0 4px 8px rgba(147, 112, 219, 0.2);
+      background: rgba(255, 255, 255, 0.2);
+    }
+
+    .logo-text {
+      font-size: 11px;
+      color: var(--gray-600);
+      font-weight: 500;
+      margin: 0;
+    }
+
+    /* Responsive design */
+    @media (max-width: 480px) {
+      .container {
+        padding: 32px 24px;
+        margin: 16px;
+      }
+
+      .title {
+        font-size: 28px;
+      }
+
+      .subtitle {
+        font-size: 16px;
+      }
+
+      .login-btn {
+        padding: 16px 20px;
+      }
+
+      /* Scale down logos on small screens so layout remains comfortable */
+      .logo-container {
+        width: 96px;
+        height: 96px;
+      }
+
+      .logo-container i {
+        font-size: 48px;
+      }
+
+      .footer-logo {
+        width: 48px;
+        height: 48px;
+      }
+    }
+
+    /* Loading animation for buttons */
+    @keyframes pulse {
+      0%, 100% {
+        opacity: 1;
+      }
+      50% {
+        opacity: 0.7;
+      }
+    }
+
+    .login-btn:focus {
+      outline: none;
+      
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div class="logo-container">
+        <i class="fas fa-graduation-cap"></i>
+      </div>
+      <h1 class="title">E-Class Record</h1>
+      <h2 class="subtitle">Academic Management System</h2>
+      <p class="university">Isabela State University - Cauayan Campus<br>College of Computing Studies, Information and Communication Technology</p>
+    </div>
+
+    <div class="login-options">
+  <a href="{{ url_for('admin_login') }}" class="login-btn admin-btn">
+        <i class="fas fa-user-shield"></i>
+        <span>Administrator</span>
+      </a>
+      
+  <a href="{{ url_for('instructor_login') }}" class="login-btn instructor-btn">
+        <i class="fas fa-chalkboard-teacher"></i>
+        <span>Instructor</span>
+      </a>
+      
+  <a href="{{ url_for('student_login') }}" class="login-btn student-btn">
+        <i class="fas fa-user-graduate"></i>
+        <span>Student</span>
+      </a>
+
+      <a href="{{ url_for('index') }}" class="login-btn student-btn">
+        <i class="fas fa-user-graduate"></i>
+        <span>Home</span>
+      </a>
+    </div>
+
+    <div class="footer">
+      <p class="footer-text">
+        Secure academic record management for the digital age
+      </p>
+      <span class="version">v2.1.0</span>
+      
+      <div class="logo-footer">
+        <div class="footer-logo-container">
+          <img src="{{ url_for('static', filename='images/isu.png') }}" alt="ISU Logo" class="footer-logo" id="isu-logo">
+          <img src="{{ url_for('static', filename='images/ccsict.png') }}" alt="CCSICT Logo" class="footer-logo" id="ccsict-logo">
+        
         </div>
-
-        <main class="layout">
-          <section class="info-panel" aria-labelledby="capstone-title">
-            <header class="project-header">
-              <img src="assets/logo.svg" alt="ISU Logo" class="logo" />
-              <div>
-                <h1 id="capstone-title">E-Class Record System</h1>
-                <p class="sub">Capstone Project - College of Computing Studies, ICT</p>
-              </div>
-            </header>
-
-            <div class="project-card">
-              <h2>Project Overview</h2>
-              <p>
-                A modern, accessible UI for managing class records, attendance,
-                grades, and faculty-student interactions. Built as a responsive
-                prototype for the ISU CCSICT Capstone showcase.
-              </p>
-
-              <div class="project-meta">
-                <div><strong>Status</strong><span class="pill">Prototype</span></div>
-                <div><strong>Supervisor</strong><span>Dr. Maria Santos</span></div>
-                <div><strong>Semester</strong><span>Capstone 2 - 2025</span></div>
-              </div>
-
-              <h3>Key Features (UI Prototype)</h3>
-              <ul class="features">
-                <li>Role-based sign in (Admin / Faculty / Student)</li>
-                <li>Responsive dashboard layout and components</li>
-                <li>Accessible forms and UI states</li>
-                <li>Interactive sample login with demo credentials</li>
-              </ul>
-
-              <h3>Team</h3>
-              <ul class="team">
-                <li>Juan Dela Cruz - Frontend Lead</li>
-                <li>Maria Perez - UX / UI</li>
-                <li>Ramon Santos - Backend Architect</li>
-                <li>Supervisor: Dr. Maria Santos</li>
-              </ul>
-
-              <footer class="card-foot">
-                <small>Use the sign-in panel to the right to try demo accounts.</small>
-              </footer>
-            </div>
-          </section>
-
-          <aside class="auth-panel" aria-labelledby="signin-title">
-            <div class="auth-card">
-              <h2 id="signin-title">Sign In</h2>
-              <p class="auth-sub">Sign in to your Capstone E-Class Record System</p>
-
-              <div class="status success" id="successMessage" role="status" aria-live="polite">
-                Login successful. Redirecting to dashboard...
-              </div>
-
-              <div class="status error" id="errorMessage" role="alert" aria-live="assertive">
-                Invalid credentials. Please try again.
-              </div>
-
-              <form id="loginForm" class="form">
-                  {% if role %}
-                  <input type="hidden" name="role" value="{{ role }}">
-                  {% endif %}
-                <div class="form-row">
-                  <label for="role">Role</label>
-                  <select id="role" name="role" aria-label="Select role">
-                    <option value="student">Student</option>
-                    <option value="faculty">Faculty</option>
-                    <option value="admin">Admin</option>
-                  </select>
-                </div>
-
-                <div class="form-row">
-                  <label for="username">School ID or Email</label>
-                  <div class="input-wrap">
-                    <input type="text" id="username" name="username" required autocomplete="username" />
-                    <span class="icon">👤</span>
-                  </div>
-                </div>
-
-                <div class="form-row">
-                  <label for="password">Password</label>
-                  <div class="input-wrap">
-                    <input type="password" id="password" name="password" required autocomplete="current-password" />
-                    <button type="button" class="show-pass" id="togglePass" aria-label="Toggle password visibility">👁️</button>
-                  </div>
-                </div>
-
-                <div class="form-row flex-between">
-                  <label class="checkbox">
-                    <input type="checkbox" id="remember" name="remember" />
-                    Remember me
-                  </label>
-                  <a href="#" class="link">Forgot Password?</a>
-                </div>
-
-                <button type="submit" class="btn primary" id="loginBtn">Sign In</button>
-
-                <div class="divider">Quick Demo Credentials</div>
-
-                <ul class="demo-list">
-                  <li><strong>admin</strong> / admin123</li>
-                  <li><strong>faculty@isu.edu.ph</strong> / faculty123</li>
-                  <li><strong>student@isu.edu.ph</strong> / student123</li>
-                </ul>
-              </form>
-
-              <div class="small-foot">
-                <p>Need help? Contact IT Support or consult the user guide.</p>
-                <div class="links">
-                  <a href="#" class="link">Contact IT Support</a>
-                  <a href="#" class="link">User Guide</a>
-                </div>
-              </div>
-            </div>
-          </aside>
-        </main>
-
-        <link rel="stylesheet" href="{{ url_for('static', filename='app.js') }}">
-      </body>
-    </html>
+        <p class="logo-text">Powered by ISU Cauayan CCSICT</p>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

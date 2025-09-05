@@ -25,6 +25,9 @@ def login():
     role = request.args.get('role')
     return render_template("login.html", role=role)
 
+@app.route('/index')
+def index():
+    return render_template('index.html')
 
 @app.route('/admin-login')
 def admin_login():
@@ -40,6 +43,9 @@ def instructor_login():
 def student_login():
     return render_template('studentlogin.html')
 
+@app.route('/about')
+def about():
+    return render_template('about.html')
 
 @app.route("/signup", methods=["GET", "POST"])
 def signup():

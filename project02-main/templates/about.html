@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -310,9 +311,19 @@
 
         /* Animations */
         @keyframes float {
-            0%, 100% { transform: translateY(0px) rotate(0deg); }
-            33% { transform: translateY(-10px) rotate(1deg); }
-            66% { transform: translateY(-5px) rotate(-1deg); }
+
+            0%,
+            100% {
+                transform: translateY(0px) rotate(0deg);
+            }
+
+            33% {
+                transform: translateY(-10px) rotate(1deg);
+            }
+
+            66% {
+                transform: translateY(-5px) rotate(-1deg);
+            }
         }
 
         /* Responsive Design */
@@ -369,6 +380,7 @@
                 margin: 50px 10px;
             }
         }
+
         .login-section {
             background: rgba(30, 169, 105, 0.12);
             backdrop-filter: blur(20px);
@@ -417,7 +429,8 @@
             letter-spacing: 0.5px;
         }
 
-        .form-group input, .form-group select {
+        .form-group input,
+        .form-group select {
             width: 100%;
             padding: 18px 25px;
             border: 2px solid rgba(255, 255, 255, 0.2);
@@ -433,7 +446,8 @@
             color: rgba(255, 255, 255, 0.6);
         }
 
-        .form-group input:focus, .form-group select:focus {
+        .form-group input:focus,
+        .form-group select:focus {
             outline: none;
             border-color: #32CD32;
             background: rgba(255, 255, 255, 0.15);
@@ -552,16 +566,27 @@
                 margin: 50px 10px;
             }
 
-            .search-box, .header-tools {
+            .search-box,
+            .header-tools {
                 display: none;
             }
         }
 
         /* Animations */
         @keyframes float {
-            0%, 100% { transform: translateY(0px) rotate(0deg); }
-            33% { transform: translateY(-10px) rotate(1deg); }
-            66% { transform: translateY(-5px) rotate(-1deg); }
+
+            0%,
+            100% {
+                transform: translateY(0px) rotate(0deg);
+            }
+
+            33% {
+                transform: translateY(-10px) rotate(1deg);
+            }
+
+            66% {
+                transform: translateY(-5px) rotate(-1deg);
+            }
         }
 
         .hero-graphic {
@@ -573,19 +598,29 @@
                 opacity: 0;
                 transform: translateY(50px);
             }
+
             to {
                 opacity: 1;
                 transform: translateY(0);
             }
         }
 
-        .hero-section, .features-section, .login-section {
+        .hero-section,
+        .features-section,
+        .login-section {
             animation: fadeInUp 1s ease-out;
         }
 
         @keyframes pulse {
-            0%, 100% { box-shadow: 0 0 20px rgba(50, 205, 50, 0.3); }
-            50% { box-shadow: 0 0 30px rgba(50, 205, 50, 0.6); }
+
+            0%,
+            100% {
+                box-shadow: 0 0 20px rgba(50, 205, 50, 0.3);
+            }
+
+            50% {
+                box-shadow: 0 0 30px rgba(50, 205, 50, 0.6);
+            }
         }
 
         .isu-logo {
@@ -593,178 +628,184 @@
         }
     </style>
 </head>
+
 <body>
     <!-- Header -->
     <header>
         <div class="container">
             <div class="header-content">
                 <div class="logo-section">
-                    <div class="isu-logo"><img src="{{ url_for('static', filename='images/isu.png') }}" alt="ISU Logo" style="width: 100%; height: 100%; object-fit: contain;"></div>
+                    <div class="isu-logo"><img src="{{ url_for('static', filename='images/isu.png') }}" alt="ISU Logo"
+                            style="width: 100%; height: 100%; object-fit: contain;"></div>
                     <div class="title-section">
                         <h1>E-Class Record System</h1>
                         <div class="subtitle">Isabela State University - Cauayan | CCSICT</div>
                     </div>
                 </div>
-                
-                
+
+
             </div>
         </div>
     </header>
 
     <!-- Main Content -->
     <main>
-    <div class="container">
-      <!-- Hero Section -->
-      <section id="home" class="hero-section">
-        <div class="hero-bg"></div>
-        <div class="hero-content">
-          <div class="hero-text">
-            <h1>
-              WELCOME TO
-              <span class="highlight">E-CLASS RECORD</span>
-              SYSTEM
-            </h1>
-            <p>Where Education Meets Innovation. Our mission is to foster a dynamic learning environment that bridges the gap between theoretical knowledge and practical application, preparing students for the challenges of the modern digital world through advanced class management technology.</p>
-            <div class="hero-buttons">
-              <a href="{{ url_for('index') }}" class="btn btn-primary">
-                <i class="fas fa-rocket"></i> LOGIN
-              </a>
-              <a href="{{ url_for('login') }}" class="btn btn-secondary">
-                <i class="fas fa-play"></i> REGISTER
-              </a>
-            </div>
-          </div>
-          <div class="hero-graphic">
-            <div class="icon"><i class="fas fa-graduation-cap"></i></div>
-          </div>
+        <div class="container">
+            <!-- Hero Section -->
+            <section id="home" class="hero-section">
+                <div class="hero-bg"></div>
+                <div class="hero-content">
+                    <div class="hero-text">
+                        <h1>
+                            WELCOME TO
+                            <span class="highlight">E-CLASS RECORD</span>
+                            SYSTEM
+                        </h1>
+                        <p>Where Education Meets Innovation. Our mission is to foster a dynamic learning environment
+                            that bridges the gap between theoretical knowledge and practical application, preparing
+                            students for the challenges of the modern digital world through advanced class management
+                            technology.</p>
+                        <div class="hero-buttons">
+                            <a href="{{ url_for('index') }}" class="btn btn-primary">
+                                <i class="fas fa-rocket"></i> LOGIN
+                            </a>
+                            <a href="{{ url_for('login') }}" class="btn btn-secondary">
+                                <i class="fas fa-play"></i> REGISTER
+                            </a>
+                        </div>
+                    </div>
+                    <div class="hero-graphic">
+                        <div class="icon"><i class="fas fa-graduation-cap"></i></div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Features Section -->
+            <section id="features" class="features-section">
+                <h2 class="section-title">Features</h2>
+                <div class="features-grid">
+                    <div class="feature-card">
+                        <i class="fas fa-user-graduate feature-icon"></i>
+                        <h3>For Students</h3>
+                        <p>Check grades and performance updates anytime.</p>
+                    </div>
+                    <div class="feature-card">
+                        <i class="fas fa-chalkboard-teacher feature-icon"></i>
+                        <h3>For Teachers</h3>
+                        <p>Manage class records efficiently with ease.</p>
+                    </div>
+                    <div class="feature-card">
+                        <i class="fas fa-user-shield feature-icon"></i>
+                        <h3>For Admin</h3>
+                        <p>Oversee the system and ensure academic transparency.</p>
+                    </div>
+                </div>
+            </section>
+
+
         </div>
-      </section>
+    </main>
 
-      <!-- Features Section -->
-      <section id="features" class="features-section">
-        <h2 class="section-title">Features</h2>
-        <div class="features-grid">
-          <div class="feature-card">
-            <i class="fas fa-user-graduate feature-icon"></i>
-            <h3>For Students</h3>
-            <p>Check grades and performance updates anytime.</p>
-          </div>
-          <div class="feature-card">
-            <i class="fas fa-chalkboard-teacher feature-icon"></i>
-            <h3>For Teachers</h3>
-            <p>Manage class records efficiently with ease.</p>
-          </div>
-          <div class="feature-card">
-            <i class="fas fa-user-shield feature-icon"></i>
-            <h3>For Admin</h3>
-            <p>Oversee the system and ensure academic transparency.</p>
-          </div>
+    <!-- Footer -->
+    <footer>
+        <div class="footer-content">
+            <p>&copy; 2024 E-Class Record System | Isabela State University - Cauayan Campus</p>
+            <p>College of Computing Studies, Information and Communication Technology (CCSICT)</p>
+            <p>University for People, Nature, Entrepreneurship and Innovation</p>
+            <p>Capstone Project - Academic Year 2024-2025</p>
         </div>
-      </section>
+    </footer>
 
-     
-    </div>
-  </main>
+    <script>
+        // Smooth scrolling
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+            });
+        });
 
-  <!-- Footer -->
-  <footer>
-    <div class="footer-content">
-      <p>&copy; 2024 E-Class Record System | Isabela State University - Cauayan Campus</p>
-      <p>College of Computing Studies, Information and Communication Technology (CCSICT)</p>
-      <p>University for People, Nature, Entrepreneurship and Innovation</p>
-      <p>Capstone Project - Academic Year 2024-2025</p>
-    </div>
-  </footer>
+        // ✅ Login form validation
+        const loginForm = document.querySelector('.login-section form');
+        if (loginForm) {
+            loginForm.addEventListener('submit', function (e) {
+                e.preventDefault();
+                const userType = document.getElementById('userType').value;
+                const username = document.getElementById('username').value;
+                const password = document.getElementById('password').value;
 
-  <script>
-    // Smooth scrolling
-    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-      anchor.addEventListener('click', function(e) {
-        e.preventDefault();
-        const target = document.querySelector(this.getAttribute('href'));
-        if (target) {
-          target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                if (!userType || !username || !password) {
+                    alert('⚠️ Please fill in all required fields');
+                    return;
+                }
+                if (username.length < 3) {
+                    alert('⚠️ Username must be at least 3 characters long');
+                    return;
+                }
+                if (password.length < 6) {
+                    alert('⚠️ Password must be at least 6 characters long');
+                    return;
+                }
+
+                const loginBtn = document.querySelector('.login-btn');
+                const originalText = loginBtn.innerHTML;
+                loginBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Authenticating...';
+                loginBtn.disabled = true;
+
+                setTimeout(() => {
+                    alert(`✅ Login successful for ${userType}: ${username}\n🚀 Redirecting to dashboard...`);
+                    loginBtn.innerHTML = originalText;
+                    loginBtn.disabled = false;
+                }, 2000);
+            });
         }
-      });
-    });
 
-    // ✅ Login form validation
-    const loginForm = document.querySelector('.login-section form');
-    if (loginForm) {
-      loginForm.addEventListener('submit', function(e) {
-        e.preventDefault();
-        const userType = document.getElementById('userType').value;
-        const username = document.getElementById('username').value;
-        const password = document.getElementById('password').value;
+        // ❌ Removed .nav-links active handling (since no nav-links exist)
 
-        if (!userType || !username || !password) {
-          alert('⚠️ Please fill in all required fields');
-          return;
+        // Page load fade-in
+        window.addEventListener('load', function () {
+            document.body.style.opacity = '0';
+            document.body.style.transition = 'opacity 0.8s ease-in-out';
+            setTimeout(() => {
+                document.body.style.opacity = '1';
+            }, 200);
+        });
+
+        // Parallax effect for hero graphic
+        window.addEventListener('scroll', function () {
+            const scrolled = window.pageYOffset;
+            const heroGraphic = document.querySelector('.hero-graphic');
+            if (heroGraphic) {
+                heroGraphic.style.transform = `translateY(${scrolled * 0.2}px)`;
+            }
+        });
+
+        // Typing effect (simplified fade-in)
+        function typeWriter() {
+            const heroTitle = document.querySelector('.hero-text h1');
+            if (heroTitle && !heroTitle.classList.contains('typed')) {
+                heroTitle.style.opacity = '0';
+                setTimeout(() => {
+                    heroTitle.style.opacity = '1';
+                    heroTitle.classList.add('typed');
+                }, 500);
+            }
         }
-        if (username.length < 3) {
-          alert('⚠️ Username must be at least 3 characters long');
-          return;
-        }
-        if (password.length < 6) {
-          alert('⚠️ Password must be at least 6 characters long');
-          return;
-        }
+        setTimeout(typeWriter, 1000);
 
-        const loginBtn = document.querySelector('.login-btn');
-        const originalText = loginBtn.innerHTML;
-        loginBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Authenticating...';
-        loginBtn.disabled = true;
-
-        setTimeout(() => {
-          alert(`✅ Login successful for ${userType}: ${username}\n🚀 Redirecting to dashboard...`);
-          loginBtn.innerHTML = originalText;
-          loginBtn.disabled = false;
-        }, 2000);
-      });
-    }
-
-    // ❌ Removed .nav-links active handling (since no nav-links exist)
-
-    // Page load fade-in
-    window.addEventListener('load', function() {
-      document.body.style.opacity = '0';
-      document.body.style.transition = 'opacity 0.8s ease-in-out';
-      setTimeout(() => {
-        document.body.style.opacity = '1';
-      }, 200);
-    });
-
-    // Parallax effect for hero graphic
-    window.addEventListener('scroll', function() {
-      const scrolled = window.pageYOffset;
-      const heroGraphic = document.querySelector('.hero-graphic');
-      if (heroGraphic) {
-        heroGraphic.style.transform = `translateY(${scrolled * 0.2}px)`;
-      }
-    });
-
-    // Typing effect (simplified fade-in)
-    function typeWriter() {
-      const heroTitle = document.querySelector('.hero-text h1');
-      if (heroTitle && !heroTitle.classList.contains('typed')) {
-        heroTitle.style.opacity = '0';
-        setTimeout(() => {
-          heroTitle.style.opacity = '1';
-          heroTitle.classList.add('typed');
-        }, 500);
-      }
-    }
-    setTimeout(typeWriter, 1000);
-
-    // Feature cards hover animation
-    document.querySelectorAll('.feature-card').forEach(card => {
-      card.addEventListener('mouseenter', function() {
-        this.style.transform = 'translateY(-15px) scale(1.02) rotateY(5deg)';
-      });
-      card.addEventListener('mouseleave', function() {
-        this.style.transform = 'translateY(0) scale(1) rotateY(0deg)';
-      });
-    });
-  </script>
+        // Feature cards hover animation
+        document.querySelectorAll('.feature-card').forEach(card => {
+            card.addEventListener('mouseenter', function () {
+                this.style.transform = 'translateY(-15px) scale(1.02) rotateY(5deg)';
+            });
+            card.addEventListener('mouseleave', function () {
+                this.style.transform = 'translateY(0) scale(1) rotateY(0deg)';
+            });
+        });
+    </script>
 </body>
+
 </html>

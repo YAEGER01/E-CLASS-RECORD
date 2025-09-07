@@ -47,20 +47,9 @@ def student_login():
 def about():
     return render_template('about.html')
 
-@app.route("/signup", methods=["GET", "POST"])
-def signup():
-    if request.method == "POST":
-        # TODO: Save user details to DB
-        name = request.form["name"]
-        email = request.form["email"]
-        password = request.form["password"]
-        year_level = request.form["year_level"]
-        course = request.form["course"]
-        track = request.form["track"]
-        # Add user creation logic here
-        flash("Signup functionality not yet implemented.", "info")
-        return redirect(url_for("login"))
-    return render_template("signup.html")
+@app.route('/register')
+def register():
+    return render_template('register.html')
 
 
 if __name__ == "__main__":

@@ -1,0 +1,1519 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>E-Class Record System - Register</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+        :root {
+            --primary: #16a34a;
+            --primary-dark: #15803d;
+            --primary-light: #dcfce7;
+            --secondary: #065f46;
+            --accent: #10b981;
+            --success: #22c55e;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            
+            --bg-primary: #0f172a;
+            --bg-secondary: #1e293b;
+            --surface: rgba(255, 255, 255, 0.95);
+            --surface-2: #f0fdf4;
+            --text-primary: #1f2937;
+            --text-secondary: #6b7280;
+            --text-muted: #9ca3af;
+            --border: #d1fae5;
+            --border-focus: rgba(22, 163, 74, 0.3);
+            
+            --shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+            --shadow-lg: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+            --radius: 12px;
+            --radius-sm: 8px;
+            --radius-lg: 20px;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #064e3b 0%, #065f46 25%, #047857 50%, #059669 75%, #10b981 100%);
+            min-height: 100vh;
+            color: var(--text-primary);
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* ISU Green Background with Organic Shapes */
+        .bg-container {
+            position: fixed;
+            inset: 0;
+            overflow: hidden;
+            z-index: 0;
+        }
+
+        .bg-shape {
+            position: absolute;
+            border-radius: 50%;
+            opacity: 0.1;
+            animation: float 15s infinite ease-in-out;
+        }
+
+        .bg-shape:nth-child(1) {
+            width: 300px;
+            height: 300px;
+            background: linear-gradient(45deg, #16a34a, #22c55e);
+            top: 10%;
+            left: -5%;
+            animation-delay: 0s;
+        }
+
+        .bg-shape:nth-child(2) {
+            width: 200px;
+            height: 200px;
+            background: linear-gradient(135deg, #059669, #10b981);
+            top: 60%;
+            right: -3%;
+            animation-delay: -5s;
+        }
+
+        .bg-shape:nth-child(3) {
+            width: 150px;
+            height: 150px;
+            background: linear-gradient(225deg, #047857, #065f46);
+            bottom: 20%;
+            left: 20%;
+            animation-delay: -10s;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0px) scale(1); }
+            50% { transform: translateY(-30px) scale(1.1); }
+        }
+
+        /* Subtle Grid Pattern */
+        .grid-overlay {
+            position: fixed;
+            inset: 0;
+            background-image: 
+                radial-gradient(circle at 2px 2px, rgba(255,255,255,0.08) 1px, transparent 0);
+            background-size: 40px 40px;
+            z-index: 1;
+        }
+
+        .main-container {
+            position: relative;
+            z-index: 10;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .registration-card {
+            background: var(--surface);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-lg);
+            width: 100%;
+            max-width: 1000px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* Green accent border */
+        .registration-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, var(--primary), var(--accent), var(--success));
+            border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+        }
+
+        /* Header */
+        .header {
+            background: linear-gradient(135deg, var(--surface-2), white);
+            padding: 32px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .brand-logo {
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, var(--primary), var(--accent));
+            border-radius: var(--radius);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            color: white;
+            box-shadow: var(--shadow);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .brand-logo::after {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient(45deg, transparent, rgba(255,255,255,0.2), transparent);
+            transform: rotate(45deg);
+            animation: shine 3s infinite;
+        }
+
+        @keyframes shine {
+            0% { transform: translateX(-100%) translateY(-100%) rotate(45deg); }
+            100% { transform: translateX(100%) translateY(100%) rotate(45deg); }
+        }
+
+        .brand-info h1 {
+            font-size: 22px;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 4px;
+            letter-spacing: -0.5px;
+        }
+
+        .brand-info p {
+            font-size: 14px;
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+        .login-link {
+            color: var(--primary);
+            text-decoration: none;
+            font-weight: 600;
+            padding: 12px 20px;
+            background: var(--primary-light);
+            border-radius: var(--radius-sm);
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+        }
+
+        .login-link:hover {
+            background: var(--primary);
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: var(--shadow);
+        }
+
+        /* Main Content */
+        .content {
+            display: flex;
+            gap: 40px;
+            padding: 40px;
+            align-items: flex-start;
+        }
+
+        .form-section {
+            flex: 2;
+            min-width: 0;
+        }
+
+        .preview-section {
+            flex: 1;
+            min-width: 300px;
+        }
+
+        /* Form Grid */
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 24px;
+            margin-bottom: 32px;
+        }
+
+        .form-field {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .form-field label {
+            font-weight: 600;
+            font-size: 14px;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .required-mark {
+            color: var(--danger);
+            font-size: 14px;
+        }
+
+        .input-group {
+            position: relative;
+        }
+
+        input, select {
+            width: 100%;
+            padding: 14px 16px;
+            border: 2px solid var(--border);
+            border-radius: var(--radius);
+            background: white;
+            font-size: 15px;
+            color: var(--text-primary);
+            transition: all 0.3s ease;
+            font-family: inherit;
+        }
+
+        input:focus, select:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px var(--border-focus);
+            transform: translateY(-1px);
+        }
+
+        .password-toggle {
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 500;
+            padding: 6px 8px;
+            border-radius: var(--radius-sm);
+            transition: all 0.3s ease;
+        }
+
+        .password-toggle:hover {
+            color: var(--primary);
+            background: var(--primary-light);
+        }
+
+        .field-hint {
+            font-size: 13px;
+            color: var(--text-muted);
+        }
+
+        /* Password Strength */
+        .password-strength {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-top: 8px;
+        }
+
+        .strength-bar {
+            flex: 1;
+            height: 4px;
+            background: #e5e7eb;
+            border-radius: 2px;
+            overflow: hidden;
+        }
+
+        .strength-fill {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, var(--danger), var(--warning), var(--success));
+            transition: width 0.3s ease;
+        }
+
+        .strength-label {
+            font-size: 12px;
+            color: var(--text-secondary);
+            font-weight: 500;
+            white-space: nowrap;
+        }
+
+        /* Photo Upload */
+        .photo-upload-section {
+            background: var(--surface-2);
+            border: 2px dashed var(--border);
+            border-radius: var(--radius);
+            padding: 24px;
+            margin: 32px 0;
+            transition: all 0.3s ease;
+        }
+
+        .photo-upload-section:hover {
+            border-color: var(--primary);
+            background: var(--primary-light);
+        }
+
+        .photo-header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .photo-header h3 {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .photo-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 20px;
+        }
+
+        .photo-item {
+            background: white;
+            border: 2px dashed #d1d5db;
+            border-radius: var(--radius);
+            padding: 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .photo-item:hover {
+            border-color: var(--primary);
+            background: var(--primary-light);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow);
+        }
+
+        .photo-item input {
+            position: absolute;
+            inset: 0;
+            opacity: 0;
+            cursor: pointer;
+            padding: 0;
+            border: none;
+        }
+
+        .photo-preview {
+            width: 50px;
+            height: 50px;
+            margin: 0 auto 12px;
+            background: var(--surface-2);
+            border-radius: var(--radius-sm);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            overflow: hidden;
+        }
+
+        .photo-preview img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .photo-label {
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 4px;
+        }
+
+        .photo-sublabel {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        /* Submit Button */
+        .submit-section {
+            margin-top: 32px;
+        }
+
+        .submit-btn {
+            width: 100%;
+            background: linear-gradient(135deg, var(--primary), var(--accent));
+            color: white;
+            border: none;
+            padding: 16px 24px;
+            border-radius: var(--radius);
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .submit-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            transition: left 0.6s ease;
+        }
+
+        .submit-btn:hover::before {
+            left: 100%;
+        }
+
+        .submit-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        /* Preview Card */
+        .preview-card {
+            background: white;
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 24px;
+            box-shadow: var(--shadow);
+            position: sticky;
+            top: 20px;
+        }
+
+        .preview-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .student-preview {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            padding: 16px;
+            background: var(--surface-2);
+            border-radius: var(--radius);
+            margin-bottom: 20px;
+        }
+
+        .student-avatar {
+            width: 50px;
+            height: 50px;
+            background: linear-gradient(135deg, var(--primary-light), var(--surface-2));
+            border-radius: var(--radius-sm);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            overflow: hidden;
+        }
+
+        .student-avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .student-name {
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .student-id {
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+
+        .info-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .info-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid #f3f4f6;
+        }
+
+        .info-item:last-child {
+            border-bottom: none;
+        }
+
+        .info-label {
+            font-size: 13px;
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+        .info-value {
+            font-weight: 600;
+            color: var(--text-primary);
+            text-align: right;
+        }
+
+        /* Tips */
+        .tips-section {
+            background: linear-gradient(135deg, var(--primary-light), white);
+            border: 1px solid rgba(22, 163, 74, 0.2);
+            border-radius: var(--radius);
+            padding: 20px;
+            margin-top: 20px;
+        }
+
+        .tips-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .tips-list {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .tips-list li {
+            font-size: 13px;
+            color: var(--text-secondary);
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+        }
+
+        .tips-list li::before {
+            content: '✓';
+            color: var(--success);
+            font-weight: 600;
+            flex-shrink: 0;
+        }
+
+        /* Footer */
+        .footer {
+            background: var(--surface-2);
+            padding: 20px 32px;
+            border-top: 1px solid var(--border);
+            text-align: center;
+        }
+
+        .footer p {
+            font-size: 13px;
+            color: var(--text-muted);
+        }
+
+        /* Mobile-First Responsive Design */
+        
+        /* Large tablets and small desktops (1024px and down) */
+        @media (max-width: 1024px) {
+            .main-container {
+                padding: 16px;
+            }
+            
+            .content {
+                gap: 32px;
+            }
+            
+            .registration-card {
+                max-width: 900px;
+            }
+        }
+
+        /* Tablets (768px and down) */
+        @media (max-width: 768px) {
+            .main-container {
+                padding: 12px;
+                align-items: flex-start;
+                padding-top: 20px;
+            }
+
+            .registration-card {
+                margin: 0;
+                min-height: auto;
+            }
+
+            .header {
+                padding: 20px 16px;
+                flex-direction: column;
+                text-align: center;
+                gap: 16px;
+            }
+
+            .content {
+                flex-direction: column;
+                gap: 24px;
+                padding: 20px 16px;
+            }
+
+            .preview-section {
+                order: -1;
+                min-width: 0;
+                width: 100%;
+            }
+
+            .form-section {
+                width: 100%;
+            }
+
+            .form-grid {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+
+            .photo-grid {
+                grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+                gap: 16px;
+            }
+
+            .preview-card {
+                position: static;
+                margin-bottom: 0;
+            }
+
+            .brand-logo {
+                width: 50px;
+                height: 50px;
+                font-size: 20px;
+            }
+
+            .brand-info h1 {
+                font-size: 20px;
+            }
+
+            .brand-info p {
+                font-size: 13px;
+            }
+
+            .login-link {
+                padding: 10px 16px;
+                font-size: 14px;
+            }
+
+            input, select {
+                padding: 12px 14px;
+                font-size: 16px; /* Prevents zoom on iOS */
+            }
+
+            .submit-btn {
+                padding: 14px 20px;
+                font-size: 16px;
+            }
+
+            .footer {
+                padding: 16px;
+            }
+        }
+
+        /* Mobile phones (480px and down) */
+        /* Keep green theme consistent across all devices */
+        @media (max-width: 768px) {
+            .bg-container {
+                display: block; /* Ensure background shapes remain visible */
+            }
+            
+            .bg-shape {
+                opacity: 0.08; /* Slightly reduce opacity on mobile for better readability */
+            }
+        }
+
+        @media (max-width: 480px) {
+            body {
+                font-size: 14px;
+            }
+
+            .main-container {
+                padding: 8px;
+                padding-top: 16px;
+            }
+
+            .registration-card {
+                border-radius: 12px;
+                box-shadow: var(--shadow);
+            }
+
+            .header {
+                padding: 16px 12px;
+                gap: 12px;
+            }
+
+            .brand {
+                flex-direction: column;
+                text-align: center;
+                gap: 8px;
+            }
+
+            .brand-logo {
+                width: 45px;
+                height: 45px;
+                font-size: 18px;
+            }
+
+            .brand-info h1 {
+                font-size: 16px;
+                line-height: 1.2;
+            }
+
+            .brand-info p {
+                font-size: 12px;
+            }
+
+            .login-link {
+                padding: 8px 12px;
+                font-size: 13px;
+                border-radius: 6px;
+            }
+
+            .content {
+                padding: 16px 12px;
+                gap: 20px;
+            }
+
+            .form-grid {
+                gap: 16px;
+            }
+
+            .form-field label {
+                font-size: 13px;
+            }
+
+            input, select {
+                padding: 12px;
+                font-size: 16px;
+                border-radius: 8px;
+            }
+
+            .password-toggle {
+                right: 10px;
+                padding: 4px 6px;
+                font-size: 12px;
+            }
+
+            .field-hint {
+                font-size: 12px;
+            }
+
+            .photo-upload-section {
+                padding: 16px;
+                margin: 20px 0;
+            }
+
+            .photo-header h3 {
+                font-size: 16px;
+            }
+
+            .photo-header p {
+                font-size: 13px;
+            }
+
+            .photo-grid {
+                grid-template-columns: 1fr;
+                gap: 12px;
+            }
+
+            .photo-item {
+                padding: 16px;
+                min-height: 120px;
+            }
+
+            .photo-preview {
+                width: 40px;
+                height: 40px;
+                font-size: 16px;
+                margin-bottom: 8px;
+            }
+
+            .photo-label {
+                font-size: 14px;
+            }
+
+            .photo-sublabel {
+                font-size: 11px;
+            }
+
+            .submit-btn {
+                padding: 14px 16px;
+                font-size: 15px;
+                border-radius: 8px;
+            }
+
+            .preview-card {
+                padding: 16px;
+                border-radius: 8px;
+            }
+
+            .preview-title {
+                font-size: 16px;
+            }
+
+            .student-preview {
+                padding: 12px;
+                gap: 12px;
+            }
+
+            .student-avatar {
+                width: 40px;
+                height: 40px;
+                font-size: 16px;
+            }
+
+            .student-name {
+                font-size: 14px;
+            }
+
+            .student-id {
+                font-size: 12px;
+            }
+
+            .info-item {
+                padding: 6px 0;
+                gap: 8px;
+            }
+
+            .info-label {
+                font-size: 12px;
+            }
+
+            .info-value {
+                font-size: 13px;
+            }
+
+            .tips-section {
+                padding: 16px;
+                margin-top: 16px;
+            }
+
+            .tips-title {
+                font-size: 13px;
+            }
+
+            .tips-list li {
+                font-size: 12px;
+            }
+
+            .footer {
+                padding: 12px;
+            }
+
+            .footer p {
+                font-size: 12px;
+            }
+        }
+
+        /* Extra small devices (360px and down) */
+        @media (max-width: 360px) {
+            .main-container {
+                padding: 6px;
+                padding-top: 12px;
+            }
+
+            .header {
+                padding: 12px 8px;
+            }
+
+            .brand-info h1 {
+                font-size: 14px;
+            }
+
+            .brand-info p {
+                font-size: 11px;
+            }
+
+            .content {
+                padding: 12px 8px;
+            }
+
+            .form-field label {
+                font-size: 12px;
+            }
+
+            input, select {
+                padding: 10px;
+                font-size: 16px;
+            }
+
+            .submit-btn {
+                padding: 12px 14px;
+                font-size: 14px;
+            }
+
+            .preview-card {
+                padding: 12px;
+            }
+
+            .tips-section {
+                padding: 12px;
+            }
+        }
+
+        /* Landscape orientation adjustments for mobile */
+        @media (max-height: 600px) and (orientation: landscape) {
+            .main-container {
+                align-items: flex-start;
+                padding-top: 10px;
+                padding-bottom: 10px;
+            }
+
+            .bg-shape {
+                display: none; /* Hide floating shapes in landscape to reduce visual clutter */
+            }
+
+            .header {
+                padding: 12px 20px;
+            }
+
+            .content {
+                padding: 16px 20px;
+            }
+
+            .preview-section {
+                order: 1; /* Move preview to bottom in landscape */
+            }
+
+            .photo-grid {
+                grid-template-columns: repeat(3, 1fr);
+                gap: 10px;
+            }
+
+            .photo-item {
+                padding: 12px;
+                min-height: 100px;
+            }
+        }
+
+        /* Touch-friendly improvements */
+        @media (hover: none) and (pointer: coarse) {
+            /* Increase touch targets for mobile */
+            input, select, button {
+                min-height: 44px; /* iOS recommended touch target */
+            }
+
+            .password-toggle {
+                min-width: 44px;
+                min-height: 44px;
+            }
+
+            .photo-item {
+                min-height: 120px;
+            }
+
+            /* Disable hover effects on touch devices */
+            .login-link:hover,
+            .submit-btn:hover,
+            .photo-item:hover,
+            .btn-secondary:hover {
+                transform: none;
+                box-shadow: none;
+            }
+
+            /* But keep focus states for accessibility */
+            input:focus, select:focus {
+                transform: translateY(-1px);
+                box-shadow: 0 0 0 3px var(--border-focus);
+            }
+        }
+
+        /* High DPI display adjustments */
+        @media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+            .brand-logo {
+                border: 0.5px solid rgba(255,255,255,0.1);
+            }
+            
+            input, select {
+                border-width: 1px;
+            }
+        }
+
+        /* Keep green theme consistent across all devices */
+        @media (max-width: 768px) {
+            .bg-container {
+                display: block; /* Ensure background shapes remain visible */
+            }
+            
+            .bg-shape {
+                opacity: 0.08; /* Slightly reduce opacity on mobile for better readability */
+            }
+        }
+
+        @media (max-width: 480px) {
+            .bg-shape {
+                opacity: 0.06;
+            }
+            
+            /* Ensure green theme remains strong on mobile */
+            .registration-card::before {
+                height: 3px;
+                background: linear-gradient(90deg, var(--primary), var(--accent), var(--success));
+            }
+            
+            .brand-logo {
+                background: linear-gradient(135deg, var(--primary), var(--accent));
+                box-shadow: 0 4px 12px rgba(22, 163, 74, 0.3);
+            }
+            
+            .submit-btn {
+                background: linear-gradient(135deg, var(--primary), var(--accent));
+                box-shadow: 0 4px 12px rgba(22, 163, 74, 0.2);
+            }
+        }
+
+        /* Reduce motion for users who prefer it */
+        @media (prefers-reduced-motion: reduce) {
+            .floating-shape,
+            .brand-logo::after,
+            .submit-btn::before {
+                animation: none;
+            }
+            
+            * {
+                transition-duration: 0.01ms !important;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="bg-container">
+        <div class="bg-shape"></div>
+        <div class="bg-shape"></div>
+        <div class="bg-shape"></div>
+    </div>
+    <div class="grid-overlay"></div>
+
+    <div class="main-container">
+        <div class="registration-card">
+            <header class="header">
+                <div class="brand">
+                    <div class="brand-logo">🎓</div>
+                    <div class="brand-info">
+                        <h1>E-CLASS RECORD SYSTEM</h1>
+                        <p>Isabela State University - Cauayan | CCSICT</p>
+                    </div>
+                </div>
+                <a href="#login" class="login-link">Already have an account? Log in →</a>
+            </header>
+
+            <div class="content">
+                <div class="form-section">
+                    <form id="registrationForm">
+                        <div class="form-grid">
+                            <div class="form-field">
+                                <label for="schoolId">
+                                    School ID <span class="required-mark">*</span>
+                                </label>
+                                <div class="input-group">
+                                    <input 
+                                        id="schoolId" 
+                                        name="schoolId" 
+                                        type="text" 
+                                        placeholder="e.g. 2019-01234"
+                                        required
+                                    />
+                                </div>
+                                <div class="field-hint">Your official school ID number</div>
+                            </div>
+
+                            <div class="form-field">
+                                <label for="course">
+                                    Course <span class="required-mark">*</span>
+                                </label>
+                                <select id="course" name="course" required>
+                                    <option value="">Select Course</option>
+                                    <option value="BSIT">BS Information Technology</option>
+                                    <option value="BSCS">BS Computer Science</option>
+                                    <option value="BSIS">BS Information Systems</option>
+                                    <option value="BSCpE">BS Computer Engineering</option>
+                                    <option value="BSEMC">BS Entertainment & Multimedia Computing</option>
+                                </select>
+                            </div>
+
+                            <div class="form-field">
+                                <label for="track">Track</label>
+                                <select id="track" name="track">
+                                    <option value="">Select Track</option>
+                                    <option value="Programming">Programming Track</option>
+                                    <option value="Networking">Networking Track</option>
+                                    <option value="Database">Database Track</option>
+                                    <option value="Web Development">Web Development Track</option>
+                                    <option value="Mobile Development">Mobile Development Track</option>
+                                </select>
+                            </div>
+
+                            <div class="form-field">
+                                <label for="yearLevel">
+                                    Year Level <span class="required-mark">*</span>
+                                </label>
+                                <select id="yearLevel" name="yearLevel" required>
+                                    <option value="">Select Year Level</option>
+                                    <option value="1">1st Year</option>
+                                    <option value="2">2nd Year</option>
+                                    <option value="3">3rd Year</option>
+                                    <option value="4">4th Year</option>
+                                </select>
+                            </div>
+
+                            <div class="form-field">
+                                <label for="section">
+                                    Section <span class="required-mark">*</span>
+                                </label>
+                                <input 
+                                    id="section" 
+                                    name="section" 
+                                    type="text" 
+                                    placeholder="e.g. A, B, C"
+                                    required
+                                />
+                            </div>
+
+                            <div class="form-field">
+                                <label for="password">
+                                    Password <span class="required-mark">*</span>
+                                </label>
+                                <div class="input-group">
+                                    <input 
+                                        id="password" 
+                                        name="password" 
+                                        type="password" 
+                                        placeholder="Create a strong password"
+                                        required
+                                    />
+                                    <button type="button" class="password-toggle" onclick="togglePassword('password')">
+                                        Show
+                                    </button>
+                                </div>
+                                <div class="password-strength">
+                                    <div class="strength-bar">
+                                        <div class="strength-fill" id="strengthFill"></div>
+                                    </div>
+                                    <div class="strength-label" id="strengthLabel">Type a password</div>
+                                </div>
+                                <div class="field-hint">Min 6 characters. Use letters, numbers & symbols.</div>
+                            </div>
+
+                            <div class="form-field">
+                                <label for="confirmPassword">
+                                    Confirm Password <span class="required-mark">*</span>
+                                </label>
+                                <div class="input-group">
+                                    <input 
+                                        id="confirmPassword" 
+                                        name="confirmPassword" 
+                                        type="password" 
+                                        placeholder="Confirm your password"
+                                        required
+                                    />
+                                </div>
+                                <div class="field-hint" id="confirmHint"></div>
+                            </div>
+                        </div>
+
+                        <div class="photo-upload-section">
+                            <div class="photo-header">
+                                <h3>📸 Photo Requirements</h3>
+                                <p>Upload clear photos for verification</p>
+                            </div>
+                            
+                            <div class="photo-grid">
+                                <div class="photo-item">
+                                    <input id="idFront" type="file" accept="image/*" />
+                                    <div class="photo-preview">📄</div>
+                                    <div class="photo-label">ID Front</div>
+                                    <div class="photo-sublabel">Front side of ID</div>
+                                </div>
+
+                                <div class="photo-item">
+                                    <input id="idBack" type="file" accept="image/*" />
+                                    <div class="photo-preview">📄</div>
+                                    <div class="photo-label">ID Back</div>
+                                    <div class="photo-sublabel">Back side of ID</div>
+                                </div>
+
+                                <div class="photo-item">
+                                    <input id="facePhoto" type="file" accept="image/*" />
+                                    <div class="photo-preview">👤</div>
+                                    <div class="photo-label">Face Photo</div>
+                                    <div class="photo-sublabel">Clear face photo</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="submit-section">
+                            <button type="submit" class="submit-btn">
+                                🚀 Create Account
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <div class="preview-section">
+                    <div class="preview-card">
+                        <h3 class="preview-title">📋 Registration Preview</h3>
+                        
+                        <div class="student-preview">
+                            <div class="student-avatar" id="studentAvatar">👤</div>
+                            <div>
+                                <div class="student-name">Student</div>
+                                <div class="student-id" id="previewId">School ID: —</div>
+                            </div>
+                        </div>
+
+                        <div class="info-list">
+                            <div class="info-item">
+                                <span class="info-label">Course</span>
+                                <span class="info-value" id="previewCourse">—</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">Track</span>
+                                <span class="info-value" id="previewTrack">—</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">Year Level</span>
+                                <span class="info-value" id="previewYear">—</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">Section</span>
+                                <span class="info-value" id="previewSection">—</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="tips-section">
+                        <h4 class="tips-title">💡 Tips</h4>
+                        <ul class="tips-list">
+                            <li>Use a photo with plain background</li>
+                            <li>Ensure ID text is readable</li>
+                            <li>Create a strong password</li>
+                            <li>Double-check all information</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <footer class="footer">
+                <p>By registering you agree to the ISU policies and terms of service.</p>
+            </footer>
+        </div>
+    </div>
+
+    <script>
+        // Password visibility toggle
+        function togglePassword(fieldId) {
+            const field = document.getElementById(fieldId);
+            const button = field.nextElementSibling;
+            
+            if (field.type === 'password') {
+                field.type = 'text';
+                button.textContent = 'Hide';
+            } else {
+                field.type = 'password';
+                button.textContent = 'Show';
+            }
+        }
+
+        // Password strength checker
+        document.getElementById('password').addEventListener('input', function(e) {
+            const password = e.target.value;
+            const strengthFill = document.getElementById('strengthFill');
+            const strengthLabel = document.getElementById('strengthLabel');
+            
+            let strength = 0;
+            let label = 'Very Weak';
+            
+            if (password.length >= 6) strength += 25;
+            if (password.match(/[a-z]/)) strength += 25;
+            if (password.match(/[A-Z]/)) strength += 25;
+            if (password.match(/[0-9]/)) strength += 25;
+            if (password.match(/[^a-zA-Z0-9]/)) strength += 25;
+            
+            if (strength >= 100) label = 'Very Strong';
+            else if (strength >= 75) label = 'Strong';
+            else if (strength >= 50) label = 'Medium';
+            else if (strength >= 25) label = 'Weak';
+            
+            strengthFill.style.width = Math.min(strength, 100) + '%';
+            strengthLabel.textContent = password ? label : 'Type a password';
+        });
+
+        // Live preview updates
+        const formInputs = ['schoolId', 'course', 'track', 'yearLevel', 'section'];
+        
+        formInputs.forEach(inputId => {
+            document.getElementById(inputId).addEventListener('input', updatePreview);
+        });
+
+        function updatePreview() {
+            const schoolId = document.getElementById('schoolId').value;
+            const course = document.getElementById('course').value;
+            const track = document.getElementById('track').value;
+            const yearLevel = document.getElementById('yearLevel').value;
+            const section = document.getElementById('section').value;
+
+            document.getElementById('previewId').textContent = 
+                schoolId ? `School ID: ${schoolId}` : 'School ID: —';
+            document.getElementById('previewCourse').textContent = course || '—';
+            document.getElementById('previewTrack').textContent = track || '—';
+            document.getElementById('previewYear').textContent = 
+                yearLevel ? `${yearLevel}${getOrdinalSuffix(yearLevel)} Year` : '—';
+            document.getElementById('previewSection').textContent = section || '—';
+        }
+
+        function getOrdinalSuffix(num) {
+            const suffixes = ['st', 'nd', 'rd', 'th'];
+            return suffixes[num - 1] || 'th';
+        }
+
+        // Photo preview functionality
+        function handlePhotoUpload(input, previewElement) {
+            const file = input.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    previewElement.innerHTML = `<img src="${e.target.result}" alt="Preview">`;
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        // Add event listeners for photo uploads
+        document.getElementById('idFront').addEventListener('change', function() {
+            handlePhotoUpload(this, this.parentElement.querySelector('.photo-preview'));
+        });
+
+        document.getElementById('idBack').addEventListener('change', function() {
+            handlePhotoUpload(this, this.parentElement.querySelector('.photo-preview'));
+        });
+
+        document.getElementById('facePhoto').addEventListener('change', function() {
+            handlePhotoUpload(this, this.parentElement.querySelector('.photo-preview'));
+            // Also update the avatar in preview
+            handlePhotoUpload(this, document.getElementById('studentAvatar'));
+        });
+
+        // Password confirmation validation
+        document.getElementById('confirmPassword').addEventListener('input', function(e) {
+            const password = document.getElementById('password').value;
+            const confirmPassword = e.target.value;
+            const hint = document.getElementById('confirmHint');
+            
+            if (confirmPassword) {
+                if (password === confirmPassword) {
+                    hint.textContent = '✓ Passwords match';
+                    hint.style.color = 'var(--success)';
+                } else {
+                    hint.textContent = '✗ Passwords do not match';
+                    hint.style.color = 'var(--danger)';
+                }
+            } else {
+                hint.textContent = '';
+            }
+        });
+
+        // Form submission
+        document.getElementById('registrationForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const submitBtn = document.querySelector('.submit-btn');
+            const originalText = submitBtn.innerHTML;
+            
+            // Show loading state
+            submitBtn.innerHTML = '<div class="spinner"></div> Creating Account...';
+            submitBtn.style.opacity = '0.7';
+            submitBtn.disabled = true;
+            
+            // Simulate registration process
+            setTimeout(() => {
+                // Reset button
+                submitBtn.innerHTML = originalText;
+                submitBtn.style.opacity = '1';
+                submitBtn.disabled = false;
+                
+                // Show success message (you would replace this with actual form submission)
+                alert('Registration successful! Please check your email for verification.');
+            }, 2000);
+        });
+
+        // Add floating animation to background shapes
+        document.addEventListener('DOMContentLoaded', function() {
+            const shapes = document.querySelectorAll('.bg-shape');
+            shapes.forEach((shape, index) => {
+                shape.style.animationDelay = `${index * -5}s`;
+            });
+        });
+
+        // Smooth scroll for login link
+        document.querySelector('.login-link').addEventListener('click', function(e) {
+            e.preventDefault();
+            // Add your login navigation logic here
+            console.log('Navigate to login page');
+        });
+
+        // Add subtle hover effects to form fields
+        document.querySelectorAll('input, select').forEach(field => {
+            field.addEventListener('mouseenter', function() {
+                this.style.transform = 'translateY(-1px)';
+            });
+            
+            field.addEventListener('mouseleave', function() {
+                if (this !== document.activeElement) {
+                    this.style.transform = 'translateY(0)';
+                }
+            });
+        });
+
+        // Responsive: move preview-section inside the form before the submit button on small screens
+        function relocatePreview() {
+            const preview = document.querySelector('.preview-section');
+            const form = document.getElementById('registrationForm');
+            const submitSection = document.querySelector('.submit-section');
+            const content = document.querySelector('.content');
+            if (!preview || !form || !submitSection || !content) return;
+
+            // Use 480px as the mobile breakpoint for this behavior
+            if (window.innerWidth <= 480) {
+                if (preview.parentElement !== form) {
+                    // Insert preview before submit button inside the form
+                    form.insertBefore(preview, submitSection);
+                }
+            } else {
+                // Ensure preview is back in the content column on larger screens
+                if (preview.parentElement === form) {
+                    content.appendChild(preview);
+                }
+            }
+        }
+
+        // Debounce resize handler for performance
+        let _relocateTimer = null;
+        window.addEventListener('resize', function() {
+            clearTimeout(_relocateTimer);
+            _relocateTimer = setTimeout(relocatePreview, 120);
+        });
+
+        // Run on load to set initial placement
+        document.addEventListener('DOMContentLoaded', relocatePreview);
+    </script>
+</body>
+</html>

@@ -1,0 +1,942 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>E-Class Record - Instructor Class Management</title>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap');
+
+        :root {
+            --primary-color: #4f46e5;
+            --primary-hover-color: #4338ca;
+            --danger-color: #ef4444;
+            --danger-hover-color: #dc2626;
+            --success-color: #22c55e;
+            --success-hover-color: #16a34a;
+            --bg-color: #f3f4f6;
+            --card-bg: #ffffff;
+            --text-color: #1f2937;
+            --border-color: #e5e7eb;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: 100vh;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 1200px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .card {
+            background-color: var(--card-bg);
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: var(--shadow);
+        }
+
+        h1 {
+            font-size: 2rem;
+            font-weight: 600;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        h2 {
+            font-size: 1.5rem;
+            font-weight: 600;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 16px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .section-group {
+            display: flex;
+            flex-direction: row;
+            gap: 8px;
+        }
+
+        label {
+            font-size: 0.875rem;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        input,
+        select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            font-size: 1rem;
+            outline: none;
+            transition: border-color 0.2s ease-in-out;
+        }
+
+        input:focus,
+        select:focus {
+            border-color: var(--primary-color);
+        }
+
+        .button-group {
+            display: flex;
+            gap: 12px;
+            justify-content: flex-end;
+            margin-top: 20px;
+        }
+
+        button {
+            padding: 10px 16px;
+            font-size: 1rem;
+            font-weight: 600;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.2s ease-in-out, transform 0.1s ease-in-out;
+        }
+
+        .btn-primary {
+            background-color: var(--primary-color);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background-color: var(--primary-hover-color);
+        }
+
+        .btn-secondary {
+            background-color: #6b7280;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background-color: #4b5563;
+        }
+
+        .btn-danger {
+            background-color: var(--danger-color);
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background-color: var(--danger-hover-color);
+        }
+
+        .btn-success {
+            background-color: var(--success-color);
+            color: white;
+        }
+
+        .btn-success:hover {
+            background-color: var(--success-hover-color);
+        }
+
+        .record-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            max-height: 600px;
+            overflow-y: auto;
+        }
+
+        .record-item {
+            background-color: #f9fafb;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .record-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .class-code-section {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            margin: 10px 0;
+        }
+
+        .join-code-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .join-code {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: var(--primary-color);
+            margin: 0;
+            letter-spacing: 2px;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .copy-btn {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            padding: 8px 12px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: background-color 0.2s ease-in-out, transform 0.1s ease-in-out;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .copy-btn:hover {
+            background-color: var(--primary-hover-color);
+            transform: translateY(-1px);
+        }
+
+        .copy-btn:active {
+            transform: translateY(0);
+        }
+
+        .class-code {
+            font-size: 0.75rem;
+            color: var(--text-color);
+            opacity: 0.7;
+            font-family: 'Courier New', monospace;
+            letter-spacing: 1px;
+            background-color: #f3f4f6;
+            padding: 2px 6px;
+            border-radius: 4px;
+            border: 1px solid #e5e7eb;
+        }
+
+        .record-id-display {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--primary-color);
+        }
+
+        .record-details {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, min-content);
+            gap: 8px;
+            font-size: 0.875rem;
+            color: #4b5563;
+        }
+
+        .detail-item {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .detail-label {
+            font-weight: 600;
+            color: #4b5563;
+        }
+
+        .record-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .action-btn {
+            padding: 8px 12px;
+            font-size: 0.875rem;
+        }
+
+        .empty-state {
+            text-align: center;
+            font-style: italic;
+            color: #6b7280;
+            padding: 20px;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid var(--primary-color);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        .alert {
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin-bottom: 16px;
+            font-weight: 500;
+        }
+
+        .alert-success {
+            background-color: rgba(34, 197, 94, 0.1);
+            border: 1px solid var(--success-color);
+            color: var(--success-color);
+        }
+
+        .alert-error {
+            background-color: rgba(239, 68, 68, 0.1);
+            border: 1px solid var(--danger-color);
+            color: var(--danger-color);
+        }
+
+        .back-link {
+            display: inline-block;
+            margin-bottom: 20px;
+            color: var(--primary-color);
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        .back-link:hover {
+            text-decoration: underline;
+        }
+
+        /* Modal Styles */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            visibility: hidden;
+            opacity: 0;
+            transition: visibility 0s, opacity 0.3s ease-in-out;
+        }
+
+        .modal-overlay.show {
+            visibility: visible;
+            opacity: 1;
+        }
+
+        .modal-content {
+            background-color: var(--card-bg);
+            padding: 24px;
+            border-radius: 12px;
+            box-shadow: var(--shadow);
+            width: 90%;
+            max-width: 400px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .modal-content h3 {
+            margin: 0;
+            font-size: 1.5rem;
+            font-weight: 600;
+            text-align: center;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <a href="{{ url_for('instructor_dashboard') }}" class="back-link">← Back to Dashboard</a>
+
+        <div class="card">
+            <h1>E-Class Record - Class Management</h1>
+
+            <form id="class-form" onsubmit="event.preventDefault(); handleFormSubmit();">
+                <input type="hidden" id="class-id">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="year">Year</label>
+                        <select id="year" required>
+                            <option value="" disabled selected>Select Year</option>
+                            <option value="2024">2024</option>
+                            <option value="2025">2025</option>
+                            <option value="2026">2026</option>
+                            <option value="addNewOption">Add New Year...</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="semester">Semester</label>
+                        <select id="semester" required>
+                            <option value="" disabled selected>Select Semester</option>
+                            <option value="1st sem">1st Semester</option>
+                            <option value="2nd sem">2nd Semester</option>
+                            <option value="addNewOption">Add New Semester...</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="course">Course</label>
+                        <select id="course" required>
+                            <option value="" disabled selected>Select Course</option>
+                            <option value="BSIT">BS Information Technology</option>
+                            <option value="BSCS">BS Computer Science</option>
+                            <option value="BSIS">BS Information Systems</option>
+                            <option value="BSCpE">BS Computer Engineering</option>
+                            <option value="BSEMC">BS Entertainment & Multimedia Computing</option>
+                            <option value="addNewOption">Add New Course...</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="track">Track</label>
+                        <select id="track" required>
+                            <option value="" disabled selected>Select Track</option>
+                            <option value="Programming">Programming Track</option>
+                            <option value="Networking">Networking Track</option>
+                            <option value="Database">Database Track</option>
+                            <option value="Web Development">Web Development Track</option>
+                            <option value="Mobile Development">Mobile Development Track</option>
+                            <option value="addNewOption">Add New Track...</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Section</label>
+                        <div class="section-group">
+                            <select id="sectionNumber" required>
+                                <option value="" disabled selected>Num</option>
+                                <option value="1">1</option>
+                                <option value="2">2</option>
+                                <option value="3">3</option>
+                                <option value="4">4</option>
+                                <option value="5">5</option>
+                            </select>
+                            <select id="sectionLetter" required>
+                                <option value="" disabled selected>Letter</option>
+                                <option value="A">A</option>
+                                <option value="B">B</option>
+                                <option value="C">C</option>
+                                <option value="D">D</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="schedule">Schedule</label>
+                        <select id="schedule" required>
+                            <option value="" disabled selected>Select Schedule</option>
+                            <option value="M-W-F 8-10AM">M-W-F 8-10AM</option>
+                            <option value="T-Th 10-12PM">T-Th 10-12PM</option>
+                            <option value="M-W-F 1-3PM">M-W-F 1-3PM</option>
+                            <option value="T-Th 3-5PM">T-Th 3-5PM</option>
+                            <option value="addNewOption">Add New Schedule...</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="button-group">
+                    <button type="submit" id="submit-btn" class="btn-primary">
+                        <span id="submit-text">Add Class</span>
+                        <span id="submit-loading" class="loading" style="display: none;"></span>
+                    </button>
+                    <button type="button" id="clear-btn" class="btn-secondary">Clear Form</button>
+                </div>
+            </form>
+        </div>
+
+        <div class="card">
+            <h2>Your Classes</h2>
+            <div id="alert-container"></div>
+            <div id="classes-container" class="record-list">
+                <p class="empty-state">Loading classes...</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal for adding new options -->
+    <div id="add-option-modal" class="modal-overlay">
+        <div class="modal-content">
+            <h3>Add New Option</h3>
+            <p id="modal-label"></p>
+            <input type="text" id="modal-input" placeholder="Enter new value..." autofocus>
+            <div class="button-group">
+                <button id="modal-save" class="btn-primary">Save</button>
+                <button id="modal-cancel" class="btn-secondary">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let classes = [];
+        let editingId = null;
+        let activeDropdownId = '';
+
+        // Default dropdown options
+        const defaultOptions = {
+            year: ["2024", "2025", "2026"],
+            semester: ["1st sem", "2nd sem"],
+            course: ["BSIT", "BSCS", "BSIS", "BSCpE", "BSEMC"],
+            track: ["Programming", "Networking", "Database", "Web Development", "Mobile Development"],
+            schedule: ["M-W-F 8-10AM", "T-Th 10-12PM", "M-W-F 1-3PM", "T-Th 3-5PM"]
+        };
+
+        let optionsData = {};
+
+        document.addEventListener('DOMContentLoaded', () => {
+            loadOptions();
+            document.getElementById('clear-btn').addEventListener('click', clearForm);
+            document.getElementById('modal-save').addEventListener('click', handleModalSave);
+            document.getElementById('modal-cancel').addEventListener('click', hideModal);
+            loadClasses();
+        });
+
+        // Function to load dropdown options from localStorage
+        function loadOptions() {
+            for (const key in defaultOptions) {
+                optionsData[key] = JSON.parse(localStorage.getItem(`${key}Options`)) || defaultOptions[key];
+                populateDropdown(key, optionsData[key]);
+            }
+        }
+
+        // Function to populate a dropdown with options
+        function populateDropdown(id, options) {
+            const select = document.getElementById(id);
+            const selectedValue = select.value;
+            select.innerHTML = '';
+            select.innerHTML += `<option value="" disabled selected>Select ${id.charAt(0).toUpperCase() + id.slice(1)}</option>`;
+            options.forEach(option => {
+                const isSelected = selectedValue === option ? 'selected' : '';
+                select.innerHTML += `<option value="${option}" ${isSelected}>${option}</option>`;
+            });
+            select.innerHTML += `<option value="addNewOption">Add New...</option>`;
+
+            select.addEventListener('change', (event) => {
+                if (event.target.value === 'addNewOption') {
+                    showModal(id);
+                }
+            });
+        }
+
+        // Function to show the modal
+        function showModal(id) {
+            activeDropdownId = id;
+            const modalLabel = document.getElementById('modal-label');
+            modalLabel.textContent = `Enter new option for ${id}:`;
+            const modal = document.getElementById('add-option-modal');
+            modal.classList.add('show');
+            document.getElementById('modal-input').focus();
+        }
+
+        // Function to hide the modal
+        function hideModal() {
+            const modalInput = document.getElementById('modal-input');
+            modalInput.value = '';
+            const modal = document.getElementById('add-option-modal');
+            modal.classList.remove('show');
+            const select = document.getElementById(activeDropdownId);
+            if (select.value === 'addNewOption') {
+                select.value = ''; // Reset the dropdown if user cancels
+            }
+        }
+
+        // Function to handle modal save
+        function handleModalSave() {
+            const newValue = document.getElementById('modal-input').value.trim();
+            const options = optionsData[activeDropdownId];
+
+            if (!newValue) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Invalid Input',
+                    text: 'Value cannot be empty.',
+                    confirmButtonColor: '#f59e0b'
+                });
+                return;
+            }
+
+            if (options.includes(newValue)) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Duplicate Value',
+                    text: 'This option already exists.',
+                    confirmButtonColor: '#f59e0b'
+                });
+                return;
+            }
+
+            options.push(newValue);
+            localStorage.setItem(`${activeDropdownId}Options`, JSON.stringify(options));
+
+            populateDropdown(activeDropdownId, options);
+            document.getElementById(activeDropdownId).value = newValue;
+
+            Swal.fire({
+                icon: 'success',
+                title: 'Added!',
+                text: `New ${activeDropdownId} option added successfully`,
+                timer: 1500,
+                timerProgressBar: true,
+                showConfirmButton: false
+            });
+
+            hideModal();
+        }
+
+        // Function to show alert messages using SweetAlert
+        function showAlert(message, type = 'success') {
+            const icon = type === 'success' ? 'success' : type === 'error' ? 'error' : 'info';
+            const title = type === 'success' ? 'Success!' : type === 'error' ? 'Error!' : 'Info';
+
+            Swal.fire({
+                icon: icon,
+                title: title,
+                text: message,
+                timer: 3000,
+                timerProgressBar: true,
+                showConfirmButton: false,
+                toast: true,
+                position: 'top-end',
+                background: type === 'success' ? '#d1fae5' : type === 'error' ? '#fee2e2' : '#f3f4f6',
+                color: type === 'success' ? '#065f46' : type === 'error' ? '#991b1b' : '#1f2937'
+            });
+        }
+
+        // Function to load classes from API
+        async function loadClasses() {
+            try {
+                const response = await fetch('/api/instructor/classes');
+                if (response.ok) {
+                    const data = await response.json();
+                    classes = data.classes;
+                    renderClasses();
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Loading Error',
+                        text: 'Failed to load classes. Please refresh the page.'
+                    });
+                }
+            } catch (error) {
+                console.error('Error loading classes:', error);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Loading Error',
+                    text: 'Error loading classes. Please refresh the page.'
+                });
+            }
+        }
+
+        // Function to render classes
+        function renderClasses() {
+            const container = document.getElementById('classes-container');
+            container.innerHTML = '';
+
+            if (classes.length === 0) {
+                container.innerHTML = '<p class="empty-state">No classes found. Add a new class to get started.</p>';
+                return;
+            }
+
+            classes.forEach(cls => {
+                const recordItem = document.createElement('div');
+                recordItem.className = 'record-item';
+
+                const details = `
+                    <div class="record-header">
+                        <div class="record-id-display">${cls.class_id}</div>
+                        <div class="class-code-section">
+                            <div class="join-code-container">
+                                <h1 class="join-code">${cls.join_code || 'N/A'}</h1>
+                                <button class="copy-btn" onclick="copyJoinCode('${cls.join_code || ''}')" title="Copy join code">
+                                    📋
+                                </button>
+                            </div>
+                            <sub class="class-code">${cls.class_code || 'N/A'}</sub>
+                        </div>
+                        <div class="record-actions">
+                            <button class="action-btn btn-secondary" onclick="editClass(${cls.id})">Edit</button>
+                            <button class="action-btn btn-danger" onclick="deleteClass(${cls.id})">Remove</button>
+                        </div>
+                    </div>
+                    <div class="record-details">
+                        <div class="detail-item"><span class="detail-label">Year:</span><span>${cls.year}</span></div>
+                        <div class="detail-item"><span class="detail-label">Semester:</span><span>${cls.semester}</span></div>
+                        <div class="detail-item"><span class="detail-label">Course:</span><span>${cls.course}</span></div>
+                        <div class="detail-item"><span class="detail-label">Track:</span><span>${cls.track}</span></div>
+                        <div class="detail-item"><span class="detail-label">Section:</span><span>${cls.section}</span></div>
+                        <div class="detail-item"><span class="detail-label">Schedule:</span><span>${cls.schedule}</span></div>
+                    </div>
+                `;
+                recordItem.innerHTML = details;
+                container.appendChild(recordItem);
+            });
+        }
+
+        // Function to handle form submission
+        async function handleFormSubmit() {
+            const submitBtn = document.getElementById('submit-btn');
+            const submitText = document.getElementById('submit-text');
+            const submitLoading = document.getElementById('submit-loading');
+
+            // Show loading state
+            submitText.style.display = 'none';
+            submitLoading.style.display = 'inline-block';
+            submitBtn.disabled = true;
+
+            const year = document.getElementById('year').value;
+            const semester = document.getElementById('semester').value;
+            const course = document.getElementById('course').value;
+            const track = document.getElementById('track').value;
+            const sectionNumber = document.getElementById('sectionNumber').value;
+            const sectionLetter = document.getElementById('sectionLetter').value;
+            const section = sectionNumber + sectionLetter;
+            const schedule = document.getElementById('schedule').value;
+
+            const classData = {
+                year,
+                semester,
+                course,
+                track,
+                section,
+                schedule
+            };
+
+            try {
+                let response;
+                if (editingId) {
+                    // Update existing class
+                    response = await fetch(`/api/instructor/classes/${editingId}`, {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify(classData)
+                    });
+                } else {
+                    // Create new class
+                    response = await fetch('/api/instructor/classes', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify(classData)
+                    });
+                }
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: editingId ? 'Updated!' : 'Created!',
+                        text: result.message || `Class ${editingId ? 'updated' : 'created'} successfully`,
+                        timer: 2000,
+                        timerProgressBar: true,
+                        showConfirmButton: false
+                    });
+
+                    if (editingId) {
+                        // Update the class in our local array
+                        const index = classes.findIndex(c => c.id === editingId);
+                        if (index !== -1) {
+                            classes[index] = result.class;
+                        }
+                        editingId = null;
+                        submitText.textContent = 'Add Class';
+                    } else {
+                        // Add new class to our local array
+                        classes.push(result.class);
+                    }
+                    renderClasses();
+                    clearForm();
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error!',
+                        text: result.error || 'Failed to save class'
+                    });
+                }
+            } catch (error) {
+                console.error('Error saving class:', error);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error!',
+                    text: 'Error saving class'
+                });
+            } finally {
+                // Hide loading state
+                submitText.style.display = 'inline';
+                submitLoading.style.display = 'none';
+                submitBtn.disabled = false;
+            }
+        }
+
+        // Function to edit a class
+        function editClass(id) {
+            const classToEdit = classes.find(c => c.id === id);
+            if (classToEdit) {
+                document.getElementById('year').value = classToEdit.year;
+                document.getElementById('semester').value = classToEdit.semester;
+                document.getElementById('course').value = classToEdit.course;
+                document.getElementById('track').value = classToEdit.track;
+
+                const sectionNumber = classToEdit.section.match(/\d/)[0];
+                const sectionLetter = classToEdit.section.match(/[A-D]/)[0];
+                document.getElementById('sectionNumber').value = sectionNumber;
+                document.getElementById('sectionLetter').value = sectionLetter;
+
+                document.getElementById('schedule').value = classToEdit.schedule;
+
+                editingId = id;
+                document.getElementById('submit-text').textContent = 'Update Class';
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+        }
+
+        // Function to delete a class
+        async function deleteClass(id) {
+            const classToDelete = classes.find(c => c.id === id);
+            const classId = classToDelete ? classToDelete.class_id : 'this class';
+
+            const result = await Swal.fire({
+                title: 'Delete Class',
+                text: `Are you sure you want to delete "${classId}"? This action cannot be undone.`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#ef4444',
+                cancelButtonColor: '#6b7280',
+                confirmButtonText: 'Yes, delete it!',
+                cancelButtonText: 'Cancel'
+            });
+
+            if (!result.isConfirmed) {
+                return;
+            }
+
+            // Show loading state
+            Swal.fire({
+                title: 'Deleting...',
+                text: 'Please wait while we delete the class.',
+                allowOutsideClick: false,
+                showConfirmButton: false,
+                willOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+
+            try {
+                const response = await fetch(`/api/instructor/classes/${id}`, {
+                    method: 'DELETE'
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Deleted!',
+                        text: data.message || 'Class deleted successfully',
+                        timer: 2000,
+                        timerProgressBar: true,
+                        showConfirmButton: false
+                    });
+                    classes = classes.filter(c => c.id !== id);
+                    renderClasses();
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error!',
+                        text: data.error || 'Failed to delete class'
+                    });
+                }
+            } catch (error) {
+                console.error('Error deleting class:', error);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error!',
+                    text: 'Error deleting class'
+                });
+            }
+        }
+
+        // Function to copy join code to clipboard
+        async function copyJoinCode(code) {
+            if (!code || code === 'N/A') {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'No Code Available',
+                    text: 'This class does not have a join code yet.'
+                });
+                return;
+            }
+
+            try {
+                await navigator.clipboard.writeText(code);
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Copied!',
+                    text: `Join code "${code}" copied to clipboard`,
+                    timer: 1500,
+                    timerProgressBar: true,
+                    showConfirmButton: false,
+                    toast: true,
+                    position: 'top-end'
+                });
+            } catch (error) {
+                console.error('Failed to copy:', error);
+                // Fallback for older browsers
+                const textArea = document.createElement('textarea');
+                textArea.value = code;
+                document.body.appendChild(textArea);
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
+
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Copied!',
+                    text: `Join code "${code}" copied to clipboard`,
+                    timer: 1500,
+                    timerProgressBar: true,
+                    showConfirmButton: false,
+                    toast: true,
+                    position: 'top-end'
+                });
+            }
+        }
+
+        // Function to clear the form
+        function clearForm() {
+            document.getElementById('class-form').reset();
+            editingId = null;
+            document.getElementById('submit-text').textContent = 'Add Class';
+        }
+    </script>
+</body>
+
+</html>

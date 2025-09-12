@@ -1,5 +1,6 @@
 import os
 import logging
+from typing import Optional
 from flask import Flask
 from dotenv import load_dotenv
 from models import db
@@ -10,7 +11,7 @@ logger = logging.getLogger(__name__)
 class DatabaseConnection:
     """Handles database connection, initialization, and management."""
 
-    def __init__(self, app: Flask = None):
+    def __init__(self, app: Optional[Flask] = None):
         self.app = app
         if app is not None:
             self.init_app(app)
@@ -21,11 +22,30 @@ class DatabaseConnection:
         load_dotenv()
         logger.info("Environment variables loaded from .env file")
 
+        # Determine database configuration based on environment
+        environment = os.getenv('ENVIRONMENT', 'local').lower()
+        logger.info(f"Database environment: {environment}")
+
+        if environment == 'local':
+            db_host = os.getenv('LOCAL_DB_HOST')
+            db_port = os.getenv('LOCAL_DB_PORT')
+            db_user = os.getenv('LOCAL_DB_USER')
+            db_password = os.getenv('LOCAL_DB_PASSWORD')
+            db_name = os.getenv('LOCAL_DB_NAME')
+        elif environment == 'production' or environment == 'online':
+            db_host = os.getenv('ONLINE_DB_HOST')
+            db_port = os.getenv('ONLINE_DB_PORT')
+            db_user = os.getenv('ONLINE_DB_USER')
+            db_password = os.getenv('ONLINE_DB_PASSWORD')
+            db_name = os.getenv('ONLINE_DB_NAME')
+        else:
+            raise ValueError(f"Invalid ENVIRONMENT value: {environment}. Must be 'local' or 'production'/'online'")
+
         # Database configuration
-        db_uri = f"mysql+pymysql://{os.getenv('DB_USER')}:{os.getenv('DB_PASSWORD')}@{os.getenv('DB_HOST')}:{os.getenv('DB_PORT')}/{os.getenv('DB_NAME')}"
+        db_uri = f"mysql+pymysql://{db_user}:{db_password}@{db_host}:{db_port}/{db_name}"
         app.config['SQLALCHEMY_DATABASE_URI'] = db_uri
         app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-        logger.info(f"Database URI configured: {db_uri.replace(os.getenv('DB_PASSWORD'), '***')}")
+        logger.info(f"Database URI configured for {environment}: {db_uri.replace(db_password or '', '***')}")
 
         # Initialize database with app
         db.init_app(app)
@@ -33,6 +53,9 @@ class DatabaseConnection:
 
     def test_connection(self) -> bool:
         """Test database connection."""
+        if self.app is None:
+            logger.error("Database connection not initialized with Flask app")
+            return False
         try:
             logger.info("Testing database connection...")
             with self.app.app_context():
@@ -46,6 +69,9 @@ class DatabaseConnection:
 
     def create_tables(self) -> bool:
         """Create all database tables."""
+        if self.app is None:
+            logger.error("Database connection not initialized with Flask app")
+            return False
         try:
             logger.info("Creating database tables...")
             with self.app.app_context():

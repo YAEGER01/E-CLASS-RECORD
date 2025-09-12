@@ -71,15 +71,24 @@
         </div>
 
         <div class="card">
-            <h3>📋 Class Records</h3>
-            <p>View your class records and grades here.</p>
-            <p><em>Feature coming soon...</em></p>
+            <h3>🚀 JOIN CLASS</h3>
+            <p>Enter a class join code to enroll in a new class.</p>
+            <div style="margin-top: 15px;">
+                <input type="text" id="joinCode" placeholder="Enter 6-digit join code" maxlength="6"
+                    style="padding: 8px; width: 200px; border: 1px solid #ddd; border-radius: 4px; margin-right: 10px;">
+                <button onclick="joinClass()"
+                    style="padding: 8px 16px; background: #16a34a; color: white; border: none; border-radius: 4px; cursor: pointer;">Join
+                    Class</button>
+            </div>
+            <div id="joinMessage" style="margin-top: 10px; display: none;"></div>
         </div>
 
         <div class="card">
-            <h3>📅 Schedule</h3>
-            <p>Check your class schedule and assignments.</p>
-            <p><em>Feature coming soon...</em></p>
+            <h3>📚 Joined Classes</h3>
+            <p>Your enrolled classes:</p>
+            <div id="joinedClassesList" style="margin-top: 15px;">
+                <p style="color: #666; font-style: italic;">Loading classes...</p>
+            </div>
         </div>
 
         <div class="card">
@@ -88,6 +97,186 @@
             <p><em>Feature coming soon...</em></p>
         </div>
     </div>
+
+    <!-- Class Details Modal -->
+    <div id="classModal"
+        style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000;">
+        <div
+            style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 20px; border-radius: 10px; width: 90%; max-width: 500px; max-height: 80%; overflow-y: auto;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h3 style="margin: 0;">📚 Class Details</h3>
+                <button onclick="closeModal()"
+                    style="background: #dc3545; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer;">✕</button>
+            </div>
+            <div id="classDetails" style="line-height: 1.6;">
+                <!-- Class details will be populated here -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Load joined classes when page loads
+        document.addEventListener('DOMContentLoaded', function () {
+            loadJoinedClasses();
+        });
+
+        // Function to join a class
+        function joinClass() {
+            const joinCode = document.getElementById('joinCode').value.trim().toUpperCase();
+            const messageDiv = document.getElementById('joinMessage');
+
+            if (!joinCode) {
+                showMessage('Please enter a join code', 'error');
+                return;
+            }
+
+            if (joinCode.length !== 6) {
+                showMessage('Join code must be 6 characters', 'error');
+                return;
+            }
+
+            // Show loading
+            const joinButton = document.querySelector('button[onclick="joinClass()"]');
+            const originalText = joinButton.textContent;
+            joinButton.textContent = 'Joining...';
+            joinButton.disabled = true;
+
+            fetch('/api/student/join-class', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ join_code: joinCode })
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showMessage(data.message, 'success');
+                        document.getElementById('joinCode').value = '';
+                        loadJoinedClasses(); // Refresh the joined classes list
+                    } else {
+                        showMessage(data.error, 'error');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    showMessage('Failed to join class. Please try again.', 'error');
+                })
+                .finally(() => {
+                    joinButton.textContent = originalText;
+                    joinButton.disabled = false;
+                });
+        }
+
+        // Function to load joined classes
+        function loadJoinedClasses() {
+            const listDiv = document.getElementById('joinedClassesList');
+
+            fetch('/api/student/joined-classes')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.classes && data.classes.length > 0) {
+                        let html = '<div style="max-height: 300px; overflow-y: auto;">';
+                        data.classes.forEach(cls => {
+                            html += `
+                            <div style="border: 1px solid #ddd; padding: 10px; margin-bottom: 10px; border-radius: 5px; cursor: pointer; transition: background 0.2s;"
+                                 onclick="showClassDetails(${cls.id})">
+                                <div style="font-weight: bold; color: #16a34a;">${cls.class_id}</div>
+                                <div style="font-size: 14px; color: #666;">
+                                    ${cls.course} ${cls.track} - ${cls.section}<br>
+                                    ${cls.schedule}<br>
+                                    Instructor: ${cls.instructor_name}
+                                </div>
+                            </div>
+                        `;
+                        });
+                        html += '</div>';
+                        listDiv.innerHTML = html;
+                    } else {
+                        listDiv.innerHTML = '<p style="color: #666; font-style: italic;">No classes joined yet. Use the join code above to enroll in classes.</p>';
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading classes:', error);
+                    listDiv.innerHTML = '<p style="color: #dc3545;">Failed to load classes. Please refresh the page.</p>';
+                });
+        }
+
+        // Function to show class details in modal
+        function showClassDetails(classId) {
+            fetch('/api/student/joined-classes')
+                .then(response => response.json())
+                .then(data => {
+                    const classData = data.classes.find(cls => cls.id === classId);
+                    if (classData) {
+                        const detailsDiv = document.getElementById('classDetails');
+                        detailsDiv.innerHTML = `
+                        <div style="margin-bottom: 15px;">
+                            <strong>Class ID:</strong> ${classData.class_id}
+                        </div>
+                        <div style="margin-bottom: 15px;">
+                            <strong>Course:</strong> ${classData.course}<br>
+                            <strong>Track:</strong> ${classData.track}<br>
+                            <strong>Section:</strong> ${classData.section}
+                        </div>
+                        <div style="margin-bottom: 15px;">
+                            <strong>Year/Semester:</strong> ${classData.year} - ${classData.semester}
+                        </div>
+                        <div style="margin-bottom: 15px;">
+                            <strong>Schedule:</strong> ${classData.schedule}
+                        </div>
+                        <div style="margin-bottom: 15px;">
+                            <strong>Instructor:</strong> ${classData.instructor_name}
+                        </div>
+                        <div style="margin-bottom: 15px;">
+                            <strong>Class Code:</strong> ${classData.class_code}<br>
+                            <strong>Join Code:</strong> ${classData.join_code}
+                        </div>
+                        <div style="margin-bottom: 15px;">
+                            <strong>Joined Date:</strong> ${new Date(classData.joined_at).toLocaleDateString()}
+                        </div>
+                    `;
+                        document.getElementById('classModal').style.display = 'block';
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading class details:', error);
+                });
+        }
+
+        // Function to close modal
+        function closeModal() {
+            document.getElementById('classModal').style.display = 'none';
+        }
+
+        // Function to show messages
+        function showMessage(message, type) {
+            const messageDiv = document.getElementById('joinMessage');
+            messageDiv.textContent = message;
+            messageDiv.style.display = 'block';
+            messageDiv.style.color = type === 'success' ? '#16a34a' : '#dc3545';
+            messageDiv.style.fontWeight = 'bold';
+
+            // Hide message after 5 seconds
+            setTimeout(() => {
+                messageDiv.style.display = 'none';
+            }, 5000);
+        }
+
+        // Close modal when clicking outside
+        document.getElementById('classModal').addEventListener('click', function (e) {
+            if (e.target === this) {
+                closeModal();
+            }
+        });
+
+        // Allow Enter key to join class
+        document.getElementById('joinCode').addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') {
+                joinClass();
+            }
+        });
+    </script>
 </body>
 
 </html>

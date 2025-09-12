@@ -3,9 +3,20 @@ import logging
 from datetime import datetime
 from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify
 from werkzeug.utils import secure_filename
-from models import User, Student, Instructor
+from models import User, Student, Instructor, Class, StudentClass, generate_class_codes
 from db_conn import init_database_with_app, db_conn
 from models import db
+from functools import wraps
+
+# Login required decorator
+def login_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if 'user_id' not in session:
+            flash('Please log in to access this page.', 'error')
+            return redirect(url_for('login'))
+        return f(*args, **kwargs)
+    return decorated_function
 
 # Configure logging
 logging.basicConfig(
@@ -234,6 +245,353 @@ def instructor_login():
     logger.info("Instructor login page accessed")
     return render_template('instructorlogin.html')
 
+# Instructor Class Management Routes
+@app.route('/instructor/classes')
+@login_required
+def instructor_classes():
+    """Display instructor's class management page."""
+    if session.get('role') != 'instructor':
+        flash("Access denied. Instructor privileges required.", "error")
+        return redirect(url_for('home'))
+
+    user = db.session.get(User, session['user_id'])
+    if not user:
+        # Session contains invalid user ID (likely due to database reset)
+        session.clear()
+        flash("Session expired. Please log in again.", "error")
+        return redirect(url_for('login'))
+
+    instructor = Instructor.query.filter_by(user_id=user.id).first()
+
+    if not instructor:
+        flash("Instructor profile not found.", "error")
+        return redirect(url_for('home'))
+
+    logger.info(f"Instructor {user.school_id} accessed class management")
+    return render_template('instructor_classes.html')
+
+@app.route('/api/instructor/classes', methods=['GET'])
+@login_required
+def get_instructor_classes():
+    """Get all classes for the logged-in instructor."""
+    if session.get('role') != 'instructor':
+        return jsonify({'error': 'Access denied'}), 403
+
+    user = db.session.get(User, session['user_id'])
+    instructor = Instructor.query.filter_by(user_id=user.id).first()
+
+    if not instructor:
+        return jsonify({'error': 'Instructor profile not found'}), 404
+
+    classes = Class.query.filter_by(instructor_id=instructor.id).all()
+    classes_data = []
+
+    for cls in classes:
+        classes_data.append({
+            'id': cls.id,
+            'year': cls.year,
+            'semester': cls.semester,
+            'course': cls.course,
+            'track': cls.track,
+            'section': cls.section,
+            'schedule': cls.schedule,
+            'class_id': cls.class_id,
+            'class_code': cls.class_code,
+            'join_code': cls.join_code,
+            'created_at': cls.created_at.isoformat() if cls.created_at else None,
+            'updated_at': cls.updated_at.isoformat() if cls.updated_at else None
+        })
+
+    logger.info(f"Retrieved {len(classes_data)} classes for instructor {user.school_id}")
+    return jsonify({'classes': classes_data})
+
+@app.route('/api/instructor/classes', methods=['POST'])
+@login_required
+def create_class():
+    """Create a new class for the logged-in instructor."""
+    if session.get('role') != 'instructor':
+        return jsonify({'error': 'Access denied'}), 403
+
+    user = User.query.get(session['user_id'])
+    instructor = Instructor.query.filter_by(user_id=user.id).first()
+
+    if not instructor:
+        return jsonify({'error': 'Instructor profile not found'}), 404
+
+    data = request.get_json()
+
+    # Validate required fields
+    required_fields = ['year', 'semester', 'course', 'track', 'section', 'schedule']
+    for field in required_fields:
+        if not data.get(field):
+            return jsonify({'error': f'{field} is required'}), 400
+
+    # Validate section format (should be like "1A", "2B", etc.)
+    section = data['section']
+    if not (len(section) == 2 and section[0].isdigit() and section[1].isalpha()):
+        return jsonify({'error': 'Section must be in format like "1A", "2B", etc.'}), 400
+
+    try:
+        # Generate unique class codes
+        class_code, join_code = generate_class_codes()
+
+        # Ensure join_code is unique (very unlikely to collide, but just in case)
+        while Class.query.filter_by(join_code=join_code).first():
+            class_code, join_code = generate_class_codes()
+
+        new_class = Class(
+            instructor_id=instructor.id,
+            year=data['year'],
+            semester=data['semester'],
+            course=data['course'],
+            track=data['track'],
+            section=section,
+            schedule=data['schedule'],
+            class_code=class_code,
+            join_code=join_code
+        )
+
+        db.session.add(new_class)
+        db.session.commit()
+
+        logger.info(f"Instructor {user.school_id} created class: {new_class.class_id}")
+        return jsonify({
+            'success': True,
+            'message': 'Class created successfully',
+            'class': {
+                'id': new_class.id,
+                'year': new_class.year,
+                'semester': new_class.semester,
+                'course': new_class.course,
+                'track': new_class.track,
+                'section': new_class.section,
+                'schedule': new_class.schedule,
+                'class_id': new_class.class_id,
+                'class_code': new_class.class_code,
+                'join_code': new_class.join_code
+            }
+        })
+
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Failed to create class for instructor {user.school_id}: {str(e)}")
+        return jsonify({'error': 'Failed to create class'}), 500
+
+@app.route('/api/instructor/classes/<int:class_id>', methods=['PUT'])
+@login_required
+def update_class(class_id):
+    """Update an existing class."""
+    if session.get('role') != 'instructor':
+        return jsonify({'error': 'Access denied'}), 403
+
+    user = db.session.get(User, session['user_id'])
+    if not user:
+        return jsonify({'error': 'User not found'}), 401
+
+    instructor = Instructor.query.filter_by(user_id=user.id).first()
+
+    if not instructor:
+        return jsonify({'error': 'Instructor profile not found'}), 404
+
+    # Find the class and verify ownership
+    class_obj = Class.query.filter_by(id=class_id, instructor_id=instructor.id).first()
+    if not class_obj:
+        return jsonify({'error': 'Class not found or access denied'}), 404
+
+    data = request.get_json()
+
+    # Validate required fields
+    required_fields = ['year', 'semester', 'course', 'track', 'section', 'schedule']
+    for field in required_fields:
+        if not data.get(field):
+            return jsonify({'error': f'{field} is required'}), 400
+
+    # Validate section format
+    section = data['section']
+    if not (len(section) == 2 and section[0].isdigit() and section[1].isalpha()):
+        return jsonify({'error': 'Section must be in format like "1A", "2B", etc.'}), 400
+
+    try:
+        class_obj.year = data['year']
+        class_obj.semester = data['semester']
+        class_obj.course = data['course']
+        class_obj.track = data['track']
+        class_obj.section = section
+        class_obj.schedule = data['schedule']
+
+        db.session.commit()
+
+        logger.info(f"Instructor {user.school_id} updated class {class_id}: {class_obj.class_id}")
+        return jsonify({
+            'success': True,
+            'message': 'Class updated successfully',
+            'class': {
+                'id': class_obj.id,
+                'year': class_obj.year,
+                'semester': class_obj.semester,
+                'course': class_obj.course,
+                'track': class_obj.track,
+                'section': class_obj.section,
+                'schedule': class_obj.schedule,
+                'class_id': class_obj.class_id,
+                'class_code': class_obj.class_code,
+                'join_code': class_obj.join_code
+            }
+        })
+
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Failed to update class {class_id} for instructor {user.school_id}: {str(e)}")
+        return jsonify({'error': 'Failed to update class'}), 500
+
+@app.route('/api/instructor/classes/<int:class_id>', methods=['DELETE'])
+@login_required
+def delete_class(class_id):
+    """Delete a class."""
+    if session.get('role') != 'instructor':
+        return jsonify({'error': 'Access denied'}), 403
+
+    user = db.session.get(User, session['user_id'])
+    if not user:
+        return jsonify({'error': 'User not found'}), 401
+
+    instructor = Instructor.query.filter_by(user_id=user.id).first()
+
+    if not instructor:
+        return jsonify({'error': 'Instructor profile not found'}), 404
+
+    # Find the class and verify ownership
+    class_obj = Class.query.filter_by(id=class_id, instructor_id=instructor.id).first()
+    if not class_obj:
+        return jsonify({'error': 'Class not found or access denied'}), 404
+
+    try:
+        class_id_display = class_obj.class_id
+        db.session.delete(class_obj)
+        db.session.commit()
+
+        logger.info(f"Instructor {user.school_id} deleted class: {class_id_display}")
+        return jsonify({
+            'success': True,
+            'message': 'Class deleted successfully'
+        })
+
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Failed to delete class {class_id} for instructor {user.school_id}: {str(e)}")
+        return jsonify({'error': 'Failed to delete class'}), 500
+
+
+# Student Class Management Routes
+@app.route('/api/student/join-class', methods=['POST'])
+@login_required
+def join_class():
+    """Join a class using join code."""
+    if session.get('role') != 'student':
+        return jsonify({'error': 'Access denied. Student privileges required.'}), 403
+
+    user = User.query.get(session['user_id'])
+    if not user:
+        return jsonify({'error': 'User not found'}), 401
+
+    student = Student.query.filter_by(user_id=user.id).first()
+    if not student:
+        return jsonify({'error': 'Student profile not found'}), 404
+
+    data = request.get_json()
+    join_code = data.get('join_code', '').strip().upper()
+
+    if not join_code:
+        return jsonify({'error': 'Join code is required'}), 400
+
+    # Find class by join code
+    class_obj = Class.query.filter_by(join_code=join_code).first()
+    if not class_obj:
+        return jsonify({'error': 'Invalid join code. Class not found.'}), 404
+
+    # Check if student is already enrolled
+    existing_enrollment = StudentClass.query.filter_by(
+        student_id=student.id,
+        class_id=class_obj.id
+    ).first()
+
+    if existing_enrollment:
+        return jsonify({'error': 'You are already enrolled in this class'}), 400
+
+    try:
+        # Create enrollment
+        enrollment = StudentClass(
+            student_id=student.id,
+            class_id=class_obj.id
+        )
+        db.session.add(enrollment)
+        db.session.commit()
+
+        logger.info(f"Student {user.school_id} joined class: {class_obj.class_id}")
+        return jsonify({
+            'success': True,
+            'message': f'Successfully joined class: {class_obj.class_id}',
+            'class': {
+                'id': class_obj.id,
+                'class_id': class_obj.class_id,
+                'course': class_obj.course,
+                'section': class_obj.section,
+                'schedule': class_obj.schedule
+            }
+        })
+
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Failed to join class for student {user.school_id}: {str(e)}")
+        return jsonify({'error': 'Failed to join class'}), 500
+
+
+@app.route('/api/student/joined-classes', methods=['GET'])
+@login_required
+def get_joined_classes():
+    """Get all classes joined by the logged-in student."""
+    if session.get('role') != 'student':
+        return jsonify({'error': 'Access denied. Student privileges required.'}), 403
+
+    user = User.query.get(session['user_id'])
+    if not user:
+        return jsonify({'error': 'User not found'}), 401
+
+    student = Student.query.filter_by(user_id=user.id).first()
+    if not student:
+        return jsonify({'error': 'Student profile not found'}), 404
+
+    # Get all enrollments for this student with joined instructor and user data
+    enrollments = StudentClass.query.filter_by(student_id=student.id).all()
+    classes_data = []
+
+    for enrollment in enrollments:
+        class_obj = enrollment.class_obj
+        instructor_name = 'Unknown'
+        if class_obj.instructor:
+            # Get the instructor's user information
+            instructor_user = User.query.get(class_obj.instructor.user_id)
+            if instructor_user:
+                instructor_name = instructor_user.school_id
+
+        classes_data.append({
+            'id': class_obj.id,
+            'class_id': class_obj.class_id,
+            'year': class_obj.year,
+            'semester': class_obj.semester,
+            'course': class_obj.course,
+            'track': class_obj.track,
+            'section': class_obj.section,
+            'schedule': class_obj.schedule,
+            'class_code': class_obj.class_code,
+            'join_code': class_obj.join_code,
+            'instructor_name': instructor_name,
+            'joined_at': enrollment.joined_at.isoformat() if enrollment.joined_at else None
+        })
+
+    logger.info(f"Retrieved {len(classes_data)} joined classes for student {user.school_id}")
+    return jsonify({'classes': classes_data})
+
 
 @app.route('/student-login', methods=['GET', 'POST'])
 def student_login():
@@ -323,7 +681,7 @@ def student_dashboard():
         flash("Please log in to access this page.", "warning")
         return redirect(url_for('login'))
 
-    user = User.query.get(session['user_id'])
+    user = db.session.get(User, session['user_id'])
     if not user or user.role != 'student':
         session.clear()
         flash("Unauthorized access.", "error")
@@ -338,7 +696,7 @@ def instructor_dashboard():
         flash("Please log in to access this page.", "warning")
         return redirect(url_for('login'))
 
-    user = User.query.get(session['user_id'])
+    user = db.session.get(User, session['user_id'])
     if not user or user.role != 'instructor':
         session.clear()
         flash("Unauthorized access.", "error")
@@ -353,7 +711,7 @@ def admin_dashboard():
         flash("Please log in to access this page.", "warning")
         return redirect(url_for('login'))
 
-    user = User.query.get(session['user_id'])
+    user = db.session.get(User, session['user_id'])
     if not user or user.role != 'admin':
         session.clear()
         flash("Unauthorized access.", "error")
@@ -367,7 +725,7 @@ def create_instructor():
     if 'user_id' not in session:
         return jsonify({'success': False, 'message': 'Not authenticated'}), 401
 
-    user = User.query.get(session['user_id'])
+    user = db.session.get(User, session['user_id'])
     if not user or user.role != 'admin':
         return jsonify({'success': False, 'message': 'Unauthorized'}), 403
 

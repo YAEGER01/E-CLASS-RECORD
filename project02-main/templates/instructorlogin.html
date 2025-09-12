@@ -8,6 +8,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/instructorlogin.css') }}">
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
   <style>
 
   </style>
@@ -29,11 +30,7 @@
         Communication Technology</p>
     </div>
 
-    {% if error %}
-    <div class="status error" role="alert" aria-live="assertive">
-      <i class="fas fa-exclamation-circle"></i> {{ error }}
-    </div>
-    {% endif %}
+    <div id="errorContainer" style="display: none;">{{ error }}</div>
 
     <form id="loginForm" class="form" method="POST">
       <input type="hidden" name="role" value="instructor">
@@ -149,6 +146,20 @@
         container.style.opacity = '1';
         container.style.transform = 'translateY(0)';
       }, 100);
+
+      // Check for error message and show SweetAlert
+      const errorContainer = document.getElementById('errorContainer');
+      if (errorContainer && errorContainer.textContent.trim()) {
+        const errorMessage = errorContainer.textContent.trim();
+        Swal.fire({
+          icon: 'error',
+          title: 'Login Failed',
+          text: errorMessage,
+          confirmButtonText: 'Try Again',
+          confirmButtonColor: '#2563eb',
+          allowOutsideClick: false
+        });
+      }
     });
   </script>
 </body>

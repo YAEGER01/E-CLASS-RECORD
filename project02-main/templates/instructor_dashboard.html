@@ -48,6 +48,22 @@
         .logout-btn:hover {
             background: #c82333;
         }
+
+        .manage-btn {
+            background: #059669;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+            margin-top: 10px;
+        }
+
+        .manage-btn:hover {
+            background: #047857;
+        }
     </style>
 </head>
 
@@ -62,7 +78,7 @@
         <div class="card">
             <h3>📚 My Classes</h3>
             <p>Manage your class schedules and subjects.</p>
-            <p><em>Feature coming soon...</em></p>
+            <a href="{{ url_for('instructor_classes') }}" class="manage-btn">Manage Classes</a>
         </div>
 
         <div class="card">

@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Dashboard - E-Class Record</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #16a34a, #22c55e);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+
+        .card {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .logout-btn {
+            background: #dc3545;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .logout-btn:hover {
+            background: #c82333;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="header">
+        <h1>🎓 Student Dashboard</h1>
+        <p>Welcome, {{ user.school_id }}!</p>
+        <a href="{{ url_for('logout') }}" class="logout-btn">Logout</a>
+    </div>
+
+    <div class="dashboard-grid">
+        <div class="card">
+            <h3>📚 My Profile</h3>
+            <p><strong>School ID:</strong> {{ user.school_id }}</p>
+            <p><strong>Course:</strong> {{ user.student_profile.course }}</p>
+            <p><strong>Year Level:</strong> {{ user.student_profile.year_level }}</p>
+            <p><strong>Section:</strong> {{ user.student_profile.section }}</p>
+            {% if user.student_profile.track %}
+            <p><strong>Track:</strong> {{ user.student_profile.track }}</p>
+            {% endif %}
+        </div>
+
+        <div class="card">
+            <h3>📋 Class Records</h3>
+            <p>View your class records and grades here.</p>
+            <p><em>Feature coming soon...</em></p>
+        </div>
+
+        <div class="card">
+            <h3>📅 Schedule</h3>
+            <p>Check your class schedule and assignments.</p>
+            <p><em>Feature coming soon...</em></p>
+        </div>
+
+        <div class="card">
+            <h3>📊 Grades</h3>
+            <p>View your academic performance.</p>
+            <p><em>Feature coming soon...</em></p>
+        </div>
+    </div>
+</body>
+
+</html>

@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -8,9 +9,10 @@
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/adminlogin.css') }}">
   <style>
-    
+
   </style>
 </head>
+
 <body>
   <button class="back-btn" onclick="window.history.back()">
     <i class="fas fa-arrow-left"></i> Back to Home
@@ -23,24 +25,24 @@
       </div>
       <h1 class="title">Administrator Portal</h1>
       <h2 class="subtitle">System Administration</h2>
-      <p class="university">Isabela State University - Cauayan Campus<br>College of Computing Studies, Information and Communication Technology</p>
+      <p class="university">Isabela State University - Cauayan Campus<br>College of Computing Studies, Information and
+        Communication Technology</p>
     </div>
 
-    <div class="status success" id="successMessage" role="status" aria-live="polite">
-      <i class="fas fa-check-circle"></i> Login successful. Redirecting to admin dashboard...
+    {% if error %}
+    <div class="status error" role="alert" aria-live="assertive">
+      <i class="fas fa-exclamation-circle"></i> {{ error }}
     </div>
+    {% endif %}
 
-    <div class="status error" id="errorMessage" role="alert" aria-live="assertive">
-      <i class="fas fa-exclamation-circle"></i> Invalid administrator credentials. Please try again.
-    </div>
-
-    <form id="loginForm" class="form">
+    <form id="loginForm" class="form" method="POST">
       <input type="hidden" name="role" value="admin">
-      
+
       <div class="form-row">
         <label for="username">Administrator ID</label>
         <div class="input-wrap">
-          <input type="text" id="username" name="username" required autocomplete="username" placeholder="Enter admin ID" />
+          <input type="text" id="username" name="username" required autocomplete="username"
+            placeholder="Enter admin ID" />
           <span class="icon"><i class="fas fa-user-shield"></i></span>
         </div>
       </div>
@@ -48,21 +50,22 @@
       <div class="form-row">
         <label for="password">Password</label>
         <div class="input-wrap">
-          <input type="password" id="password" name="password" required autocomplete="current-password" placeholder="Enter secure password" />
+          <input type="password" id="password" name="password" required autocomplete="current-password"
+            placeholder="Enter secure password" />
           <button type="button" class="show-pass" id="togglePass" aria-label="Toggle password visibility">
             <i class="fas fa-eye"></i>
           </button>
         </div>
       </div>
 
-     
+
 
       <button type="submit" class="btn primary" id="loginBtn">
         <i class="fas fa-sign-in-alt"></i> Administrator Sign In
       </button>
 
-      
-<!--
+
+      <!--
       <ul class="demo-list">
         <li onclick="fillCredentials('admin', 'admin123')">
           <strong>admin</strong> <span>admin123</span>
@@ -82,16 +85,16 @@
       <p class="footer-text">
         Secure administrative access with full system control and monitoring capabilities.
       </p>
-      
+
     </div>
   </div>
 
   <script>
     // Toggle password visibility
-    document.getElementById('togglePass').addEventListener('click', function() {
+    document.getElementById('togglePass').addEventListener('click', function () {
       const passwordInput = document.getElementById('password');
       const icon = this.querySelector('i');
-      
+
       if (passwordInput.type === 'password') {
         passwordInput.type = 'text';
         icon.classList.remove('fa-eye');
@@ -107,7 +110,7 @@
     function fillCredentials(username, password) {
       document.getElementById('username').value = username;
       document.getElementById('password').value = password;
-      
+
       // Add a subtle animation to indicate the fields were filled
       const inputs = [document.getElementById('username'), document.getElementById('password')];
       inputs.forEach(input => {
@@ -121,48 +124,23 @@
     }
 
     // Form submission handler
-    document.getElementById('loginForm').addEventListener('submit', function(e) {
-      e.preventDefault();
-      
-      const successMsg = document.getElementById('successMessage');
-      const errorMsg = document.getElementById('errorMessage');
+    document.getElementById('loginForm').addEventListener('submit', function (e) {
       const loginBtn = document.getElementById('loginBtn');
-      
-      // Hide previous messages
-      successMsg.style.display = 'none';
-      errorMsg.style.display = 'none';
-      
+
       // Show loading state
       loginBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Authenticating...';
       loginBtn.disabled = true;
-      
-      // Simulate authentication
-      setTimeout(() => {
-        const username = document.getElementById('username').value;
-        const password = document.getElementById('password').value;
-        
-        if ((username === 'admin' && password === 'admin123') || 
-            (username === 'sysadmin' && password === 'sysadmin123') ||
-            (username === 'super.admin' && password === 'super123')) {
-          successMsg.style.display = 'block';
-          setTimeout(() => {
-            alert('Demo: Would redirect to admin dashboard');
-          }, 1500);
-        } else {
-          errorMsg.style.display = 'block';
-        }
-        
-        loginBtn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Administrator Sign In';
-        loginBtn.disabled = false;
-      }, 1500);
+
+      // Let the form submit normally - Flask will handle authentication
+      // The page will redirect or show error based on authentication result
     });
 
     // Add smooth transitions on page load
-    document.addEventListener('DOMContentLoaded', function() {
+    document.addEventListener('DOMContentLoaded', function () {
       const container = document.querySelector('.container');
       container.style.opacity = '0';
       container.style.transform = 'translateY(20px)';
-      
+
       setTimeout(() => {
         container.style.transition = 'all 0.6s ease';
         container.style.opacity = '1';
@@ -171,4 +149,5 @@
     });
   </script>
 </body>
+
 </html>

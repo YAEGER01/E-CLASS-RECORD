@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Instructor Dashboard - E-Class Record</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #059669, #10b981);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+
+        .card {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .logout-btn {
+            background: #dc3545;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .logout-btn:hover {
+            background: #c82333;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="header">
+        <h1>👨‍🏫 Instructor Dashboard</h1>
+        <p>Welcome, Instructor {{ user.school_id }}!</p>
+        <a href="{{ url_for('logout') }}" class="logout-btn">Logout</a>
+    </div>
+
+    <div class="dashboard-grid">
+        <div class="card">
+            <h3>📚 My Classes</h3>
+            <p>Manage your class schedules and subjects.</p>
+            <p><em>Feature coming soon...</em></p>
+        </div>
+
+        <div class="card">
+            <h3>👥 Students</h3>
+            <p>View and manage your students.</p>
+            <p><em>Feature coming soon...</em></p>
+        </div>
+
+        <div class="card">
+            <h3>📊 Grade Management</h3>
+            <p>Enter and manage student grades.</p>
+            <p><em>Feature coming soon...</em></p>
+        </div>
+
+        <div class="card">
+            <h3>📋 Reports</h3>
+            <p>Generate class reports and analytics.</p>
+            <p><em>Feature coming soon...</em></p>
+        </div>
+    </div>
+</body>
+
+</html>

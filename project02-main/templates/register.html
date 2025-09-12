@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
@@ -16,7 +17,7 @@
             --success: #22c55e;
             --danger: #ef4444;
             --warning: #f59e0b;
-            
+
             --bg-primary: #0f172a;
             --bg-secondary: #1e293b;
             --surface: rgba(255, 255, 255, 0.95);
@@ -26,7 +27,7 @@
             --text-muted: #9ca3af;
             --border: #d1fae5;
             --border-focus: rgba(22, 163, 74, 0.3);
-            
+
             --shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
             --shadow-lg: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
             --radius: 12px;
@@ -91,16 +92,23 @@
         }
 
         @keyframes float {
-            0%, 100% { transform: translateY(0px) scale(1); }
-            50% { transform: translateY(-30px) scale(1.1); }
+
+            0%,
+            100% {
+                transform: translateY(0px) scale(1);
+            }
+
+            50% {
+                transform: translateY(-30px) scale(1.1);
+            }
         }
 
         /* Subtle Grid Pattern */
         .grid-overlay {
             position: fixed;
             inset: 0;
-            background-image: 
-                radial-gradient(circle at 2px 2px, rgba(255,255,255,0.08) 1px, transparent 0);
+            background-image:
+                radial-gradient(circle at 2px 2px, rgba(255, 255, 255, 0.08) 1px, transparent 0);
             background-size: 40px 40px;
             z-index: 1;
         }
@@ -179,14 +187,19 @@
             left: -50%;
             width: 200%;
             height: 200%;
-            background: linear-gradient(45deg, transparent, rgba(255,255,255,0.2), transparent);
+            background: linear-gradient(45deg, transparent, rgba(255, 255, 255, 0.2), transparent);
             transform: rotate(45deg);
             animation: shine 3s infinite;
         }
 
         @keyframes shine {
-            0% { transform: translateX(-100%) translateY(-100%) rotate(45deg); }
-            100% { transform: translateX(100%) translateY(100%) rotate(45deg); }
+            0% {
+                transform: translateX(-100%) translateY(-100%) rotate(45deg);
+            }
+
+            100% {
+                transform: translateX(100%) translateY(100%) rotate(45deg);
+            }
         }
 
         .brand-info h1 {
@@ -271,7 +284,8 @@
             position: relative;
         }
 
-        input, select {
+        input,
+        select {
             width: 100%;
             padding: 14px 16px;
             border: 2px solid var(--border);
@@ -283,7 +297,8 @@
             font-family: inherit;
         }
 
-        input:focus, select:focus {
+        input:focus,
+        select:focus {
             outline: none;
             border-color: var(--primary);
             box-shadow: 0 0 0 3px var(--border-focus);
@@ -471,7 +486,7 @@
             left: -100%;
             width: 100%;
             height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
             transition: left 0.6s ease;
         }
 
@@ -482,6 +497,34 @@
         .submit-btn:hover {
             transform: translateY(-2px);
             box-shadow: var(--shadow-lg);
+        }
+
+        /* Status Messages */
+        .status {
+            padding: 16px 20px;
+            border-radius: var(--radius);
+            margin-bottom: 24px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-weight: 500;
+            border: 1px solid;
+        }
+
+        .status.error {
+            background: rgba(239, 68, 68, 0.1);
+            border-color: var(--danger);
+            color: var(--danger);
+        }
+
+        .status.success {
+            background: rgba(34, 197, 94, 0.1);
+            border-color: var(--success);
+            color: var(--success);
+        }
+
+        .status i {
+            font-size: 18px;
         }
 
         /* Preview Card */
@@ -628,17 +671,17 @@
         }
 
         /* Mobile-First Responsive Design */
-        
+
         /* Large tablets and small desktops (1024px and down) */
         @media (max-width: 1024px) {
             .main-container {
                 padding: 16px;
             }
-            
+
             .content {
                 gap: 32px;
             }
-            
+
             .registration-card {
                 max-width: 900px;
             }
@@ -714,9 +757,11 @@
                 font-size: 14px;
             }
 
-            input, select {
+            input,
+            select {
                 padding: 12px 14px;
-                font-size: 16px; /* Prevents zoom on iOS */
+                font-size: 16px;
+                /* Prevents zoom on iOS */
             }
 
             .submit-btn {
@@ -733,11 +778,13 @@
         /* Keep green theme consistent across all devices */
         @media (max-width: 768px) {
             .bg-container {
-                display: block; /* Ensure background shapes remain visible */
+                display: block;
+                /* Ensure background shapes remain visible */
             }
-            
+
             .bg-shape {
-                opacity: 0.08; /* Slightly reduce opacity on mobile for better readability */
+                opacity: 0.08;
+                /* Slightly reduce opacity on mobile for better readability */
             }
         }
 
@@ -801,7 +848,8 @@
                 font-size: 13px;
             }
 
-            input, select {
+            input,
+            select {
                 padding: 12px;
                 font-size: 16px;
                 border-radius: 8px;
@@ -951,7 +999,8 @@
                 font-size: 12px;
             }
 
-            input, select {
+            input,
+            select {
                 padding: 10px;
                 font-size: 16px;
             }
@@ -979,7 +1028,8 @@
             }
 
             .bg-shape {
-                display: none; /* Hide floating shapes in landscape to reduce visual clutter */
+                display: none;
+                /* Hide floating shapes in landscape to reduce visual clutter */
             }
 
             .header {
@@ -991,7 +1041,8 @@
             }
 
             .preview-section {
-                order: 1; /* Move preview to bottom in landscape */
+                order: 1;
+                /* Move preview to bottom in landscape */
             }
 
             .photo-grid {
@@ -1007,9 +1058,13 @@
 
         /* Touch-friendly improvements */
         @media (hover: none) and (pointer: coarse) {
+
             /* Increase touch targets for mobile */
-            input, select, button {
-                min-height: 44px; /* iOS recommended touch target */
+            input,
+            select,
+            button {
+                min-height: 44px;
+                /* iOS recommended touch target */
             }
 
             .password-toggle {
@@ -1031,19 +1086,22 @@
             }
 
             /* But keep focus states for accessibility */
-            input:focus, select:focus {
+            input:focus,
+            select:focus {
                 transform: translateY(-1px);
                 box-shadow: 0 0 0 3px var(--border-focus);
             }
         }
 
         /* High DPI display adjustments */
-        @media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+        @media (-webkit-min-device-pixel-ratio: 2),
+        (min-resolution: 192dpi) {
             .brand-logo {
-                border: 0.5px solid rgba(255,255,255,0.1);
+                border: 0.5px solid rgba(255, 255, 255, 0.1);
             }
-            
-            input, select {
+
+            input,
+            select {
                 border-width: 1px;
             }
         }
@@ -1051,11 +1109,13 @@
         /* Keep green theme consistent across all devices */
         @media (max-width: 768px) {
             .bg-container {
-                display: block; /* Ensure background shapes remain visible */
+                display: block;
+                /* Ensure background shapes remain visible */
             }
-            
+
             .bg-shape {
-                opacity: 0.08; /* Slightly reduce opacity on mobile for better readability */
+                opacity: 0.08;
+                /* Slightly reduce opacity on mobile for better readability */
             }
         }
 
@@ -1063,18 +1123,18 @@
             .bg-shape {
                 opacity: 0.06;
             }
-            
+
             /* Ensure green theme remains strong on mobile */
             .registration-card::before {
                 height: 3px;
                 background: linear-gradient(90deg, var(--primary), var(--accent), var(--success));
             }
-            
+
             .brand-logo {
                 background: linear-gradient(135deg, var(--primary), var(--accent));
                 box-shadow: 0 4px 12px rgba(22, 163, 74, 0.3);
             }
-            
+
             .submit-btn {
                 background: linear-gradient(135deg, var(--primary), var(--accent));
                 box-shadow: 0 4px 12px rgba(22, 163, 74, 0.2);
@@ -1083,18 +1143,20 @@
 
         /* Reduce motion for users who prefer it */
         @media (prefers-reduced-motion: reduce) {
+
             .floating-shape,
             .brand-logo::after,
             .submit-btn::before {
                 animation: none;
             }
-            
+
             * {
                 transition-duration: 0.01ms !important;
             }
         }
     </style>
 </head>
+
 <body>
     <div class="bg-container">
         <div class="bg-shape"></div>
@@ -1118,20 +1180,27 @@
 
             <div class="content">
                 <div class="form-section">
-                    <form id="registrationForm">
+                    {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                    {% for category, message in messages %}
+                    <div class="status {{ 'error' if category == 'error' else 'success' }}" role="alert"
+                        aria-live="assertive">
+                        <i class="fas fa-{{ 'exclamation-circle' if category == 'error' else 'check-circle' }}"></i> {{
+                        message }}
+                    </div>
+                    {% endfor %}
+                    {% endif %}
+                    {% endwith %}
+
+                    <form id="registrationForm" method="POST" enctype="multipart/form-data">
                         <div class="form-grid">
                             <div class="form-field">
                                 <label for="schoolId">
                                     School ID <span class="required-mark">*</span>
                                 </label>
                                 <div class="input-group">
-                                    <input 
-                                        id="schoolId" 
-                                        name="schoolId" 
-                                        type="text" 
-                                        placeholder="e.g. 2019-01234"
-                                        required
-                                    />
+                                    <input id="schoolId" name="schoolId" type="text" placeholder="e.g. 2019-01234"
+                                        required value="{{ form_data.schoolId if form_data else '' }}" />
                                 </div>
                                 <div class="field-hint">Your official school ID number</div>
                             </div>
@@ -1142,11 +1211,16 @@
                                 </label>
                                 <select id="course" name="course" required>
                                     <option value="">Select Course</option>
-                                    <option value="BSIT">BS Information Technology</option>
-                                    <option value="BSCS">BS Computer Science</option>
-                                    <option value="BSIS">BS Information Systems</option>
-                                    <option value="BSCpE">BS Computer Engineering</option>
-                                    <option value="BSEMC">BS Entertainment & Multimedia Computing</option>
+                                    <option value="BSIT" {{ 'selected' if form_data and form_data.course=='BSIT' else ''
+                                        }}>BS Information Technology</option>
+                                    <option value="BSCS" {{ 'selected' if form_data and form_data.course=='BSCS' else ''
+                                        }}>BS Computer Science</option>
+                                    <option value="BSIS" {{ 'selected' if form_data and form_data.course=='BSIS' else ''
+                                        }}>BS Information Systems</option>
+                                    <option value="BSCpE" {{ 'selected' if form_data and form_data.course=='BSCpE'
+                                        else '' }}>BS Computer Engineering</option>
+                                    <option value="BSEMC" {{ 'selected' if form_data and form_data.course=='BSEMC'
+                                        else '' }}>BS Entertainment & Multimedia Computing</option>
                                 </select>
                             </div>
 
@@ -1154,11 +1228,17 @@
                                 <label for="track">Track</label>
                                 <select id="track" name="track">
                                     <option value="">Select Track</option>
-                                    <option value="Programming">Programming Track</option>
-                                    <option value="Networking">Networking Track</option>
-                                    <option value="Database">Database Track</option>
-                                    <option value="Web Development">Web Development Track</option>
-                                    <option value="Mobile Development">Mobile Development Track</option>
+                                    <option value="Programming" {{ 'selected' if form_data and
+                                        form_data.track=='Programming' else '' }}>Programming Track</option>
+                                    <option value="Networking" {{ 'selected' if form_data and
+                                        form_data.track=='Networking' else '' }}>Networking Track</option>
+                                    <option value="Database" {{ 'selected' if form_data and form_data.track=='Database'
+                                        else '' }}>Database Track</option>
+                                    <option value="Web Development" {{ 'selected' if form_data and
+                                        form_data.track=='Web Development' else '' }}>Web Development Track</option>
+                                    <option value="Mobile Development" {{ 'selected' if form_data and
+                                        form_data.track=='Mobile Development' else '' }}>Mobile Development Track
+                                    </option>
                                 </select>
                             </div>
 
@@ -1168,10 +1248,14 @@
                                 </label>
                                 <select id="yearLevel" name="yearLevel" required>
                                     <option value="">Select Year Level</option>
-                                    <option value="1">1st Year</option>
-                                    <option value="2">2nd Year</option>
-                                    <option value="3">3rd Year</option>
-                                    <option value="4">4th Year</option>
+                                    <option value="1" {{ 'selected' if form_data and form_data.yearLevel=='1' else ''
+                                        }}>1st Year</option>
+                                    <option value="2" {{ 'selected' if form_data and form_data.yearLevel=='2' else ''
+                                        }}>2nd Year</option>
+                                    <option value="3" {{ 'selected' if form_data and form_data.yearLevel=='3' else ''
+                                        }}>3rd Year</option>
+                                    <option value="4" {{ 'selected' if form_data and form_data.yearLevel=='4' else ''
+                                        }}>4th Year</option>
                                 </select>
                             </div>
 
@@ -1179,13 +1263,8 @@
                                 <label for="section">
                                     Section <span class="required-mark">*</span>
                                 </label>
-                                <input 
-                                    id="section" 
-                                    name="section" 
-                                    type="text" 
-                                    placeholder="e.g. A, B, C"
-                                    required
-                                />
+                                <input id="section" name="section" type="text" placeholder="e.g. A, B, C" required
+                                    value="{{ form_data.section if form_data else '' }}" />
                             </div>
 
                             <div class="form-field">
@@ -1193,13 +1272,8 @@
                                     Password <span class="required-mark">*</span>
                                 </label>
                                 <div class="input-group">
-                                    <input 
-                                        id="password" 
-                                        name="password" 
-                                        type="password" 
-                                        placeholder="Create a strong password"
-                                        required
-                                    />
+                                    <input id="password" name="password" type="password"
+                                        placeholder="Create a strong password" required />
                                     <button type="button" class="password-toggle" onclick="togglePassword('password')">
                                         Show
                                     </button>
@@ -1218,13 +1292,8 @@
                                     Confirm Password <span class="required-mark">*</span>
                                 </label>
                                 <div class="input-group">
-                                    <input 
-                                        id="confirmPassword" 
-                                        name="confirmPassword" 
-                                        type="password" 
-                                        placeholder="Confirm your password"
-                                        required
-                                    />
+                                    <input id="confirmPassword" name="confirmPassword" type="password"
+                                        placeholder="Confirm your password" required />
                                 </div>
                                 <div class="field-hint" id="confirmHint"></div>
                             </div>
@@ -1235,24 +1304,24 @@
                                 <h3>📸 Photo Requirements</h3>
                                 <p>Upload clear photos for verification</p>
                             </div>
-                            
+
                             <div class="photo-grid">
                                 <div class="photo-item">
-                                    <input id="idFront" type="file" accept="image/*" />
+                                    <input id="idFront" name="idFront" type="file" accept="image/*" />
                                     <div class="photo-preview">📄</div>
                                     <div class="photo-label">ID Front</div>
                                     <div class="photo-sublabel">Front side of ID</div>
                                 </div>
 
                                 <div class="photo-item">
-                                    <input id="idBack" type="file" accept="image/*" />
+                                    <input id="idBack" name="idBack" type="file" accept="image/*" />
                                     <div class="photo-preview">📄</div>
                                     <div class="photo-label">ID Back</div>
                                     <div class="photo-sublabel">Back side of ID</div>
                                 </div>
 
                                 <div class="photo-item">
-                                    <input id="facePhoto" type="file" accept="image/*" />
+                                    <input id="facePhoto" name="facePhoto" type="file" accept="image/*" />
                                     <div class="photo-preview">👤</div>
                                     <div class="photo-label">Face Photo</div>
                                     <div class="photo-sublabel">Clear face photo</div>
@@ -1271,7 +1340,7 @@
                 <div class="preview-section">
                     <div class="preview-card">
                         <h3 class="preview-title">📋 Registration Preview</h3>
-                        
+
                         <div class="student-preview">
                             <div class="student-avatar" id="studentAvatar">👤</div>
                             <div>
@@ -1323,7 +1392,7 @@
         function togglePassword(fieldId) {
             const field = document.getElementById(fieldId);
             const button = field.nextElementSibling;
-            
+
             if (field.type === 'password') {
                 field.type = 'text';
                 button.textContent = 'Hide';
@@ -1334,32 +1403,32 @@
         }
 
         // Password strength checker
-        document.getElementById('password').addEventListener('input', function(e) {
+        document.getElementById('password').addEventListener('input', function (e) {
             const password = e.target.value;
             const strengthFill = document.getElementById('strengthFill');
             const strengthLabel = document.getElementById('strengthLabel');
-            
+
             let strength = 0;
             let label = 'Very Weak';
-            
+
             if (password.length >= 6) strength += 25;
             if (password.match(/[a-z]/)) strength += 25;
             if (password.match(/[A-Z]/)) strength += 25;
             if (password.match(/[0-9]/)) strength += 25;
             if (password.match(/[^a-zA-Z0-9]/)) strength += 25;
-            
+
             if (strength >= 100) label = 'Very Strong';
             else if (strength >= 75) label = 'Strong';
             else if (strength >= 50) label = 'Medium';
             else if (strength >= 25) label = 'Weak';
-            
+
             strengthFill.style.width = Math.min(strength, 100) + '%';
             strengthLabel.textContent = password ? label : 'Type a password';
         });
 
         // Live preview updates
         const formInputs = ['schoolId', 'course', 'track', 'yearLevel', 'section'];
-        
+
         formInputs.forEach(inputId => {
             document.getElementById(inputId).addEventListener('input', updatePreview);
         });
@@ -1371,11 +1440,11 @@
             const yearLevel = document.getElementById('yearLevel').value;
             const section = document.getElementById('section').value;
 
-            document.getElementById('previewId').textContent = 
+            document.getElementById('previewId').textContent =
                 schoolId ? `School ID: ${schoolId}` : 'School ID: —';
             document.getElementById('previewCourse').textContent = course || '—';
             document.getElementById('previewTrack').textContent = track || '—';
-            document.getElementById('previewYear').textContent = 
+            document.getElementById('previewYear').textContent =
                 yearLevel ? `${yearLevel}${getOrdinalSuffix(yearLevel)} Year` : '—';
             document.getElementById('previewSection').textContent = section || '—';
         }
@@ -1390,7 +1459,7 @@
             const file = input.files[0];
             if (file) {
                 const reader = new FileReader();
-                reader.onload = function(e) {
+                reader.onload = function (e) {
                     previewElement.innerHTML = `<img src="${e.target.result}" alt="Preview">`;
                 };
                 reader.readAsDataURL(file);
@@ -1398,26 +1467,26 @@
         }
 
         // Add event listeners for photo uploads
-        document.getElementById('idFront').addEventListener('change', function() {
+        document.getElementById('idFront').addEventListener('change', function () {
             handlePhotoUpload(this, this.parentElement.querySelector('.photo-preview'));
         });
 
-        document.getElementById('idBack').addEventListener('change', function() {
+        document.getElementById('idBack').addEventListener('change', function () {
             handlePhotoUpload(this, this.parentElement.querySelector('.photo-preview'));
         });
 
-        document.getElementById('facePhoto').addEventListener('change', function() {
+        document.getElementById('facePhoto').addEventListener('change', function () {
             handlePhotoUpload(this, this.parentElement.querySelector('.photo-preview'));
             // Also update the avatar in preview
             handlePhotoUpload(this, document.getElementById('studentAvatar'));
         });
 
         // Password confirmation validation
-        document.getElementById('confirmPassword').addEventListener('input', function(e) {
+        document.getElementById('confirmPassword').addEventListener('input', function (e) {
             const password = document.getElementById('password').value;
             const confirmPassword = e.target.value;
             const hint = document.getElementById('confirmHint');
-            
+
             if (confirmPassword) {
                 if (password === confirmPassword) {
                     hint.textContent = '✓ Passwords match';
@@ -1432,31 +1501,22 @@
         });
 
         // Form submission
-        document.getElementById('registrationForm').addEventListener('submit', function(e) {
-            e.preventDefault();
-            
+        document.getElementById('registrationForm').addEventListener('submit', function (e) {
             const submitBtn = document.querySelector('.submit-btn');
             const originalText = submitBtn.innerHTML;
-            
+
             // Show loading state
-            submitBtn.innerHTML = '<div class="spinner"></div> Creating Account...';
+            submitBtn.innerHTML = '🚀 Creating Account...';
             submitBtn.style.opacity = '0.7';
             submitBtn.disabled = true;
-            
-            // Simulate registration process
-            setTimeout(() => {
-                // Reset button
-                submitBtn.innerHTML = originalText;
-                submitBtn.style.opacity = '1';
-                submitBtn.disabled = false;
-                
-                // Show success message (you would replace this with actual form submission)
-                alert('Registration successful! Please check your email for verification.');
-            }, 2000);
+
+            // Let the form submit normally - Flask will handle it
+            // The page will redirect based on the response
+            // Don't prevent default - allow form submission
         });
 
         // Add floating animation to background shapes
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', function () {
             const shapes = document.querySelectorAll('.bg-shape');
             shapes.forEach((shape, index) => {
                 shape.style.animationDelay = `${index * -5}s`;
@@ -1464,7 +1524,7 @@
         });
 
         // Smooth scroll for login link
-        document.querySelector('.login-link').addEventListener('click', function(e) {
+        document.querySelector('.login-link').addEventListener('click', function (e) {
             e.preventDefault();
             // Add your login navigation logic here
             console.log('Navigate to login page');
@@ -1472,11 +1532,11 @@
 
         // Add subtle hover effects to form fields
         document.querySelectorAll('input, select').forEach(field => {
-            field.addEventListener('mouseenter', function() {
+            field.addEventListener('mouseenter', function () {
                 this.style.transform = 'translateY(-1px)';
             });
-            
-            field.addEventListener('mouseleave', function() {
+
+            field.addEventListener('mouseleave', function () {
                 if (this !== document.activeElement) {
                     this.style.transform = 'translateY(0)';
                 }
@@ -1507,7 +1567,7 @@
 
         // Debounce resize handler for performance
         let _relocateTimer = null;
-        window.addEventListener('resize', function() {
+        window.addEventListener('resize', function () {
             clearTimeout(_relocateTimer);
             _relocateTimer = setTimeout(relocatePreview, 120);
         });
@@ -1516,4 +1576,5 @@
         document.addEventListener('DOMContentLoaded', relocatePreview);
     </script>
 </body>
+
 </html>

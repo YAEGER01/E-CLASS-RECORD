@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - E-Class Record</title>
+    <!-- SweetAlert2 CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11.7.32/dist/sweetalert2.min.css">
+    <style>
+        /* Clean, minimal SweetAlert2 styles */
+        .swal2-popup {
+            border-radius: 12px !important;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2) !important;
+        }
+
+        .swal2-confirm,
+        .swal2-cancel {
+            border-radius: 8px !important;
+            font-weight: 600 !important;
+            padding: 10px 24px !important;
+        }
+
+        /* Mobile responsive */
+        @media (max-width: 480px) {
+            .swal2-popup {
+                width: 95% !important;
+                margin: 10px !important;
+            }
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #7c3aed, #a855f7);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+
+        .card {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+        }
+
+        .action-btn {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .action-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .logout-btn {
+            background: #dc3545;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .logout-btn:hover {
+            background: #c82333;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="header">
+        <div>
+            <h1>⚡ Admin Dashboard</h1>
+            <p>Welcome, Admin {{ user.school_id }}!</p>
+        </div>
+        <div class="header-actions">
+            <button onclick="createInstructor()" class="action-btn">👨‍🏫 Create Instructor</button>
+            <a href="{{ url_for('logout') }}" class="logout-btn">Logout</a>
+        </div>
+    </div>
+
+    <div class="dashboard-grid">
+        <div class="card">
+            <h3>👥 User Management</h3>
+            <p>Manage all users, students, and instructors.</p>
+            <button onclick="createInstructor()" class="action-btn" style="margin-top: 15px;">👨‍🏫 Create
+                Instructor</button>
+        </div>
+
+        <div class="card">
+            <h3>📊 System Analytics</h3>
+            <p>View system statistics and reports.</p>
+            <p><em>Feature coming soon...</em></p>
+        </div>
+
+        <div class="card">
+            <h3>⚙️ System Settings</h3>
+            <p>Configure system preferences and settings.</p>
+            <p><em>Feature coming soon...</em></p>
+        </div>
+
+        <div class="card">
+            <h3>📋 Audit Logs</h3>
+            <p>Monitor system activity and security logs.</p>
+            <p><em>Feature coming soon...</em></p>
+        </div>
+    </div>
+
+    <!-- SweetAlert2 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.7.32/dist/sweetalert2.all.min.js"></script>
+
+    <script>
+        // Clean SweetAlert2 implementation - no random Swal calls
+        function createInstructor() {
+            Swal.fire({
+                title: 'Create New Instructor',
+                html: `
+                    <div style="padding: 10px 0;">
+                        <div style="display: flex; flex-direction: column; gap: 15px; max-height: 400px; overflow-y: auto;">
+
+                            <div>
+                                <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #374151;">School ID *</label>
+                                <input type="text" id="schoolId" placeholder="e.g. INST001" style="width: 100%; padding: 10px; border: 1px solid #d1d5db; border-radius: 5px; font-size: 14px; box-sizing: border-box;">
+                            </div>
+
+                            <div>
+                                <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #374151;">Employee ID</label>
+                                <input type="text" id="employeeId" placeholder="e.g. EMP001" style="width: 100%; padding: 10px; border: 1px solid #d1d5db; border-radius: 5px; font-size: 14px; box-sizing: border-box;">
+                            </div>
+
+                            <div>
+                                <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #374151;">Password *</label>
+                                <input type="password" id="password" placeholder="Enter password" style="width: 100%; padding: 10px; border: 1px solid #d1d5db; border-radius: 5px; font-size: 14px; box-sizing: border-box;">
+                            </div>
+
+                            <div>
+                                <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #374151;">Confirm Password *</label>
+                                <input type="password" id="confirmPassword" placeholder="Confirm password" style="width: 100%; padding: 10px; border: 1px solid #d1d5db; border-radius: 5px; font-size: 14px; box-sizing: border-box;">
+                            </div>
+
+                            <div>
+                                <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #374151;">Department *</label>
+                                <select id="department" style="width: 100%; padding: 10px; border: 1px solid #d1d5db; border-radius: 5px; font-size: 14px; box-sizing: border-box; background: white;">
+                                    <option value="">Select Department</option>
+                                    <option value="Computer Science">Computer Science</option>
+                                    <option value="Information Technology">Information Technology</option>
+                                    <option value="Mathematics">Mathematics</option>
+                                    <option value="English">English</option>
+                                    <option value="Science">Science</option>
+                                    <option value="Business">Business</option>
+                                    <option value="Engineering">Engineering</option>
+                                </select>
+                            </div>
+
+                            <div>
+                                <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #374151;">Specialization</label>
+                                <input type="text" id="specialization" placeholder="e.g. Web Development" style="width: 100%; padding: 10px; border: 1px solid #d1d5db; border-radius: 5px; font-size: 14px; box-sizing: border-box;">
+                            </div>
+
+                        </div>
+                    </div>
+                `,
+                showCancelButton: true,
+                confirmButtonText: 'Create Instructor',
+                cancelButtonText: 'Cancel',
+                confirmButtonColor: '#4F46E5',
+                cancelButtonColor: '#6B7280',
+                width: 450,
+                padding: '20px',
+                background: '#ffffff',
+                preConfirm: () => {
+                    const schoolId = document.getElementById('schoolId').value.trim();
+                    const password = document.getElementById('password').value;
+                    const confirmPassword = document.getElementById('confirmPassword').value;
+                    const department = document.getElementById('department').value;
+                    const specialization = document.getElementById('specialization').value.trim();
+                    const employeeId = document.getElementById('employeeId').value.trim();
+
+                    // Simple validation
+                    if (!schoolId) {
+                        Swal.showValidationMessage('School ID is required');
+                        return false;
+                    }
+                    if (!password) {
+                        Swal.showValidationMessage('Password is required');
+                        return false;
+                    }
+                    if (password !== confirmPassword) {
+                        Swal.showValidationMessage('Passwords do not match');
+                        return false;
+                    }
+                    if (!department) {
+                        Swal.showValidationMessage('Department is required');
+                        return false;
+                    }
+
+                    return { schoolId, password, department, specialization, employeeId };
+                }
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    const data = result.value;
+
+                    // Show loading
+                    Swal.fire({
+                        title: 'Creating Instructor...',
+                        text: 'Please wait...',
+                        allowOutsideClick: false,
+                        showConfirmButton: false,
+                        didOpen: () => {
+                            Swal.showLoading();
+                        }
+                    });
+
+                    // Send to server
+                    fetch('/admin/create-instructor', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(data)
+                    })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.success) {
+                                Swal.fire({
+                                    icon: 'success',
+                                    title: 'Success!',
+                                    text: 'Instructor created successfully!',
+                                    timer: 2000,
+                                    showConfirmButton: false
+                                });
+                            } else {
+                                Swal.fire({
+                                    icon: 'error',
+                                    title: 'Error!',
+                                    text: data.message || 'Failed to create instructor'
+                                });
+                            }
+                        })
+                        .catch(error => {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Error!',
+                                text: 'Network error occurred'
+                            });
+                        });
+                }
+            });
+        }
+
+        // Clean welcome message - only one Swal call
+        document.addEventListener('DOMContentLoaded', function () {
+            setTimeout(() => {
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Welcome!',
+                    text: 'Admin dashboard loaded successfully',
+                    timer: 1500,
+                    showConfirmButton: false,
+                    position: 'top-end',
+                    toast: true
+                });
+            }, 500);
+        });
+    </script>
+
+</body>
+
+</html>

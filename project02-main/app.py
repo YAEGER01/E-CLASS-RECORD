@@ -3,8 +3,9 @@ import logging
 from datetime import datetime
 from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify
 from werkzeug.utils import secure_filename
-from dotenv import load_dotenv
-from models import db, User, Student, Instructor
+from models import User, Student, Instructor
+from db_conn import init_database_with_app, db_conn
+from models import db
 
 # Configure logging
 logging.basicConfig(
@@ -17,10 +18,6 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# Load environment variables
-load_dotenv()
-logger.info("Environment variables loaded from .env file")
-
 app = Flask(__name__)
 app.secret_key = os.getenv('SECRET_KEY', 'dev-secret-key-change-in-production')
 app.config['SESSION_TYPE'] = 'filesystem'
@@ -28,16 +25,6 @@ app.config['SESSION_PERMANENT'] = False
 app.config['SESSION_USE_SIGNER'] = True
 app.config['PERMANENT_SESSION_LIFETIME'] = 3600  # 1 hour
 logger.info("Flask application initialized with session configuration")
-
-# Database configuration
-db_uri = f"mysql+pymysql://{os.getenv('DB_USER')}:{os.getenv('DB_PASSWORD')}@{os.getenv('DB_HOST')}:{os.getenv('DB_PORT')}/{os.getenv('DB_NAME')}"
-app.config['SQLALCHEMY_DATABASE_URI'] = db_uri
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-logger.info(f"Database URI configured: {db_uri.replace(os.getenv('DB_PASSWORD'), '***')}")
-
-# Initialize database with app
-db.init_app(app)
-logger.info("Database initialized with Flask app")
 
 
 @app.route("/")
@@ -590,32 +577,11 @@ def register():
     return render_template('register.html')
 
 
-# Database initialization function
-def init_database():
-    """Initialize database connection and create tables if they don't exist."""
-    logger.info("Starting database initialization...")
-    try:
-        with app.app_context():
-            # Test database connections
-            logger.info("Testing database connection...")
-            with db.engine.connect() as connection:
-                connection.execute(db.text('SELECT 1'))
-            logger.info("✅ Database connection successful!")
-
-            # Create all tables
-            logger.info("Creating database tables...")
-            db.create_all()
-            logger.info("✅ Database tables created successfully!")
-
-            return True
-    except Exception as e:
-        logger.error(f"❌ Database connection failed: {str(e)}")
-        return False
 
 # Initialize database on app startup
 if __name__ == "__main__":
     logger.info("Application startup initiated")
-    if init_database():
+    if init_database_with_app(app):
         logger.info("🚀 Starting Flask application...")
         app.run(debug=True)
     else:

@@ -37,7 +37,6 @@ app.config['SESSION_USE_SIGNER'] = True
 app.config['PERMANENT_SESSION_LIFETIME'] = 3600  # 1 hour
 logger.info("Flask application initialized with session configuration")
 
-
 @app.route("/")
 def home():
     logger.info("Home page accessed")

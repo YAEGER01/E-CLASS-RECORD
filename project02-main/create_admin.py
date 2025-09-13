@@ -14,6 +14,14 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from app import app, db
 from models import User
+from db_conn import init_database_with_app
+
+# Initialize database if not already initialized
+try:
+    init_database_with_app(app)
+except Exception as e:
+    print(f"Database initialization warning: {e}")
+    # Continue anyway as database might already be initialized
 
 
 def create_admin():

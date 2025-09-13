@@ -47,9 +47,13 @@ class DatabaseConnection:
         app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
         logger.info(f"Database URI configured for {environment}: {db_uri.replace(db_password or '', '***')}")
 
-        # Initialize database with app
-        db.init_app(app)
-        logger.info("Database initialized with Flask app")
+        # Check if SQLAlchemy is already registered with this app
+        if not hasattr(app, 'extensions') or 'sqlalchemy' not in app.extensions:
+            # Initialize database with app only if not already registered
+            db.init_app(app)
+            logger.info("Database initialized with Flask app")
+        else:
+            logger.info("Database already initialized with Flask app - skipping re-initialization")
 
     def test_connection(self) -> bool:
         """Test database connection."""

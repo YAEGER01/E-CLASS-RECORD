@@ -297,3 +297,431 @@
 2025-09-13 10:06:33,938 - INFO -  * Debugger PIN: 695-259-473
 2025-09-13 10:06:34,765 - INFO -  * Detected change in 'c:\\Users\\maday\\PROJECTS\\E-CLASS-RECORD\\project02-main\\test_db_init.py', reloading
 2025-09-13 10:06:34,867 - INFO -  * Restarting with stat
+2025-09-13 10:06:35,665 - INFO - Flask application initialized with session configuration
+2025-09-13 10:06:35,671 - INFO - Application startup initiated
+2025-09-13 10:06:35,672 - INFO - Environment variables loaded from .env file
+2025-09-13 10:06:35,672 - INFO - Database environment: local
+2025-09-13 10:06:35,673 - INFO - Database URI configured for local: mysql+pymysql://root:***@localhost:3307/e_class_record
+2025-09-13 10:06:35,757 - INFO - Database initialized with Flask app
+2025-09-13 10:06:35,758 - INFO - Starting database initialization...
+2025-09-13 10:06:35,758 - INFO - Testing database connection...
+2025-09-13 10:06:35,770 - INFO - ✅ Database connection successful!
+2025-09-13 10:06:35,770 - INFO - Creating database tables...
+2025-09-13 10:06:35,813 - INFO - ✅ Database tables created successfully!
+2025-09-13 10:06:35,813 - INFO - 🚀 Starting Flask application...
+2025-09-13 10:06:35,833 - WARNING -  * Debugger is active!
+2025-09-13 10:06:35,839 - INFO -  * Debugger PIN: 695-259-473
+2025-09-13 10:11:14,269 - INFO -  * Detected change in 'C:\\Users\\maday\\PROJECTS\\E-CLASS-RECORD\\project02-main\\data_inserter.py', reloading
+2025-09-13 10:11:14,365 - INFO -  * Restarting with stat
+2025-09-13 10:11:15,113 - INFO -  * Detected change in 'c:\\Users\\maday\\PROJECTS\\E-CLASS-RECORD\\project02-main\\data_inserter.py', reloading
+2025-09-13 10:11:15,132 - INFO - Flask application initialized with session configuration
+2025-09-13 10:11:15,138 - INFO - Application startup initiated
+2025-09-13 10:11:15,142 - INFO - Environment variables loaded from .env file
+2025-09-13 10:11:15,142 - INFO - Database environment: local
+2025-09-13 10:11:15,143 - INFO - Database URI configured for local: mysql+pymysql://root:***@localhost:3307/e_class_record
+2025-09-13 10:11:15,214 - INFO -  * Restarting with stat
+2025-09-13 10:11:15,267 - INFO - Database initialized with Flask app
+2025-09-13 10:11:15,267 - INFO - Starting database initialization...
+2025-09-13 10:11:15,268 - INFO - Testing database connection...
+2025-09-13 10:11:15,283 - INFO - ✅ Database connection successful!
+2025-09-13 10:11:15,283 - INFO - Creating database tables...
+2025-09-13 10:11:15,366 - INFO - ✅ Database tables created successfully!
+2025-09-13 10:11:15,368 - INFO - 🚀 Starting Flask application...
+2025-09-13 10:11:15,405 - WARNING -  * Debugger is active!
+2025-09-13 10:11:15,419 - INFO -  * Debugger PIN: 695-259-473
+2025-09-13 10:11:16,122 - INFO - Flask application initialized with session configuration
+2025-09-13 10:11:16,129 - INFO - Application startup initiated
+2025-09-13 10:11:16,131 - INFO - Environment variables loaded from .env file
+2025-09-13 10:11:16,131 - INFO - Database environment: local
+2025-09-13 10:11:16,131 - INFO - Database URI configured for local: mysql+pymysql://root:***@localhost:3307/e_class_record
+2025-09-13 10:11:16,231 - INFO - Database initialized with Flask app
+2025-09-13 10:11:16,231 - INFO - Starting database initialization...
+2025-09-13 10:11:16,231 - INFO - Testing database connection...
+2025-09-13 10:11:16,244 - INFO - ✅ Database connection successful!
+2025-09-13 10:11:16,244 - INFO - Creating database tables...
+2025-09-13 10:11:16,282 - INFO - ✅ Database tables created successfully!
+2025-09-13 10:11:16,282 - INFO - 🚀 Starting Flask application...
+2025-09-13 10:11:16,306 - WARNING -  * Debugger is active!
+2025-09-13 10:11:16,312 - INFO -  * Debugger PIN: 695-259-473
+2025-09-13 10:11:27,836 - INFO - Flask application initialized with session configuration
+2025-09-13 10:11:27,848 - INFO - Environment variables loaded from .env file
+2025-09-13 10:11:27,849 - INFO - Database environment: local
+2025-09-13 10:11:27,849 - INFO - Database URI configured for local: mysql+pymysql://root:***@localhost:3307/e_class_record
+2025-09-13 10:11:27,966 - INFO - Database initialized with Flask app
+2025-09-13 10:11:27,966 - INFO - Starting database initialization...
+2025-09-13 10:11:27,966 - INFO - Testing database connection...
+2025-09-13 10:11:27,996 - INFO - ✅ Database connection successful!
+2025-09-13 10:11:27,996 - INFO - Creating database tables...
+2025-09-13 10:11:28,047 - INFO - ✅ Database tables created successfully!
+2025-09-13 10:11:38,909 - INFO -  * Detected change in 'C:\\Users\\maday\\PROJECTS\\E-CLASS-RECORD\\project02-main\\data_inserter.py', reloading
+2025-09-13 10:11:39,020 - INFO -  * Restarting with stat
+2025-09-13 10:11:39,725 - INFO -  * Detected change in 'c:\\Users\\maday\\PROJECTS\\E-CLASS-RECORD\\project02-main\\data_inserter.py', reloading
+2025-09-13 10:11:39,819 - INFO -  * Restarting with stat
+2025-09-13 10:11:39,821 - INFO - Flask application initialized with session configuration
+2025-09-13 10:11:39,828 - INFO - Application startup initiated
+2025-09-13 10:11:39,831 - INFO - Environment variables loaded from .env file
+2025-09-13 10:11:39,831 - INFO - Database environment: local
+2025-09-13 10:11:39,831 - INFO - Database URI configured for local: mysql+pymysql://root:***@localhost:3307/e_class_record
+2025-09-13 10:11:39,945 - INFO - Database initialized with Flask app
+2025-09-13 10:11:39,946 - INFO - Starting database initialization...
+2025-09-13 10:11:39,946 - INFO - Testing database connection...
+2025-09-13 10:11:39,961 - INFO - ✅ Database connection successful!
+2025-09-13 10:11:39,962 - INFO - Creating database tables...
+2025-09-13 10:11:40,019 - INFO - ✅ Database tables created successfully!
+2025-09-13 10:11:40,019 - INFO - 🚀 Starting Flask application...
+2025-09-13 10:11:40,052 - WARNING -  * Debugger is active!
+2025-09-13 10:11:40,063 - INFO -  * Debugger PIN: 695-259-473
+2025-09-13 10:11:40,708 - INFO - Flask application initialized with session configuration
+2025-09-13 10:11:40,713 - INFO - Application startup initiated
+2025-09-13 10:11:40,716 - INFO - Environment variables loaded from .env file
+2025-09-13 10:11:40,716 - INFO - Database environment: local
+2025-09-13 10:11:40,716 - INFO - Database URI configured for local: mysql+pymysql://root:***@localhost:3307/e_class_record
+2025-09-13 10:11:40,812 - INFO - Database initialized with Flask app
+2025-09-13 10:11:40,812 - INFO - Starting database initialization...
+2025-09-13 10:11:40,812 - INFO - Testing database connection...
+2025-09-13 10:11:40,824 - INFO - ✅ Database connection successful!
+2025-09-13 10:11:40,824 - INFO - Creating database tables...
+2025-09-13 10:11:40,861 - INFO - ✅ Database tables created successfully!
+2025-09-13 10:11:40,861 - INFO - 🚀 Starting Flask application...
+2025-09-13 10:11:40,881 - WARNING -  * Debugger is active!
+2025-09-13 10:11:40,889 - INFO -  * Debugger PIN: 695-259-473
+2025-09-13 10:11:52,315 - INFO -  * Detected change in 'C:\\Users\\maday\\PROJECTS\\E-CLASS-RECORD\\project02-main\\data_inserter.py', reloading
+2025-09-13 10:11:52,410 - INFO -  * Restarting with stat
+2025-09-13 10:11:53,111 - INFO -  * Detected change in 'c:\\Users\\maday\\PROJECTS\\E-CLASS-RECORD\\project02-main\\data_inserter.py', reloading
+2025-09-13 10:11:53,187 - INFO - Flask application initialized with session configuration
+2025-09-13 10:11:53,193 - INFO - Application startup initiated
+2025-09-13 10:11:53,195 - INFO - Environment variables loaded from .env file
+2025-09-13 10:11:53,196 - INFO - Database environment: local
+2025-09-13 10:11:53,196 - INFO - Database URI configured for local: mysql+pymysql://root:***@localhost:3307/e_class_record
+2025-09-13 10:11:53,212 - INFO -  * Restarting with stat
+2025-09-13 10:11:53,313 - INFO - Database initialized with Flask app
+2025-09-13 10:11:53,313 - INFO - Starting database initialization...
+2025-09-13 10:11:53,313 - INFO - Testing database connection...
+2025-09-13 10:11:53,327 - INFO - ✅ Database connection successful!
+2025-09-13 10:11:53,327 - INFO - Creating database tables...
+2025-09-13 10:11:53,390 - INFO - ✅ Database tables created successfully!
+2025-09-13 10:11:53,390 - INFO - 🚀 Starting Flask application...
+2025-09-13 10:11:53,422 - WARNING -  * Debugger is active!
+2025-09-13 10:11:53,432 - INFO -  * Debugger PIN: 695-259-473
+2025-09-13 10:11:54,039 - INFO - Flask application initialized with session configuration
+2025-09-13 10:11:54,044 - INFO - Application startup initiated
+2025-09-13 10:11:54,046 - INFO - Environment variables loaded from .env file
+2025-09-13 10:11:54,046 - INFO - Database environment: local
+2025-09-13 10:11:54,046 - INFO - Database URI configured for local: mysql+pymysql://root:***@localhost:3307/e_class_record
+2025-09-13 10:11:54,141 - INFO - Database initialized with Flask app
+2025-09-13 10:11:54,142 - INFO - Starting database initialization...
+2025-09-13 10:11:54,142 - INFO - Testing database connection...
+2025-09-13 10:11:54,155 - INFO - ✅ Database connection successful!
+2025-09-13 10:11:54,155 - INFO - Creating database tables...
+2025-09-13 10:11:54,192 - INFO - ✅ Database tables created successfully!
+2025-09-13 10:11:54,192 - INFO - 🚀 Starting Flask application...
+2025-09-13 10:11:54,215 - WARNING -  * Debugger is active!
+2025-09-13 10:11:54,222 - INFO -  * Debugger PIN: 695-259-473
+2025-09-13 10:12:11,726 - INFO - Flask application initialized with session configuration
+2025-09-13 10:12:11,736 - INFO - Environment variables loaded from .env file
+2025-09-13 10:12:11,737 - INFO - Database environment: local
+2025-09-13 10:12:11,737 - INFO - Database URI configured for local: mysql+pymysql://root:***@localhost:3307/e_class_record
+2025-09-13 10:12:11,852 - INFO - Database initialized with Flask app
+2025-09-13 10:12:11,852 - INFO - Starting database initialization...
+2025-09-13 10:12:11,852 - INFO - Testing database connection...
+2025-09-13 10:12:11,865 - INFO - ✅ Database connection successful!
+2025-09-13 10:12:11,865 - INFO - Creating database tables...
+2025-09-13 10:12:11,904 - INFO - ✅ Database tables created successfully!
+2025-09-13 10:12:31,902 - INFO -  * Detected change in 'c:\\Users\\maday\\PROJECTS\\E-CLASS-RECORD\\project02-main\\test_data_inserter.py', reloading
+2025-09-13 10:12:31,997 - INFO -  * Detected change in 'C:\\Users\\maday\\PROJECTS\\E-CLASS-RECORD\\project02-main\\test_data_inserter.py', reloading
+2025-09-13 10:12:32,011 - INFO -  * Restarting with stat
+2025-09-13 10:12:32,113 - INFO -  * Restarting with stat
+2025-09-13 10:12:32,934 - INFO - Flask application initialized with session configuration
+2025-09-13 10:12:32,943 - INFO - Application startup initiated
+2025-09-13 10:12:32,947 - INFO - Environment variables loaded from .env file
+2025-09-13 10:12:32,947 - INFO - Database environment: local
+2025-09-13 10:12:32,948 - INFO - Database URI configured for local: mysql+pymysql://root:***@localhost:3307/e_class_record
+2025-09-13 10:12:33,026 - INFO - Flask application initialized with session configuration
+2025-09-13 10:12:33,035 - INFO - Application startup initiated
+2025-09-13 10:12:33,038 - INFO - Environment variables loaded from .env file
+2025-09-13 10:12:33,039 - INFO - Database environment: local
+2025-09-13 10:12:33,039 - INFO - Database URI configured for local: mysql+pymysql://root:***@localhost:3307/e_class_record
+2025-09-13 10:12:33,077 - INFO - Database initialized with Flask app
+2025-09-13 10:12:33,078 - INFO - Starting database initialization...
+2025-09-13 10:12:33,078 - INFO - Testing database connection...
+2025-09-13 10:12:33,114 - INFO - ✅ Database connection successful!
+2025-09-13 10:12:33,114 - INFO - Creating database tables...
+2025-09-13 10:12:33,160 - INFO - ✅ Database tables created successfully!
+2025-09-13 10:12:33,160 - INFO - 🚀 Starting Flask application...
+2025-09-13 10:12:33,172 - INFO - Database initialized with Flask app
+2025-09-13 10:12:33,172 - INFO - Starting database initialization...
+2025-09-13 10:12:33,173 - INFO - Testing database connection...
+2025-09-13 10:12:33,186 - INFO - ✅ Database connection successful!
+2025-09-13 10:12:33,186 - INFO - Creating database tables...
+2025-09-13 10:12:33,187 - WARNING -  * Debugger is active!
+2025-09-13 10:12:33,198 - INFO -  * Debugger PIN: 695-259-473
+2025-09-13 10:12:33,221 - INFO - ✅ Database tables created successfully!
+2025-09-13 10:12:33,221 - INFO - 🚀 Starting Flask application...
+2025-09-13 10:12:33,245 - WARNING -  * Debugger is active!
+2025-09-13 10:12:33,254 - INFO -  * Debugger PIN: 695-259-473
+2025-09-13 10:12:48,615 - INFO - Flask application initialized with session configuration
+2025-09-13 10:12:48,660 - INFO - Environment variables loaded from .env file
+2025-09-13 10:12:48,660 - INFO - Database environment: local
+2025-09-13 10:12:48,660 - INFO - Database URI configured for local: mysql+pymysql://root:***@localhost:3307/e_class_record
+2025-09-13 10:12:48,818 - INFO - Database initialized with Flask app
+2025-09-13 10:12:48,818 - INFO - Starting database initialization...
+2025-09-13 10:12:48,818 - INFO - Testing database connection...
+2025-09-13 10:12:48,833 - INFO - ✅ Database connection successful!
+2025-09-13 10:12:48,834 - INFO - Creating database tables...
+2025-09-13 10:12:48,877 - INFO - ✅ Database tables created successfully!
+2025-09-13 10:12:48,881 - INFO - Environment variables loaded from .env file
+2025-09-13 10:12:48,881 - INFO - Database environment: local
+2025-09-13 10:12:48,881 - INFO - Database URI configured for local: mysql+pymysql://root:***@localhost:3307/e_class_record
+2025-09-13 10:12:48,881 - INFO - Database already initialized with Flask app - skipping re-initialization
+2025-09-13 10:12:48,881 - INFO - Starting database initialization...
+2025-09-13 10:12:48,881 - INFO - Testing database connection...
+2025-09-13 10:12:48,882 - INFO - ✅ Database connection successful!
+2025-09-13 10:12:48,883 - INFO - Creating database tables...
+2025-09-13 10:12:48,926 - INFO - ✅ Database tables created successfully!
+2025-09-13 10:13:14,874 - INFO -  * Detected change in 'c:\\Users\\maday\\PROJECTS\\E-CLASS-RECORD\\project02-main\\test_data_inserter.py', reloading
+2025-09-13 10:13:14,965 - INFO -  * Restarting with stat
+2025-09-13 10:13:14,983 - INFO -  * Detected change in 'C:\\Users\\maday\\PROJECTS\\E-CLASS-RECORD\\project02-main\\test_data_inserter.py', reloading
+2025-09-13 10:13:15,082 - INFO -  * Restarting with stat
+2025-09-13 10:13:15,827 - INFO - Flask application initialized with session configuration
+2025-09-13 10:13:15,833 - INFO - Application startup initiated
+2025-09-13 10:13:15,835 - INFO - Environment variables loaded from .env file
+2025-09-13 10:13:15,836 - INFO - Database environment: local
+2025-09-13 10:13:15,836 - INFO - Database URI configured for local: mysql+pymysql://root:***@localhost:3307/e_class_record
+2025-09-13 10:13:15,930 - INFO - Flask application initialized with session configuration
+2025-09-13 10:13:15,937 - INFO - Application startup initiated
+2025-09-13 10:13:15,940 - INFO - Environment variables loaded from .env file
+2025-09-13 10:13:15,940 - INFO - Database environment: local
+2025-09-13 10:13:15,941 - INFO - Database URI configured for local: mysql+pymysql://root:***@localhost:3307/e_class_record
+2025-09-13 10:13:15,947 - INFO - Database initialized with Flask app
+2025-09-13 10:13:15,947 - INFO - Starting database initialization...
+2025-09-13 10:13:15,947 - INFO - Testing database connection...
+2025-09-13 10:13:15,962 - INFO - ✅ Database connection successful!
+2025-09-13 10:13:15,962 - INFO - Creating database tables...
+2025-09-13 10:13:16,004 - INFO - ✅ Database tables created successfully!
+2025-09-13 10:13:16,004 - INFO - 🚀 Starting Flask application...
+2025-09-13 10:13:16,029 - WARNING -  * Debugger is active!
+2025-09-13 10:13:16,037 - INFO -  * Debugger PIN: 695-259-473
+2025-09-13 10:13:16,061 - INFO - Database initialized with Flask app
+2025-09-13 10:13:16,061 - INFO - Starting database initialization...
+2025-09-13 10:13:16,062 - INFO - Testing database connection...
+2025-09-13 10:13:16,098 - INFO - ✅ Database connection successful!
+2025-09-13 10:13:16,099 - INFO - Creating database tables...
+2025-09-13 10:13:16,139 - INFO - ✅ Database tables created successfully!
+2025-09-13 10:13:16,140 - INFO - 🚀 Starting Flask application...
+2025-09-13 10:13:16,164 - WARNING -  * Debugger is active!
+2025-09-13 10:13:16,171 - INFO -  * Debugger PIN: 695-259-473
+2025-09-13 10:13:42,409 - INFO - Flask application initialized with session configuration
+2025-09-13 10:13:42,416 - INFO - Environment variables loaded from .env file
+2025-09-13 10:13:42,416 - INFO - Database environment: local
+2025-09-13 10:13:42,417 - INFO - Database URI configured for local: mysql+pymysql://root:***@localhost:3307/e_class_record
+2025-09-13 10:13:42,528 - INFO - Database initialized with Flask app
+2025-09-13 10:13:42,528 - INFO - Starting database initialization...
+2025-09-13 10:13:42,529 - INFO - Testing database connection...
+2025-09-13 10:13:42,541 - INFO - ✅ Database connection successful!
+2025-09-13 10:13:42,541 - INFO - Creating database tables...
+2025-09-13 10:13:42,583 - INFO - ✅ Database tables created successfully!
+2025-09-13 10:15:58,527 - INFO -  * Detected change in 'c:\\Users\\maday\\PROJECTS\\E-CLASS-RECORD\\project02-main\\test_data_inserter.py', reloading
+2025-09-13 10:15:58,652 - INFO -  * Restarting with stat
+2025-09-13 10:15:58,666 - INFO -  * Detected change in 'C:\\Users\\maday\\PROJECTS\\E-CLASS-RECORD\\project02-main\\test_data_inserter.py', reloading
+2025-09-13 10:15:58,768 - INFO -  * Restarting with stat
+2025-09-13 10:15:59,692 - INFO - Flask application initialized with session configuration
+2025-09-13 10:15:59,700 - INFO - Application startup initiated
+2025-09-13 10:15:59,702 - INFO - Environment variables loaded from .env file
+2025-09-13 10:15:59,703 - INFO - Database environment: local
+2025-09-13 10:15:59,703 - INFO - Database URI configured for local: mysql+pymysql://root:***@localhost:3307/e_class_record
+2025-09-13 10:15:59,822 - INFO - Flask application initialized with session configuration
+2025-09-13 10:15:59,830 - INFO - Database initialized with Flask app
+2025-09-13 10:15:59,829 - INFO - Application startup initiated
+2025-09-13 10:15:59,830 - INFO - Starting database initialization...
+2025-09-13 10:15:59,830 - INFO - Testing database connection...
+2025-09-13 10:15:59,832 - INFO - Environment variables loaded from .env file
+2025-09-13 10:15:59,833 - INFO - Database environment: local
+2025-09-13 10:15:59,833 - INFO - Database URI configured for local: mysql+pymysql://root:***@localhost:3307/e_class_record
+2025-09-13 10:15:59,844 - INFO - ✅ Database connection successful!
+2025-09-13 10:15:59,844 - INFO - Creating database tables...
+2025-09-13 10:15:59,892 - INFO - ✅ Database tables created successfully!
+2025-09-13 10:15:59,892 - INFO - 🚀 Starting Flask application...
+2025-09-13 10:15:59,925 - WARNING -  * Debugger is active!
+2025-09-13 10:15:59,934 - INFO -  * Debugger PIN: 695-259-473
+2025-09-13 10:15:59,971 - INFO - Database initialized with Flask app
+2025-09-13 10:15:59,971 - INFO - Starting database initialization...
+2025-09-13 10:15:59,971 - INFO - Testing database connection...
+2025-09-13 10:15:59,987 - INFO - ✅ Database connection successful!
+2025-09-13 10:15:59,987 - INFO - Creating database tables...
+2025-09-13 10:16:00,033 - INFO - ✅ Database tables created successfully!
+2025-09-13 10:16:00,034 - INFO - 🚀 Starting Flask application...
+2025-09-13 10:16:00,056 - WARNING -  * Debugger is active!
+2025-09-13 10:16:00,063 - INFO -  * Debugger PIN: 695-259-473
+2025-09-13 10:16:21,265 - INFO -  * Detected change in 'c:\\Users\\maday\\PROJECTS\\E-CLASS-RECORD\\project02-main\\data_inserter.py', reloading
+2025-09-13 10:16:21,355 - INFO -  * Restarting with stat
+2025-09-13 10:16:21,374 - INFO -  * Detected change in 'C:\\Users\\maday\\PROJECTS\\E-CLASS-RECORD\\project02-main\\data_inserter.py', reloading
+2025-09-13 10:16:21,472 - INFO -  * Restarting with stat
+2025-09-13 10:16:22,297 - INFO - Flask application initialized with session configuration
+2025-09-13 10:16:22,304 - INFO - Application startup initiated
+2025-09-13 10:16:22,306 - INFO - Environment variables loaded from .env file
+2025-09-13 10:16:22,306 - INFO - Database environment: local
+2025-09-13 10:16:22,306 - INFO - Database URI configured for local: mysql+pymysql://root:***@localhost:3307/e_class_record
+2025-09-13 10:16:22,382 - INFO - Flask application initialized with session configuration
+2025-09-13 10:16:22,390 - INFO - Application startup initiated
+2025-09-13 10:16:22,392 - INFO - Environment variables loaded from .env file
+2025-09-13 10:16:22,393 - INFO - Database environment: local
+2025-09-13 10:16:22,393 - INFO - Database URI configured for local: mysql+pymysql://root:***@localhost:3307/e_class_record
+2025-09-13 10:16:22,408 - INFO - Database initialized with Flask app
+2025-09-13 10:16:22,409 - INFO - Starting database initialization...
+2025-09-13 10:16:22,409 - INFO - Testing database connection...
+2025-09-13 10:16:22,440 - INFO - ✅ Database connection successful!
+2025-09-13 10:16:22,441 - INFO - Creating database tables...
+2025-09-13 10:16:22,485 - INFO - ✅ Database tables created successfully!
+2025-09-13 10:16:22,485 - INFO - 🚀 Starting Flask application...
+2025-09-13 10:16:22,497 - INFO - Database initialized with Flask app
+2025-09-13 10:16:22,497 - INFO - Starting database initialization...
+2025-09-13 10:16:22,498 - INFO - Testing database connection...
+2025-09-13 10:16:22,508 - WARNING -  * Debugger is active!
+2025-09-13 10:16:22,511 - INFO - ✅ Database connection successful!
+2025-09-13 10:16:22,511 - INFO - Creating database tables...
+2025-09-13 10:16:22,516 - INFO -  * Debugger PIN: 695-259-473
+2025-09-13 10:16:22,545 - INFO - ✅ Database tables created successfully!
+2025-09-13 10:16:22,546 - INFO - 🚀 Starting Flask application...
+2025-09-13 10:16:22,567 - WARNING -  * Debugger is active!
+2025-09-13 10:16:22,574 - INFO -  * Debugger PIN: 695-259-473
+2025-09-13 10:16:57,083 - INFO - Login page accessed with role: student
+2025-09-13 10:16:57,133 - INFO - 127.0.0.1 - - [13/Sep/2025 10:16:57] "GET /login HTTP/1.1" 200 -
+2025-09-13 10:16:57,279 - INFO - 127.0.0.1 - - [13/Sep/2025 10:16:57] "[36mGET /static/images/ccsict.png HTTP/1.1[0m" 304 -
+2025-09-13 10:16:57,280 - INFO - 127.0.0.1 - - [13/Sep/2025 10:16:57] "[36mGET /static/images/isu.png HTTP/1.1[0m" 304 -
+2025-09-13 10:16:58,836 - INFO - Admin login page accessed
+2025-09-13 10:16:58,919 - INFO - 127.0.0.1 - - [13/Sep/2025 10:16:58] "GET /admin-login HTTP/1.1" 200 -
+2025-09-13 10:16:58,964 - INFO - 127.0.0.1 - - [13/Sep/2025 10:16:58] "[36mGET /static/css/adminlogin.css HTTP/1.1[0m" 304 -
+2025-09-13 10:17:10,138 - INFO - Admin login attempt for school ID: admin007
+2025-09-13 10:17:10,263 - INFO - Admin admin007 logged in successfully
+2025-09-13 10:17:10,266 - INFO - 127.0.0.1 - - [13/Sep/2025 10:17:10] "[32mPOST /admin-login HTTP/1.1[0m" 302 -
+2025-09-13 10:17:10,281 - INFO - Admin dashboard accessed by admin007
+2025-09-13 10:17:10,324 - INFO - 127.0.0.1 - - [13/Sep/2025 10:17:10] "GET /admin-dashboard HTTP/1.1" 200 -
+2025-09-13 10:17:35,502 - INFO - Instructor created successfully: INST001 by admin admin007
+2025-09-13 10:17:35,503 - INFO - 127.0.0.1 - - [13/Sep/2025 10:17:35] "POST /admin/create-instructor HTTP/1.1" 200 -
+2025-09-13 10:17:40,357 - INFO - User admin007 (ID: 2) logged out
+2025-09-13 10:17:40,358 - INFO - 127.0.0.1 - - [13/Sep/2025 10:17:40] "[32mGET /logout HTTP/1.1[0m" 302 -
+2025-09-13 10:17:40,364 - INFO - Home page accessed
+2025-09-13 10:17:40,373 - INFO - 127.0.0.1 - - [13/Sep/2025 10:17:40] "GET / HTTP/1.1" 200 -
+2025-09-13 10:17:40,390 - INFO - 127.0.0.1 - - [13/Sep/2025 10:17:40] "[36mGET /static/css/styles.css HTTP/1.1[0m" 304 -
+2025-09-13 10:17:40,392 - INFO - 127.0.0.1 - - [13/Sep/2025 10:17:40] "[36mGET /static/js/main.js HTTP/1.1[0m" 304 -
+2025-09-13 10:17:40,396 - INFO - 127.0.0.1 - - [13/Sep/2025 10:17:40] "[36mGET /static/js/helpers.js HTTP/1.1[0m" 304 -
+2025-09-13 10:17:40,398 - INFO - 127.0.0.1 - - [13/Sep/2025 10:17:40] "[36mGET /static/images/ccsict.png HTTP/1.1[0m" 304 -
+2025-09-13 10:17:40,430 - INFO - 127.0.0.1 - - [13/Sep/2025 10:17:40] "[36mGET /static/images/isu.png HTTP/1.1[0m" 304 -
+2025-09-13 10:17:42,325 - INFO - Login page accessed with role: student
+2025-09-13 10:17:42,326 - INFO - 127.0.0.1 - - [13/Sep/2025 10:17:42] "GET /login HTTP/1.1" 200 -
+2025-09-13 10:17:42,346 - INFO - 127.0.0.1 - - [13/Sep/2025 10:17:42] "[36mGET /static/images/isu.png HTTP/1.1[0m" 304 -
+2025-09-13 10:17:42,348 - INFO - 127.0.0.1 - - [13/Sep/2025 10:17:42] "[36mGET /static/images/ccsict.png HTTP/1.1[0m" 304 -
+2025-09-13 10:17:54,268 - INFO - Instructor login page accessed
+2025-09-13 10:17:54,312 - INFO - 127.0.0.1 - - [13/Sep/2025 10:17:54] "GET /instructor-login HTTP/1.1" 200 -
+2025-09-13 10:17:54,342 - INFO - 127.0.0.1 - - [13/Sep/2025 10:17:54] "[36mGET /static/css/instructorlogin.css HTTP/1.1[0m" 304 -
+2025-09-13 10:18:04,535 - INFO - Instructor login attempt for school ID: INST001
+2025-09-13 10:18:04,644 - INFO - Instructor INST001 logged in successfully
+2025-09-13 10:18:04,646 - INFO - 127.0.0.1 - - [13/Sep/2025 10:18:04] "[32mPOST /instructor-login HTTP/1.1[0m" 302 -
+2025-09-13 10:18:04,657 - INFO - Instructor dashboard accessed by INST001
+2025-09-13 10:18:04,684 - INFO - 127.0.0.1 - - [13/Sep/2025 10:18:04] "GET /instructor-dashboard HTTP/1.1" 200 -
+2025-09-13 10:18:06,415 - INFO - Instructor INST001 accessed class management
+2025-09-13 10:18:09,326 - INFO - 127.0.0.1 - - [13/Sep/2025 10:18:09] "GET /instructor/classes HTTP/1.1" 200 -
+2025-09-13 10:18:09,375 - INFO - Retrieved 0 classes for instructor INST001
+2025-09-13 10:18:09,377 - INFO - 127.0.0.1 - - [13/Sep/2025 10:18:09] "GET /api/instructor/classes HTTP/1.1" 200 -
+2025-09-13 10:18:17,215 - INFO - Instructor INST001 created class: 25-1 BSCS 1A
+2025-09-13 10:18:17,218 - INFO - 127.0.0.1 - - [13/Sep/2025 10:18:17] "POST /api/instructor/classes HTTP/1.1" 200 -
+2025-09-13 10:18:35,138 - INFO - Instructor INST001 created class: 25-2 BSIT 3A
+2025-09-13 10:18:35,140 - INFO - 127.0.0.1 - - [13/Sep/2025 10:18:35] "POST /api/instructor/classes HTTP/1.1" 200 -
+2025-09-13 10:18:53,692 - INFO - Instructor dashboard accessed by INST001
+2025-09-13 10:18:53,694 - INFO - 127.0.0.1 - - [13/Sep/2025 10:18:53] "GET /instructor-dashboard HTTP/1.1" 200 -
+2025-09-13 10:18:55,227 - INFO - User INST001 (ID: 9) logged out
+2025-09-13 10:18:55,228 - INFO - 127.0.0.1 - - [13/Sep/2025 10:18:55] "[32mGET /logout HTTP/1.1[0m" 302 -
+2025-09-13 10:18:55,239 - INFO - Home page accessed
+2025-09-13 10:18:55,240 - INFO - 127.0.0.1 - - [13/Sep/2025 10:18:55] "GET / HTTP/1.1" 200 -
+2025-09-13 10:18:55,256 - INFO - 127.0.0.1 - - [13/Sep/2025 10:18:55] "[36mGET /static/js/main.js HTTP/1.1[0m" 304 -
+2025-09-13 10:18:55,256 - INFO - 127.0.0.1 - - [13/Sep/2025 10:18:55] "[36mGET /static/css/styles.css HTTP/1.1[0m" 304 -
+2025-09-13 10:18:55,257 - INFO - 127.0.0.1 - - [13/Sep/2025 10:18:55] "[36mGET /static/js/helpers.js HTTP/1.1[0m" 304 -
+2025-09-13 10:18:55,268 - INFO - 127.0.0.1 - - [13/Sep/2025 10:18:55] "[36mGET /static/images/ccsict.png HTTP/1.1[0m" 304 -
+2025-09-13 10:18:55,280 - INFO - 127.0.0.1 - - [13/Sep/2025 10:18:55] "[36mGET /static/images/isu.png HTTP/1.1[0m" 304 -
+2025-09-13 10:18:56,785 - INFO - Login page accessed with role: student
+2025-09-13 10:18:56,786 - INFO - 127.0.0.1 - - [13/Sep/2025 10:18:56] "GET /login HTTP/1.1" 200 -
+2025-09-13 10:18:56,811 - INFO - 127.0.0.1 - - [13/Sep/2025 10:18:56] "[36mGET /static/images/isu.png HTTP/1.1[0m" 304 -
+2025-09-13 10:18:56,814 - INFO - 127.0.0.1 - - [13/Sep/2025 10:18:56] "[36mGET /static/images/ccsict.png HTTP/1.1[0m" 304 -
+2025-09-13 10:18:58,481 - INFO - Student login page accessed
+2025-09-13 10:18:58,523 - INFO - 127.0.0.1 - - [13/Sep/2025 10:18:58] "GET /student-login HTTP/1.1" 200 -
+2025-09-13 10:18:58,552 - INFO - 127.0.0.1 - - [13/Sep/2025 10:18:58] "GET /static/css/studentlogin.css HTTP/1.1" 200 -
+2025-09-13 10:19:03,336 - INFO - Index page accessed
+2025-09-13 10:19:03,337 - INFO - 127.0.0.1 - - [13/Sep/2025 10:19:03] "GET /index HTTP/1.1" 200 -
+2025-09-13 10:19:03,358 - INFO - 127.0.0.1 - - [13/Sep/2025 10:19:03] "[36mGET /static/css/styles.css HTTP/1.1[0m" 304 -
+2025-09-13 10:19:03,358 - INFO - 127.0.0.1 - - [13/Sep/2025 10:19:03] "[36mGET /static/js/main.js HTTP/1.1[0m" 304 -
+2025-09-13 10:19:03,360 - INFO - 127.0.0.1 - - [13/Sep/2025 10:19:03] "[36mGET /static/js/helpers.js HTTP/1.1[0m" 304 -
+2025-09-13 10:19:03,368 - INFO - 127.0.0.1 - - [13/Sep/2025 10:19:03] "[36mGET /static/images/ccsict.png HTTP/1.1[0m" 304 -
+2025-09-13 10:19:03,386 - INFO - 127.0.0.1 - - [13/Sep/2025 10:19:03] "[36mGET /static/images/isu.png HTTP/1.1[0m" 304 -
+2025-09-13 10:19:04,953 - INFO - Registration page accessed
+2025-09-13 10:19:05,020 - INFO - 127.0.0.1 - - [13/Sep/2025 10:19:05] "GET /register HTTP/1.1" 200 -
+2025-09-13 10:19:07,900 - INFO - Registration page accessed
+2025-09-13 10:19:07,901 - INFO - 127.0.0.1 - - [13/Sep/2025 10:19:07] "GET /register HTTP/1.1" 200 -
+2025-09-13 10:19:45,933 - INFO - Registration form submitted
+2025-09-13 10:19:46,074 - INFO - User registered successfully: 23-13333
+2025-09-13 10:19:46,075 - INFO - 127.0.0.1 - - [13/Sep/2025 10:19:46] "[32mPOST /register HTTP/1.1[0m" 302 -
+2025-09-13 10:19:46,082 - INFO - Login page accessed with role: student
+2025-09-13 10:19:46,083 - INFO - 127.0.0.1 - - [13/Sep/2025 10:19:46] "GET /login HTTP/1.1" 200 -
+2025-09-13 10:19:46,102 - INFO - 127.0.0.1 - - [13/Sep/2025 10:19:46] "[36mGET /static/images/isu.png HTTP/1.1[0m" 304 -
+2025-09-13 10:19:46,102 - INFO - 127.0.0.1 - - [13/Sep/2025 10:19:46] "[36mGET /static/images/ccsict.png HTTP/1.1[0m" 304 -
+2025-09-13 10:19:50,096 - INFO - Student login page accessed
+2025-09-13 10:19:50,099 - INFO - 127.0.0.1 - - [13/Sep/2025 10:19:50] "GET /student-login HTTP/1.1" 200 -
+2025-09-13 10:19:50,120 - INFO - 127.0.0.1 - - [13/Sep/2025 10:19:50] "[36mGET /static/css/studentlogin.css HTTP/1.1[0m" 304 -
+2025-09-13 10:19:58,589 - INFO - Student login attempt for school ID: 23-13333
+2025-09-13 10:19:58,699 - INFO - Student 23-13333 logged in successfully
+2025-09-13 10:19:58,701 - INFO - 127.0.0.1 - - [13/Sep/2025 10:19:58] "[32mPOST /student-login HTTP/1.1[0m" 302 -
+2025-09-13 10:19:58,713 - INFO - Student dashboard accessed by 23-13333
+2025-09-13 10:19:58,808 - INFO - 127.0.0.1 - - [13/Sep/2025 10:19:58] "GET /student-dashboard HTTP/1.1" 200 -
+2025-09-13 10:19:58,864 - INFO - Retrieved 0 joined classes for student 23-13333
+2025-09-13 10:19:58,865 - INFO - 127.0.0.1 - - [13/Sep/2025 10:19:58] "GET /api/student/joined-classes HTTP/1.1" 200 -
+2025-09-13 10:20:07,306 - INFO - Student 23-13333 joined class: 25-2 BSIT 3A
+2025-09-13 10:20:07,308 - INFO - 127.0.0.1 - - [13/Sep/2025 10:20:07] "POST /api/student/join-class HTTP/1.1" 200 -
+2025-09-13 10:20:07,325 - INFO - Retrieved 1 joined classes for student 23-13333
+2025-09-13 10:20:07,327 - INFO - 127.0.0.1 - - [13/Sep/2025 10:20:07] "GET /api/student/joined-classes HTTP/1.1" 200 -
+2025-09-13 10:20:38,955 - INFO - Student 23-13333 joined class: 25-1 BSCS 1A
+2025-09-13 10:20:38,958 - INFO - 127.0.0.1 - - [13/Sep/2025 10:20:38] "POST /api/student/join-class HTTP/1.1" 200 -
+2025-09-13 10:20:38,974 - INFO - Retrieved 2 joined classes for student 23-13333
+2025-09-13 10:20:38,976 - INFO - 127.0.0.1 - - [13/Sep/2025 10:20:38] "GET /api/student/joined-classes HTTP/1.1" 200 -
+2025-09-13 10:21:13,386 - INFO - Retrieved 2 joined classes for student 23-13333
+2025-09-13 10:21:13,388 - INFO - 127.0.0.1 - - [13/Sep/2025 10:21:13] "GET /api/student/joined-classes HTTP/1.1" 200 -
+2025-09-13 10:21:14,860 - INFO - Retrieved 2 joined classes for student 23-13333
+2025-09-13 10:21:14,863 - INFO - 127.0.0.1 - - [13/Sep/2025 10:21:14] "GET /api/student/joined-classes HTTP/1.1" 200 -
+2025-09-13 10:21:15,644 - INFO - Retrieved 2 joined classes for student 23-13333
+2025-09-13 10:21:15,647 - INFO - 127.0.0.1 - - [13/Sep/2025 10:21:15] "GET /api/student/joined-classes HTTP/1.1" 200 -
+2025-09-13 10:21:22,056 - INFO - Retrieved 2 joined classes for student 23-13333
+2025-09-13 10:21:22,058 - INFO - 127.0.0.1 - - [13/Sep/2025 10:21:22] "GET /api/student/joined-classes HTTP/1.1" 200 -
+2025-09-13 10:21:26,452 - INFO -  * Detected change in 'C:\\Users\\maday\\PROJECTS\\E-CLASS-RECORD\\project02-main\\data_inserter.py', reloading
+2025-09-13 10:21:26,552 - INFO -  * Restarting with stat
+2025-09-13 10:21:26,573 - INFO -  * Detected change in 'c:\\Users\\maday\\PROJECTS\\E-CLASS-RECORD\\project02-main\\data_inserter.py', reloading
+2025-09-13 10:21:26,697 - INFO -  * Restarting with stat
+2025-09-13 10:21:27,514 - INFO - Flask application initialized with session configuration
+2025-09-13 10:21:27,521 - INFO - Application startup initiated
+2025-09-13 10:21:27,524 - INFO - Environment variables loaded from .env file
+2025-09-13 10:21:27,524 - INFO - Database environment: local
+2025-09-13 10:21:27,524 - INFO - Database URI configured for local: mysql+pymysql://root:***@localhost:3307/e_class_record
+2025-09-13 10:21:27,619 - INFO - Flask application initialized with session configuration
+2025-09-13 10:21:27,629 - INFO - Application startup initiated
+2025-09-13 10:21:27,632 - INFO - Environment variables loaded from .env file
+2025-09-13 10:21:27,632 - INFO - Database environment: local
+2025-09-13 10:21:27,632 - INFO - Database URI configured for local: mysql+pymysql://root:***@localhost:3307/e_class_record
+2025-09-13 10:21:27,648 - INFO - Database initialized with Flask app
+2025-09-13 10:21:27,649 - INFO - Starting database initialization...
+2025-09-13 10:21:27,649 - INFO - Testing database connection...
+2025-09-13 10:21:27,664 - INFO - ✅ Database connection successful!
+2025-09-13 10:21:27,665 - INFO - Creating database tables...
+2025-09-13 10:21:27,708 - INFO - ✅ Database tables created successfully!
+2025-09-13 10:21:27,709 - INFO - 🚀 Starting Flask application...
+2025-09-13 10:21:27,734 - WARNING -  * Debugger is active!
+2025-09-13 10:21:27,743 - INFO -  * Debugger PIN: 695-259-473
+2025-09-13 10:21:27,751 - INFO - Database initialized with Flask app
+2025-09-13 10:21:27,751 - INFO - Starting database initialization...
+2025-09-13 10:21:27,751 - INFO - Testing database connection...
+2025-09-13 10:21:27,766 - INFO - ✅ Database connection successful!
+2025-09-13 10:21:27,766 - INFO - Creating database tables...
+2025-09-13 10:21:27,797 - INFO - ✅ Database tables created successfully!
+2025-09-13 10:21:27,797 - INFO - 🚀 Starting Flask application...
+2025-09-13 10:21:27,820 - WARNING -  * Debugger is active!
+2025-09-13 10:21:27,826 - INFO -  * Debugger PIN: 695-259-473
+2025-09-13 10:22:30,690 - INFO -  * Detected change in 'C:\\Users\\maday\\PROJECTS\\E-CLASS-RECORD\\project02-main\\data_inserter.py', reloading
+2025-09-13 10:22:30,757 - INFO -  * Detected change in 'c:\\Users\\maday\\PROJECTS\\E-CLASS-RECORD\\project02-main\\data_inserter.py', reloading
+2025-09-13 10:22:30,783 - INFO -  * Restarting with stat
+2025-09-13 10:22:30,885 - INFO -  * Restarting with stat

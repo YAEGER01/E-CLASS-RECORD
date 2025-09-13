@@ -1,116 +1,120 @@
 <!DOCTYPE html>
-    <html lang="en">
-      <head>
-        <meta charset="utf-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <title>E-Class Record System - ISU Cauayan CCSICT</title>
+<html lang="en">
 
-        <!-- Font Awesome -->
-        <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>E-Class Record System - ISU Cauayan CCSICT</title>
 
-        <!-- Main stylesheet -->
-        <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
-    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/helpers.js') }}"></script>
-      </head>
+  <!-- Font Awesome -->
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
 
-      <body>
-        <!-- Header -->
-        <header>
-          <div class="container">
-            <div class="header-content">
-              <div class="header-left">
-                <div class="isu-logo" aria-hidden="true">
-                  <!-- ISU Logo Image -->
-                  <img src="{{ url_for('static', filename='images/isu.png') }}" alt="ISU Logo" width="60" height="60">
-                </div>
-              </div>
-              
-              <div class="header-center">
-                <h1>E-Class Record System</h1>
-                <div class="subtitle">Isabela State University - Cauayan | CCSICT</div>
-              </div>
-              
-              <div class="header-right">
-                <div class="ccsict-logo-container">
-                  <img src="{{ url_for('static', filename='images/ccsict.png') }}" alt="CCSICT Logo" class="ccsict-logo">
-                </div>
-              </div>
+  <!-- Main stylesheet -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+  <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/helpers.js') }}"></script>
+</head>
+
+<body>
+  <!-- Header -->
+  <header>
+    <div class="container">
+      <div class="header-content">
+        <div class="header-left">
+          <div class="isu-logo" aria-hidden="true">
+            <!-- ISU Logo Image -->
+            <img src="{{ url_for('static', filename='images/isu.png') }}" alt="ISU Logo" width="60" height="60">
+          </div>
+        </div>
+
+        <div class="header-center">
+          <h1>E-Class Record System</h1>
+          <div class="subtitle">Isabela State University - Cauayan | CCSICT</div>
+        </div>
+
+        <div class="header-right">
+          <div class="ccsict-logo-container">
+            <img src="{{ url_for('static', filename='images/ccsict.png') }}" alt="CCSICT Logo" class="ccsict-logo">
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main>
+    <div class="container">
+      <!-- Hero Section -->
+      <section id="home" class="hero-section">
+        <div class="hero-content">
+          <div class="hero-text">
+            <h1>
+              WELCOME TO
+              <span class="highlight">E-CLASS RECORD</span>
+              SYSTEM
+            </h1>
+            <p>
+              Where Education Meets Innovation. Our mission is to foster a dynamic learning environment that bridges the
+              gap between theoretical knowledge and practical application, preparing students for the challenges of the
+              modern digital world through advanced class management technology.
+            </p>
+
+            <div class="hero-buttons">
+              <a href="{{ url_for('login') }}" class="btn btn-primary">
+                <i class="fas fa-rocket"></i> LOGIN
+              </a>
+              <a href="{{ url_for('register') }}" class="btn btn-secondary">
+                <i class="fas fa-user-plus"></i> REGISTER
+              </a>
             </div>
           </div>
-        </header>
 
-        <!-- Main Content -->
-        <main>
-          <div class="container">
-            <!-- Hero Section -->
-            <section id="home" class="hero-section">
-              <div class="hero-content">
-                <div class="hero-text">
-                  <h1>
-                    WELCOME TO
-                    <span class="highlight">E-CLASS RECORD</span>
-                    SYSTEM
-                  </h1>
-                  <p>
-                    Where Education Meets Innovation. Our mission is to foster a dynamic learning environment that bridges the gap between theoretical knowledge and practical application, preparing students for the challenges of the modern digital world through advanced class management technology.
-                  </p>
-
-                  <div class="hero-buttons">
-                    <a href="{{ url_for('login') }}" class="btn btn-primary">
-                      <i class="fas fa-rocket"></i> LOGIN
-                    </a>
-                    <a href="{{ url_for('register') }}" class="btn btn-secondary">
-                      <i class="fas fa-user-plus"></i> REGISTER
-                    </a>
-                  </div>
-                </div>
-
-                <div class="hero-graphic" aria-hidden="true">
-                  <div class="icon"><i class="fas fa-graduation-cap"></i></div>
-                </div>
-              </div>
-            </section>
-
-            <!-- Features Section -->
-            <section id="features" class="features-section">
-              <h2 class="section-title">Features</h2>
-
-              <div class="features-grid">
-                <div class="feature-card">
-                  <i class="fas fa-user-graduate feature-icon"></i>
-                  <h3>For Students</h3>
-                  <p>Check grades and performance updates anytime.</p>
-                </div>
-
-                <div class="feature-card">
-                  <i class="fas fa-chalkboard-teacher feature-icon"></i>
-                  <h3>For Teachers</h3>
-                  <p>Manage class records efficiently with ease.</p>
-                </div>
-
-                <div class="feature-card">
-                  <i class="fas fa-user-shield feature-icon"></i>
-                  <h3>For Admin</h3>
-                  <p>Oversee the system and ensure academic transparency.</p>
-                </div>
-              </div>
-            </section>
-
-         
+          <div class="hero-graphic" aria-hidden="true">
+            <div class="icon"><i class="fas fa-graduation-cap"></i></div>
           </div>
-        </main>
+        </div>
+      </section>
 
-        <!-- Footer -->
-        <footer>
-          <div class="footer-content">
-            <p>© 2024 E-Class Record System | Isabela State University - Cauayan Campus</p>
-            <p>College of Computing Studies, Information and Communication Technology (CCSICT)</p>
-            <p>University for People, Nature, Entrepreneurship and Innovation</p>
+      <!-- Features Section -->
+      <section id="features" class="features-section">
+        <h2 class="section-title">Features</h2>
+
+        <div class="features-grid">
+          <div class="feature-card">
+            <i class="fas fa-user-graduate feature-icon"></i>
+            <h3>For Students</h3>
+            <p>Check grades and performance updates anytime.</p>
           </div>
-        </footer>
 
-        <!-- Helpers and main scripts (ES Modules) -->
-      
-      </body>
-    </html>
+          <div class="feature-card">
+            <i class="fas fa-chalkboard-teacher feature-icon"></i>
+            <h3>For Teachers</h3>
+            <p>Manage class records efficiently with ease.</p>
+          </div>
+
+          <div class="feature-card">
+            <i class="fas fa-user-shield feature-icon"></i>
+            <h3>For Admin</h3>
+            <p>Oversee the system and ensure academic transparency.</p>
+          </div>
+        </div>
+      </section>
+
+
+    </div>
+  </main>
+
+  <!-- Footer -->
+  <footer>
+    <div class="footer-content">
+      <p>© 2024 E-Class Record System | Isabela State University - Cauayan Campus</p>
+      <p>College of Computing Studies, Information and Communication Technology (CCSICT)</p>
+      <p>University for People, Nature, Entrepreneurship and Innovation</p>
+    </div>
+  </footer>
+
+  <!-- Helpers and main scripts (ES Modules) -->
+
+</body>
+
+</html>

@@ -286,6 +286,9 @@ def get_instructor_classes():
     classes_data = []
 
     for cls in classes:
+        # Count members (students enrolled in this class)
+        member_count = StudentClass.query.filter_by(class_id=cls.id).count()
+
         classes_data.append({
             'id': cls.id,
             'year': cls.year,
@@ -297,6 +300,7 @@ def get_instructor_classes():
             'class_id': cls.class_id,
             'class_code': cls.class_code,
             'join_code': cls.join_code,
+            'member_count': member_count,
             'created_at': cls.created_at.isoformat() if cls.created_at else None,
             'updated_at': cls.updated_at.isoformat() if cls.updated_at else None
         })
@@ -479,6 +483,58 @@ def delete_class(class_id):
         db.session.rollback()
         logger.error(f"Failed to delete class {class_id} for instructor {user.school_id}: {str(e)}")
         return jsonify({'error': 'Failed to delete class'}), 500
+
+
+@app.route('/api/instructor/classes/<int:class_id>/members', methods=['GET'])
+@login_required
+def get_class_members(class_id):
+    """Get all members (students) of a specific class."""
+    if session.get('role') != 'instructor':
+        return jsonify({'error': 'Access denied'}), 403
+
+    user = db.session.get(User, session['user_id'])
+    if not user:
+        return jsonify({'error': 'User not found'}), 401
+
+    instructor = Instructor.query.filter_by(user_id=user.id).first()
+
+    if not instructor:
+        return jsonify({'error': 'Instructor profile not found'}), 404
+
+    # Find the class and verify ownership
+    class_obj = Class.query.filter_by(id=class_id, instructor_id=instructor.id).first()
+    if not class_obj:
+        return jsonify({'error': 'Class not found or access denied'}), 404
+
+    try:
+        # Get all student enrollments for this class
+        enrollments = StudentClass.query.filter_by(class_id=class_id).all()
+
+        members = []
+        for enrollment in enrollments:
+            student = enrollment.student
+            if student and student.user:
+                members.append({
+                    'id': student.id,
+                    'school_id': student.user.school_id,
+                    'student_name': f"{student.user.school_id}",  # Could be expanded to include first/last name if available
+                    'course': student.course,
+                    'year_level': student.year_level,
+                    'section': student.section,
+                    'joined_at': enrollment.joined_at.isoformat() if enrollment.joined_at else None
+                })
+
+        logger.info(f"Instructor {user.school_id} viewed {len(members)} members of class {class_obj.class_id}")
+        return jsonify({
+            'class_id': class_obj.class_id,
+            'class_name': f"{class_obj.course} {class_obj.section}",
+            'members': members,
+            'total_members': len(members)
+        })
+
+    except Exception as e:
+        logger.error(f"Failed to get members for class {class_id}: {str(e)}")
+        return jsonify({'error': 'Failed to get class members'}), 500
 
 
 # Student Class Management Routes

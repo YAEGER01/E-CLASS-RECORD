@@ -1,0 +1,1126 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Instructor Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/instructor-input.css') }}">
+</head>
+
+<body class="bg-gray-100 p-4 sm:p-6 lg:p-8">
+    <div class="container">
+        <h1 class="text-3xl font-bold text-gray-800 mb-6 text-center">Instructor Dashboard</h1>
+
+        <!-- Navigation Tabs -->
+        <div class="flex border-b border-gray-200 mb-6 card rounded-b-none p-0">
+            <button class="tab-button active flex-1 text-center" onclick="showTab('class-setup-tab')">Class & Course
+                Setup</button>
+            <button class="tab-button flex-1 text-center" onclick="showTab('grading-config-tab')">Grading
+                Configuration</button>
+            <button class="tab-button flex-1 text-center" onclick="showTab('grade-calculation-tab')">Grade
+                Calculation</button>
+        </div>
+
+        <!-- Class & Course Setup Tab -->
+        <div id="class-setup-tab" class="tab-content card">
+            <h2 class="text-2xl font-semibold text-gray-700 mb-4">My Classes</h2>
+            <button class="btn-primary mb-6" onclick="openModal('createClassModal')">Create New Class</button>
+
+            <div id="class-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <!-- Class cards will be injected here by JS -->
+                <!-- The previous placeholder class card has been removed to avoid confusion. -->
+            </div>
+        </div>
+
+        <!-- Grading Configuration Tab -->
+        <div id="grading-config-tab" class="tab-content card hidden">
+            <h2 class="text-2xl font-semibold text-gray-700 mb-4">Grading Configuration for: <span
+                    id="current-class-name" class="text-blue-600">Please select a class</span></h2>
+
+            <div id="grading-config-area" class="mt-4 border border-gray-200 rounded-lg p-4 bg-gray-50">
+                <p id="no-class-selected-message" class="text-gray-500 text-center py-8">Select a class from "Class &
+                    Course Setup" to configure its grading.</p>
+
+                <div id="grading-categories-display" class="hidden">
+                    <div class="flex justify-between items-center mb-4">
+                        <button class="btn-primary" onclick="openAddCategoryModal()">Add Grading Category</button>
+                        <button class="btn-secondary bg-green-100 text-green-800 border-green-300 hover:bg-green-200" onclick="loadDefaultGradingOptions()">Load Default Grading Options</button>
+                    </div>
+                    <div id="categories-list" class="space-y-4">
+                        <!-- Categories will be injected here -->
+                    </div>
+                    <p class="mt-4 text-right text-sm text-gray-600">Total Category Weight: <span
+                            id="total-category-weight">0</span>%</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Grade Calculation Tab -->
+        <div id="grade-calculation-tab" class="tab-content card hidden">
+            <h2 class="text-2xl font-semibold text-gray-700 mb-4">Grade Calculation for: <span
+                    id="current-grade-class-name" class="text-blue-600">Please select a class</span></h2>
+            <div id="grade-table-area" class="overflow-x-auto mt-4 border border-gray-200 rounded-lg p-4 bg-gray-50">
+                <p id="no-grade-class-selected-message" class="text-gray-500 text-center py-8">Select a class from
+                    "Class & Course Setup" to view and edit grades.</p>
+                <table id="grade-table" class="min-w-full divide-y divide-gray-200 hidden">
+                    <thead class="bg-gray-100">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Student Name</th>
+                            <!-- Assessment headers will be injected here -->
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Final Grade</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="grade-table-body" class="bg-white divide-y divide-gray-200">
+                        <!-- Student rows with scores will be injected here -->
+                    </tbody>
+                </table>
+            </div>
+            <div id="grade-actions" class="mt-6 flex justify-end space-x-4 hidden">
+                <button class="btn-secondary">Export to CSV</button>
+                <button class="btn-secondary">Export to JSON</button>
+                <button class="btn-primary">Release Grades</button>
+            </div>
+        </div>
+
+        <!-- Create Class Modal -->
+        <div id="createClassModal" class="modal">
+            <div class="modal-content">
+                <h3 class="text-xl font-semibold mb-4">Create New Class</h3>
+                <form id="create-class-form" class="space-y-4">
+                    <div>
+                        <label for="newClassTitle" class="block text-sm font-medium text-gray-700">Course Title</label>
+                        <input type="text" id="newClassTitle" class="mt-1" required>
+                    </div>
+                    <div>
+                        <label for="newClassCode" class="block text-sm font-medium text-gray-700">Course Code</label>
+                        <input type="text" id="newClassCode" class="mt-1" required>
+                    </div>
+                    <div>
+                        <label for="newClassYearLevel" class="block text-sm font-medium text-gray-700">Year
+                            Level</label>
+                        <select id="newClassYearLevel" class="mt-1" required>
+                            <option value="">Select Year Level</option>
+                            <option value="1st Year">1st Year</option>
+                            <option value="2nd Year">2nd Year</option>
+                            <option value="3rd Year">3rd Year</option>
+                            <option value="4th Year">4th Year</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="newClassSection" class="block text-sm font-medium text-gray-700">Section</label>
+                        <input type="text" id="newClassSection" class="mt-1" required>
+                    </div>
+                    <div>
+                        <label for="newClassSubject" class="block text-sm font-medium text-gray-700">Subject</label>
+                        <input type="text" id="newClassSubject" class="mt-1"
+                            placeholder="e.g., Programming Fundamentals">
+                    </div>
+                    <div class="flex justify-end space-x-4 mt-6">
+                        <button type="button" class="btn-secondary"
+                            onclick="closeModal('createClassModal')">Cancel</button>
+                        <button type="submit" class="btn-primary">Create Class</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Add/Edit Category Modal -->
+        <div id="addEditCategoryModal" class="modal">
+            <div class="modal-content">
+                <h3 class="text-xl font-semibold mb-4" id="categoryModalTitle">Add Grading Category</h3>
+                <form id="add-edit-category-form" class="space-y-4">
+                    <input type="hidden" id="currentEditCategoryId">
+                    <div>
+                        <label for="categoryName" class="block text-sm font-medium text-gray-700">Category Name</label>
+                        <input type="text" id="categoryName" class="mt-1" required>
+                    </div>
+                    <div>
+                        <label for="categoryWeight" class="block text-sm font-medium text-gray-700">Weight (%)</label>
+                        <input type="number" id="categoryWeight" class="mt-1" min="0" max="100" required>
+                    </div>
+                    <div class="flex justify-end space-x-4 mt-6">
+                        <button type="button" class="btn-secondary"
+                            onclick="closeModal('addEditCategoryModal')">Cancel</button>
+                        <button type="submit" class="btn-primary" id="saveCategoryButton">Add Category</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Add/Edit Assessment Modal -->
+        <div id="addEditAssessmentModal" class="modal">
+            <div class="modal-content">
+                <h3 class="text-xl font-semibold mb-4" id="assessmentModalTitle">Add Assessment</h3>
+                <form id="add-edit-assessment-form" class="space-y-4">
+                    <input type="hidden" id="currentAssessmentCategoryId">
+                    <input type="hidden" id="currentEditAssessmentId">
+                    <div>
+                        <label for="assessmentName" class="block text-sm font-medium text-gray-700">Assessment
+                            Name</label>
+                        <input type="text" id="assessmentName" class="mt-1" required>
+                    </div>
+                    <div>
+                        <label for="assessmentWeight" class="block text-sm font-medium text-gray-700">Weight (%)
+                            (Optional)</label>
+                        <input type="number" id="assessmentWeight" class="mt-1" min="0" max="100">
+                    </div>
+                    <div>
+                        <label for="assessmentMaxScore" class="block text-sm font-medium text-gray-700">Max
+                            Score</label>
+                        <input type="number" id="assessmentMaxScore" class="mt-1" min="1" required>
+                    </div>
+                    <div>
+                        <label for="assessmentPassingScore" class="block text-sm font-medium text-gray-700">Passing
+                            Score (Optional)</label>
+                        <input type="number" id="assessmentPassingScore" class="mt-1" min="0">
+                    </div>
+                    <div class="flex justify-end space-x-4 mt-6">
+                        <button type="button" class="btn-secondary"
+                            onclick="closeModal('addEditAssessmentModal')">Cancel</button>
+                        <button type="submit" class="btn-primary" id="saveAssessmentButton">Add Assessment</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Custom Message/Alert Modal (replaces alert/confirm) -->
+        <div id="messageModal" class="modal">
+            <div class="modal-content max-w-sm">
+                <h3 class="text-xl font-semibold mb-4" id="messageModalTitle">Message</h3>
+                <p id="messageModalBody" class="mb-6 text-gray-700"></p>
+                <div class="flex justify-end space-x-4" id="messageModalButtons">
+                    <button type="button" class="btn-primary" onclick="closeModal('messageModal')">OK</button>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // --- Data Storage (Simplified for demonstration) ---
+        let classes = JSON.parse(localStorage.getItem('instructorClasses')) || [];
+        let currentClass = null; // Stores the currently selected class object
+
+        // Placeholder students for demonstration
+        const placeholderStudents = [
+            { id: 's001', name: 'Alice Smith' },
+            { id: 's002', name: 'Bob Johnson' },
+            { id: 's003', name: 'Charlie Brown' },
+            { id: 's004', name: 'Diana Prince' },
+            { id: 's005', name: 'Eve Adams' },
+        ];
+
+        // Default passing grade for overall final grade
+        const OVERALL_PASSING_GRADE = 75;
+
+        // --- Utility Functions ---
+        function saveClasses() {
+            localStorage.setItem('instructorClasses', JSON.stringify(classes));
+        }
+
+        function generateUniqueId() {
+            return '_' + Math.random().toString(36).substr(2, 9);
+        }
+
+        // --- Custom Message/Confirmation Modal Functions ---
+        function showMessage(title, message, isConfirm = false, onConfirm = null) {
+            document.getElementById('messageModalTitle').textContent = title;
+            document.getElementById('messageModalBody').textContent = message;
+            const buttonsDiv = document.getElementById('messageModalButtons');
+            buttonsDiv.innerHTML = ''; // Clear existing buttons
+
+            if (isConfirm) {
+                const cancelButton = document.createElement('button');
+                cancelButton.className = 'btn-secondary';
+                cancelButton.textContent = 'Cancel';
+                cancelButton.onclick = () => {
+                    closeModal('messageModal');
+                    if (onConfirm) onConfirm(false); // Pass false for cancel
+                };
+                buttonsDiv.appendChild(cancelButton);
+
+                const confirmButton = document.createElement('button');
+                confirmButton.className = 'btn-primary';
+                confirmButton.textContent = 'Confirm';
+                confirmButton.onclick = () => {
+                    closeModal('messageModal');
+                    if (onConfirm) onConfirm(true); // Pass true for confirm
+                };
+                buttonsDiv.appendChild(confirmButton);
+            } else {
+                const okButton = document.createElement('button');
+                okButton.className = 'btn-primary';
+                okButton.textContent = 'OK';
+                okButton.onclick = () => closeModal('messageModal');
+                buttonsDiv.appendChild(okButton);
+            }
+            openModal('messageModal');
+        }
+
+
+        // --- UI Functions ---
+        function showTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(tab => tab.classList.add('hidden'));
+            document.getElementById(tabId).classList.remove('hidden');
+
+            document.querySelectorAll('.tab-button').forEach(button => button.classList.remove('active'));
+            document.querySelector(`[onclick="showTab('${tabId}')"]`).classList.add('active');
+
+            // Re-render content if switching to specific tabs
+            if (tabId === 'grading-config-tab' && currentClass) {
+                renderGradingConfiguration(currentClass.id);
+            } else if (tabId === 'grade-calculation-tab' && currentClass) {
+                renderGradeCalculationTable(currentClass.id);
+            }
+        }
+
+        function openModal(modalId) {
+            console.log('Attempting to open modal:', modalId);
+            const modalElement = document.getElementById(modalId);
+            if (modalElement) {
+                modalElement.style.display = 'flex';
+                console.log('Modal opened:', modalId);
+            } else {
+                console.error('Error: Modal element not found for ID:', modalId);
+            }
+        }
+
+        function closeModal(modalId) {
+            const modalElement = document.getElementById(modalId);
+            if (modalElement) {
+                modalElement.style.display = 'none';
+                console.log('Modal closed:', modalId);
+            } else {
+                console.warn('Warning: Tried to close non-existent modal:', modalId);
+            }
+        }
+
+        // --- Class & Course Setup Functions ---
+        function renderClassList() {
+            const classListDiv = document.getElementById('class-list');
+            classListDiv.innerHTML = ''; // Clear existing list
+
+            const activeClasses = classes.filter(cls => !cls.isArchived);
+
+            if (activeClasses.length === 0) {
+                classListDiv.innerHTML = '<p class="text-gray-500 text-center col-span-full py-8">No active classes created yet. Click "Create New Class" to get started!</p>';
+                return;
+            }
+
+            activeClasses.forEach(cls => {
+                const classCard = `
+                    <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 flex flex-col justify-between">
+                        <div>
+                            <h3 class="font-bold text-blue-800 text-lg">${cls.code} - ${cls.title}</h3>
+                            <p class="text-blue-600">Year Level: ${cls.yearLevel}, Section: ${cls.section}</p>
+                            <p class="text-blue-600 text-sm">Subjects: ${cls.subject}</p>
+                        </div>
+                        <div class="mt-4 flex space-x-2">
+                            <button class="btn-secondary text-sm px-3 py-1" onclick="selectClass('${cls.id}')">Select</button>
+                            <button class="btn-secondary text-sm px-3 py-1 bg-yellow-100 text-yellow-800 border-yellow-300" onclick="openEditClassModal('${cls.id}')">Edit</button>
+                            <button class="btn-secondary text-sm px-3 py-1 bg-red-100 text-red-800 border-red-300" onclick="archiveDeleteClass('${cls.id}', 'archive')">Archive</button>
+                            <button class="btn-secondary text-sm px-3 py-1 bg-gray-200 text-gray-600 border-gray-300" onclick="archiveDeleteClass('${cls.id}', 'delete')">Delete</button>
+                        </div>
+                    </div>
+                `;
+                classListDiv.innerHTML += classCard;
+            });
+        }
+
+        document.getElementById('create-class-form').addEventListener('submit', function (event) {
+            event.preventDefault();
+            const title = document.getElementById('newClassTitle').value;
+            const code = document.getElementById('newClassCode').value;
+            const yearLevel = document.getElementById('newClassYearLevel').value;
+            const section = document.getElementById('newClassSection').value;
+            const subject = document.getElementById('newClassSubject').value;
+
+            const newClass = {
+                id: generateUniqueId(),
+                title,
+                code,
+                yearLevel,
+                section,
+                subject,
+                isArchived: false,
+                categories: [],
+                students: placeholderStudents.map(s => ({ ...s, grades: {} }))
+            };
+            classes.push(newClass);
+            saveClasses();
+            renderClassList();
+            closeModal('createClassModal');
+            this.reset();
+        });
+
+        function openEditClassModal(classId) {
+            showMessage('Edit Class', 'Edit class functionality not implemented in this demo. You would open a modal to edit details for class: ' + classId);
+        }
+
+        function archiveDeleteClass(classId, action) {
+            const clsIndex = classes.findIndex(c => c.id === classId);
+            if (clsIndex === -1) return;
+
+            const className = `${classes[clsIndex].code} - ${classes[clsIndex].title}`;
+
+            if (action === 'archive') {
+                showMessage(
+                    'Confirm Archive',
+                    `Are you sure you want to archive "${className}"? It will be moved to an archived list but data will be retained.`,
+                    true, // isConfirm = true
+                    (confirmed) => {
+                        if (confirmed) {
+                            classes[clsIndex].isArchived = true;
+                            saveClasses();
+                            renderClassList();
+                            if (currentClass && currentClass.id === classId) {
+                                currentClass = null;
+                                document.getElementById('current-class-name').textContent = 'Please select a class';
+                                document.getElementById('current-grade-class-name').textContent = 'Please select a class';
+                                document.getElementById('no-class-selected-message').classList.remove('hidden');
+                                document.getElementById('grading-categories-display').classList.add('hidden');
+                                document.getElementById('no-grade-class-selected-message').classList.remove('hidden');
+                                document.getElementById('grade-table').classList.add('hidden');
+                                document.getElementById('grade-actions').classList.add('hidden');
+                            }
+                        }
+                    }
+                );
+            } else if (action === 'delete') {
+                showMessage(
+                    'Confirm Delete',
+                    `WARNING: Are you sure you want to PERMANENTLY delete "${className}"? This action cannot be undone.`,
+                    true, // isConfirm = true
+                    (confirmed) => {
+                        if (confirmed) {
+                            classes.splice(clsIndex, 1);
+                            saveClasses();
+                            renderClassList();
+                            if (currentClass && currentClass.id === classId) {
+                                currentClass = null;
+                                document.getElementById('current-class-name').textContent = 'Please select a class';
+                                document.getElementById('current-grade-class-name').textContent = 'Please select a class';
+                                document.getElementById('no-class-selected-message').classList.remove('hidden');
+                                document.getElementById('grading-categories-display').classList.add('hidden');
+                                document.getElementById('no-grade-class-selected-message').classList.remove('hidden');
+                                document.getElementById('grade-table').classList.add('hidden');
+                                document.getElementById('grade-actions').classList.add('hidden');
+                            }
+                        }
+                    }
+                );
+            }
+        }
+
+        function selectClass(classId) {
+            currentClass = classes.find(c => c.id === classId);
+            if (currentClass) {
+                document.getElementById('current-class-name').textContent = `${currentClass.code} - ${currentClass.title}`;
+                document.getElementById('current-grade-class-name').textContent = `${currentClass.code} - ${currentClass.title}`;
+                renderGradingConfiguration(currentClass.id); // Ensure ID is passed
+                renderGradeCalculationTable(currentClass.id); // Ensure ID is passed
+                showTab('grading-config-tab');
+            } else {
+                console.error("Selected class not found:", classId);
+            }
+        }
+
+        // --- Grading Configuration Functions ---
+
+        function loadDefaultGradingOptions() {
+            showMessage(
+                'Load Default Grading Options',
+                'This will replace your current grading configuration with the default structure based on the class record system. This action cannot be undone. Do you want to continue?',
+                true, // isConfirm = true
+                (confirmed) => {
+                    if (confirmed && currentClass) {
+                        // Define default grading structure based on Excel file
+                        const defaultCategories = [
+                            {
+                                id: generateUniqueId(),
+                                name: 'Lecture',
+                                weight: 60,
+                                assessments: [
+                                    {
+                                        id: generateUniqueId(),
+                                        name: 'Attendance',
+                                        weight: 5,
+                                        maxScore: 100,
+                                        passingScore: null
+                                    },
+                                    {
+                                        id: generateUniqueId(),
+                                        name: 'Assignment 1',
+                                        weight: 5,
+                                        maxScore: 100,
+                                        passingScore: null
+                                    },
+                                    {
+                                        id: generateUniqueId(),
+                                        name: 'Assignment 2',
+                                        weight: 5,
+                                        maxScore: 100,
+                                        passingScore: null
+                                    },
+                                    {
+                                        id: generateUniqueId(),
+                                        name: 'Assignment 3',
+                                        weight: 5,
+                                        maxScore: 100,
+                                        passingScore: null
+                                    },
+                                    {
+                                        id: generateUniqueId(),
+                                        name: 'Quiz 1',
+                                        weight: 7.5,
+                                        maxScore: 100,
+                                        passingScore: null
+                                    },
+                                    {
+                                        id: generateUniqueId(),
+                                        name: 'Quiz 2',
+                                        weight: 7.5,
+                                        maxScore: 100,
+                                        passingScore: null
+                                    },
+                                    {
+                                        id: generateUniqueId(),
+                                        name: 'Prelim Exam',
+                                        weight: 15,
+                                        maxScore: 100,
+                                        passingScore: null
+                                    },
+                                    {
+                                        id: generateUniqueId(),
+                                        name: 'Midterm Exam',
+                                        weight: 25,
+                                        maxScore: 100,
+                                        passingScore: null
+                                    },
+                                    {
+                                        id: generateUniqueId(),
+                                        name: 'Final Exam',
+                                        weight: 25,
+                                        maxScore: 100,
+                                        passingScore: null
+                                    },
+                                    {
+                                        id: generateUniqueId(),
+                                        name: 'Project',
+                                        weight: 10,
+                                        maxScore: 100,
+                                        passingScore: null
+                                    }
+                                ]
+                            },
+                            {
+                                id: generateUniqueId(),
+                                name: 'Laboratory',
+                                weight: 40,
+                                assessments: [
+                                    {
+                                        id: generateUniqueId(),
+                                        name: 'Lab Attendance',
+                                        weight: 5,
+                                        maxScore: 100,
+                                        passingScore: null
+                                    },
+                                    {
+                                        id: generateUniqueId(),
+                                        name: 'Lab Assignment 1',
+                                        weight: 5,
+                                        maxScore: 100,
+                                        passingScore: null
+                                    },
+                                    {
+                                        id: generateUniqueId(),
+                                        name: 'Lab Assignment 2',
+                                        weight: 5,
+                                        maxScore: 100,
+                                        passingScore: null
+                                    },
+                                    {
+                                        id: generateUniqueId(),
+                                        name: 'Lab Assignment 3',
+                                        weight: 5,
+                                        maxScore: 100,
+                                        passingScore: null
+                                    },
+                                    {
+                                        id: generateUniqueId(),
+                                        name: 'Lab Quiz 1',
+                                        weight: 7.5,
+                                        maxScore: 100,
+                                        passingScore: null
+                                    },
+                                    {
+                                        id: generateUniqueId(),
+                                        name: 'Lab Quiz 2',
+                                        weight: 7.5,
+                                        maxScore: 100,
+                                        passingScore: null
+                                    },
+                                    {
+                                        id: generateUniqueId(),
+                                        name: 'Lab Prelim Exam',
+                                        weight: 15,
+                                        maxScore: 100,
+                                        passingScore: null
+                                    },
+                                    {
+                                        id: generateUniqueId(),
+                                        name: 'Lab Midterm Exam',
+                                        weight: 25,
+                                        maxScore: 100,
+                                        passingScore: null
+                                    },
+                                    {
+                                        id: generateUniqueId(),
+                                        name: 'Lab Final Exam',
+                                        weight: 25,
+                                        maxScore: 100,
+                                        passingScore: null
+                                    },
+                                    {
+                                        id: generateUniqueId(),
+                                        name: 'Lab Project',
+                                        weight: 10,
+                                        maxScore: 100,
+                                        passingScore: null
+                                    }
+                                ]
+                            }
+                        ];
+
+                        // Clear existing categories and replace with defaults
+                        currentClass.categories = defaultCategories;
+
+                        // Initialize grades for all students for all new assessments
+                        currentClass.students.forEach(student => {
+                            const existingGradeKeys = Object.keys(student.grades);
+                            // Clear existing grades
+                            student.grades = {};
+
+                            // Initialize new grades for all assessments in default categories
+                            defaultCategories.forEach(category => {
+                                category.assessments.forEach(assessment => {
+                                    student.grades[assessment.id] = null;
+                                });
+                            });
+                        });
+
+                        saveClasses();
+                        renderGradingConfiguration(currentClass.id);
+                        renderGradeCalculationTable(currentClass.id);
+
+                        showMessage('Success', 'Default grading options have been loaded successfully!');
+                    }
+                }
+            );
+        }
+
+        function openAddCategoryModal() {
+            // Reset form for adding
+            document.getElementById('add-edit-category-form').reset();
+            document.getElementById('categoryModalTitle').textContent = 'Add Grading Category';
+            document.getElementById('saveCategoryButton').textContent = 'Add Category';
+            document.getElementById('currentEditCategoryId').value = ''; // Clear for new category
+            openModal('addEditCategoryModal');
+        }
+
+        function openEditCategoryModal(classId, categoryId) {
+            const cls = classes.find(c => c.id === classId);
+            const category = cls ? cls.categories.find(cat => cat.id === categoryId) : null;
+            if (!category) {
+                console.error("Category not found for editing. Class ID:", classId, "Category ID:", categoryId);
+                return;
+            }
+
+            document.getElementById('categoryModalTitle').textContent = 'Edit Grading Category';
+            document.getElementById('saveCategoryButton').textContent = 'Save Changes';
+            document.getElementById('currentEditCategoryId').value = category.id;
+            document.getElementById('categoryName').value = category.name;
+            document.getElementById('categoryWeight').value = category.weight;
+            openModal('addEditCategoryModal');
+        }
+
+        function renderGradingConfiguration(classId) {
+            const cls = classes.find(c => c.id === classId);
+            if (!cls) {
+                console.error("Class not found for rendering grading configuration:", classId);
+                return;
+            }
+
+            document.getElementById('no-class-selected-message').classList.add('hidden');
+            document.getElementById('grading-categories-display').classList.remove('hidden');
+
+            const categoriesList = document.getElementById('categories-list');
+            categoriesList.innerHTML = '';
+            let totalCategoryWeight = 0;
+
+            if (cls.categories.length === 0) {
+                categoriesList.innerHTML = '<p class="text-gray-500 text-center py-4">No grading categories defined yet. Click "Add Grading Category"!</p>';
+            }
+
+            cls.categories.forEach(category => {
+                totalCategoryWeight += category.weight;
+
+                const currentAssessmentWeightsSum = category.assessments.reduce((sum, ass) => sum + (ass.weight || 0), 0);
+                const assessmentWeightsWarning = currentAssessmentWeightsSum > category.weight
+                    ? `<span class="text-red-500 text-sm ml-2">Assessment weights (${currentAssessmentWeightsSum}%) exceed category weight (${category.weight}%)!</span>`
+                    : '';
+                const remainingAssessmentWeight = category.weight - currentAssessmentWeightsSum;
+                const remainingAssessmentWeightDisplay = remainingAssessmentWeight >= 0
+                    ? `<span class="text-gray-500 text-sm ml-2">Remaining weight: ${remainingAssessmentWeight}%</span>`
+                    : `<span class="text-red-500 text-sm ml-2">Over by ${Math.abs(remainingAssessmentWeight)}%</span>`;
+
+
+                const categoryElement = document.createElement('div');
+                categoryElement.className = 'border border-gray-200 rounded-lg p-3 bg-white';
+                categoryElement.innerHTML = `
+                    <div class="flex justify-between items-center mb-2">
+                        <h4 class="font-semibold text-gray-800 text-lg">${category.name} (${category.weight}%)</h4>
+                        <div class="flex space-x-2">
+                             <button class="text-indigo-600 hover:text-indigo-900 text-sm" onclick="openEditCategoryModal('${cls.id}', '${category.id}')">Edit</button>
+                             <button class="text-red-600 hover:text-red-900 text-sm" onclick="deleteCategory('${cls.id}', '${category.id}')">Delete</button>
+                        </div>
+                    </div>
+                    <div class="pl-4 border-l-2 border-gray-100 ml-2">
+                        <div class="flex justify-between items-center mb-2">
+                            <p class="text-sm text-gray-500">Assessments: (Total: ${currentAssessmentWeightsSum}%) ${assessmentWeightsWarning} ${remainingAssessmentWeightDisplay}</p>
+                            <button class="text-green-600 hover:text-green-800 text-sm" onclick="openAddAssessmentModal('${category.id}')">Add Assessment</button>
+                        </div>
+                        <ul id="assessments-list-${category.id}" class="space-y-1 text-gray-700">
+                            ${category.assessments.length === 0 ? '<li class="text-gray-500 text-sm italic">No assessments yet.</li>' : ''}
+                            ${category.assessments.map(assessment => `
+                                <li class="text-sm flex justify-between items-center">
+                                    <span>${assessment.name} (Max: ${assessment.maxScore}, Passing: ${assessment.passingScore || 'N/A'}${assessment.weight ? `, Weight: ${assessment.weight}%` : ''})</span>
+                                    <div class="flex space-x-2">
+                                        <button class="text-indigo-600 hover:text-indigo-900 text-sm" onclick="openEditAssessmentModal('${cls.id}', '${category.id}', '${assessment.id}')">Edit</button>
+                                        <button class="text-red-600 hover:text-red-900 text-sm" onclick="deleteAssessment('${cls.id}', '${category.id}', '${assessment.id}')">Delete</button>
+                                    </div>
+                                </li>
+                            `).join('')}
+                        </ul>
+                    </div>
+                `;
+                categoriesList.appendChild(categoryElement);
+            });
+            document.getElementById('total-category-weight').textContent = totalCategoryWeight;
+            if (totalCategoryWeight !== 100) {
+                document.getElementById('total-category-weight').classList.add('text-red-600');
+            } else {
+                document.getElementById('total-category-weight').classList.remove('text-red-600');
+            }
+        }
+
+        document.getElementById('add-edit-category-form').addEventListener('submit', function (event) {
+            event.preventDefault();
+            const categoryName = document.getElementById('categoryName').value;
+            const categoryWeight = parseInt(document.getElementById('categoryWeight').value);
+            const editCategoryId = document.getElementById('currentEditCategoryId').value;
+
+            if (currentClass) {
+                let currentTotalWeight = currentClass.categories
+                    .filter(cat => cat.id !== editCategoryId) // Exclude current category's weight if editing
+                    .reduce((sum, cat) => sum + cat.weight, 0);
+
+                if (currentTotalWeight + categoryWeight > 100) {
+                    showMessage('Error', 'Total category weight cannot exceed 100%. Please adjust the weight.');
+                    return;
+                }
+
+                if (editCategoryId) {
+                    // Editing existing category
+                    const category = currentClass.categories.find(cat => cat.id === editCategoryId);
+                    if (category) {
+                        // Check if new category weight is less than current assessment weights sum
+                        const currentAssessmentWeightsSum = category.assessments.reduce((sum, ass) => sum + (ass.weight || 0), 0);
+                        if (categoryWeight < currentAssessmentWeightsSum) {
+                            showMessage('Error', `New category weight (${categoryWeight}%) is less than the sum of its current assessment weights (${currentAssessmentWeightsSum}%). Please adjust assessment weights first.`);
+                            return;
+                        }
+                        category.name = categoryName;
+                        category.weight = categoryWeight;
+                    }
+                } else {
+                    // Adding new category
+                    const newCategory = {
+                        id: generateUniqueId(),
+                        name: categoryName,
+                        weight: categoryWeight,
+                        assessments: []
+                    };
+                    currentClass.categories.push(newCategory);
+                }
+                saveClasses();
+                renderGradingConfiguration(currentClass.id);
+                closeModal('addEditCategoryModal');
+                this.reset();
+            }
+        });
+
+        function deleteCategory(classId, categoryId) {
+            const cls = classes.find(c => c.id === classId);
+            const category = cls ? cls.categories.find(cat => cat.id === categoryId) : null;
+            if (!category) {
+                console.error("Category not found for deletion. Class ID:", classId, "Category ID:", categoryId);
+                return;
+            }
+
+            showMessage(
+                'Confirm Delete',
+                `Are you sure you want to delete the category "${category.name}" and all its assessments? This cannot be undone.`,
+                true, // isConfirm = true
+                (confirmed) => {
+                    if (confirmed) {
+                        // Remove grades for all assessments in this category from all students
+                        category.assessments.forEach(assessment => {
+                            cls.students.forEach(student => {
+                                delete student.grades[assessment.id];
+                            });
+                        });
+                        cls.categories = cls.categories.filter(cat => cat.id !== categoryId);
+                        saveClasses();
+                        renderGradingConfiguration(currentClass.id);
+                        renderGradeCalculationTable(currentClass.id); // Update grade table as well
+                    }
+                }
+            );
+        }
+
+        function openAddAssessmentModal(categoryId) {
+            console.log('openAddAssessmentModal called for category:', categoryId);
+            document.getElementById('add-edit-assessment-form').reset();
+            document.getElementById('assessmentModalTitle').textContent = 'Add Assessment';
+            document.getElementById('saveAssessmentButton').textContent = 'Add Assessment';
+            document.getElementById('currentAssessmentCategoryId').value = categoryId;
+            document.getElementById('currentEditAssessmentId').value = '';
+
+            const category = currentClass ? currentClass.categories.find(cat => cat.id === categoryId) : null;
+            if (category) {
+                const existingAssessmentWeightSum = category.assessments.reduce((sum, ass) => sum + (ass.weight || 0), 0);
+                const remainingCategoryWeight = category.weight - existingAssessmentWeightSum;
+                if (category.assessments.length === 0 || remainingCategoryWeight > 0) {
+                    document.getElementById('assessmentWeight').value = remainingCategoryWeight;
+                } else {
+                    document.getElementById('assessmentWeight').value = '';
+                }
+                console.log("Category found. Remaining weight calculation:", remainingCategoryWeight);
+            } else {
+                console.error("Category not found for Add Assessment Modal. Current Class:", currentClass, "Category ID:", categoryId);
+            }
+
+            const modalElement = document.getElementById('addEditAssessmentModal');
+            if (modalElement) {
+                console.log("Modal element for Add/Edit Assessment found.");
+                openModal('addEditAssessmentModal');
+            } else {
+                console.error("Error: Modal element with ID 'addEditAssessmentModal' not found in the DOM!");
+            }
+        }
+
+        function openEditAssessmentModal(classId, categoryId, assessmentId) {
+            const cls = classes.find(c => c.id === classId);
+            const category = cls ? cls.categories.find(cat => cat.id === categoryId) : null;
+            const assessment = category ? category.assessments.find(a => a.id === assessmentId) : null;
+            if (!assessment) {
+                console.error("Assessment not found for editing. Class ID:", classId, "Category ID:", categoryId, "Assessment ID:", assessmentId);
+                return;
+            }
+
+            document.getElementById('assessmentModalTitle').textContent = 'Edit Assessment';
+            document.getElementById('saveAssessmentButton').textContent = 'Save Changes';
+            document.getElementById('currentAssessmentCategoryId').value = categoryId;
+            document.getElementById('currentEditAssessmentId').value = assessment.id;
+            document.getElementById('assessmentName').value = assessment.name;
+            document.getElementById('assessmentWeight').value = assessment.weight || '';
+            document.getElementById('assessmentMaxScore').value = assessment.maxScore;
+            document.getElementById('assessmentPassingScore').value = assessment.passingScore || '';
+            openModal('addEditAssessmentModal');
+        }
+
+
+        document.getElementById('add-edit-assessment-form').addEventListener('submit', function (event) {
+            event.preventDefault();
+            const categoryId = document.getElementById('currentAssessmentCategoryId').value;
+            const assessmentId = document.getElementById('currentEditAssessmentId').value; // Will be empty for new assessments
+            const assessmentName = document.getElementById('assessmentName').value;
+            let assessmentWeight = document.getElementById('assessmentWeight').value === '' ? null : parseInt(document.getElementById('assessmentWeight').value);
+            const assessmentMaxScore = parseInt(document.getElementById('assessmentMaxScore').value);
+            const assessmentPassingScore = document.getElementById('assessmentPassingScore').value === '' ? null : parseInt(document.getElementById('assessmentPassingScore').value);
+
+            // Validation: Passing score cannot be greater than Max score
+            if (assessmentPassingScore !== null && assessmentPassingScore > assessmentMaxScore) {
+                showMessage('Error', 'Passing Score cannot be greater than Max Score.');
+                return;
+            }
+
+            if (currentClass) {
+                const category = currentClass.categories.find(cat => cat.id === categoryId);
+                if (category) {
+                    let currentAssessmentsTotalWeight = category.assessments
+                        .filter(ass => ass.id !== assessmentId) // Exclude current assessment's weight if editing
+                        .reduce((sum, ass) => sum + (ass.weight || 0), 0);
+
+                    // Auto-assign remaining weight if not provided
+                    if (assessmentWeight === null) {
+                        const remainingCategoryWeight = category.weight - currentAssessmentsTotalWeight;
+                        if (remainingCategoryWeight >= 0) {
+                            assessmentWeight = remainingCategoryWeight;
+                        } else {
+                            // If remaining is negative, something is wrong with other weights, or it's the first assessment and category is already over
+                            assessmentWeight = 0; // Default to 0, or alert an error if strict
+                        }
+                    }
+
+                    // Validation: Assessment weights cannot exceed category weight
+                    if (currentAssessmentsTotalWeight + assessmentWeight > category.weight) {
+                        showMessage('Error', `Total assessment weights (${currentAssessmentsTotalWeight + assessmentWeight}%) cannot exceed the category's weight (${category.weight}%). Please adjust assessment weights or category weight.`);
+                        return;
+                    }
+
+                    if (assessmentId) {
+                        // Editing existing assessment
+                        const assessment = category.assessments.find(a => a.id === assessmentId);
+                        if (assessment) {
+                            assessment.name = assessmentName;
+                            assessment.weight = assessmentWeight;
+                            assessment.maxScore = assessmentMaxScore;
+                            assessment.passingScore = assessmentPassingScore;
+                        } else {
+                            console.error("Assessment not found for ID during edit:", assessmentId);
+                        }
+                    } else {
+                        // Adding new assessment
+                        const newAssessment = {
+                            id: generateUniqueId(),
+                            name: assessmentName,
+                            weight: assessmentWeight,
+                            maxScore: assessmentMaxScore,
+                            passingScore: assessmentPassingScore
+                        };
+                        category.assessments.push(newAssessment);
+                        // Initialize scores for new assessment for all students in this class
+                        currentClass.students.forEach(student => {
+                            if (!student.grades[newAssessment.id]) {
+                                student.grades[newAssessment.id] = null;
+                            }
+                        });
+                    }
+
+                    saveClasses();
+                    renderGradingConfiguration(currentClass.id);
+                    renderGradeCalculationTable(currentClass.id);
+                    closeModal('addEditAssessmentModal');
+                    this.reset();
+                } else {
+                    console.error("Category not found for submission of assessment form. Category ID:", categoryId);
+                }
+            } else {
+                console.error("No currentClass selected during assessment form submission.");
+            }
+        });
+
+        function deleteAssessment(classId, categoryId, assessmentId) {
+            const cls = classes.find(c => c.id === classId);
+            const category = cls ? cls.categories.find(cat => cat.id === categoryId) : null;
+            const assessment = category ? category.assessments.find(a => a.id === assessmentId) : null;
+
+            if (!assessment) {
+                console.error("Assessment not found for deletion. Class ID:", classId, "Category ID:", categoryId, "Assessment ID:", assessmentId);
+                return;
+            }
+
+            showMessage(
+                'Confirm Delete',
+                `Are you sure you want to delete the assessment "${assessment.name}"? All student scores for it will be lost. This cannot be undone.`,
+                true, // isConfirm = true
+                (confirmed) => {
+                    if (confirmed) {
+                        if (category) {
+                            category.assessments = category.assessments.filter(a => a.id !== assessmentId);
+                            cls.students.forEach(student => {
+                                delete student.grades[assessmentId];
+                            });
+                            saveClasses();
+                            renderGradingConfiguration(currentClass.id);
+                            renderGradeCalculationTable(currentClass.id);
+                        }
+                    }
+                }
+            );
+        }
+
+
+        // --- Grade Calculation Functions ---
+        function renderGradeCalculationTable(classId) {
+            const cls = classes.find(c => c.id === classId);
+            if (!cls) {
+                console.error("Class not found for rendering grade calculation table:", classId);
+                document.getElementById('no-grade-class-selected-message').classList.remove('hidden');
+                document.getElementById('grade-table').classList.add('hidden');
+                document.getElementById('grade-actions').classList.add('hidden');
+                return;
+            }
+
+            document.getElementById('no-grade-class-selected-message').classList.add('hidden');
+            document.getElementById('grade-table').classList.remove('hidden');
+            document.getElementById('grade-actions').classList.remove('hidden');
+
+            const gradeTableHead = document.querySelector('#grade-table thead tr');
+            const gradeTableBody = document.getElementById('grade-table-body');
+            gradeTableHead.innerHTML = `
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Student Name</th>
+            `;
+            gradeTableBody.innerHTML = '';
+
+            const allAssessments = [];
+            cls.categories.forEach(category => {
+                category.assessments.forEach(assessment => {
+                    allAssessments.push({ ...assessment, categoryId: category.id, categoryName: category.name });
+                    gradeTableHead.innerHTML += `
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">${assessment.name}<br><span class="font-normal text-gray-400">(${assessment.maxScore}${assessment.weight ? `, ${assessment.weight}%` : ''})</span></th>
+                    `;
+                });
+            });
+            gradeTableHead.innerHTML += `<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Final Grade</th>`;
+            gradeTableHead.innerHTML += `<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>`;
+
+
+            cls.students.forEach(student => {
+                let studentRow = `<tr class="hover:bg-gray-50">
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${student.name}</td>`;
+
+                allAssessments.forEach(assessment => {
+                    const score = student.grades[assessment.id] !== undefined && student.grades[assessment.id] !== null ? student.grades[assessment.id] : '';
+                    const isPassing = score !== '' && score !== null && assessment.passingScore !== null ? parseInt(score) >= assessment.passingScore : true; // If no passing score, assume passed for individual
+                    const scoreColor = isPassing ? 'text-gray-900' : 'text-red-500 font-bold';
+                    studentRow += `
+                        <td class="px-6 py-4 whitespace-nowrap text-sm ${scoreColor}">
+                            <input
+                                type="number"
+                                class="w-20 p-1 border rounded focus:outline-none focus:ring-2 focus:ring-indigo-500 ${!isPassing ? 'border-red-400' : 'border-gray-300'}"
+                                value="${score}"
+                                min="0" max="${assessment.maxScore}"
+                                onchange="updateStudentGrade('${cls.id}', '${student.id}', '${assessment.id}', this.value)"
+                            />
+                        </td>
+                    `;
+                });
+                const finalGrade = calculateFinalGrade(cls, student);
+                const isOverallPassed = finalGrade !== null && finalGrade >= OVERALL_PASSING_GRADE;
+                const finalGradeColorClass = isOverallPassed ? 'text-passed' : 'text-failed';
+                const finalGradeStatus = finalGrade !== null ? (isOverallPassed ? 'Passed' : 'Failed') : 'N/A';
+
+
+                studentRow += `<td class="px-6 py-4 whitespace-nowrap text-sm ${finalGradeColorClass}">${finalGrade !== null ? finalGrade.toFixed(2) + '%' : 'N/A'}</td>`;
+                studentRow += `<td class="px-6 py-4 whitespace-nowrap text-sm ${finalGradeColorClass}">${finalGradeStatus}</td>`;
+                studentRow += `</tr>`;
+                gradeTableBody.innerHTML += studentRow;
+            });
+        }
+
+        function updateStudentGrade(classId, studentId, assessmentId, newScore) {
+            const cls = classes.find(c => c.id === classId);
+            const student = cls ? cls.students.find(s => s.id === studentId) : null;
+            if (student) {
+                let score = newScore === '' ? null : parseInt(newScore);
+                const assessment = cls ? cls.categories.flatMap(cat => cat.assessments).find(a => a.id === assessmentId) : null;
+
+                if (!assessment) {
+                    console.error("Assessment not found for score update. ID:", assessmentId);
+                    return;
+                }
+
+                if (score !== null && (score < 0 || score > assessment.maxScore)) {
+                    showMessage('Error', `Score must be between 0 and ${assessment.maxScore}.`);
+                    renderGradeCalculationTable(classId); // Re-render to revert invalid input
+                    return;
+                }
+                student.grades[assessmentId] = score;
+                saveClasses();
+                renderGradeCalculationTable(classId);
+            } else {
+                console.error("Student not found for grade update. Class ID:", classId, "Student ID:", studentId);
+            }
+        }
+
+        function calculateFinalGrade(cls, student) {
+            if (!cls || !student || !cls.categories.length) {
+                return null;
+            }
+
+            let totalWeightedCategoryScore = 0;
+            let totalCategoryWeightWithAssessments = 0; // Sum of weights of categories that actually have graded assessments
+
+            cls.categories.forEach(category => {
+                if (category.weight > 0) {
+                    const gradedAssessmentsInCat = category.assessments.filter(ass =>
+                        student.grades[ass.id] !== null && student.grades[ass.id] !== undefined && student.grades[ass.id] !== ''
+                    );
+
+                    if (gradedAssessmentsInCat.length > 0) {
+                        let categoryScore = 0;
+                        let categoryAssessmentsTotalWeight = category.assessments.reduce((sum, ass) => sum + (ass.weight || 0), 0);
+
+                        if (categoryAssessmentsTotalWeight === 0) {
+                            // If no individual assessment weights, distribute category weight evenly among graded assessments
+                            // Calculate average percentage for assessments in this category
+                            let sumOfPercentages = 0;
+                            gradedAssessmentsInCat.forEach(assessment => {
+                                sumOfPercentages += (student.grades[assessment.id] / assessment.maxScore) * 100;
+                            });
+                            const averagePercentage = sumOfPercentages / gradedAssessmentsInCat.length;
+                            categoryScore = (averagePercentage * category.weight) / 100; // Contribute to total based on category weight
+                        } else {
+                            // Use individual assessment weights
+                            gradedAssessmentsInCat.forEach(assessment => {
+                                const scorePercentage = (student.grades[assessment.id] / assessment.maxScore) * 100;
+                                categoryScore += (scorePercentage * (assessment.weight || 0));
+                            });
+                            // Normalize by the sum of assessment weights within the category
+                            categoryScore = (categoryScore / categoryAssessmentsTotalWeight) * category.weight;
+                        }
+
+                        totalWeightedCategoryScore += categoryScore;
+                        totalCategoryWeightWithAssessments += category.weight;
+                    }
+                }
+            });
+
+            if (totalCategoryWeightWithAssessments === 0) {
+                return null; // No categories with actual graded assessments
+            }
+
+            // Final grade is the total weighted score divided by the sum of all category weights that had graded assessments
+            return totalWeightedCategoryScore / totalCategoryWeightWithAssessments;
+        }
+
+
+        // --- Initial Load ---
+        document.addEventListener('DOMContentLoaded', () => {
+            renderClassList();
+            showTab('class-setup-tab');
+        });
+
+        // Close modal when clicking outside
+        window.onclick = function (event) {
+            document.querySelectorAll('.modal').forEach(modal => {
+                // Check if the click is outside the modal content but inside the modal backdrop
+                if (event.target == modal) {
+                    modal.style.display = "none";
+                }
+            });
+        }
+    </script>
+</body>
+
+</html>

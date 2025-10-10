@@ -45,6 +45,20 @@ class DatabaseConnection:
         db_uri = f"mysql+pymysql://{db_user}:{db_password}@{db_host}:{db_port}/{db_name}"
         app.config['SQLALCHEMY_DATABASE_URI'] = db_uri
         app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+        # Connection pool settings to handle connection timeouts
+        app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
+            'pool_size': 10,                    # Number of connections to maintain
+            'max_overflow': 20,                 # Additional connections beyond pool_size
+            'pool_recycle': 3600,               # Recycle connections after 1 hour
+            'pool_pre_ping': True,              # Test connections before use
+            'pool_timeout': 30,                 # Connection timeout in seconds
+            'connect_args': {
+                'connect_timeout': 10,          # Connection timeout for initial connection
+                'read_timeout': 10,             # Read timeout
+                'write_timeout': 10,            # Write timeout
+            }
+        }
         logger.info(f"Database URI configured for {environment}: {db_uri.replace(db_password or '', '***')}")
 
         # Check if SQLAlchemy is already registered with this app
@@ -56,20 +70,31 @@ class DatabaseConnection:
             logger.info("Database already initialized with Flask app - skipping re-initialization")
 
     def test_connection(self) -> bool:
-        """Test database connection."""
+        """Test database connection with retry mechanism."""
         if self.app is None:
             logger.error("Database connection not initialized with Flask app")
             return False
-        try:
-            logger.info("Testing database connection...")
-            with self.app.app_context():
-                with db.engine.connect() as connection:
-                    connection.execute(db.text('SELECT 1'))
-            logger.info("✅ Database connection successful!")
-            return True
-        except Exception as e:
-            logger.error(f"❌ Database connection failed: {str(e)}")
-            return False
+
+        max_retries = 3
+        retry_delay = 1
+
+        for attempt in range(max_retries):
+            try:
+                logger.info(f"Testing database connection... (attempt {attempt + 1}/{max_retries})")
+                with self.app.app_context():
+                    with db.engine.connect() as connection:
+                        connection.execute(db.text('SELECT 1'))
+                logger.info("✅ Database connection successful!")
+                return True
+            except Exception as e:
+                logger.warning(f"❌ Database connection failed (attempt {attempt + 1}): {str(e)}")
+                if attempt < max_retries - 1:
+                    import time
+                    time.sleep(retry_delay)
+                    retry_delay *= 2  # Exponential backoff
+                else:
+                    logger.error(f"❌ Database connection failed after {max_retries} attempts: {str(e)}")
+                    return False
 
     def create_tables(self) -> bool:
         """Create all database tables."""
@@ -101,6 +126,24 @@ class DatabaseConnection:
     def get_db(self):
         """Get database instance."""
         return db
+
+    def ensure_connection(self) -> bool:
+        """Ensure database connection is available, attempt to reconnect if needed."""
+        try:
+            with self.app.app_context():
+                with db.engine.connect() as connection:
+                    connection.execute(db.text('SELECT 1'))
+            return True
+        except Exception as e:
+            logger.warning(f"Database connection lost, attempting to reconnect: {str(e)}")
+            try:
+                # Dispose of the current engine to force recreation of connections
+                db.engine.dispose()
+                # Test the connection again
+                return self.test_connection()
+            except Exception as reconnect_error:
+                logger.error(f"Failed to reconnect to database: {str(reconnect_error)}")
+                return False
 
 # Global database connection instance
 db_conn = DatabaseConnection()

@@ -8,14 +8,12 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/adminlogin.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/adminlogin-timeout.css') }}">
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-  <style>
-
-  </style>
 </head>
 
 <body>
-  <button class="back-btn" onclick="window.history.back()">
+  <button class="back-btn" onclick="window.location.href='/'">
     <i class="fas fa-arrow-left"></i> Back to Home
   </button>
 
@@ -30,7 +28,30 @@
         Communication Technology</p>
     </div>
 
-    <div id="errorContainer" style="display: none;">{{ error }}</div>
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          <div id="errorContainer" style="display: none;">{{ message }}</div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+
+    <!-- Pass timeout info to JavaScript if in timeout -->
+    {% if session.get('admin_timeout_until') %}
+      <div id="timeoutInfo" style="display: none;" data-timeout-until="{{ session.admin_timeout_until }}"></div>
+    {% endif %}
+
+    <div id="timeoutContainer" style="display: none;">
+      <div class="timeout-message">
+        <i class="fas fa-clock"></i>
+        <div class="timeout-content">
+          <span id="timeoutMessage">Too many failed login attempts. Please wait <span id="countdown">30</span> seconds before trying again.</span>
+          <div class="timeout-progress">
+            <div class="timeout-progress-bar" id="progressBar"></div>
+          </div>
+        </div>
+      </div>
+    </div>
 
     <form id="loginForm" class="form" method="POST">
       <input type="hidden" name="role" value="admin">
@@ -144,20 +165,161 @@
         container.style.transform = 'translateY(0)';
       }, 100);
 
+      // Check for timeout info first
+      const timeoutInfo = document.getElementById('timeoutInfo');
+      if (timeoutInfo && timeoutInfo.dataset.timeoutUntil) {
+        startTimeoutCountdown(timeoutInfo.dataset.timeoutUntil);
+      }
+
       // Check for error message and show SweetAlert
       const errorContainer = document.getElementById('errorContainer');
       if (errorContainer && errorContainer.textContent.trim()) {
         const errorMessage = errorContainer.textContent.trim();
-        Swal.fire({
-          icon: 'error',
-          title: 'Login Failed',
-          text: errorMessage,
-          confirmButtonText: 'Try Again',
-          confirmButtonColor: '#dc2626',
-          allowOutsideClick: false
-        });
+
+        // Check if it's a timeout message
+        if (errorMessage.includes('Too many failed login attempts')) {
+          showTimeoutMessage(errorMessage);
+        } else {
+          Swal.fire({
+            icon: 'error',
+            title: 'Login Failed',
+            text: errorMessage,
+            confirmButtonText: 'Try Again',
+            confirmButtonColor: '#dc2626',
+            allowOutsideClick: false
+          });
+        }
       }
     });
+
+    // Timeout countdown functionality
+    function startTimeoutCountdown(timeoutUntilStr) {
+      const timeoutContainer = document.getElementById('timeoutContainer');
+      const timeoutMessage = document.getElementById('timeoutMessage');
+      const countdownElement = document.getElementById('countdown');
+      const progressBar = document.getElementById('progressBar');
+      const loginForm = document.getElementById('loginForm');
+      const loginBtn = document.getElementById('loginBtn');
+
+      // Parse the timeout end time
+      const timeoutUntil = new Date(timeoutUntilStr);
+      const now = new Date();
+
+      if (now >= timeoutUntil) {
+        // Timeout already expired, just return (page will load normally)
+        return;
+      }
+
+      const totalSeconds = Math.ceil((timeoutUntil - now) / 1000);
+      let remainingSeconds = totalSeconds;
+
+      // Show timeout message
+      timeoutContainer.style.display = 'block';
+      timeoutMessage.textContent = `Too many failed login attempts. Please wait ${remainingSeconds} seconds before trying again.`;
+
+      // Disable form during timeout
+      loginForm.style.opacity = '0.5';
+      loginForm.style.pointerEvents = 'none';
+      loginBtn.disabled = true;
+
+      // Initialize progress bar
+      updateProgressBar(remainingSeconds, totalSeconds, progressBar);
+
+      // Real-time countdown timer (updates every 100ms for very smooth experience)
+      const countdownInterval = setInterval(() => {
+        const currentNow = new Date();
+        remainingSeconds = Math.ceil((timeoutUntil - currentNow) / 1000);
+
+        // Update countdown display
+        countdownElement.textContent = remainingSeconds;
+
+        // Update message text
+        timeoutMessage.textContent = `Too many failed login attempts. Please wait ${remainingSeconds} seconds before trying again.`;
+
+        // Update progress bar
+        updateProgressBar(remainingSeconds, totalSeconds, progressBar);
+
+        if (remainingSeconds <= 0) {
+          clearInterval(countdownInterval);
+          // Re-enable form when timeout expires (no auto-refresh to prevent loops)
+          timeoutContainer.style.display = 'none';
+          loginForm.style.opacity = '1';
+          loginForm.style.pointerEvents = 'auto';
+          loginBtn.disabled = false;
+
+          // Optional: Show success message
+          Swal.fire({
+            icon: 'success',
+            title: 'Timeout Expired',
+            text: 'You can now try logging in again.',
+            timer: 2000,
+            showConfirmButton: false,
+            allowOutsideClick: false
+          });
+        }
+      }, 100); // Update every 100ms for ultra-smooth countdown
+    }
+
+    // Update progress bar based on remaining time
+    function updateProgressBar(remaining, total, progressBar) {
+      const percentage = ((total - remaining) / total) * 100;
+      progressBar.style.width = percentage + '%';
+    }
+
+    function showTimeoutMessage(message) {
+      const timeoutContainer = document.getElementById('timeoutContainer');
+      const timeoutMessage = document.getElementById('timeoutMessage');
+      const countdownElement = document.getElementById('countdown');
+      const progressBar = document.getElementById('progressBar');
+      const loginForm = document.getElementById('loginForm');
+      const loginBtn = document.getElementById('loginBtn');
+
+      // Extract remaining seconds from message
+      const secondsMatch = message.match(/(\d+) seconds/);
+      const totalSeconds = secondsMatch ? parseInt(secondsMatch[1]) : 30;
+      let remainingSeconds = totalSeconds;
+
+      // Show timeout message
+      timeoutContainer.style.display = 'block';
+      timeoutMessage.textContent = `Too many failed login attempts. Please wait ${remainingSeconds} seconds before trying again.`;
+
+      // Disable form during timeout
+      loginForm.style.opacity = '0.5';
+      loginForm.style.pointerEvents = 'none';
+      loginBtn.disabled = true;
+
+      // Initialize progress bar
+      updateProgressBar(remainingSeconds, totalSeconds, progressBar);
+
+      // Real-time countdown timer (updates every 100ms for ultra-smooth experience)
+      const countdownInterval = setInterval(() => {
+        remainingSeconds--;
+        countdownElement.textContent = remainingSeconds;
+        timeoutMessage.textContent = `Too many failed login attempts. Please wait ${remainingSeconds} seconds before trying again.`;
+
+        // Update progress bar
+        updateProgressBar(remainingSeconds, totalSeconds, progressBar);
+
+        if (remainingSeconds <= 0) {
+          clearInterval(countdownInterval);
+          // Re-enable form when timeout expires (no auto-refresh to prevent loops)
+          timeoutContainer.style.display = 'none';
+          loginForm.style.opacity = '1';
+          loginForm.style.pointerEvents = 'auto';
+          loginBtn.disabled = false;
+
+          // Optional: Show success message
+          Swal.fire({
+            icon: 'success',
+            title: 'Timeout Expired',
+            text: 'You can now try logging in again.',
+            timer: 2000,
+            showConfirmButton: false,
+            allowOutsideClick: false
+          });
+        }
+      }, 100); // Update every 100ms for ultra-smooth countdown
+    }
   </script>
 </body>
 

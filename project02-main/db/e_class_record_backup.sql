@@ -17,6 +17,37 @@
 /*M!100616 SET @OLD_NOTE_VERBOSITY=@@NOTE_VERBOSITY, NOTE_VERBOSITY=0 */;
 
 --
+-- Table structure for table `assessments`
+--
+
+DROP TABLE IF EXISTS `assessments`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `assessments` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `category_id` int(11) NOT NULL,
+  `name` varchar(100) NOT NULL,
+  `weight` float DEFAULT NULL,
+  `max_score` float NOT NULL,
+  `passing_score` float DEFAULT NULL,
+  `position` int(11) NOT NULL,
+  `created_at` datetime DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `category_id` (`category_id`),
+  CONSTRAINT `assessments_ibfk_1` FOREIGN KEY (`category_id`) REFERENCES `grading_categories` (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `assessments`
+--
+
+LOCK TABLES `assessments` WRITE;
+/*!40000 ALTER TABLE `assessments` DISABLE KEYS */;
+/*!40000 ALTER TABLE `assessments` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
 -- Table structure for table `classes`
 --
 
@@ -41,7 +72,7 @@ CREATE TABLE `classes` (
   UNIQUE KEY `join_code` (`join_code`),
   KEY `instructor_id` (`instructor_id`),
   CONSTRAINT `classes_ibfk_1` FOREIGN KEY (`instructor_id`) REFERENCES `instructors` (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -50,9 +81,66 @@ CREATE TABLE `classes` (
 
 LOCK TABLES `classes` WRITE;
 /*!40000 ALTER TABLE `classes` DISABLE KEYS */;
-INSERT INTO `classes` VALUES
-(1,1,'2026','1st sem','BSIT','Networking','1A','M-W-F 8-10AM','f518abac-b422-448d-8483-c609d56433fc','125473','2025-09-21 21:03:00','2025-09-21 21:03:00');
 /*!40000 ALTER TABLE `classes` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
+-- Table structure for table `grading_categories`
+--
+
+DROP TABLE IF EXISTS `grading_categories`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `grading_categories` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `template_id` int(11) NOT NULL,
+  `name` varchar(50) NOT NULL,
+  `weight` float NOT NULL,
+  `position` int(11) NOT NULL,
+  `created_at` datetime DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `template_id` (`template_id`),
+  CONSTRAINT `grading_categories_ibfk_1` FOREIGN KEY (`template_id`) REFERENCES `grading_templates` (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `grading_categories`
+--
+
+LOCK TABLES `grading_categories` WRITE;
+/*!40000 ALTER TABLE `grading_categories` DISABLE KEYS */;
+/*!40000 ALTER TABLE `grading_categories` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
+-- Table structure for table `grading_templates`
+--
+
+DROP TABLE IF EXISTS `grading_templates`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `grading_templates` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `instructor_id` int(11) NOT NULL,
+  `name` varchar(100) NOT NULL,
+  `description` text DEFAULT NULL,
+  `is_default` tinyint(1) DEFAULT NULL,
+  `created_at` datetime DEFAULT NULL,
+  `updated_at` datetime DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `instructor_id` (`instructor_id`),
+  CONSTRAINT `grading_templates_ibfk_1` FOREIGN KEY (`instructor_id`) REFERENCES `instructors` (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `grading_templates`
+--
+
+LOCK TABLES `grading_templates` WRITE;
+/*!40000 ALTER TABLE `grading_templates` DISABLE KEYS */;
+/*!40000 ALTER TABLE `grading_templates` ENABLE KEYS */;
 UNLOCK TABLES;
 
 --
@@ -73,7 +161,7 @@ CREATE TABLE `instructors` (
   PRIMARY KEY (`id`),
   KEY `user_id` (`user_id`),
   CONSTRAINT `instructors_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -82,9 +170,41 @@ CREATE TABLE `instructors` (
 
 LOCK TABLES `instructors` WRITE;
 /*!40000 ALTER TABLE `instructors` DISABLE KEYS */;
-INSERT INTO `instructors` VALUES
-(1,2,'Information Technology','WEB','EMP001',NULL,'2025-09-21 21:01:30');
 /*!40000 ALTER TABLE `instructors` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
+-- Table structure for table `personal_info`
+--
+
+DROP TABLE IF EXISTS `personal_info`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `personal_info` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `first_name` varchar(50) NOT NULL,
+  `last_name` varchar(50) NOT NULL,
+  `middle_name` varchar(50) DEFAULT NULL,
+  `email` varchar(100) NOT NULL,
+  `phone` varchar(20) DEFAULT NULL,
+  `address` varchar(255) DEFAULT NULL,
+  `birth_date` date DEFAULT NULL,
+  `gender` varchar(10) DEFAULT NULL,
+  `emergency_contact_name` varchar(100) DEFAULT NULL,
+  `emergency_contact_phone` varchar(20) DEFAULT NULL,
+  `created_at` datetime DEFAULT NULL,
+  `updated_at` datetime DEFAULT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `personal_info`
+--
+
+LOCK TABLES `personal_info` WRITE;
+/*!40000 ALTER TABLE `personal_info` DISABLE KEYS */;
+/*!40000 ALTER TABLE `personal_info` ENABLE KEYS */;
 UNLOCK TABLES;
 
 --
@@ -104,7 +224,7 @@ CREATE TABLE `student_classes` (
   KEY `class_id` (`class_id`),
   CONSTRAINT `student_classes_ibfk_1` FOREIGN KEY (`student_id`) REFERENCES `students` (`id`),
   CONSTRAINT `student_classes_ibfk_2` FOREIGN KEY (`class_id`) REFERENCES `classes` (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -113,8 +233,6 @@ CREATE TABLE `student_classes` (
 
 LOCK TABLES `student_classes` WRITE;
 /*!40000 ALTER TABLE `student_classes` DISABLE KEYS */;
-INSERT INTO `student_classes` VALUES
-(1,1,1,'2025-09-21 21:04:26');
 /*!40000 ALTER TABLE `student_classes` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -139,7 +257,7 @@ CREATE TABLE `students` (
   PRIMARY KEY (`id`),
   KEY `user_id` (`user_id`),
   CONSTRAINT `students_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -148,8 +266,6 @@ CREATE TABLE `students` (
 
 LOCK TABLES `students` WRITE;
 /*!40000 ALTER TABLE `students` DISABLE KEYS */;
-INSERT INTO `students` VALUES
-(1,3,'BSIT','Programming',1,'D','uploads/23-13333_id_front_IMG_20250903_174639.jpg','uploads/23-13333_id_back_IMG_20250903_174639.jpg','uploads/23-13333_face_IMG_20250903_174639.jpg','2025-09-21 21:04:05');
 /*!40000 ALTER TABLE `students` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -168,7 +284,7 @@ CREATE TABLE `users` (
   `created_at` datetime DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `school_id` (`school_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -178,9 +294,7 @@ CREATE TABLE `users` (
 LOCK TABLES `users` WRITE;
 /*!40000 ALTER TABLE `users` DISABLE KEYS */;
 INSERT INTO `users` VALUES
-(1,'admin001','scrypt:32768:8:1$cK1RY6THvIlzRYbk$04bcffa23a54df794de278a0249bfc05946f6573ebb371c6ae256224295983b8165f788da7be8a45a0be087b9142fd7f01393f67f82fa1f813742c37ce1144dc','admin','2025-09-20 14:17:33'),
-(2,'INST001','scrypt:32768:8:1$3X8I7aWJAgm3f3d8$fdc98c9300faea1e27f30c5fe86738d18c5ec38b5d9058dc8c4d84f97e503d4549e5bf40580b05e687f6a59b0e91ae95383a08a21ec4a4dc0d78b39d148d20b5','instructor','2025-09-21 21:01:30'),
-(3,'23-13333','scrypt:32768:8:1$Vw4zg8K5Qhn2pLf3$bbe0ebd12865ec1539daefbc26fa5c4154f14e7cc74704e5b4534e26892d5adeb69caa36f0d333e0bf2f98e1e646c4e54b95280415112357c20992385d9b35a5','student','2025-09-21 21:04:05');
+(1,'admin001','scrypt:32768:8:1$iIOlQVtxLfSXFjCM$e6bc29aa63e7cbd1e78eb63b0216b8419ea5bf13e3e38316900187c8d202637f0b26f3082f1119bb69c028990b230f2b9b0beedba2f49e139f854161b43f6dc4','admin','2025-10-10 09:55:11');
 /*!40000 ALTER TABLE `users` ENABLE KEYS */;
 UNLOCK TABLES;
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
@@ -193,4 +307,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*M!100616 SET NOTE_VERBOSITY=@OLD_NOTE_VERBOSITY */;
 
--- Dump completed on 2025-09-22 17:13:00
+-- Dump completed on 2025-10-10 10:49:44

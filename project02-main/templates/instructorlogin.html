@@ -15,7 +15,7 @@
 </head>
 
 <body>
-  <button class="back-btn" onclick="window.history.back()">
+  <button class="back-btn" onclick="window.location.href='/'">
     <i class="fas fa-arrow-left"></i> Back to Home
   </button>
 
@@ -30,7 +30,13 @@
         Communication Technology</p>
     </div>
 
-    <div id="errorContainer" style="display: none;">{{ error }}</div>
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          <div id="errorContainer" style="display: none;">{{ message }}</div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
 
     <form id="loginForm" class="form" method="POST">
       <input type="hidden" name="role" value="instructor">

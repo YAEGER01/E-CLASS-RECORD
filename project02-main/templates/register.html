@@ -5,1156 +5,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <title>E-Class Record System - Register</title>
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
-
-        :root {
-            --primary: #16a34a;
-            --primary-dark: #15803d;
-            --primary-light: #dcfce7;
-            --secondary: #065f46;
-            --accent: #10b981;
-            --success: #22c55e;
-            --danger: #ef4444;
-            --warning: #f59e0b;
-
-            --bg-primary: #0f172a;
-            --bg-secondary: #1e293b;
-            --surface: rgba(255, 255, 255, 0.95);
-            --surface-2: #f0fdf4;
-            --text-primary: #1f2937;
-            --text-secondary: #6b7280;
-            --text-muted: #9ca3af;
-            --border: #d1fae5;
-            --border-focus: rgba(22, 163, 74, 0.3);
-
-            --shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
-            --shadow-lg: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
-            --radius: 12px;
-            --radius-sm: 8px;
-            --radius-lg: 20px;
-        }
-
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: 'Inter', sans-serif;
-            background: linear-gradient(135deg, #064e3b 0%, #065f46 25%, #047857 50%, #059669 75%, #10b981 100%);
-            min-height: 100vh;
-            color: var(--text-primary);
-            -webkit-font-smoothing: antialiased;
-        }
-
-        /* ISU Green Background with Organic Shapes */
-        .bg-container {
-            position: fixed;
-            inset: 0;
-            overflow: hidden;
-            z-index: 0;
-        }
-
-        .bg-shape {
-            position: absolute;
-            border-radius: 50%;
-            opacity: 0.1;
-            animation: float 15s infinite ease-in-out;
-        }
-
-        .bg-shape:nth-child(1) {
-            width: 300px;
-            height: 300px;
-            background: linear-gradient(45deg, #16a34a, #22c55e);
-            top: 10%;
-            left: -5%;
-            animation-delay: 0s;
-        }
-
-        .bg-shape:nth-child(2) {
-            width: 200px;
-            height: 200px;
-            background: linear-gradient(135deg, #059669, #10b981);
-            top: 60%;
-            right: -3%;
-            animation-delay: -5s;
-        }
-
-        .bg-shape:nth-child(3) {
-            width: 150px;
-            height: 150px;
-            background: linear-gradient(225deg, #047857, #065f46);
-            bottom: 20%;
-            left: 20%;
-            animation-delay: -10s;
-        }
-
-        @keyframes float {
-
-            0%,
-            100% {
-                transform: translateY(0px) scale(1);
-            }
-
-            50% {
-                transform: translateY(-30px) scale(1.1);
-            }
-        }
-
-        /* Subtle Grid Pattern */
-        .grid-overlay {
-            position: fixed;
-            inset: 0;
-            background-image:
-                radial-gradient(circle at 2px 2px, rgba(255, 255, 255, 0.08) 1px, transparent 0);
-            background-size: 40px 40px;
-            z-index: 1;
-        }
-
-        .main-container {
-            position: relative;
-            z-index: 10;
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 20px;
-        }
-
-        .registration-card {
-            background: var(--surface);
-            backdrop-filter: blur(20px);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            border-radius: var(--radius-lg);
-            box-shadow: var(--shadow-lg);
-            width: 100%;
-            max-width: 1000px;
-            overflow: hidden;
-            position: relative;
-        }
-
-        /* Green accent border */
-        .registration-card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 4px;
-            background: linear-gradient(90deg, var(--primary), var(--accent), var(--success));
-            border-radius: var(--radius-lg) var(--radius-lg) 0 0;
-        }
-
-        /* Header */
-        .header {
-            background: linear-gradient(135deg, var(--surface-2), white);
-            padding: 32px;
-            border-bottom: 1px solid var(--border);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            flex-wrap: wrap;
-            gap: 20px;
-        }
-
-        .brand {
-            display: flex;
-            align-items: center;
-            gap: 16px;
-        }
-
-        .brand-logo {
-            width: 60px;
-            height: 60px;
-            background: linear-gradient(135deg, var(--primary), var(--accent));
-            border-radius: var(--radius);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 24px;
-            color: white;
-            box-shadow: var(--shadow);
-            position: relative;
-            overflow: hidden;
-        }
-
-        .brand-logo::after {
-            content: '';
-            position: absolute;
-            top: -50%;
-            left: -50%;
-            width: 200%;
-            height: 200%;
-            background: linear-gradient(45deg, transparent, rgba(255, 255, 255, 0.2), transparent);
-            transform: rotate(45deg);
-            animation: shine 3s infinite;
-        }
-
-        @keyframes shine {
-            0% {
-                transform: translateX(-100%) translateY(-100%) rotate(45deg);
-            }
-
-            100% {
-                transform: translateX(100%) translateY(100%) rotate(45deg);
-            }
-        }
-
-        .brand-info h1 {
-            font-size: 22px;
-            font-weight: 700;
-            color: var(--text-primary);
-            margin-bottom: 4px;
-            letter-spacing: -0.5px;
-        }
-
-        .brand-info p {
-            font-size: 14px;
-            color: var(--text-secondary);
-            font-weight: 500;
-        }
-
-        .login-link {
-            color: var(--primary);
-            text-decoration: none;
-            font-weight: 600;
-            padding: 12px 20px;
-            background: var(--primary-light);
-            border-radius: var(--radius-sm);
-            transition: all 0.3s ease;
-            border: 2px solid transparent;
-        }
-
-        .login-link:hover {
-            background: var(--primary);
-            color: white;
-            transform: translateY(-2px);
-            box-shadow: var(--shadow);
-        }
-
-        /* Main Content */
-        .content {
-            display: flex;
-            gap: 40px;
-            padding: 40px;
-            align-items: flex-start;
-        }
-
-        .form-section {
-            flex: 2;
-            min-width: 0;
-        }
-
-        .preview-section {
-            flex: 1;
-            min-width: 300px;
-        }
-
-        /* Form Grid */
-        .form-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 24px;
-            margin-bottom: 32px;
-        }
-
-        .form-field {
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-        }
-
-        .form-field label {
-            font-weight: 600;
-            font-size: 14px;
-            color: var(--text-primary);
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
-
-        .required-mark {
-            color: var(--danger);
-            font-size: 14px;
-        }
-
-        .input-group {
-            position: relative;
-        }
-
-        input,
-        select {
-            width: 100%;
-            padding: 14px 16px;
-            border: 2px solid var(--border);
-            border-radius: var(--radius);
-            background: white;
-            font-size: 15px;
-            color: var(--text-primary);
-            transition: all 0.3s ease;
-            font-family: inherit;
-        }
-
-        input:focus,
-        select:focus {
-            outline: none;
-            border-color: var(--primary);
-            box-shadow: 0 0 0 3px var(--border-focus);
-            transform: translateY(-1px);
-        }
-
-        .password-toggle {
-            position: absolute;
-            right: 12px;
-            top: 50%;
-            transform: translateY(-50%);
-            background: none;
-            border: none;
-            color: var(--text-secondary);
-            cursor: pointer;
-            font-size: 13px;
-            font-weight: 500;
-            padding: 6px 8px;
-            border-radius: var(--radius-sm);
-            transition: all 0.3s ease;
-        }
-
-        .password-toggle:hover {
-            color: var(--primary);
-            background: var(--primary-light);
-        }
-
-        .field-hint {
-            font-size: 13px;
-            color: var(--text-muted);
-        }
-
-        /* Password Strength */
-        .password-strength {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            margin-top: 8px;
-        }
-
-        .strength-bar {
-            flex: 1;
-            height: 4px;
-            background: #e5e7eb;
-            border-radius: 2px;
-            overflow: hidden;
-        }
-
-        .strength-fill {
-            height: 100%;
-            width: 0%;
-            background: linear-gradient(90deg, var(--danger), var(--warning), var(--success));
-            transition: width 0.3s ease;
-        }
-
-        .strength-label {
-            font-size: 12px;
-            color: var(--text-secondary);
-            font-weight: 500;
-            white-space: nowrap;
-        }
-
-        /* Photo Upload */
-        .photo-upload-section {
-            background: var(--surface-2);
-            border: 2px dashed var(--border);
-            border-radius: var(--radius);
-            padding: 24px;
-            margin: 32px 0;
-            transition: all 0.3s ease;
-        }
-
-        .photo-upload-section:hover {
-            border-color: var(--primary);
-            background: var(--primary-light);
-        }
-
-        .photo-header {
-            text-align: center;
-            margin-bottom: 20px;
-        }
-
-        .photo-header h3 {
-            font-size: 18px;
-            font-weight: 600;
-            color: var(--text-primary);
-            margin-bottom: 8px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-        }
-
-        .photo-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-            gap: 20px;
-        }
-
-        .photo-item {
-            background: white;
-            border: 2px dashed #d1d5db;
-            border-radius: var(--radius);
-            padding: 20px;
-            text-align: center;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            position: relative;
-        }
-
-        .photo-item:hover {
-            border-color: var(--primary);
-            background: var(--primary-light);
-            transform: translateY(-2px);
-            box-shadow: var(--shadow);
-        }
-
-        .photo-item input {
-            position: absolute;
-            inset: 0;
-            opacity: 0;
-            cursor: pointer;
-            padding: 0;
-            border: none;
-        }
-
-        .photo-preview {
-            width: 50px;
-            height: 50px;
-            margin: 0 auto 12px;
-            background: var(--surface-2);
-            border-radius: var(--radius-sm);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 20px;
-            overflow: hidden;
-        }
-
-        .photo-preview img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-        }
-
-        .photo-label {
-            font-weight: 600;
-            color: var(--text-primary);
-            margin-bottom: 4px;
-        }
-
-        .photo-sublabel {
-            font-size: 12px;
-            color: var(--text-secondary);
-        }
-
-        /* Submit Button */
-        .submit-section {
-            margin-top: 32px;
-        }
-
-        .submit-btn {
-            width: 100%;
-            background: linear-gradient(135deg, var(--primary), var(--accent));
-            color: white;
-            border: none;
-            padding: 16px 24px;
-            border-radius: var(--radius);
-            font-size: 16px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .submit-btn::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -100%;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
-            transition: left 0.6s ease;
-        }
-
-        .submit-btn:hover::before {
-            left: 100%;
-        }
-
-        .submit-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: var(--shadow-lg);
-        }
-
-        /* Status Messages */
-        .status {
-            padding: 16px 20px;
-            border-radius: var(--radius);
-            margin-bottom: 24px;
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            font-weight: 500;
-            border: 1px solid;
-        }
-
-        .status.error {
-            background: rgba(239, 68, 68, 0.1);
-            border-color: var(--danger);
-            color: var(--danger);
-        }
-
-        .status.success {
-            background: rgba(34, 197, 94, 0.1);
-            border-color: var(--success);
-            color: var(--success);
-        }
-
-        .status i {
-            font-size: 18px;
-        }
-
-        /* Preview Card */
-        .preview-card {
-            background: white;
-            border: 1px solid var(--border);
-            border-radius: var(--radius);
-            padding: 24px;
-            box-shadow: var(--shadow);
-            position: sticky;
-            top: 20px;
-        }
-
-        .preview-title {
-            font-size: 18px;
-            font-weight: 600;
-            color: var(--text-primary);
-            margin-bottom: 20px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .student-preview {
-            display: flex;
-            align-items: center;
-            gap: 16px;
-            padding: 16px;
-            background: var(--surface-2);
-            border-radius: var(--radius);
-            margin-bottom: 20px;
-        }
-
-        .student-avatar {
-            width: 50px;
-            height: 50px;
-            background: linear-gradient(135deg, var(--primary-light), var(--surface-2));
-            border-radius: var(--radius-sm);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 20px;
-            overflow: hidden;
-        }
-
-        .student-avatar img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-        }
-
-        .student-name {
-            font-weight: 600;
-            color: var(--text-primary);
-        }
-
-        .student-id {
-            font-size: 13px;
-            color: var(--text-secondary);
-        }
-
-        .info-list {
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-        }
-
-        .info-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 8px 0;
-            border-bottom: 1px solid #f3f4f6;
-        }
-
-        .info-item:last-child {
-            border-bottom: none;
-        }
-
-        .info-label {
-            font-size: 13px;
-            color: var(--text-secondary);
-            font-weight: 500;
-        }
-
-        .info-value {
-            font-weight: 600;
-            color: var(--text-primary);
-            text-align: right;
-        }
-
-        /* Tips */
-        .tips-section {
-            background: linear-gradient(135deg, var(--primary-light), white);
-            border: 1px solid rgba(22, 163, 74, 0.2);
-            border-radius: var(--radius);
-            padding: 20px;
-            margin-top: 20px;
-        }
-
-        .tips-title {
-            font-size: 14px;
-            font-weight: 600;
-            color: var(--text-primary);
-            margin-bottom: 12px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .tips-list {
-            list-style: none;
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-        }
-
-        .tips-list li {
-            font-size: 13px;
-            color: var(--text-secondary);
-            display: flex;
-            align-items: flex-start;
-            gap: 8px;
-        }
-
-        .tips-list li::before {
-            content: '✓';
-            color: var(--success);
-            font-weight: 600;
-            flex-shrink: 0;
-        }
-
-        /* Footer */
-        .footer {
-            background: var(--surface-2);
-            padding: 20px 32px;
-            border-top: 1px solid var(--border);
-            text-align: center;
-        }
-
-        .footer p {
-            font-size: 13px;
-            color: var(--text-muted);
-        }
-
-        /* Mobile-First Responsive Design */
-
-        /* Large tablets and small desktops (1024px and down) */
-        @media (max-width: 1024px) {
-            .main-container {
-                padding: 16px;
-            }
-
-            .content {
-                gap: 32px;
-            }
-
-            .registration-card {
-                max-width: 900px;
-            }
-        }
-
-        /* Tablets (768px and down) */
-        @media (max-width: 768px) {
-            .main-container {
-                padding: 12px;
-                align-items: flex-start;
-                padding-top: 20px;
-            }
-
-            .registration-card {
-                margin: 0;
-                min-height: auto;
-            }
-
-            .header {
-                padding: 20px 16px;
-                flex-direction: column;
-                text-align: center;
-                gap: 16px;
-            }
-
-            .content {
-                flex-direction: column;
-                gap: 24px;
-                padding: 20px 16px;
-            }
-
-            .preview-section {
-                order: -1;
-                min-width: 0;
-                width: 100%;
-            }
-
-            .form-section {
-                width: 100%;
-            }
-
-            .form-grid {
-                grid-template-columns: 1fr;
-                gap: 20px;
-            }
-
-            .photo-grid {
-                grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-                gap: 16px;
-            }
-
-            .preview-card {
-                position: static;
-                margin-bottom: 0;
-            }
-
-            .brand-logo {
-                width: 50px;
-                height: 50px;
-                font-size: 20px;
-            }
-
-            .brand-info h1 {
-                font-size: 20px;
-            }
-
-            .brand-info p {
-                font-size: 13px;
-            }
-
-            .login-link {
-                padding: 10px 16px;
-                font-size: 14px;
-            }
-
-            input,
-            select {
-                padding: 12px 14px;
-                font-size: 16px;
-                /* Prevents zoom on iOS */
-            }
-
-            .submit-btn {
-                padding: 14px 20px;
-                font-size: 16px;
-            }
-
-            .footer {
-                padding: 16px;
-            }
-        }
-
-        /* Mobile phones (480px and down) */
-        /* Keep green theme consistent across all devices */
-        @media (max-width: 768px) {
-            .bg-container {
-                display: block;
-                /* Ensure background shapes remain visible */
-            }
-
-            .bg-shape {
-                opacity: 0.08;
-                /* Slightly reduce opacity on mobile for better readability */
-            }
-        }
-
-        @media (max-width: 480px) {
-            body {
-                font-size: 14px;
-            }
-
-            .main-container {
-                padding: 8px;
-                padding-top: 16px;
-            }
-
-            .registration-card {
-                border-radius: 12px;
-                box-shadow: var(--shadow);
-            }
-
-            .header {
-                padding: 16px 12px;
-                gap: 12px;
-            }
-
-            .brand {
-                flex-direction: column;
-                text-align: center;
-                gap: 8px;
-            }
-
-            .brand-logo {
-                width: 45px;
-                height: 45px;
-                font-size: 18px;
-            }
-
-            .brand-info h1 {
-                font-size: 16px;
-                line-height: 1.2;
-            }
-
-            .brand-info p {
-                font-size: 12px;
-            }
-
-            .login-link {
-                padding: 8px 12px;
-                font-size: 13px;
-                border-radius: 6px;
-            }
-
-            .content {
-                padding: 16px 12px;
-                gap: 20px;
-            }
-
-            .form-grid {
-                gap: 16px;
-            }
-
-            .form-field label {
-                font-size: 13px;
-            }
-
-            input,
-            select {
-                padding: 12px;
-                font-size: 16px;
-                border-radius: 8px;
-            }
-
-            .password-toggle {
-                right: 10px;
-                padding: 4px 6px;
-                font-size: 12px;
-            }
-
-            .field-hint {
-                font-size: 12px;
-            }
-
-            .photo-upload-section {
-                padding: 16px;
-                margin: 20px 0;
-            }
-
-            .photo-header h3 {
-                font-size: 16px;
-            }
-
-            .photo-header p {
-                font-size: 13px;
-            }
-
-            .photo-grid {
-                grid-template-columns: 1fr;
-                gap: 12px;
-            }
-
-            .photo-item {
-                padding: 16px;
-                min-height: 120px;
-            }
-
-            .photo-preview {
-                width: 40px;
-                height: 40px;
-                font-size: 16px;
-                margin-bottom: 8px;
-            }
-
-            .photo-label {
-                font-size: 14px;
-            }
-
-            .photo-sublabel {
-                font-size: 11px;
-            }
-
-            .submit-btn {
-                padding: 14px 16px;
-                font-size: 15px;
-                border-radius: 8px;
-            }
-
-            .preview-card {
-                padding: 16px;
-                border-radius: 8px;
-            }
-
-            .preview-title {
-                font-size: 16px;
-            }
-
-            .student-preview {
-                padding: 12px;
-                gap: 12px;
-            }
-
-            .student-avatar {
-                width: 40px;
-                height: 40px;
-                font-size: 16px;
-            }
-
-            .student-name {
-                font-size: 14px;
-            }
-
-            .student-id {
-                font-size: 12px;
-            }
-
-            .info-item {
-                padding: 6px 0;
-                gap: 8px;
-            }
-
-            .info-label {
-                font-size: 12px;
-            }
-
-            .info-value {
-                font-size: 13px;
-            }
-
-            .tips-section {
-                padding: 16px;
-                margin-top: 16px;
-            }
-
-            .tips-title {
-                font-size: 13px;
-            }
-
-            .tips-list li {
-                font-size: 12px;
-            }
-
-            .footer {
-                padding: 12px;
-            }
-
-            .footer p {
-                font-size: 12px;
-            }
-        }
-
-        /* Extra small devices (360px and down) */
-        @media (max-width: 360px) {
-            .main-container {
-                padding: 6px;
-                padding-top: 12px;
-            }
-
-            .header {
-                padding: 12px 8px;
-            }
-
-            .brand-info h1 {
-                font-size: 14px;
-            }
-
-            .brand-info p {
-                font-size: 11px;
-            }
-
-            .content {
-                padding: 12px 8px;
-            }
-
-            .form-field label {
-                font-size: 12px;
-            }
-
-            input,
-            select {
-                padding: 10px;
-                font-size: 16px;
-            }
-
-            .submit-btn {
-                padding: 12px 14px;
-                font-size: 14px;
-            }
-
-            .preview-card {
-                padding: 12px;
-            }
-
-            .tips-section {
-                padding: 12px;
-            }
-        }
-
-        /* Landscape orientation adjustments for mobile */
-        @media (max-height: 600px) and (orientation: landscape) {
-            .main-container {
-                align-items: flex-start;
-                padding-top: 10px;
-                padding-bottom: 10px;
-            }
-
-            .bg-shape {
-                display: none;
-                /* Hide floating shapes in landscape to reduce visual clutter */
-            }
-
-            .header {
-                padding: 12px 20px;
-            }
-
-            .content {
-                padding: 16px 20px;
-            }
-
-            .preview-section {
-                order: 1;
-                /* Move preview to bottom in landscape */
-            }
-
-            .photo-grid {
-                grid-template-columns: repeat(3, 1fr);
-                gap: 10px;
-            }
-
-            .photo-item {
-                padding: 12px;
-                min-height: 100px;
-            }
-        }
-
-        /* Touch-friendly improvements */
-        @media (hover: none) and (pointer: coarse) {
-
-            /* Increase touch targets for mobile */
-            input,
-            select,
-            button {
-                min-height: 44px;
-                /* iOS recommended touch target */
-            }
-
-            .password-toggle {
-                min-width: 44px;
-                min-height: 44px;
-            }
-
-            .photo-item {
-                min-height: 120px;
-            }
-
-            /* Disable hover effects on touch devices */
-            .login-link:hover,
-            .submit-btn:hover,
-            .photo-item:hover,
-            .btn-secondary:hover {
-                transform: none;
-                box-shadow: none;
-            }
-
-            /* But keep focus states for accessibility */
-            input:focus,
-            select:focus {
-                transform: translateY(-1px);
-                box-shadow: 0 0 0 3px var(--border-focus);
-            }
-        }
-
-        /* High DPI display adjustments */
-        @media (-webkit-min-device-pixel-ratio: 2),
-        (min-resolution: 192dpi) {
-            .brand-logo {
-                border: 0.5px solid rgba(255, 255, 255, 0.1);
-            }
-
-            input,
-            select {
-                border-width: 1px;
-            }
-        }
-
-        /* Keep green theme consistent across all devices */
-        @media (max-width: 768px) {
-            .bg-container {
-                display: block;
-                /* Ensure background shapes remain visible */
-            }
-
-            .bg-shape {
-                opacity: 0.08;
-                /* Slightly reduce opacity on mobile for better readability */
-            }
-        }
-
-        @media (max-width: 480px) {
-            .bg-shape {
-                opacity: 0.06;
-            }
-
-            /* Ensure green theme remains strong on mobile */
-            .registration-card::before {
-                height: 3px;
-                background: linear-gradient(90deg, var(--primary), var(--accent), var(--success));
-            }
-
-            .brand-logo {
-                background: linear-gradient(135deg, var(--primary), var(--accent));
-                box-shadow: 0 4px 12px rgba(22, 163, 74, 0.3);
-            }
-
-            .submit-btn {
-                background: linear-gradient(135deg, var(--primary), var(--accent));
-                box-shadow: 0 4px 12px rgba(22, 163, 74, 0.2);
-            }
-        }
-
-        /* Reduce motion for users who prefer it */
-        @media (prefers-reduced-motion: reduce) {
-
-            .floating-shape,
-            .brand-logo::after,
-            .submit-btn::before {
-                animation: none;
-            }
-
-            * {
-                transition-duration: 0.01ms !important;
-            }
-        }
-    </style>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/register-page.css') }}">
 </head>
 
 <body>
@@ -1306,25 +157,91 @@
                             </div>
 
                             <div class="photo-grid">
-                                <div class="photo-item">
-                                    <input id="idFront" name="idFront" type="file" accept="image/*" />
-                                    <div class="photo-preview">📄</div>
-                                    <div class="photo-label">ID Front</div>
-                                    <div class="photo-sublabel">Front side of ID</div>
+                                <div class="photo-item" data-photo-type="id-front">
+                                    <div class="photo-upload-container">
+                                        <label for="idFront" class="sr-only">Upload ID Front Photo</label>
+                                        <input
+                                            id="idFront"
+                                            name="idFront"
+                                            type="file"
+                                            accept="image/jpeg,image/jpg,image/png,image/webp"
+                                            data-max-size="5242880"
+                                            data-preview-target="idFrontPreview"
+                                            aria-describedby="idFrontHelp"
+                                            required
+                                        />
+                                        <div class="photo-upload-zone" onclick="document.getElementById('idFront').click()">
+                                            <div class="photo-preview" id="idFrontPreview" role="img" aria-label="ID Front preview">
+                                                <span class="preview-placeholder" aria-hidden="true">📄</span>
+                                            </div>
+                                            <div class="upload-content">
+                                                <div class="photo-label">ID Front</div>
+                                                <div class="photo-sublabel">Front side of ID</div>
+                                                <div class="upload-hint" id="idFrontHelp">
+                                                    JPG, PNG up to 5MB
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="upload-status" id="idFrontStatus" aria-live="polite"></div>
+                                    </div>
                                 </div>
 
-                                <div class="photo-item">
-                                    <input id="idBack" name="idBack" type="file" accept="image/*" />
-                                    <div class="photo-preview">📄</div>
-                                    <div class="photo-label">ID Back</div>
-                                    <div class="photo-sublabel">Back side of ID</div>
+                                <div class="photo-item" data-photo-type="id-back">
+                                    <div class="photo-upload-container">
+                                        <label for="idBack" class="sr-only">Upload ID Back Photo</label>
+                                        <input
+                                            id="idBack"
+                                            name="idBack"
+                                            type="file"
+                                            accept="image/jpeg,image/jpg,image/png,image/webp"
+                                            data-max-size="5242880"
+                                            data-preview-target="idBackPreview"
+                                            aria-describedby="idBackHelp"
+                                            required
+                                        />
+                                        <div class="photo-upload-zone" onclick="document.getElementById('idBack').click()">
+                                            <div class="photo-preview" id="idBackPreview" role="img" aria-label="ID Back preview">
+                                                <span class="preview-placeholder" aria-hidden="true">📄</span>
+                                            </div>
+                                            <div class="upload-content">
+                                                <div class="photo-label">ID Back</div>
+                                                <div class="photo-sublabel">Back side of ID</div>
+                                                <div class="upload-hint" id="idBackHelp">
+                                                    JPG, PNG up to 5MB
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="upload-status" id="idBackStatus" aria-live="polite"></div>
+                                    </div>
                                 </div>
 
-                                <div class="photo-item">
-                                    <input id="facePhoto" name="facePhoto" type="file" accept="image/*" />
-                                    <div class="photo-preview">👤</div>
-                                    <div class="photo-label">Face Photo</div>
-                                    <div class="photo-sublabel">Clear face photo</div>
+                                <div class="photo-item" data-photo-type="face-photo">
+                                    <div class="photo-upload-container">
+                                        <label for="facePhoto" class="sr-only">Upload Face Photo</label>
+                                        <input
+                                            id="facePhoto"
+                                            name="facePhoto"
+                                            type="file"
+                                            accept="image/jpeg,image/jpg,image/png,image/webp"
+                                            data-max-size="5242880"
+                                            data-preview-target="facePhotoPreview"
+                                            aria-describedby="facePhotoHelp"
+                                            required
+                                        />
+                                        <div class="photo-upload-zone" onclick="document.getElementById('facePhoto').click()">
+                                            <div class="photo-preview" id="facePhotoPreview" role="img" aria-label="Face Photo preview">
+                                                <span class="preview-placeholder" aria-hidden="true">👤</span>
+                                            </div>
+                                            <div class="upload-content">
+                                                <div class="photo-label">Face Photo</div>
+                                                <div class="photo-sublabel">Clear face photo</div>
+                                                <div class="upload-hint" id="facePhotoHelp">
+                                                    JPG, PNG up to 5MB
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="upload-status" id="facePhotoStatus" aria-live="polite"></div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -1454,31 +371,186 @@
             return suffixes[num - 1] || 'th';
         }
 
-        // Photo preview functionality
-        function handlePhotoUpload(input, previewElement) {
-            const file = input.files[0];
-            if (file) {
+        // Enhanced photo upload functionality with validation and error handling
+        class PhotoUploadHandler {
+            constructor() {
+                this.maxFileSize = 5 * 1024 * 1024; // 5MB
+                this.allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+                this.photoInputs = ['idFront', 'idBack', 'facePhoto'];
+
+                this.init();
+            }
+
+            init() {
+                this.photoInputs.forEach(inputId => {
+                    const input = document.getElementById(inputId);
+                    if (input) {
+                        input.addEventListener('change', (e) => this.handleFileSelect(e));
+                    }
+                });
+            }
+
+            handleFileSelect(event) {
+                const input = event.target;
+                const file = input.files[0];
+                const previewTargetId = input.dataset.previewTarget;
+                const statusElementId = input.id + 'Status';
+                const previewElement = document.getElementById(previewTargetId);
+                const statusElement = document.getElementById(statusElementId);
+
+                if (!file) return;
+
+                // Clear previous status
+                this.clearStatus(statusElement);
+
+                // Validate file
+                const validation = this.validateFile(file, input);
+                if (!validation.valid) {
+                    this.showError(statusElement, validation.message);
+                    input.value = ''; // Clear the input
+                    return;
+                }
+
+                // Show loading state
+                this.showLoading(statusElement, 'Processing image...');
+
+                // Process the file
+                this.processFile(file, previewElement, statusElement, input);
+            }
+
+            validateFile(file, input) {
+                // Check file size
+                const maxSize = parseInt(input.dataset.maxSize) || this.maxFileSize;
+                if (file.size > maxSize) {
+                    const sizeMB = (maxSize / (1024 * 1024)).toFixed(1);
+                    return {
+                        valid: false,
+                        message: `File size must be less than ${sizeMB}MB`
+                    };
+                }
+
+                // Check file type
+                if (!this.allowedTypes.includes(file.type)) {
+                    return {
+                        valid: false,
+                        message: 'Please select a valid image file (JPG, PNG, WebP)'
+                    };
+                }
+
+                return { valid: true };
+            }
+
+            processFile(file, previewElement, statusElement, input) {
                 const reader = new FileReader();
-                reader.onload = function (e) {
-                    previewElement.innerHTML = `<img src="${e.target.result}" alt="Preview">`;
+
+                reader.onload = (e) => {
+                    const img = new Image();
+
+                    img.onload = () => {
+                        // Create compressed preview
+                        const canvas = this.createOptimizedCanvas(img, 200, 200);
+                        const optimizedDataUrl = canvas.toDataURL('image/jpeg', 0.8);
+
+                        // Update preview
+                        previewElement.innerHTML = `<img src="${optimizedDataUrl}" alt="Preview" loading="lazy">`;
+
+                        // Show success
+                        this.showSuccess(statusElement, '✓ Image uploaded successfully');
+
+                        // Special handling for face photo
+                        if (input.id === 'facePhoto') {
+                            this.updateStudentAvatar(optimizedDataUrl);
+                        }
+                    };
+
+                    img.onerror = () => {
+                        this.showError(statusElement, 'Failed to process image');
+                    };
+
+                    img.src = e.target.result;
                 };
+
+                reader.onerror = () => {
+                    this.showError(statusElement, 'Failed to read file');
+                };
+
+                reader.onloadstart = () => {
+                    this.showLoading(statusElement, 'Reading file...');
+                };
+
+                // Read file
                 reader.readAsDataURL(file);
+            }
+
+            createOptimizedCanvas(img, maxWidth, maxHeight) {
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+
+                // Calculate dimensions
+                let { width, height } = this.calculateDimensions(img.width, img.height, maxWidth, maxHeight);
+
+                canvas.width = width;
+                canvas.height = height;
+
+                // Draw and compress
+                ctx.drawImage(img, 0, 0, width, height);
+
+                return canvas;
+            }
+
+            calculateDimensions(originalWidth, originalHeight, maxWidth, maxHeight) {
+                let width = originalWidth;
+                let height = originalHeight;
+
+                // Maintain aspect ratio
+                if (width > height) {
+                    if (width > maxWidth) {
+                        height = (height * maxWidth) / width;
+                        width = maxWidth;
+                    }
+                } else {
+                    if (height > maxHeight) {
+                        width = (width * maxHeight) / height;
+                        height = maxHeight;
+                    }
+                }
+
+                return { width: Math.round(width), height: Math.round(height) };
+            }
+
+            updateStudentAvatar(imageDataUrl) {
+                const avatarElement = document.getElementById('studentAvatar');
+                if (avatarElement) {
+                    avatarElement.innerHTML = `<img src="${imageDataUrl}" alt="Student Avatar" loading="lazy">`;
+                }
+            }
+
+            showError(element, message) {
+                element.textContent = message;
+                element.className = 'upload-status error';
+                element.setAttribute('role', 'alert');
+            }
+
+            showSuccess(element, message) {
+                element.textContent = message;
+                element.className = 'upload-status success';
+            }
+
+            showLoading(element, message) {
+                element.textContent = message;
+                element.className = 'upload-status loading';
+            }
+
+            clearStatus(element) {
+                element.textContent = '';
+                element.className = 'upload-status';
+                element.removeAttribute('role');
             }
         }
 
-        // Add event listeners for photo uploads
-        document.getElementById('idFront').addEventListener('change', function () {
-            handlePhotoUpload(this, this.parentElement.querySelector('.photo-preview'));
-        });
-
-        document.getElementById('idBack').addEventListener('change', function () {
-            handlePhotoUpload(this, this.parentElement.querySelector('.photo-preview'));
-        });
-
-        document.getElementById('facePhoto').addEventListener('change', function () {
-            handlePhotoUpload(this, this.parentElement.querySelector('.photo-preview'));
-            // Also update the avatar in preview
-            handlePhotoUpload(this, document.getElementById('studentAvatar'));
+        // Initialize photo upload handler when DOM is loaded
+        document.addEventListener('DOMContentLoaded', function() {
+            new PhotoUploadHandler();
         });
 
         // Password confirmation validation

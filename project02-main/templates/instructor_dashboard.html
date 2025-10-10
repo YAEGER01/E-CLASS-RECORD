@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Instructor Dashboard - E-Class Record</title>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/instructor-dashboard.css') }}">
+</head>
+
+<body>
+    <div class="header">
+        <h1>👨‍🏫 Instructor Dashboard</h1>
+        <p>Welcome, Instructor {{ user.school_id }}!</p>
+        <a href="{{ url_for('logout') }}" class="logout-btn">Logout</a>
+    </div>
+
+    <div class="dashboard-grid">
+        <div class="card">
+            <h3>📚 My Classes</h3>
+            <p>Manage your class schedules and subjects.</p>
+            <a href="{{ url_for('instructor_classes') }}" class="manage-btn">Manage Classes</a>
+
+            <div class="class-list" id="class-list" data-classes-url="{{ url_for('instructor_classes') }}">
+                <div class="loading">Loading classes...</div>
+            </div>
+
+            <div style="text-align: center; margin-top: 15px;">
+                <button class="manage-btn" onclick="refreshClasses()" style="font-size: 14px; padding: 8px 16px;">
+                    🔄 Refresh Classes
+                </button>
+            </div>
+        </div>
+
+        <div class="card">
+            <h3>👥 Students</h3>
+            <p>View and manage your students.</p>
+            <p><em>Feature coming soon...</em></p>
+        </div>
+
+        <div class="card">
+            <h3>📊 Grade Management</h3>
+            <p>Enter and manage student grades.</p>
+            <p><em>Feature coming soon...</em></p>
+        </div>
+
+        <div class="card">
+            <h3>📋 Reports</h3>
+            <p>Generate class reports and analytics.</p>
+            <p><em>Feature coming soon...</em></p>
+        </div>
+    </div>
+
+    <!-- Class Members Modal -->
+    <div id="members-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title" id="modal-title">Class Members</h2>
+                <span class="close" onclick="closeModal()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div id="members-list">
+                    <div class="loading">Loading members...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let classes = [];
+
+
+        async function loadClasses() {
+            const container = document.getElementById('class-list');
+            container.innerHTML = '<div class="loading"><div class="spinner"></div>Loading classes...</div>';
+
+            try {
+                const response = await fetch('/api/instructor/classes');
+                if (response.ok) {
+                    const data = await response.json();
+                    classes = data.classes;
+                    renderClasses();
+
+                    // Success notification
+                    if (classes.length > 0) {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Classes Loaded!',
+                            text: `Found ${classes.length} class${classes.length > 1 ? 'es' : ''}`,
+                            timer: 2000,
+                            timerProgressBar: true,
+                            showConfirmButton: false,
+                            toast: true,
+                            position: 'top-end',
+                            background: '#d1fae5',
+                            color: '#065f46'
+                        });
+                    }
+                } else {
+                    container.innerHTML = '<div class="empty-state">Failed to load classes</div>';
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Loading Error',
+                        text: 'Failed to load classes. Please refresh the page.'
+                    });
+                }
+            } catch (error) {
+                console.error('Error loading classes:', error);
+                container.innerHTML = '<div class="empty-state">Error loading classes</div>';
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Connection Error',
+                    text: 'Error loading classes. Please check your connection.'
+                });
+            }
+        }
+
+        function renderClasses() {
+            const container = document.getElementById('class-list');
+            const classesUrl = container.getAttribute('data-classes-url');
+
+            if (classes.length === 0) {
+                container.innerHTML = '<div class="empty-state">No classes found. <a href="' + classesUrl + '">Create your first class</a></div>';
+                return;
+            }
+
+            let html = '';
+            classes.forEach(cls => {
+                const memberCount = cls.member_count || 0;
+                html += `
+                    <div class="class-item">
+                        <div class="class-info">
+                            <div class="class-title">${cls.class_id}</div>
+                            <div class="class-details">
+                                ${cls.course} • ${cls.track} • ${cls.schedule}<br>
+                                <span class="join-code">Join Code: ${cls.join_code || 'N/A'}</span>
+                            </div>
+                        </div>
+                        <div class="class-actions">
+                            <button class="view-members-btn" onclick="viewClassMembers(${cls.id}, '${cls.class_id}')">
+                                👥 View Members (${memberCount})
+                            </button>
+                        </div>
+                    </div>
+                `;
+            });
+
+            container.innerHTML = html;
+        }
+
+        async function viewClassMembers(classId, className) {
+            document.getElementById('modal-title').textContent = `Members of ${className}`;
+            document.getElementById('members-modal').style.display = 'block';
+            document.getElementById('members-modal').classList.add('show');
+            document.getElementById('members-list').innerHTML = '<div class="loading"><div class="spinner"></div>Loading members...</div>';
+
+            // Show loading toast
+            Swal.fire({
+                title: 'Loading Members...',
+                text: 'Please wait while we fetch class members',
+                allowOutsideClick: false,
+                showConfirmButton: false,
+                willOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+
+            try {
+                const response = await fetch(`/api/instructor/classes/${classId}/members`);
+                Swal.close(); // Close loading toast
+
+                if (response.ok) {
+                    const data = await response.json();
+                    renderMembers(data.members);
+
+                    // Success notification
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Members Loaded!',
+                        text: `Found ${data.members.length} member${data.members.length !== 1 ? 's' : ''}`,
+                        timer: 2000,
+                        timerProgressBar: true,
+                        showConfirmButton: false,
+                        toast: true,
+                        position: 'top-end',
+                        background: '#d1fae5',
+                        color: '#065f46'
+                    });
+                } else {
+                    document.getElementById('members-list').innerHTML = '<div class="no-members">Failed to load members</div>';
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Loading Error',
+                        text: 'Failed to load class members.'
+                    });
+                }
+            } catch (error) {
+                console.error('Error loading members:', error);
+                Swal.close(); // Close loading toast
+                document.getElementById('members-list').innerHTML = '<div class="no-members">Error loading members</div>';
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Connection Error',
+                    text: 'Error loading members. Please check your connection.'
+                });
+            }
+        }
+
+        function renderMembers(members) {
+            const container = document.getElementById('members-list');
+
+            if (members.length === 0) {
+                container.innerHTML = '<div class="no-members">No students have joined this class yet</div>';
+                return;
+            }
+
+            let html = '<ul class="member-list">';
+            members.forEach(member => {
+                const joinedDate = new Date(member.joined_at).toLocaleDateString();
+                html += `
+                    <li class="member-item">
+                        <div class="member-info">
+                            <div class="member-name">${member.student_name}</div>
+                            <div class="member-details">
+                                School ID: ${member.school_id}<br>
+                                Course: ${member.course} • Year: ${member.year_level}
+                            </div>
+                            <div class="joined-date">Joined: ${joinedDate}</div>
+                        </div>
+                    </li>
+                `;
+            });
+            html += '</ul>';
+
+            container.innerHTML = html;
+        }
+
+        function closeModal() {
+            const modal = document.getElementById('members-modal');
+            modal.classList.remove('show');
+            setTimeout(() => {
+                modal.style.display = 'none';
+            }, 300); // Match animation duration
+        }
+
+        // Close modal when clicking outside
+        window.onclick = function (event) {
+            const modal = document.getElementById('members-modal');
+            if (event.target === modal) {
+                closeModal();
+            }
+        }
+
+        // Refresh classes function
+        function refreshClasses() {
+            const button = event.target;
+            const originalText = button.textContent;
+
+            // Add loading animation
+            button.textContent = '⏳ Refreshing...';
+            button.style.transform = 'scale(0.95)';
+            button.disabled = true;
+
+            // Show loading toast
+            Swal.fire({
+                title: 'Refreshing...',
+                text: 'Updating class list',
+                allowOutsideClick: false,
+                showConfirmButton: false,
+                willOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+
+            setTimeout(() => {
+                loadClasses().then(() => {
+                    Swal.close();
+                    button.textContent = originalText;
+                    button.style.transform = 'scale(1)';
+                    button.disabled = false;
+
+                    // Success animation
+                    button.style.animation = 'bounce 0.6s ease';
+                    setTimeout(() => {
+                        button.style.animation = '';
+                    }, 600);
+                });
+            }, 500); // Small delay for better UX
+        }
+
+        // Welcome notification on page load
+        document.addEventListener('DOMContentLoaded', function () {
+            setTimeout(() => {
+                Swal.fire({
+                    title: '👨‍🏫 Welcome back, Instructor!',
+                    text: 'Your dashboard is ready. Click "View Members" to see enrolled students.',
+                    icon: 'info',
+                    timer: 4000,
+                    timerProgressBar: true,
+                    showConfirmButton: false,
+                    toast: true,
+                    position: 'top-end',
+                    background: '#e0f2fe',
+                    color: '#0c4a6e'
+                });
+            }, 1500); // Show after initial animations
+
+            loadClasses();
+        });
+    </script>
+</body>
+
+</html>

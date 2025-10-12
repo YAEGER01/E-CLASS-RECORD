@@ -1,12 +1,13 @@
 import os
 import logging
+import pymysql
 from typing import Optional
 from flask import Flask
 from dotenv import load_dotenv
-from models import db
 
 # Configure logging for database operations
 logger = logging.getLogger(__name__)
+
 
 class DatabaseConnection:
     """Handles database connection, initialization, and management."""
@@ -23,51 +24,59 @@ class DatabaseConnection:
         logger.info("Environment variables loaded from .env file")
 
         # Determine database configuration based on environment
-        environment = os.getenv('ENVIRONMENT', 'local').lower()
+        environment = os.getenv("ENVIRONMENT", "local").lower()
         logger.info(f"Database environment: {environment}")
 
-        if environment == 'local':
-            db_host = os.getenv('LOCAL_DB_HOST')
-            db_port = os.getenv('LOCAL_DB_PORT')
-            db_user = os.getenv('LOCAL_DB_USER')
-            db_password = os.getenv('LOCAL_DB_PASSWORD')
-            db_name = os.getenv('LOCAL_DB_NAME')
-        elif environment == 'production' or environment == 'online':
-            db_host = os.getenv('ONLINE_DB_HOST')
-            db_port = os.getenv('ONLINE_DB_PORT')
-            db_user = os.getenv('ONLINE_DB_USER')
-            db_password = os.getenv('ONLINE_DB_PASSWORD')
-            db_name = os.getenv('ONLINE_DB_NAME')
+        if environment == "local":
+            db_host = os.getenv("LOCAL_DB_HOST")
+            db_port = os.getenv("LOCAL_DB_PORT")
+            db_user = os.getenv("LOCAL_DB_USER")
+            db_password = os.getenv("LOCAL_DB_PASSWORD")
+            db_name = os.getenv("LOCAL_DB_NAME")
+        elif environment == "production" or environment == "online":
+            db_host = os.getenv("ONLINE_DB_HOST")
+            db_port = os.getenv("ONLINE_DB_PORT")
+            db_user = os.getenv("ONLINE_DB_USER")
+            db_password = os.getenv("ONLINE_DB_PASSWORD")
+            db_name = os.getenv("ONLINE_DB_NAME")
         else:
-            raise ValueError(f"Invalid ENVIRONMENT value: {environment}. Must be 'local' or 'production'/'online'")
+            raise ValueError(
+                f"Invalid ENVIRONMENT value: {environment}. Must be 'local' or 'production'/'online'"
+            )
 
         # Database configuration
-        db_uri = f"mysql+pymysql://{db_user}:{db_password}@{db_host}:{db_port}/{db_name}"
-        app.config['SQLALCHEMY_DATABASE_URI'] = db_uri
-        app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+        db_uri = (
+            f"mysql+pymysql://{db_user}:{db_password}@{db_host}:{db_port}/{db_name}"
+        )
+        app.config["SQLALCHEMY_DATABASE_URI"] = db_uri
+        app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
         # Connection pool settings to handle connection timeouts
-        app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
-            'pool_size': 10,                    # Number of connections to maintain
-            'max_overflow': 20,                 # Additional connections beyond pool_size
-            'pool_recycle': 3600,               # Recycle connections after 1 hour
-            'pool_pre_ping': True,              # Test connections before use
-            'pool_timeout': 30,                 # Connection timeout in seconds
-            'connect_args': {
-                'connect_timeout': 10,          # Connection timeout for initial connection
-                'read_timeout': 10,             # Read timeout
-                'write_timeout': 10,            # Write timeout
-            }
+        app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
+            "pool_size": 10,  # Number of connections to maintain
+            "max_overflow": 20,  # Additional connections beyond pool_size
+            "pool_recycle": 3600,  # Recycle connections after 1 hour
+            "pool_pre_ping": True,  # Test connections before use
+            "pool_timeout": 30,  # Connection timeout in seconds
+            "connect_args": {
+                "connect_timeout": 10,  # Connection timeout for initial connection
+                "read_timeout": 10,  # Read timeout
+                "write_timeout": 10,  # Write timeout
+            },
         }
-        logger.info(f"Database URI configured for {environment}: {db_uri.replace(db_password or '', '***')}")
+        logger.info(
+            f"Database URI configured for {environment}: {db_uri.replace(db_password or '', '***')}"
+        )
 
         # Check if SQLAlchemy is already registered with this app
-        if not hasattr(app, 'extensions') or 'sqlalchemy' not in app.extensions:
+        if not hasattr(app, "extensions") or "sqlalchemy" not in app.extensions:
             # Initialize database with app only if not already registered
             db.init_app(app)
             logger.info("Database initialized with Flask app")
         else:
-            logger.info("Database already initialized with Flask app - skipping re-initialization")
+            logger.info(
+                "Database already initialized with Flask app - skipping re-initialization"
+            )
 
     def test_connection(self) -> bool:
         """Test database connection with retry mechanism."""
@@ -80,20 +89,27 @@ class DatabaseConnection:
 
         for attempt in range(max_retries):
             try:
-                logger.info(f"Testing database connection... (attempt {attempt + 1}/{max_retries})")
+                logger.info(
+                    f"Testing database connection... (attempt {attempt + 1}/{max_retries})"
+                )
                 with self.app.app_context():
                     with db.engine.connect() as connection:
-                        connection.execute(db.text('SELECT 1'))
+                        connection.execute(db.text("SELECT 1"))
                 logger.info("✅ Database connection successful!")
                 return True
             except Exception as e:
-                logger.warning(f"❌ Database connection failed (attempt {attempt + 1}): {str(e)}")
+                logger.warning(
+                    f"❌ Database connection failed (attempt {attempt + 1}): {str(e)}"
+                )
                 if attempt < max_retries - 1:
                     import time
+
                     time.sleep(retry_delay)
                     retry_delay *= 2  # Exponential backoff
                 else:
-                    logger.error(f"❌ Database connection failed after {max_retries} attempts: {str(e)}")
+                    logger.error(
+                        f"❌ Database connection failed after {max_retries} attempts: {str(e)}"
+                    )
                     return False
 
     def create_tables(self) -> bool:
@@ -132,10 +148,12 @@ class DatabaseConnection:
         try:
             with self.app.app_context():
                 with db.engine.connect() as connection:
-                    connection.execute(db.text('SELECT 1'))
+                    connection.execute(db.text("SELECT 1"))
             return True
         except Exception as e:
-            logger.warning(f"Database connection lost, attempting to reconnect: {str(e)}")
+            logger.warning(
+                f"Database connection lost, attempting to reconnect: {str(e)}"
+            )
             try:
                 # Dispose of the current engine to force recreation of connections
                 db.engine.dispose()
@@ -145,11 +163,64 @@ class DatabaseConnection:
                 logger.error(f"Failed to reconnect to database: {str(reconnect_error)}")
                 return False
 
+
 # Global database connection instance
 db_conn = DatabaseConnection()
+
 
 def init_database_with_app(app: Flask) -> bool:
     """Initialize database with Flask app and return success status."""
     global db_conn
     db_conn = DatabaseConnection(app)
     return db_conn.init_database()
+
+
+# Global database connection for PyMySQL
+_connection = None
+
+
+def get_db_connection():
+    """Get PyMySQL database connection, create if not exists"""
+    global _connection
+    if _connection is None:
+        try:
+            # Load environment variables
+            load_dotenv()
+            logger.info("Environment variables loaded from .env file")
+
+            # Determine database configuration based on environment
+            environment = os.getenv("ENVIRONMENT", "local").lower()
+            logger.info(f"Database environment: {environment}")
+
+            if environment == "local":
+                db_host = os.getenv("LOCAL_DB_HOST", "localhost")
+                db_port = int(os.getenv("LOCAL_DB_PORT", "3307"))
+                db_user = os.getenv("LOCAL_DB_USER", "root")
+                db_password = os.getenv("LOCAL_DB_PASSWORD", "new_password")
+                db_name = os.getenv("LOCAL_DB_NAME", "e_class_record")
+            elif environment == "production" or environment == "online":
+                db_host = os.getenv("ONLINE_DB_HOST", "localhost")
+                db_port = int(os.getenv("ONLINE_DB_PORT", "3306"))
+                db_user = os.getenv("ONLINE_DB_USER", "root")
+                db_password = os.getenv(
+                    "ONLINE_DB_PASSWORD", "your_production_password"
+                )
+                db_name = os.getenv("ONLINE_DB_NAME", "e_class_record")
+            else:
+                raise ValueError(
+                    f"Invalid ENVIRONMENT value: {environment}. Must be 'local' or 'production'/'online'"
+                )
+
+            _connection = pymysql.connect(
+                host=db_host,
+                port=db_port,
+                user=db_user,
+                password=db_password,
+                database=db_name,
+                cursorclass=pymysql.cursors.DictCursor,
+            )
+            logger.info(f"PyMySQL database connection established for {environment}")
+        except Exception as e:
+            logger.error(f"PyMySQL database connection failed: {str(e)}")
+            raise e
+    return _connection

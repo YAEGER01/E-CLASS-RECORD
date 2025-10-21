@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Grade Structure Builder</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/gradebuilder.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+</head>
+<script>
+    const profId = {{ instructor.instructor_id }};
+</script>
+<body>
+
+    <header class="page-header">
+        <h1>Grade Structure Editor</h1>
+        <h3>Instructor: {{ instructor.name }}</h3>
+        <p>Email: {{ instructor.email }}</p>
+        <hr>
+    </header>
+
+    <main class="main-content-container">
+
+        <div class="card card-30">
+            <div class="card-header">
+        
+                <h2>Saved Structures</h2>
+                <button class="btn btn-primary" id="create-structure-btn">
+                    <i class="fas fa-plus"></i> Create Grading Structure
+                </button>
+            </div>
+
+            <div class="structure-list-container" id="structure-list">
+                <div class="structure-item">
+                    <span></span>
+                    <div class="item-actions">
+                        <button class="btn-icon edit-btn" data-id="1" title="Edit"><i class="fas fa-edit"></i></button>
+                        <button class="btn-icon delete-btn" data-id="1" title="Delete"><i class="fas fa-trash"></i></button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card card-70" id="editor-panel">
+            <div class="card-header editor-header">
+                <h2 id="current-class-name">Select or Create a Structure</h2>
+                <div class="header-actions">
+                    <button class="btn btn-secondary" id="cancel-editor-btn" disabled>Cancel</button>
+                    <button class="btn btn-primary" id="save-structure-btn" disabled>Save</button>
+                </div>
+            </div>
+
+            <div class="editor-content" id="grading-editor-content">
+                <p class="placeholder-text">Click "Create Grading Structure" to begin or select a saved structure.</p>
+
+                <div id="grade-structure-builder" style="display: none;">
+
+                    <div class="main-category-panel" data-type="LAB">
+                        <h3>LABORATORY <span class="category-weight">(100%)</span> <span class="percent-checker"
+                                id="lab-percent-checker">0%</span></h3>
+                        <div class="sub-categories" id="lab-sub-categories">
+                        </div>
+                        <button class="btn btn-add-sub" data-type="LAB"><i class="fas fa-plus"></i> Add
+                            Sub-Category</button>
+                    </div>
+
+                    <div class="main-category-panel" data-type="LECTURE">
+                        <h3>LECTURE <span class="category-weight">(100%)</span> <span class="percent-checker"
+                                id="lecture-percent-checker">0%</span></h3>
+                        <div class="sub-categories" id="lecture-sub-categories">
+                        </div>
+                        <button class="btn btn-add-sub" data-type="LECTURE"><i class="fas fa-plus"></i> Add
+                            Sub-Category</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <div id="class-selection-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-btn">&times;</span>
+            <h2>Select Class for New Structure</h2>
+            <p>Choose a class or create an 'Other' blank structure.</p>
+    
+            <div class="class-list" id="class-list">
+                {% if classes %}
+                {% for c in classes %}
+                <button class="btn-class-option" data-class="{{ c.course }}" data-class-id="{{ c.class_id }}"
+                    data-class-code="{{ c.class_code }}">
+                    {{ c.course }} - {{ c.section }}
+                </button>
+                {% endfor %}
+                {% else %}
+                <p>No classes found for this instructor.</p>
+                {% endif %}
+    
+                <button class="btn-class-option" data-class="Other">Other (Blank Structure)</button>
+            </div>
+        </div>
+    </div>
+    
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // #################### DOM ELEMENTS ####################
+            const createStructureBtn = document.getElementById('create-structure-btn');
+            const modal = document.getElementById('class-selection-modal');
+            const closeModalBtn = modal.querySelector('.close-btn');
+            const classListContainer = document.getElementById('class-list');
+            const editorPanel = document.getElementById('editor-panel');
+            const currentClassName = document.getElementById('current-class-name');
+            const gradeStructureBuilder = document.getElementById('grade-structure-builder');
+            const placeholderText = editorPanel.querySelector('.placeholder-text');
+            const saveBtn = document.getElementById('save-structure-btn');
+            const cancelBtn = document.getElementById('cancel-editor-btn');
+            const labSubCategories = document.getElementById('lab-sub-categories');
+            const lectureSubCategories = document.getElementById('lecture-sub-categories');
+
+            // Get instructor ID from template
+            const profId = {{ instructor.instructor_id }};
+
+            // Structure storage - will be loaded from database
+            let savedStructures = [];
+            let currentEditingStructure = null;
+            let structureIdCounter = 1;
+
+            // #################### INITIALIZATION ####################
+
+            /**
+             * Load structures from database
+             */
+            async function loadStructuresFromDatabase() {
+                try {
+                    const response = await fetch(`/api/gradebuilder/${profId}/structures`);
+                    const result = await response.json();
+
+                    if (result.success) {
+                        // Convert database format to frontend format
+                        savedStructures = [];
+                        for (const [className, classData] of Object.entries(result.classes)) {
+                            classData.structures.forEach(structure => {
+                                // Convert database format (LAB/LECTURE) to frontend format (LABORATORY/LECTURE)
+                                const dbStructure = typeof structure.structure_json === 'string' ? JSON.parse(structure.structure_json) : structure.structure_json || { LAB: [], LECTURE: [] };
+                                const frontendStructure = {
+                                    LABORATORY: dbStructure.LAB || [],
+                                    LECTURE: dbStructure.LECTURE || []
+                                };
+
+                                savedStructures.push({
+                                    id: structure.id,
+                                    class: className,
+                                    class_id: classData.class_id,
+                                    structure_name: structure.name,
+                                    structure: frontendStructure
+                                });
+                            });
+                        }
+                        renderStructureList();
+                    } else {
+                        console.error("Failed to load structures:", result.error);
+                        renderStructureList();
+                    }
+                } catch (err) {
+                    console.error("Error loading structures:", err);
+                    renderStructureList();
+                }
+            }
+
+            /**
+             * Renders the list of saved structures in the 30% card.
+             */
+            function renderStructureList() {
+                const listContainer = document.getElementById('structure-list');
+                listContainer.innerHTML = ''; // Clear existing list
+
+                if (savedStructures.length === 0) {
+                    listContainer.innerHTML = '<p style="text-align:center; color:#6c757d; padding:10px;">No saved structures.</p>';
+                }
+
+                savedStructures.forEach(item => {
+                    const el = document.createElement('div');
+                    el.className = 'structure-item';
+                    el.innerHTML = `
+                <span>${item.class} - ${item.structure_name}</span>
+                <div class="item-actions">
+                    <button class="btn-icon edit-btn" data-id="${item.id}" title="Edit"><i class="fas fa-edit"></i></button>
+                    <button class="btn-icon delete-btn" data-id="${item.id}" title="Delete"><i class="fas fa-trash"></i></button>
+                </div>
+            `;
+                    listContainer.appendChild(el);
+                });
+                attachListEventListeners();
+            }
+
+            /**
+             * Attaches click listeners to the dynamically created Edit and Delete buttons.
+             */
+            function attachListEventListeners() {
+                document.querySelectorAll('.edit-btn').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        const id = parseInt(e.currentTarget.dataset.id);
+                        const structure = savedStructures.find(s => s.id === id);
+                        if (structure) {
+                            loadStructureForEditing(structure);
+                        }
+                    });
+                });
+
+                document.querySelectorAll('.delete-btn').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        const id = parseInt(e.currentTarget.dataset.id);
+                        if (confirm(`Are you sure you want to delete this structure?`)) {
+                            savedStructures = savedStructures.filter(s => s.id !== id);
+                            renderStructureList();
+                            // If the deleted one was being edited, reset the editor
+                            if (currentEditingStructure && currentEditingStructure.id === id) {
+                                resetEditorPanel();
+                            }
+                        }
+                    });
+                });
+            }
+
+            loadStructuresFromDatabase(); // Load structures from database on page load
+
+            // #################### MODAL HANDLER ####################
+
+            // Open Modal
+            createStructureBtn.addEventListener('click', () => {
+                modal.style.display = 'block';
+            });
+
+            // Close Modal on 'x' or outside click
+            closeModalBtn.addEventListener('click', () => {
+                modal.style.display = 'none';
+            });
+
+            window.addEventListener('click', (event) => {
+                if (event.target === modal) {
+                    modal.style.display = 'none';
+                }
+            });
+
+            // Handle class selection
+            classListContainer.querySelectorAll('.btn-class-option').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const className = e.currentTarget.dataset.class;
+                    modal.style.display = 'none';
+                    createNewStructure(className);
+                });
+            });
+
+            // #################### EDITOR PANEL LOGIC ####################
+
+            /**
+             * Resets the editor to its initial state.
+             */
+            function resetEditorPanel() {
+                currentEditingStructure = null;
+                currentClassName.textContent = 'Select or Create a Structure';
+                placeholderText.style.display = 'block';
+                gradeStructureBuilder.style.display = 'none';
+                saveBtn.disabled = true;
+                cancelBtn.disabled = true;
+            }
+
+            /**
+             * Initializes the editor for a new structure.
+             * @param {string} className - The name of the class (e.g., 'Math 101').
+             */
+            function createNewStructure(className) {
+                currentEditingStructure = {
+                    id: structureIdCounter++, // Assign a temporary new ID
+                    class: className,
+                    structure: {
+                        LABORATORY: [],
+                        LECTURE: []
+                    }
+                };
+
+                // Set up the editor UI
+                currentClassName.textContent = `${className} - Grading Structure`;
+                placeholderText.style.display = 'none';
+                gradeStructureBuilder.style.display = 'block';
+                saveBtn.disabled = false;
+                cancelBtn.disabled = false;
+
+                labSubCategories.innerHTML = '';
+                lectureSubCategories.innerHTML = '';
+                updatePercentCheckers();
+            }
+
+            /**
+             * Loads an existing structure into the editor.
+             * @param {object} structure - The saved structure object.
+             */
+            function loadStructureForEditing(structure) {
+                currentEditingStructure = JSON.parse(JSON.stringify(structure)); // Deep copy to allow 'cancel'
+                currentClassName.textContent = `${structure.class} - Grading Structure (Editing)`;
+                placeholderText.style.display = 'none';
+                gradeStructureBuilder.style.display = 'block';
+                saveBtn.disabled = false;
+                cancelBtn.disabled = false;
+
+                labSubCategories.innerHTML = '';
+                lectureSubCategories.innerHTML = '';
+
+                // Render LAB
+                (currentEditingStructure.structure.LABORATORY || []).forEach(subCat => {
+                    addSubCategoryElement('LAB', subCat);
+                });
+
+                // Render LECTURE
+                (currentEditingStructure.structure.LECTURE || []).forEach(subCat => {
+                    addSubCategoryElement('LECTURE', subCat);
+                });
+
+                updatePercentCheckers();
+            }
+
+            cancelBtn.addEventListener('click', resetEditorPanel);
+
+            // #################### DYNAMIC EDITOR BUILDING ####################
+
+            // Event listeners for Add Sub-Category buttons
+            document.querySelectorAll('.btn-add-sub').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const type = e.currentTarget.dataset.type; // 'LAB' or 'LECTURE'
+                    addSubCategoryElement(type);
+                    updatePercentCheckers();
+                });
+            });
+
+            /**
+             * Creates and appends a new Sub-Category element.
+             * @param {string} type - 'LAB' or 'LECTURE'.
+             * @param {object} [data] - Optional existing data for loading.
+             */
+            function addSubCategoryElement(type, data = { name: '', weight: 0, assessments: [] }) {
+                const container = type === 'LAB' ? labSubCategories : lectureSubCategories;
+                const subCatId = `sub-${Date.now()}-${Math.random().toFixed(4).slice(2)}`; // Unique ID
+
+                const el = document.createElement('div');
+                el.className = 'sub-category-item';
+                el.dataset.id = subCatId;
+                el.dataset.type = type;
+                el.innerHTML = `
+            <div class="sub-category-header">
+                <input type="text" placeholder="Category Name (e.g., Quizzes)" value="${data.name}" data-field="name">
+                <input type="number" min="0" max="100" placeholder="0" value="${data.weight}" data-field="weight">
+                <span>%</span>
+                <button class="btn-icon add-assessment-btn" title="Add Assessment"><i class="fas fa-file-alt"> Add Assessment</i></button>
+                <button class="btn-icon delete-sub-btn" title="Delete Category"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="assessment-list" data-sub-id="${subCatId}">
+                </div>
+        `;
+                container.appendChild(el);
+
+                // Load existing assessments
+                const assessmentList = el.querySelector('.assessment-list');
+                data.assessments.forEach(assName => {
+                    addAssessmentElement(assessmentList, assName);
+                });
+
+                // Add listeners for the new elements
+                el.querySelector('.delete-sub-btn').addEventListener('click', () => {
+                    el.remove();
+                    updatePercentCheckers();
+                });
+
+                el.querySelector('.add-assessment-btn').addEventListener('click', () => {
+                    addAssessmentElement(assessmentList);
+                });
+
+                el.querySelector('input[data-field="weight"]').addEventListener('input', updatePercentCheckers);
+            }
+
+            /**
+             * Creates and appends a new Assessment input field.
+             * @param {HTMLElement} container - The assessment-list div.
+             * @param {string} [name] - Optional existing assessment name.
+             */
+            function addAssessmentElement(container, name = '') {
+                const assId = `ass-${Date.now()}-${Math.random().toFixed(4).slice(2)}`;
+
+                const el = document.createElement('div');
+                el.className = 'assessment-item';
+                el.dataset.id = assId;
+                el.innerHTML = `
+            <input type="text" placeholder="Assessment Name (e.g., Quiz 1)" value="${name}" data-field="assessment-name">
+            <button class="btn-icon delete-assessment-btn" title="Delete Assessment"><i class="fas fa-trash"></i></button>
+        `;
+                container.appendChild(el);
+
+                // Add listener for delete
+                el.querySelector('.delete-assessment-btn').addEventListener('click', () => {
+                    el.remove();
+                });
+            }
+
+            /**
+             * Calculates and updates the percentage checkers for LAB and LECTURE.
+             */
+            function updatePercentCheckers() {
+                const checkLab = document.getElementById('lab-percent-checker');
+                const checkLecture = document.getElementById('lecture-percent-checker');
+
+                let totalLab = 0;
+                let totalLecture = 0;
+
+                document.querySelectorAll('.sub-category-item').forEach(item => {
+                    const weightInput = item.querySelector('input[data-field="weight"]');
+                    const weight = parseFloat(weightInput.value) || 0;
+                    const type = item.dataset.type;
+
+                    if (type === 'LAB') {
+                        totalLab += weight;
+                    } else if (type === 'LECTURE') {
+                        totalLecture += weight;
+                    }
+                });
+
+                // Update LAB checker
+                checkLab.textContent = `${totalLab}%`;
+                checkLab.classList.toggle('valid', totalLab === 100);
+
+                // Update LECTURE checker
+                checkLecture.textContent = `${totalLecture}%`;
+                checkLecture.classList.toggle('valid', totalLecture === 100);
+            }
+
+            // #################### SAVE & CANCEL ####################
+
+            /**
+             * Builds the JSON structure from the current editor content.
+             */
+            function buildStructureJson() {
+                const structure = {
+                    LAB: [],
+                    LECTURE: []
+                };
+
+                document.querySelectorAll('.sub-category-item').forEach(subCatEl => {
+                    const type = subCatEl.dataset.type;
+                    const name = subCatEl.querySelector('input[data-field="name"]').value.trim();
+                    const weight = parseFloat(subCatEl.querySelector('input[data-field="weight"]').value) || 0;
+
+                    const assessments = [];
+                    subCatEl.querySelectorAll('.assessment-item input[data-field="assessment-name"]').forEach(assInput => {
+                        const assName = assInput.value.trim();
+                        if (assName) {
+                            assessments.push(assName);
+                        }
+                    });
+
+                    if (name && weight > 0) {
+                        structure[type].push({ name, weight, assessments });
+                    }
+                });
+
+                return structure;
+            }
+
+            /**
+             * Saves the current structure to the in-memory array and updates the list.
+             */
+             saveBtn.addEventListener('click', async () => {
+                if (!currentEditingStructure) return;
+
+                const structure = buildStructureJson();
+                // Use class_id from the structure if editing existing, otherwise from modal selection
+                let classId = currentEditingStructure.class_id;
+                if (!classId) {
+                    let course;
+                    if (currentEditingStructure.class.includes(' ')) {
+                        course = currentEditingStructure.class.split(' ').slice(0, -1).join(' ');
+                    } else {
+                        course = currentEditingStructure.class;
+                    }
+                    const classBtn = document.querySelector(`.btn-class-option[data-class="${course}"]`);
+                    classId = classBtn ? classBtn.dataset.classId : null;
+                }
+
+                const payload = {
+                    class_id: classId,
+                    structure_name: currentEditingStructure.structure_name || currentEditingStructure.class,
+                    structure
+                };
+
+                try {
+                    const response = await fetch(`/api/gradebuilder/${profId}/save`, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify(payload)
+                    });
+
+                    const result = await response.json();
+                    if (result.status === "success") {
+                        alert("Grading structure saved successfully!");
+                        resetEditorPanel();
+                        loadStructuresFromDatabase(); // Reload structures from database to show updates
+                    } else {
+                        alert("Error saving: " + result.error);
+                    }
+                } catch (err) {
+                    console.error("Save failed:", err);
+                    alert("Connection error while saving structure.");
+                }
+            });
+
+
+            // Run initial percentage check
+            updatePercentCheckers();
+        });
+    </script>
+</body>
+
+</html>

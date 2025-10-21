@@ -1,0 +1,781 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Grade Structure Builder</title>
+    <style>/* Basic Reset and Variables */
+        :root {
+            --primary-color: #007bff;
+            --secondary-color: #6c757d;
+            --success-color: #28a745;
+            --danger-color: #dc3545;
+            --bg-light: #f8f9fa;
+            --bg-white: #ffffff;
+            --border-color: #dee2e6;
+            --card-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        
+        body {
+            font-family: Arial, sans-serif;
+            background-color: var(--bg-light);
+            line-height: 1.6;
+        }
+        
+        /* ########### Header Styling ########### */
+        .page-header {
+            background-color: var(--primary-color);
+            color: var(--bg-white);
+            padding: 1.5rem 2rem;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+        }
+        
+        /* ########### Main Content Layout ########### */
+        .main-content-container {
+            display: flex;
+            padding: 2rem;
+            gap: 20px;
+            height: calc(100vh - 80px); /* Adjust based on header height */
+        }
+        
+        .card {
+            background-color: var(--bg-white);
+            border-radius: 8px;
+            box-shadow: var(--card-shadow);
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .card-30 {
+            flex: 0 0 30%; /* Fixed 30% width */
+            max-width: 30%;
+        }
+        
+        .card-70 {
+            flex: 1; /* Takes up the remaining space (70%) */
+        }
+        
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+        
+        .editor-header {
+            border-bottom: 2px solid var(--primary-color);
+        }
+        
+        /* ########### Button Styling ########### */
+        .btn {
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: background-color 0.2s;
+        }
+        
+        .btn-primary {
+            background-color: var(--primary-color);
+            color: var(--bg-white);
+        }
+        
+        .btn-primary:hover {
+            background-color: #0056b3;
+        }
+        
+        .btn-secondary {
+            background-color: var(--secondary-color);
+            color: var(--bg-white);
+            margin-right: 0.5rem;
+        }
+        
+        .btn-secondary:hover {
+            background-color: #5a6268;
+        }
+        
+        .btn-icon {
+            background: none;
+            border: none;
+            color: var(--secondary-color);
+            padding: 0.2rem;
+            cursor: pointer;
+            font-size: 0.9rem;
+            margin-left: 0.5rem;
+        }
+        
+        .btn-icon:hover {
+            color: var(--primary-color);
+        }
+        
+        /* ########### Structure List (30% Box) ########### */
+        .structure-list-container {
+            flex-grow: 1;
+            overflow-y: scroll; /* Makes it scrollable */
+            padding-right: 15px; /* Add space for hidden scrollbar */
+        }
+        
+        /* Hide Scrollbar CSS */
+        .structure-list-container::-webkit-scrollbar {
+            display: none; /* For Chrome, Safari, and Opera */
+        }
+        
+        .structure-list-container {
+            -ms-overflow-style: none;  /* For IE and Edge */
+            scrollbar-width: none;  /* For Firefox */
+        }
+        
+        .structure-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.75rem 0.5rem;
+            border-bottom: 1px dashed var(--border-color);
+            transition: background-color 0.1s;
+        }
+        
+        .structure-item:hover {
+            background-color: var(--bg-light);
+        }
+        
+        .item-actions {
+            display: flex;
+        }
+        
+        /* ########### Editor Content (70% Box) ########### */
+        .editor-content {
+            flex-grow: 1;
+            overflow-y: auto;
+            padding-top: 1rem;
+        }
+        
+        .placeholder-text {
+            text-align: center;
+            color: var(--secondary-color);
+            padding: 50px;
+            font-style: italic;
+        }
+        
+        .main-category-panel {
+            border: 1px solid var(--primary-color);
+            padding: 1rem;
+            margin-bottom: 1.5rem;
+            border-radius: 6px;
+        }
+        
+        .main-category-panel h3 {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            color: var(--primary-color);
+            margin-bottom: 1rem;
+        }
+        
+        .percent-checker {
+            font-weight: bold;
+            color: var(--danger-color); /* Defaults to red for attention */
+        }
+        
+        .percent-checker.valid {
+            color: var(--success-color);
+        }
+        
+        .btn-add-sub {
+            width: 100%;
+            margin-top: 0.5rem;
+            background-color: #e9ecef;
+            color: var(--secondary-color);
+            border: 1px dashed var(--border-color);
+        }
+        
+        .btn-add-sub:hover {
+            background-color: #dee2e6;
+        }
+        
+        /* Sub-Category Styling */
+        .sub-category-item {
+            background-color: var(--bg-light);
+            padding: 0.75rem;
+            border-left: 5px solid var(--secondary-color);
+            margin: 0.5rem 0;
+            display: flex;
+            flex-direction: column;
+            border-radius: 4px;
+        }
+        
+        .sub-category-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 0.5rem;
+        }
+        
+        .sub-category-header input[type="text"], 
+        .sub-category-header input[type="number"] {
+            padding: 0.3rem;
+            border: 1px solid var(--border-color);
+            border-radius: 3px;
+            margin-right: 0.5rem;
+        }
+        
+        .sub-category-header input[type="text"] {
+            flex-grow: 1;
+            max-width: 250px;
+        }
+        
+        .sub-category-header input[type="number"] {
+            width: 60px;
+            text-align: right;
+        }
+        
+        /* Assessment List Styling */
+        .assessment-list {
+            margin-left: 20px;
+            padding-left: 10px;
+            border-left: 1px dotted var(--border-color);
+        }
+        
+        .assessment-item {
+            display: flex;
+            align-items: center;
+            padding: 0.3rem 0;
+        }
+        
+        .assessment-item input[type="text"] {
+            flex-grow: 1;
+            padding: 0.3rem;
+            border: 1px solid var(--border-color);
+            border-radius: 3px;
+            margin-right: 0.5rem;
+            max-width: 200px;
+        }
+        
+        .btn-add-assessment {
+            font-size: 0.8rem;
+            padding: 0.2rem 0.5rem;
+            margin-left: 10px;
+            background-color: #d1ecf1;
+            color: #0c5460;
+        }
+        
+        /* ########### Modal Styling ########### */
+        .modal {
+            display: none; /* Hidden by default */
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0, 0, 0, 0.4); /* Black w/ opacity */
+        }
+        
+        .modal-content {
+            background-color: var(--bg-white);
+            margin: 15% auto; /* 15% from the top and centered */
+            padding: 20px;
+            border: 1px solid #888;
+            width: 80%; /* Could be more specific, but this is fine */
+            max-width: 500px;
+            border-radius: 8px;
+            position: relative;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+        
+        .close-btn {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+        }
+        
+        .close-btn:hover,
+        .close-btn:focus {
+            color: #000;
+            text-decoration: none;
+            cursor: pointer;
+        }
+        
+        .class-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        
+        .btn-class-option {
+            padding: 0.75rem;
+            background-color: var(--bg-light);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            text-align: left;
+            transition: background-color 0.2s, border-color 0.2s;
+        }
+        
+        .btn-class-option:hover {
+            background-color: #e9ecef;
+            border-color: var(--primary-color);
+        }</style>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+</head>
+
+<body>
+
+    <header class="page-header">
+        <h1>Grade Structure Editor</h1>
+    </header>
+
+    <main class="main-content-container">
+
+        <div class="card card-30">
+            <div class="card-header">
+                <h2>Saved Structures</h2>
+                <button class="btn btn-primary" id="create-structure-btn">
+                    <i class="fas fa-plus"></i> Create Grading Structure
+                </button>
+            </div>
+
+            <div class="structure-list-container" id="structure-list">
+                <div class="structure-item">
+                    <span>CS 101 - Lecture</span>
+                    <div class="item-actions">
+                        <button class="btn-icon edit-btn" data-id="1"><i class="fas fa-edit"></i></button>
+                        <button class="btn-icon delete-btn" data-id="1"><i class="fas fa-trash"></i></button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card card-70" id="editor-panel">
+            <div class="card-header editor-header">
+                <h2 id="current-class-name">Select or Create a Structure</h2>
+                <div class="header-actions">
+                    <button class="btn btn-secondary" id="cancel-editor-btn" disabled>Cancel</button>
+                    <button class="btn btn-primary" id="save-structure-btn" disabled>Save</button>
+                </div>
+            </div>
+
+            <div class="editor-content" id="grading-editor-content">
+                <p class="placeholder-text">Click "Create Grading Structure" to begin or select a saved structure.</p>
+
+                <div id="grade-structure-builder" style="display: none;">
+
+                    <div class="main-category-panel" data-type="LAB">
+                        <h3>LABORATORY <span class="category-weight">(100%)</span> <span class="percent-checker"
+                                id="lab-percent-checker">0%</span></h3>
+                        <div class="sub-categories" id="lab-sub-categories">
+                        </div>
+                        <button class="btn btn-add-sub" data-type="LAB"><i class="fas fa-plus"></i> Add
+                            Sub-Category</button>
+                    </div>
+
+                    <div class="main-category-panel" data-type="LECTURE">
+                        <h3>LECTURE <span class="category-weight">(100%)</span> <span class="percent-checker"
+                                id="lecture-percent-checker">0%</span></h3>
+                        <div class="sub-categories" id="lecture-sub-categories">
+                        </div>
+                        <button class="btn btn-add-sub" data-type="LECTURE"><i class="fas fa-plus"></i> Add
+                            Sub-Category</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <div id="class-selection-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-btn">&times;</span>
+            <h2>Select Class for New Structure</h2>
+            <p>Choose a class or create an 'Other' blank structure.</p>
+            <div class="class-list" id="class-list">
+                <button class="btn-class-option" data-class="Math 101">Math 101</button>
+                <button class="btn-class-option" data-class="Physics 205">Physics 205</button>
+                <button class="btn-class-option" data-class="Other">Other (Blank Structure)</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+                // #################### DOM ELEMENTS ####################
+                const createStructureBtn = document.getElementById('create-structure-btn');
+                const modal = document.getElementById('class-selection-modal');
+                const closeModalBtn = modal.querySelector('.close-btn');
+                const classListContainer = document.getElementById('class-list');
+                const editorPanel = document.getElementById('editor-panel');
+                const currentClassName = document.getElementById('current-class-name');
+                const gradeStructureBuilder = document.getElementById('grade-structure-builder');
+                const placeholderText = editorPanel.querySelector('.placeholder-text');
+                const saveBtn = document.getElementById('save-structure-btn');
+                const cancelBtn = document.getElementById('cancel-editor-btn');
+                const labSubCategories = document.getElementById('lab-sub-categories');
+                const lectureSubCategories = document.getElementById('lecture-sub-categories');
+
+                // Simple in-memory storage for this example
+                let savedStructures = [
+                    { id: 1, class: "CS 101 - Lecture", structure: { LECTURE: [{ name: "Quizzes", weight: 40, assessments: ["Quiz 1", "Quiz 2"] }, { name: "Midterm", weight: 60, assessments: ["Midterm Exam"] }] } },
+                ];
+                let currentEditingStructure = null;
+                let structureIdCounter = 2; // Simple ID tracking
+
+                // #################### INITIALIZATION ####################
+
+                /**
+                 * Renders the list of saved structures in the 30% card.
+                 */
+                function renderStructureList() {
+                    const listContainer = document.getElementById('structure-list');
+                    listContainer.innerHTML = ''; // Clear existing list
+
+                    if (savedStructures.length === 0) {
+                        listContainer.innerHTML = '<p style="text-align:center; color:#6c757d; padding:10px;">No saved structures.</p>';
+                    }
+
+                    savedStructures.forEach(item => {
+                        const el = document.createElement('div');
+                        el.className = 'structure-item';
+                        el.innerHTML = `
+                <span>${item.class}</span>
+                <div class="item-actions">
+                    <button class="btn-icon edit-btn" data-id="${item.id}" title="Edit"><i class="fas fa-edit"></i></button>
+                    <button class="btn-icon delete-btn" data-id="${item.id}" title="Delete"><i class="fas fa-trash"></i></button>
+                </div>
+            `;
+                        listContainer.appendChild(el);
+                    });
+                    attachListEventListeners();
+                }
+
+                /**
+                 * Attaches click listeners to the dynamically created Edit and Delete buttons.
+                 */
+                function attachListEventListeners() {
+                    document.querySelectorAll('.edit-btn').forEach(btn => {
+                        btn.addEventListener('click', (e) => {
+                            const id = parseInt(e.currentTarget.dataset.id);
+                            const structure = savedStructures.find(s => s.id === id);
+                            if (structure) {
+                                loadStructureForEditing(structure);
+                            }
+                        });
+                    });
+
+                    document.querySelectorAll('.delete-btn').forEach(btn => {
+                        btn.addEventListener('click', (e) => {
+                            const id = parseInt(e.currentTarget.dataset.id);
+                            if (confirm(`Are you sure you want to delete this structure?`)) {
+                                savedStructures = savedStructures.filter(s => s.id !== id);
+                                renderStructureList();
+                                // If the deleted one was being edited, reset the editor
+                                if (currentEditingStructure && currentEditingStructure.id === id) {
+                                    resetEditorPanel();
+                                }
+                            }
+                        });
+                    });
+                }
+
+                renderStructureList(); // Initial render
+
+                // #################### MODAL HANDLER ####################
+
+                // Open Modal
+                createStructureBtn.addEventListener('click', () => {
+                    modal.style.display = 'block';
+                });
+
+                // Close Modal on 'x' or outside click
+                closeModalBtn.addEventListener('click', () => {
+                    modal.style.display = 'none';
+                });
+
+                window.addEventListener('click', (event) => {
+                    if (event.target === modal) {
+                        modal.style.display = 'none';
+                    }
+                });
+
+                // Handle class selection
+                classListContainer.querySelectorAll('.btn-class-option').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        const className = e.currentTarget.dataset.class;
+                        modal.style.display = 'none';
+                        createNewStructure(className);
+                    });
+                });
+
+                // #################### EDITOR PANEL LOGIC ####################
+
+                /**
+                 * Resets the editor to its initial state.
+                 */
+                function resetEditorPanel() {
+                    currentEditingStructure = null;
+                    currentClassName.textContent = 'Select or Create a Structure';
+                    placeholderText.style.display = 'block';
+                    gradeStructureBuilder.style.display = 'none';
+                    saveBtn.disabled = true;
+                    cancelBtn.disabled = true;
+                }
+
+                /**
+                 * Initializes the editor for a new structure.
+                 * @param {string} className - The name of the class (e.g., 'Math 101').
+                 */
+                function createNewStructure(className) {
+                    currentEditingStructure = {
+                        id: structureIdCounter++, // Assign a temporary new ID
+                        class: className,
+                        structure: {
+                            LABORATORY: [],
+                            LECTURE: []
+                        }
+                    };
+
+                    // Set up the editor UI
+                    currentClassName.textContent = `${className} - Grading Structure`;
+                    placeholderText.style.display = 'none';
+                    gradeStructureBuilder.style.display = 'block';
+                    saveBtn.disabled = false;
+                    cancelBtn.disabled = false;
+
+                    labSubCategories.innerHTML = '';
+                    lectureSubCategories.innerHTML = '';
+                    updatePercentCheckers();
+                }
+
+                /**
+                 * Loads an existing structure into the editor.
+                 * @param {object} structure - The saved structure object.
+                 */
+                function loadStructureForEditing(structure) {
+                    currentEditingStructure = JSON.parse(JSON.stringify(structure)); // Deep copy to allow 'cancel'
+                    currentClassName.textContent = `${structure.class} - Grading Structure (Editing)`;
+                    placeholderText.style.display = 'none';
+                    gradeStructureBuilder.style.display = 'block';
+                    saveBtn.disabled = false;
+                    cancelBtn.disabled = false;
+
+                    labSubCategories.innerHTML = '';
+                    lectureSubCategories.innerHTML = '';
+
+                    // Render LAB
+                    (currentEditingStructure.structure.LABORATORY || []).forEach(subCat => {
+                        addSubCategoryElement('LAB', subCat);
+                    });
+
+                    // Render LECTURE
+                    (currentEditingStructure.structure.LECTURE || []).forEach(subCat => {
+                        addSubCategoryElement('LECTURE', subCat);
+                    });
+
+                    updatePercentCheckers();
+                }
+
+                cancelBtn.addEventListener('click', resetEditorPanel);
+
+                // #################### DYNAMIC EDITOR BUILDING ####################
+
+                // Event listeners for Add Sub-Category buttons
+                document.querySelectorAll('.btn-add-sub').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        const type = e.currentTarget.dataset.type; // 'LAB' or 'LECTURE'
+                        addSubCategoryElement(type);
+                        updatePercentCheckers();
+                    });
+                });
+
+                /**
+                 * Creates and appends a new Sub-Category element.
+                 * @param {string} type - 'LAB' or 'LECTURE'.
+                 * @param {object} [data] - Optional existing data for loading.
+                 */
+                function addSubCategoryElement(type, data = { name: '', weight: 0, assessments: [] }) {
+                    const container = type === 'LAB' ? labSubCategories : lectureSubCategories;
+                    const subCatId = `sub-${Date.now()}-${Math.random().toFixed(4).slice(2)}`; // Unique ID
+
+                    const el = document.createElement('div');
+                    el.className = 'sub-category-item';
+                    el.dataset.id = subCatId;
+                    el.dataset.type = type;
+                    el.innerHTML = `
+            <div class="sub-category-header">
+                <input type="text" placeholder="Category Name (e.g., Quizzes)" value="${data.name}" data-field="name">
+                <input type="number" min="0" max="100" placeholder="0" value="${data.weight}" data-field="weight">
+                <span>%</span>
+                <button class="btn-icon add-assessment-btn" title="Add Assessment"><i class="fas fa-file-alt"> Add Assessment</i></button>
+                <button class="btn-icon delete-sub-btn" title="Delete Category"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="assessment-list" data-sub-id="${subCatId}">
+                </div>
+        `;
+                    container.appendChild(el);
+
+                    // Load existing assessments
+                    const assessmentList = el.querySelector('.assessment-list');
+                    data.assessments.forEach(assName => {
+                        addAssessmentElement(assessmentList, assName);
+                    });
+
+                    // Add listeners for the new elements
+                    el.querySelector('.delete-sub-btn').addEventListener('click', () => {
+                        el.remove();
+                        updatePercentCheckers();
+                    });
+
+                    el.querySelector('.add-assessment-btn').addEventListener('click', () => {
+                        addAssessmentElement(assessmentList);
+                    });
+
+                    el.querySelector('input[data-field="weight"]').addEventListener('input', updatePercentCheckers);
+                }
+
+                /**
+                 * Creates and appends a new Assessment input field.
+                 * @param {HTMLElement} container - The assessment-list div.
+                 * @param {string} [name] - Optional existing assessment name.
+                 */
+                function addAssessmentElement(container, name = '') {
+                    const assId = `ass-${Date.now()}-${Math.random().toFixed(4).slice(2)}`;
+
+                    const el = document.createElement('div');
+                    el.className = 'assessment-item';
+                    el.dataset.id = assId;
+                    el.innerHTML = `
+            <input type="text" placeholder="Assessment Name (e.g., Quiz 1)" value="${name}" data-field="assessment-name">
+            <button class="btn-icon delete-assessment-btn" title="Delete Assessment"><i class="fas fa-trash"></i></button>
+        `;
+                    container.appendChild(el);
+
+                    // Add listener for delete
+                    el.querySelector('.delete-assessment-btn').addEventListener('click', () => {
+                        el.remove();
+                    });
+                }
+
+                /**
+                 * Calculates and updates the percentage checkers for LAB and LECTURE.
+                 */
+                function updatePercentCheckers() {
+                    const checkLab = document.getElementById('lab-percent-checker');
+                    const checkLecture = document.getElementById('lecture-percent-checker');
+
+                    let totalLab = 0;
+                    let totalLecture = 0;
+
+                    document.querySelectorAll('.sub-category-item').forEach(item => {
+                        const weightInput = item.querySelector('input[data-field="weight"]');
+                        const weight = parseFloat(weightInput.value) || 0;
+                        const type = item.dataset.type;
+
+                        if (type === 'LAB') {
+                            totalLab += weight;
+                        } else if (type === 'LECTURE') {
+                            totalLecture += weight;
+                        }
+                    });
+
+                    // Update LAB checker
+                    checkLab.textContent = `${totalLab}%`;
+                    checkLab.classList.toggle('valid', totalLab === 100);
+
+                    // Update LECTURE checker
+                    checkLecture.textContent = `${totalLecture}%`;
+                    checkLecture.classList.toggle('valid', totalLecture === 100);
+                }
+
+                // #################### SAVE & CANCEL ####################
+
+                /**
+                 * Builds the JSON structure from the current editor content.
+                 */
+                function buildStructureJson() {
+                    const structure = {
+                        LABORATORY: [],
+                        LECTURE: []
+                    };
+
+                    document.querySelectorAll('.sub-category-item').forEach(subCatEl => {
+                        const type = subCatEl.dataset.type;
+                        const name = subCatEl.querySelector('input[data-field="name"]').value.trim();
+                        const weight = parseFloat(subCatEl.querySelector('input[data-field="weight"]').value) || 0;
+
+                        const assessments = [];
+                        subCatEl.querySelectorAll('.assessment-item input[data-field="assessment-name"]').forEach(assInput => {
+                            const assName = assInput.value.trim();
+                            if (assName) {
+                                assessments.push(assName);
+                            }
+                        });
+
+                        if (name && weight > 0) {
+                            structure[type].push({ name, weight, assessments });
+                        }
+                    });
+
+                    return structure;
+                }
+
+                /**
+                 * Saves the current structure to the in-memory array and updates the list.
+                 */
+                saveBtn.addEventListener('click', () => {
+                    if (!currentEditingStructure) return;
+
+                    const newStructure = buildStructureJson();
+
+                    // Optional: Add weight validation
+                    const totalLab = newStructure.LABORATORY.reduce((sum, cat) => sum + cat.weight, 0);
+                    const totalLecture = newStructure.LECTURE.reduce((sum, cat) => sum + cat.weight, 0);
+
+                    if (totalLab !== 100 && newStructure.LABORATORY.length > 0) {
+                        alert(`LABORATORY total weight must be 100%. Current: ${totalLab}%`);
+                        return;
+                    }
+                    if (totalLecture !== 100 && newStructure.LECTURE.length > 0) {
+                        alert(`LECTURE total weight must be 100%. Current: ${totalLecture}%`);
+                        return;
+                    }
+
+
+                    // Update the current editing object
+                    currentEditingStructure.structure = newStructure;
+
+                    // Check if we are updating an existing structure or saving a new one
+                    const existingIndex = savedStructures.findIndex(s => s.id === currentEditingStructure.id);
+
+                    if (existingIndex !== -1) {
+                        // Update existing
+                        savedStructures[existingIndex] = currentEditingStructure;
+                        console.log(`Structure for ${currentEditingStructure.class} updated:`, JSON.stringify(currentEditingStructure, null, 2));
+                    } else {
+                        // Save new
+                        savedStructures.push(currentEditingStructure);
+                        console.log(`New structure for ${currentEditingStructure.class} saved:`, JSON.stringify(currentEditingStructure, null, 2));
+                    }
+
+                    renderStructureList();
+                    resetEditorPanel();
+                    alert('Grading structure saved successfully!');
+                });
+
+                // Run initial percentage check
+                updatePercentCheckers();
+            });
+    </script>
+</body>
+
+</html>

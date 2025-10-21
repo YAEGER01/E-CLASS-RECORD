@@ -1,11 +1,9 @@
-import os
 import logging
 import uuid
 import hashlib
 import random
-import string
-import re
-from datetime import datetime, timedelta
+import json
+from datetime import datetime
 from flask import (
     Flask,
     render_template,
@@ -16,7 +14,6 @@ from flask import (
     session,
     jsonify,
 )
-from werkzeug.utils import secure_filename
 from werkzeug.security import generate_password_hash, check_password_hash
 from functools import wraps
 from db_conn import get_db_connection
@@ -64,6 +61,12 @@ def home():
 def index():
     logger.info("Index page accessed")
     return render_template("index.html")
+
+
+@app.route("/welcome", methods=["GET"])
+def welcome():
+    logger.info(f"Request received: {request.method} {request.path}")
+    return jsonify({"message": "Welcome to the Flask API Service!"})
 
 
 @app.route("/login")
@@ -231,10 +234,20 @@ def instructor_login():
             return redirect(url_for("instructor_login"))
 
         # Login successful
+        # Login successful
         session["user_id"] = user["id"]
         session["school_id"] = user["school_id"]
         session["role"] = user["role"]
         session.permanent = True
+
+        # Fetch and store instructor_id for this user
+        with get_db_connection().cursor() as cursor:
+            cursor.execute(
+                "SELECT id FROM instructors WHERE user_id = %s", (user["id"],)
+            )
+            instr = cursor.fetchone()
+            if instr:
+                session["instructor_id"] = instr["id"]
 
         logger.info(f"Instructor {school_id} logged in successfully")
         return redirect(url_for("instructor_dashboard"))
@@ -1643,6 +1656,504 @@ def leave_class(class_id):
             f"Failed to leave class for student {session.get('school_id')}: {str(e)}"
         )
         return jsonify({"error": "Failed to leave class"}), 500
+
+
+# -------------------------------
+# Route 1: Entry point for instructors
+# -------------------------------
+@app.route("/gradebuilder")
+def gradebuilder_entry():
+    import pymysql
+    import sys
+
+    if "user_id" not in session:
+        print("[DEBUG] Not logged in", file=sys.stderr)
+        return redirect(url_for("login"))
+
+    if session.get("role") != "instructor":
+        print("[DEBUG] Access denied: not instructor", file=sys.stderr)
+        return render_template("unauthorized.html", message="Access denied.")
+
+    conn = get_db_connection()
+    cursor = conn.cursor(pymysql.cursors.DictCursor)
+
+    print(f"[DEBUG] Connected to DB, user_id={session['user_id']}", file=sys.stderr)
+
+    cursor.execute(
+        "SELECT id FROM instructors WHERE user_id = %s", (session["user_id"],)
+    )
+    instructor = cursor.fetchone()
+    print(f"[DEBUG] Instructor fetched: {instructor}", file=sys.stderr)
+
+    if not instructor:
+        return render_template("error.html", message="Instructor not found.")
+
+    return redirect(url_for("gradebuilder", prof_id=instructor["id"]))
+
+
+# -------------------------------
+# Route 2: Specific instructor page
+# -------------------------------
+@app.route("/gradebuilder/<int:prof_id>")
+def gradebuilder(prof_id):
+    import pymysql
+    import sys
+
+    if "user_id" not in session or session.get("role") != "instructor":
+        print("[DEBUG] Unauthorized access attempt", file=sys.stderr)
+        return render_template("unauthorized.html", message="Access denied.")
+
+    conn = get_db_connection()
+    cursor = conn.cursor(pymysql.cursors.DictCursor)
+    print(f"[DEBUG] DB connected for prof_id={prof_id}", file=sys.stderr)
+
+    # 1️⃣ Verify instructor
+    cursor.execute("SELECT id, user_id FROM instructors WHERE id = %s", (prof_id,))
+    instructor = cursor.fetchone()
+    print(f"[DEBUG] Instructor record: {instructor}", file=sys.stderr)
+
+    if not instructor or instructor["user_id"] != session["user_id"]:
+        print("[DEBUG] Instructor mismatch", file=sys.stderr)
+        return render_template("unauthorized.html", message="Access denied.")
+
+    # 2️⃣ Get instructor info
+    cursor.execute(
+        """
+        SELECT 
+            i.id AS instructor_id,
+            CONCAT(p.first_name, ' ', p.last_name) AS name,
+            p.email,
+            i.department,
+            i.specialization
+        FROM instructors i
+        LEFT JOIN personal_info p ON i.personal_info_id = p.id
+        WHERE i.id = %s
+        """,
+        (prof_id,),
+    )
+    instructor_info = cursor.fetchone()
+
+    # 3️⃣ Get instructor classes
+    cursor.execute(
+        """
+        SELECT 
+            id AS class_id,
+            class_code,
+            course,
+            track,
+            section,
+            semester,
+            year,
+            schedule
+        FROM classes
+        WHERE instructor_id = %s
+        ORDER BY class_code ASC
+        """,
+        (prof_id,),
+    )
+    classes = cursor.fetchall()
+    print(f"[DEBUG] Classes fetched: {len(classes)}", file=sys.stderr)
+
+    # 4️⃣ Get grade structures for each class
+    for c in classes:
+        cursor.execute(
+            """
+            SELECT 
+                id AS structure_id,
+                structure_name,
+                created_at,
+                updated_at,
+                is_active
+            FROM grade_structures
+            WHERE class_id = %s
+            ORDER BY created_at DESC
+            """,
+            (c["class_id"],),
+        )
+        c["structures"] = cursor.fetchall()
+
+    print("[DEBUG] Rendering gradebuilder.html", file=sys.stderr)
+    return render_template(
+        "gradebuilder.html",
+        instructor=instructor_info,
+        classes=classes,
+    )
+
+
+# -------------------------------
+# Route 3: Save grade structure (API)
+# -------------------------------
+@app.route("/api/grade-structure", methods=["POST"])
+def save_grade_structure():
+    import sys
+
+    data = request.get_json()
+    print(f"[DEBUG] Received data: {data}", file=sys.stderr)
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    now = datetime.now()
+
+    try:
+        # Step 1: Insert structure
+        sql_structure = """
+            INSERT INTO grade_structures
+                (class_id, structure_name, structure_json, created_by, created_at, updated_at)
+            VALUES (%s, %s, %s, %s, %s, %s)
+        """
+        cursor.execute(
+            sql_structure,
+            (
+                data["class_id"],
+                data["structure_name"],
+                json.dumps(data.get("structure_json", {})),
+                data["created_by"],
+                now,
+                now,
+            ),
+        )
+        structure_id = cursor.lastrowid
+        print(f"[DEBUG] Inserted structure_id={structure_id}", file=sys.stderr)
+
+        # Step 2: Insert categories
+        sql_category = """
+            INSERT INTO grade_categories
+                (structure_id, name, weight, position, description, created_at)
+            VALUES (%s, %s, %s, %s, %s, %s)
+        """
+        for cat in data.get("categories", []):
+            cursor.execute(
+                sql_category,
+                (
+                    structure_id,
+                    cat["name"],
+                    cat["weight"],
+                    cat["position"],
+                    cat.get("description", ""),
+                    now,
+                ),
+            )
+            print(f"[DEBUG] Inserted category: {cat['name']}", file=sys.stderr)
+
+        conn.commit()
+        print("[DEBUG] All inserts committed", file=sys.stderr)
+
+        return (
+            jsonify(
+                {
+                    "success": True,
+                    "message": "Grade structure saved successfully!",
+                    "structure_id": structure_id,
+                }
+            ),
+            201,
+        )
+
+    except Exception as e:
+        conn.rollback()
+        print(f"[ERROR] Transaction failed: {e}", file=sys.stderr)
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+# -------------------------------
+# Route: Get grading structures for instructor
+# -------------------------------
+@app.route("/api/gradebuilder/<int:prof_id>/structures", methods=["GET"])
+@login_required
+def get_grading_structures(prof_id):
+    """Get all grading structures for the logged-in instructor."""
+    if session.get("role") != "instructor":
+        return jsonify({"error": "Unauthorized"}), 403
+
+    # Verify the prof_id belongs to the logged-in user
+    try:
+        with get_db_connection().cursor() as cursor:
+            cursor.execute(
+                "SELECT id FROM instructors WHERE id = %s AND user_id = %s",
+                (prof_id, session["user_id"]),
+            )
+            instructor = cursor.fetchone()
+            if not instructor:
+                return jsonify({"error": "Unauthorized"}), 403
+    except Exception as e:
+        logger.error(f"Database error during instructor verification: {str(e)}")
+        return jsonify({"error": "Database error"}), 500
+
+    try:
+        with get_db_connection().cursor() as cursor:
+            # Get all classes for this instructor
+            cursor.execute(
+                """SELECT c.id as class_id, c.course, c.section, c.year, c.semester
+                  FROM classes c
+                  WHERE c.instructor_id = %s
+                  ORDER BY c.course, c.section""",
+                (prof_id,),
+            )
+            classes = cursor.fetchall()
+
+            classes_data = {}
+            for cls in classes:
+                class_key = f"{cls['course']} {cls['section']}"
+
+                # Get structures for this class
+                cursor.execute(
+                    """SELECT gs.id as structure_id, gs.structure_name, gs.created_at, gs.updated_at, gs.is_active
+                      FROM grade_structures gs
+                      WHERE gs.class_id = %s
+                      ORDER BY gs.created_at DESC""",
+                    (cls["class_id"],),
+                )
+                structures = cursor.fetchall()
+
+                structures_data = []
+                for struct in structures:
+                    # Build the full structure from database tables
+                    structure_json = {"LABORATORY": [], "LECTURE": []}
+
+                    # Get categories for this structure
+                    cursor.execute(
+                        """SELECT gc.id as category_id, gc.name as category_name
+                          FROM grade_categories gc
+                          WHERE gc.structure_id = %s
+                          ORDER BY gc.position""",
+                        (struct["structure_id"],),
+                    )
+                    categories = cursor.fetchall()
+
+                    for cat in categories:
+                        category_type = cat["category_name"]  # LABORATORY or LECTURE
+
+                        # Get subcategories for this category
+                        cursor.execute(
+                            """SELECT gsc.id as subcategory_id, gsc.name, gsc.weight
+                              FROM grade_subcategories gsc
+                              WHERE gsc.category_id = %s
+                              ORDER BY gsc.position""",
+                            (cat["category_id"],),
+                        )
+                        subcategories = cursor.fetchall()
+
+                        for sub in subcategories:
+                            # Get assessments for this subcategory
+                            cursor.execute(
+                                """SELECT ga.name
+                                  FROM grade_assessments ga
+                                  WHERE ga.subcategory_id = %s
+                                  ORDER BY ga.position""",
+                                (sub["subcategory_id"],),
+                            )
+                            assessments = [row["name"] for row in cursor.fetchall()]
+
+                            # Add to structure
+                            if category_type in structure_json:
+                                structure_json[category_type].append(
+                                    {
+                                        "name": sub["name"],
+                                        "weight": sub["weight"],
+                                        "assessments": assessments,
+                                    }
+                                )
+
+                    structures_data.append(
+                        {
+                            "id": struct["structure_id"],
+                            "name": struct["structure_name"],
+                            "structure_json": structure_json,
+                            "created_at": (
+                                struct["created_at"].isoformat()
+                                if struct["created_at"]
+                                else None
+                            ),
+                            "updated_at": (
+                                struct["updated_at"].isoformat()
+                                if struct["updated_at"]
+                                else None
+                            ),
+                            "is_active": bool(struct["is_active"]),
+                        }
+                    )
+
+                classes_data[class_key] = {
+                    "class_id": cls["class_id"],
+                    "course": cls["course"],
+                    "section": cls["section"],
+                    "year": cls["year"],
+                    "semester": cls["semester"],
+                    "structures": structures_data,
+                }
+
+        return jsonify({"success": True, "classes": classes_data})
+
+    except Exception as e:
+        logger.error(f"Failed to get grading structures: {str(e)}")
+        return jsonify({"error": "Failed to retrieve grading structures"}), 500
+
+
+# -------------------------------
+# Route: Save grading structure (specific instructor)
+# -------------------------------
+@app.route("/api/gradebuilder/<int:prof_id>/save", methods=["POST"])
+@login_required
+def save_grading_structure(prof_id):
+    import sys
+
+    if session.get("role") != "instructor":
+        print("[ERROR] Unauthorized access attempt.", file=sys.stderr)
+        return jsonify({"success": False, "error": "Unauthorized"}), 403
+
+    # Verify the prof_id belongs to the logged-in user
+    try:
+        with get_db_connection().cursor() as cursor:
+            cursor.execute(
+                "SELECT id FROM instructors WHERE id = %s AND user_id = %s",
+                (prof_id, session["user_id"]),
+            )
+            instructor = cursor.fetchone()
+            if not instructor:
+                return jsonify({"success": False, "error": "Unauthorized"}), 403
+    except Exception as e:
+        logger.error(f"Database error during instructor verification: {str(e)}")
+        return jsonify({"success": False, "error": "Database error"}), 500
+
+    data = request.get_json()
+    print(f"[DEBUG] Received grading structure payloaEEd: {data}", file=sys.stderr)
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    now = datetime.now()
+
+    try:
+        class_id = data.get("class_id")
+        structure_name = data.get("structure_name", "Untitled Structure")
+        structure_data = data.get("structure", {})
+
+        # Verify that the class_id belongs to the instructor
+        cursor.execute(
+            "SELECT id FROM classes WHERE id = %s AND instructor_id = %s",
+            (class_id, prof_id),
+        )
+        class_check = cursor.fetchone()
+        if not class_check:
+            return (
+                jsonify(
+                    {
+                        "success": False,
+                        "error": "Unauthorized: Class does not belong to this instructor",
+                    }
+                ),
+                403,
+            )
+
+        # Insert into grade_structures
+        sql_structure = """
+            INSERT INTO grade_structures 
+                (class_id, structure_name, structure_json, created_by, created_at, updated_at, is_active)
+            VALUES (%s, %s, %s, %s, %s, %s, 1)
+        """
+        cursor.execute(
+            sql_structure,
+            (
+                class_id,
+                structure_name,
+                json.dumps(structure_data),
+                prof_id,
+                now,
+                now,
+            ),
+        )
+        structure_id = cursor.lastrowid
+        print(f"[DEBUG] Inserted grade_structure ID={structure_id}", file=sys.stderr)
+
+        # Insert main categories
+        cat_sql = """
+            INSERT INTO grade_categories 
+                (structure_id, name, weight, position, description, created_at)
+            VALUES (%s, %s, %s, %s, %s, %s)
+        """
+
+        subcat_sql = """
+            INSERT INTO grade_subcategories 
+                (category_id, name, weight, max_score, passing_score, position, description, created_at)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+        """
+
+        assess_sql = """
+            INSERT INTO grade_assessments 
+                (subcategory_id, name, weight, max_score, passing_score, position, description, created_at)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+        """
+
+        cat_pos = 1
+        for main_type, subcats in structure_data.items():
+            cursor.execute(
+                cat_sql,
+                (
+                    structure_id,
+                    main_type,
+                    100,
+                    cat_pos,
+                    f"{main_type} Category",
+                    now,
+                ),
+            )
+            category_id = cursor.lastrowid
+            print(
+                f"[DEBUG] Inserted category '{main_type}' (ID={category_id})",
+                file=sys.stderr,
+            )
+            cat_pos += 1
+
+            sub_pos = 1
+            for sub in subcats:
+                cursor.execute(
+                    subcat_sql,
+                    (
+                        category_id,
+                        sub["name"],
+                        sub.get("weight", 0),
+                        sub.get("max_score", 100),
+                        sub.get("passing_score", 50),
+                        sub_pos,
+                        sub.get("description", ""),
+                        now,
+                    ),
+                )
+                subcat_id = cursor.lastrowid
+                print(
+                    f"    [DEBUG] Inserted subcategory '{sub['name']}' (ID={subcat_id})",
+                    file=sys.stderr,
+                )
+                sub_pos += 1
+
+                ass_pos = 1
+                for ass in sub.get("assessments", []):
+                    cursor.execute(
+                        assess_sql,
+                        (
+                            subcat_id,
+                            ass,
+                            None,
+                            100,
+                            50,
+                            ass_pos,
+                            "",
+                            now,
+                        ),
+                    )
+                    print(
+                        f"        [DEBUG] Inserted assessment '{ass}'", file=sys.stderr
+                    )
+                    ass_pos += 1
+
+        conn.commit()
+        print("[DEBUG] Transaction committed successfully.", file=sys.stderr)
+
+        return jsonify({"status": "success", "structure_id": structure_id}), 201
+
+    except Exception as e:
+        conn.rollback()
+        print(f"[ERROR] Transaction failed: {e}", file=sys.stderr)
+        return jsonify({"status": "error", "error": str(e)}), 500
 
 
 if __name__ == "__main__":

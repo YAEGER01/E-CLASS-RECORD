@@ -4,74 +4,230 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Grade Structure Builder</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/gradebuilder.css') }}">
+    <title>Responsive Grade Structure Editor</title>
+    <!-- Load Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Load Font Awesome for Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-</head>
-<script>
-    const profId = {{ instructor.instructor_id }};
-</script>
-<body>
+    <style>
+        /* Custom styles for better aesthetics and percentage checks */
+        .page-header {
+            background-color: #1f2937; /* Darker header */
+            color: #f9fafb;
+            padding: 1.5rem 2rem;
+            border-bottom: 4px solid #10b981; /* Accent color */
+        }
+        .card {
+            background-color: #ffffff;
+            border-radius: 0.75rem;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            padding: 1.5rem;
+            transition: all 0.3s ease;
+        }
+        .sub-category-item {
+            border: 1px solid #d1d5db;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            margin-bottom: 0.75rem;
+            background-color: #f9fafb;
+        }
+        .sub-category-header input[type="text"] {
+            font-weight: 600;
+        }
+        .percent-checker {
+            font-weight: 700;
+            padding: 0.25rem 0.5rem;
+            border-radius: 9999px; /* Full rounded */
+            transition: background-color 0.3s, color 0.3s;
+            margin-left: 1rem;
+            min-width: 60px;
+            text-align: center;
+            color: #dc2626; /* Default: Red for not 100% */
+            background-color: #fee2e2;
+        }
+        .percent-checker.valid {
+            color: #059669; /* Green for 100% */
+            background-color: #d1fae5;
+        }
+        .structure-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.75rem 0.5rem;
+            border-bottom: 1px solid #e5e7eb;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .structure-item:hover {
+            background-color: #f3f4f6;
+        }
+        /* Custom modal styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 100;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(2px);
+        }
+        .modal-content {
+            background-color: #fefefe;
+            margin: 15vh auto;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+            width: 90%;
+            max-width: 500px;
+            animation: slideIn 0.3s ease-out;
+        }
+        @keyframes slideIn {
+            from { transform: translateY(-50px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        /* Notification Box */
+        #notification-box {
+            position: fixed;
+            top: 1rem;
+            right: 1rem;
+            z-index: 200;
+            max-width: 300px;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            color: white;
+            opacity: 0;
+            transition: opacity 0.5s ease-in-out;
+            pointer-events: none;
+        }
+        #notification-box.show {
+            opacity: 1;
+            pointer-events: auto;
+        }
+        .sub-category-header, .assessment-item {
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+        }
+        .assessment-item {
+            margin-left: 1rem;
+            padding: 0.5rem 0;
+        }
+        /* Responsive tweaks */
+        @media (max-width: 768px) {
+            .main-content-container {
+                flex-direction: column;
+            }
+            .card-30, .card-70 {
+                width: 100%;
+                margin-bottom: 1rem;
+            }
+        }
+        /* Style the input fields better */
+        .editor-content input[type="text"], .editor-content input[type="number"] {
+            border: 1px solid #d1d5db;
+            padding: 0.5rem 0.75rem;
+            border-radius: 0.375rem;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        .editor-content input:focus {
+            border-color: #10b981;
+            outline: none;
+            box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2);
+        }
 
+    </style>
+</head>
+
+<body class="bg-gray-100 min-h-screen font-sans">
+
+
+    <!-- Header -->
     <header class="page-header">
-        <h1>Grade Structure Editor</h1>
-        <h3>Instructor: {{ instructor.name }}</h3>
-        <p>Email: {{ instructor.email }}</p>
-        <hr>
+        <h1 class="text-3xl font-extrabold mb-1">Grade Structure Editor</h1>
+        <h3 class="text-xl font-light">Instructor: <span id="instructor-name">Loading...</span></h3>
+        <p class="text-sm opacity-75">Email: <span id="instructor-email">Loading...</span></p>
     </header>
 
-    <main class="main-content-container">
+    <!-- Main Content Container -->
+    <main class="main-content-container flex flex-col md:flex-row p-4 md:p-8 gap-6">
 
-        <div class="card card-30">
-            <div class="card-header">
-        
-                <h2>Saved Structures</h2>
-                <button class="btn btn-primary" id="create-structure-btn">
-                    <i class="fas fa-plus"></i> Create Grading Structure
+        <!-- Left Panel: Saved Structures (30%) -->
+        <div class="card card-30 w-full md:w-1/3 h-fit">
+            <div class="card-header flex justify-between items-center mb-4">
+                <h2 class="text-2xl font-semibold text-gray-800">Saved Structures</h2>
+                <button class="btn btn-primary bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-3 rounded-lg transition" id="create-structure-btn">
+                    <i class="fas fa-plus mr-2"></i> Create New
                 </button>
             </div>
 
-            <div class="structure-list-container" id="structure-list">
-                <div class="structure-item">
-                    <span></span>
-                    <div class="item-actions">
-                        <button class="btn-icon edit-btn" data-id="1" title="Edit"><i class="fas fa-edit"></i></button>
-                        <button class="btn-icon delete-btn" data-id="1" title="Delete"><i class="fas fa-trash"></i></button>
-                    </div>
-                </div>
+            <div class="structure-list-container space-y-1" id="structure-list">
+                <!-- Structure items will be rendered here -->
+                <p class="text-center text-gray-500 py-4">Loading saved structures...</p>
             </div>
         </div>
 
-        <div class="card card-70" id="editor-panel">
-            <div class="card-header editor-header">
-                <h2 id="current-class-name">Select or Create a Structure</h2>
-                <div class="header-actions">
-                    <button class="btn btn-secondary" id="cancel-editor-btn" disabled>Cancel</button>
-                    <button class="btn btn-primary" id="save-structure-btn" disabled>Save</button>
+        <!-- Right Panel: Editor (70%) -->
+        <div class="card card-70 w-full md:w-2/3 min-h-[60vh]" id="editor-panel">
+            <div class="card-header editor-header flex justify-between items-center pb-4 border-b border-gray-200 mb-4">
+                <h2 class="text-2xl font-semibold text-gray-800" id="current-class-name">Select or Create a Structure</h2>
+                <div class="header-actions flex gap-3">
+                    <button class="btn btn-secondary border border-gray-300 hover:bg-gray-100 text-gray-700 font-medium py-2 px-4 rounded-lg transition" id="undo-btn" disabled title="Undo last change">
+                        <i class="fas fa-undo"></i>
+                    </button>
+                    <button class="btn btn-secondary border border-gray-300 hover:bg-gray-100 text-gray-700 font-medium py-2 px-4 rounded-lg transition" id="redo-btn" disabled title="Redo last undone change">
+                        <i class="fas fa-redo"></i>
+                    </button>
+                    <button class="btn btn-secondary border border-gray-300 hover:bg-gray-100 text-gray-700 font-medium py-2 px-4 rounded-lg transition" id="cancel-editor-btn" disabled>
+                        <i class="fas fa-times mr-1"></i> Cancel
+                    </button>
+                    <button class="btn btn-primary bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-lg transition" id="save-structure-btn" disabled>
+                        <i class="fas fa-save mr-1"></i> <span id="save-btn-text">Save Structure</span>
+                    </button>
                 </div>
             </div>
 
             <div class="editor-content" id="grading-editor-content">
-                <p class="placeholder-text">Click "Create Grading Structure" to begin or select a saved structure.</p>
+                <p class="placeholder-text text-center text-gray-500 p-10 text-lg" style="display: block;">
+                    Click "Create New" to begin or select a saved structure from the left panel.
+                </p>
 
                 <div id="grade-structure-builder" style="display: none;">
 
-                    <div class="main-category-panel" data-type="LAB">
-                        <h3>LABORATORY <span class="category-weight">(100%)</span> <span class="percent-checker"
-                                id="lab-percent-checker">0%</span></h3>
-                        <div class="sub-categories" id="lab-sub-categories">
+                    <!-- Lab Category Panel -->
+                    <div class="main-category-panel mb-8" data-type="LAB">
+                        <div class="flex items-center justify-between border-b-2 border-indigo-200 pb-2 mb-4">
+                            <h3 class="text-xl font-bold text-indigo-700 flex items-center">
+                                <i class="fas fa-flask mr-3 text-2xl"></i> LABORATORY 
+                                <span class="category-weight ml-3 text-base font-normal text-gray-500">(100% Target)</span>
+                            </h3>
+                            <span class="percent-checker text-lg" id="lab-percent-checker">0%</span>
                         </div>
-                        <button class="btn btn-add-sub" data-type="LAB"><i class="fas fa-plus"></i> Add
-                            Sub-Category</button>
+                        <div class="sub-categories space-y-4" id="lab-sub-categories">
+                            <!-- Sub-categories will be appended here -->
+                        </div>
+                        <button class="btn btn-add-sub w-full mt-4 py-2 text-indigo-600 border border-indigo-300 rounded-lg hover:bg-indigo-50 transition" data-type="LAB">
+                            <i class="fas fa-plus mr-2"></i> Add Sub-Category
+                        </button>
                     </div>
 
+                    <!-- Lecture Category Panel -->
                     <div class="main-category-panel" data-type="LECTURE">
-                        <h3>LECTURE <span class="category-weight">(100%)</span> <span class="percent-checker"
-                                id="lecture-percent-checker">0%</span></h3>
-                        <div class="sub-categories" id="lecture-sub-categories">
+                        <div class="flex items-center justify-between border-b-2 border-indigo-200 pb-2 mb-4">
+                            <h3 class="text-xl font-bold text-indigo-700 flex items-center">
+                                <i class="fas fa-chalkboard-teacher mr-3 text-2xl"></i> LECTURE 
+                                <span class="category-weight ml-3 text-base font-normal text-gray-500">(100% Target)</span>
+                            </h3>
+                            <span class="percent-checker text-lg" id="lecture-percent-checker">0%</span>
                         </div>
-                        <button class="btn btn-add-sub" data-type="LECTURE"><i class="fas fa-plus"></i> Add
-                            Sub-Category</button>
+                        <div class="sub-categories space-y-4" id="lecture-sub-categories">
+                            <!-- Sub-categories will be appended here -->
+                        </div>
+                        <button class="btn btn-add-sub w-full mt-4 py-2 text-indigo-600 border border-indigo-300 rounded-lg hover:bg-indigo-50 transition" data-type="LECTURE">
+                            <i class="fas fa-plus mr-2"></i> Add Sub-Category
+                        </button>
                     </div>
                 </div>
             </div>
@@ -79,32 +235,51 @@
 
     </main>
 
+    <!-- Modal for Class Selection -->
     <div id="class-selection-modal" class="modal">
         <div class="modal-content">
-            <span class="close-btn">&times;</span>
-            <h2>Select Class for New Structure</h2>
-            <p>Choose a class or create an 'Other' blank structure.</p>
-    
-            <div class="class-list" id="class-list">
-                {% if classes %}
-                {% for c in classes %}
-                <button class="btn-class-option" data-class="{{ c.course }}" data-class-id="{{ c.class_id }}"
-                    data-class-code="{{ c.class_code }}">
-                    {{ c.course }} - {{ c.section }}
-                </button>
-                {% endfor %}
-                {% else %}
-                <p>No classes found for this instructor.</p>
-                {% endif %}
-    
-                <button class="btn-class-option" data-class="Other">Other (Blank Structure)</button>
+            <div class="flex justify-between items-center border-b pb-2 mb-4">
+                <h2 class="text-2xl font-bold text-gray-800">Select Class for New Structure</h2>
+                <span class="close-btn text-gray-500 text-3xl font-light cursor-pointer">&times;</span>
+            </div>
+            <p class="text-gray-600 mb-4">Choose a class to associate with the new grading structure.</p>
+
+            <div class="class-list grid grid-cols-1 gap-3" id="class-list">
+                <!-- Class buttons will be rendered here via JS -->
             </div>
         </div>
     </div>
-    
+
+    <!-- Custom Notification Box -->
+    <div id="notification-box" role="alert" class="shadow-xl"></div>
+
+    <!-- Custom Confirmation Modal -->
+    <div id="confirmation-modal" class="modal">
+        <div class="modal-content">
+            <h3 class="text-xl font-semibold mb-4" id="confirm-title">Confirm Action</h3>
+            <p class="text-gray-700 mb-6" id="confirm-message">Are you sure you want to proceed?</p>
+            <div class="flex justify-end gap-3">
+                <button id="confirm-cancel" class="border border-gray-300 hover:bg-gray-100 text-gray-700 font-medium py-2 px-4 rounded-lg">Cancel</button>
+                <button id="confirm-ok" class="bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-4 rounded-lg">OK</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- History Modal -->
+    <div id="history-modal" class="modal">
+        <div class="modal-content max-w-4xl">
+            <div class="flex justify-between items-center border-b pb-2 mb-4">
+                <h2 class="text-2xl font-bold text-gray-800">Structure History</h2>
+                <span class="close-history-btn text-gray-500 text-3xl font-light cursor-pointer">&times;</span>
+            </div>
+            <div id="history-content" class="max-h-96 overflow-y-auto">
+                <!-- History entries will be loaded here -->
+            </div>
+        </div>
+    </div>
 
     <script>
-        document.addEventListener('DOMContentLoaded', () => {
+        document.addEventListener('DOMContentLoaded', async () => {
             // #################### DOM ELEMENTS ####################
             const createStructureBtn = document.getElementById('create-structure-btn');
             const modal = document.getElementById('class-selection-modal');
@@ -115,408 +290,678 @@
             const gradeStructureBuilder = document.getElementById('grade-structure-builder');
             const placeholderText = editorPanel.querySelector('.placeholder-text');
             const saveBtn = document.getElementById('save-structure-btn');
+            const saveBtnText = document.getElementById('save-btn-text');
             const cancelBtn = document.getElementById('cancel-editor-btn');
+            const undoBtn = document.getElementById('undo-btn');
+            const redoBtn = document.getElementById('redo-btn');
             const labSubCategories = document.getElementById('lab-sub-categories');
             const lectureSubCategories = document.getElementById('lecture-sub-categories');
+            const instructorNameEl = document.getElementById('instructor-name');
+            const instructorEmailEl = document.getElementById('instructor-email');
 
-            // Get instructor ID from template
-            const profId = {{ instructor.instructor_id }};
-
-            // Structure storage - will be loaded from database
+            // #################### GLOBAL STATE ####################
+            let instructor = {};
+            let classes = [];
             let savedStructures = [];
-            let currentEditingStructure = null;
             let structureIdCounter = 1;
+            let currentEditingStructure = null;
+            let isEditingExisting = false;
+            let undoStack = [];
+            let redoStack = [];
+            let maxUndoSteps = 50;
 
-            // #################### INITIALIZATION ####################
+            // #################### UNDO/REDO FUNCTIONALITY ####################
+            function saveStateToUndoStack() {
+                const state = {
+                    labCategories: Array.from(labSubCategories.children).map(cat => ({
+                        name: cat.querySelector('input[data-field="name"]').value,
+                        weight: cat.querySelector('input[data-field="weight"]').value,
+                        assessments: Array.from(cat.querySelectorAll('.assessment-item input[data-field="assessment-name"]')).map(input => input.value)
+                    })),
+                    lectureCategories: Array.from(lectureSubCategories.children).map(cat => ({
+                        name: cat.querySelector('input[data-field="name"]').value,
+                        weight: cat.querySelector('input[data-field="weight"]').value,
+                        assessments: Array.from(cat.querySelectorAll('.assessment-item input[data-field="assessment-name"]')).map(input => input.value)
+                    }))
+                };
 
-            /**
-             * Load structures from database
-             */
-            async function loadStructuresFromDatabase() {
-                try {
-                    const response = await fetch(`/api/gradebuilder/${profId}/structures`);
-                    const result = await response.json();
+                undoStack.push(JSON.parse(JSON.stringify(state)));
+                if (undoStack.length > maxUndoSteps) {
+                    undoStack.shift();
+                }
+                redoStack = []; // Clear redo stack when new action is performed
 
-                    if (result.success) {
-                        // Convert database format to frontend format
-                        savedStructures = [];
-                        for (const [className, classData] of Object.entries(result.classes)) {
-                            classData.structures.forEach(structure => {
-                                // Convert database format (LAB/LECTURE) to frontend format (LABORATORY/LECTURE)
-                                const dbStructure = typeof structure.structure_json === 'string' ? JSON.parse(structure.structure_json) : structure.structure_json || { LAB: [], LECTURE: [] };
-                                const frontendStructure = {
-                                    LABORATORY: dbStructure.LAB || [],
-                                    LECTURE: dbStructure.LECTURE || []
-                                };
+                updateUndoRedoButtons();
+            }
 
-                                savedStructures.push({
-                                    id: structure.id,
-                                    class: className,
-                                    class_id: classData.class_id,
-                                    structure_name: structure.name,
-                                    structure: frontendStructure
-                                });
-                            });
-                        }
-                        renderStructureList();
-                    } else {
-                        console.error("Failed to load structures:", result.error);
-                        renderStructureList();
-                    }
-                } catch (err) {
-                    console.error("Error loading structures:", err);
-                    renderStructureList();
+            function undo() {
+                if (undoStack.length > 1) { // Keep at least one state
+                    redoStack.push(undoStack.pop());
+                    const previousState = undoStack[undoStack.length - 1];
+                    restoreState(previousState);
+                    updateUndoRedoButtons();
                 }
             }
 
-            /**
-             * Renders the list of saved structures in the 30% card.
-             */
+            function redo() {
+                if (redoStack.length > 0) {
+                    const nextState = redoStack.pop();
+                    undoStack.push(nextState);
+                    restoreState(nextState);
+                    updateUndoRedoButtons();
+                }
+            }
+
+            function restoreState(state) {
+                // Clear current categories
+                labSubCategories.innerHTML = '';
+                lectureSubCategories.innerHTML = '';
+
+                // Restore LAB categories
+                state.labCategories.forEach(cat => {
+                    addSubCategoryElement('LAB', cat);
+                });
+
+                // Restore LECTURE categories
+                state.lectureCategories.forEach(cat => {
+                    addSubCategoryElement('LECTURE', cat);
+                });
+
+                updatePercentCheckers();
+            }
+
+            function updateUndoRedoButtons() {
+                undoBtn.disabled = undoStack.length <= 1;
+                redoBtn.disabled = redoStack.length === 0;
+            }
+
+            // #################### UTILITIES ####################
+            function showNotification(message, type = 'info') {
+                const box = document.getElementById('notification-box');
+                box.textContent = message;
+                box.className = 'shadow-xl';
+                let bgColor = 'bg-blue-500';
+                if (type === 'success') bgColor = 'bg-green-600';
+                if (type === 'error') bgColor = 'bg-red-600';
+                if (type === 'warning') bgColor = 'bg-yellow-500';
+                box.classList.add('show', bgColor);
+                setTimeout(() => box.classList.remove('show'), 5000); // Extended timeout for better visibility
+            }
+
+            function showConfirmation(message) {
+                return new Promise(resolve => {
+                    const confirmModal = document.getElementById('confirmation-modal');
+                    const confirmMessage = document.getElementById('confirm-message');
+                    const confirmOk = document.getElementById('confirm-ok');
+                    const confirmCancel = document.getElementById('confirm-cancel');
+
+                    confirmMessage.textContent = message;
+                    confirmModal.style.display = 'block';
+
+                    const handleOk = () => {
+                        cleanup();
+                        confirmModal.style.display = 'none';
+                        resolve(true);
+                    };
+                    const handleCancel = () => {
+                        cleanup();
+                        confirmModal.style.display = 'none';
+                        resolve(false);
+                    };
+                    const cleanup = () => {
+                        confirmOk.removeEventListener('click', handleOk);
+                        confirmCancel.removeEventListener('click', handleCancel);
+                    };
+
+                    confirmOk.addEventListener('click', handleOk);
+                    confirmCancel.addEventListener('click', handleCancel);
+                });
+            }
+
+            // #################### INITIAL LOAD ####################
+            async function loadBackendData() {
+                // Show loading state
+                const structureList = document.getElementById('structure-list');
+                structureList.innerHTML = '<p class="text-center text-gray-500 py-4"><i class="fas fa-spinner fa-spin mr-2"></i>Loading structures...</p>';
+
+                try {
+                    const res = await fetch('/api/gradebuilder/data');
+                    if (!res.ok) throw new Error('Failed to fetch backend data.');
+                    const data = await res.json();
+
+                    instructor = data.instructor || {};
+                    classes = data.classes || [];
+                    savedStructures = (data.structures || []).map(s => ({
+                        id: s.id,
+                        class_id: s.class_id,
+                        class: `${classes.find(c => c.class_id === s.class_id)?.course || 'Unknown'} - ${classes.find(c => c.class_id === s.class_id)?.section || ''}`,
+                        structure_name: s.structure_name,
+                        structure: JSON.parse(s.structure_json || '{"LABORATORY":[],"LECTURE":[]}')
+                    }));
+
+                    // Store CSRF token globally
+                    window.csrfToken = data.csrf_token;
+
+                    instructorNameEl.textContent = instructor.name || 'Instructor';
+                    instructorEmailEl.textContent = instructor.email || '';
+
+                    renderStructureList();
+                    renderClassOptions();
+                } catch (err) {
+                    console.error('Error loading backend data:', err);
+                    structureList.innerHTML = '<p class="text-center text-red-500 py-4">Failed to load data. <button onclick="loadBackendData()" class="underline">Retry</button></p>';
+                    showNotification('Failed to load instructor or class data. Please refresh the page.', 'error');
+                }
+            }
+
+            await loadBackendData();
+
+            // #################### STRUCTURE LIST ####################
             function renderStructureList() {
                 const listContainer = document.getElementById('structure-list');
-                listContainer.innerHTML = ''; // Clear existing list
+                listContainer.innerHTML = '';
 
                 if (savedStructures.length === 0) {
-                    listContainer.innerHTML = '<p style="text-align:center; color:#6c757d; padding:10px;">No saved structures.</p>';
+                    listContainer.innerHTML = '<p class="text-center text-gray-500 py-4">No saved structures. Create one!</p>';
+                    return;
                 }
 
                 savedStructures.forEach(item => {
                     const el = document.createElement('div');
                     el.className = 'structure-item';
                     el.innerHTML = `
-                <span>${item.class} - ${item.structure_name}</span>
-                <div class="item-actions">
-                    <button class="btn-icon edit-btn" data-id="${item.id}" title="Edit"><i class="fas fa-edit"></i></button>
-                    <button class="btn-icon delete-btn" data-id="${item.id}" title="Delete"><i class="fas fa-trash"></i></button>
-                </div>
-            `;
+                            <span class="text-gray-700 font-medium">${item.class.split(' - ')[0]}</span>
+                            <span class="text-sm text-gray-500 ml-2">${item.class.split(' - ')[1] || item.structure_name}</span>
+                            <div class="item-actions flex gap-2">
+                                <button class="btn-icon edit-btn text-blue-500 hover:text-blue-700 p-1 rounded-full" data-id="${item.id}" title="Edit"><i class="fas fa-edit"></i></button>
+                                <button class="btn-icon history-btn text-purple-500 hover:text-purple-700 p-1 rounded-full" data-id="${item.id}" title="View History"><i class="fas fa-history"></i></button>
+                                <button class="btn-icon delete-btn text-red-500 hover:text-red-700 p-1 rounded-full" data-id="${item.id}" title="Delete"><i class="fas fa-trash"></i></button>
+                            </div>
+                        `;
                     listContainer.appendChild(el);
                 });
+
                 attachListEventListeners();
             }
 
-            /**
-             * Attaches click listeners to the dynamically created Edit and Delete buttons.
-             */
             function attachListEventListeners() {
                 document.querySelectorAll('.edit-btn').forEach(btn => {
-                    btn.addEventListener('click', (e) => {
+                    btn.addEventListener('click', e => {
+                        e.stopPropagation();
                         const id = parseInt(e.currentTarget.dataset.id);
                         const structure = savedStructures.find(s => s.id === id);
-                        if (structure) {
-                            loadStructureForEditing(structure);
-                        }
+                        if (structure) loadStructureForEditing(structure);
+                    });
+                });
+
+                document.querySelectorAll('.history-btn').forEach(btn => {
+                    btn.addEventListener('click', async e => {
+                        e.stopPropagation();
+                        const id = parseInt(e.currentTarget.dataset.id);
+                        const structure = savedStructures.find(s => s.id === id);
+
+                        // Show history modal
+                        showHistoryModal(id, structure);
                     });
                 });
 
                 document.querySelectorAll('.delete-btn').forEach(btn => {
-                    btn.addEventListener('click', (e) => {
+                    btn.addEventListener('click', async e => {
+                        e.stopPropagation();
                         const id = parseInt(e.currentTarget.dataset.id);
-                        if (confirm(`Are you sure you want to delete this structure?`)) {
-                            savedStructures = savedStructures.filter(s => s.id !== id);
-                            renderStructureList();
-                            // If the deleted one was being edited, reset the editor
-                            if (currentEditingStructure && currentEditingStructure.id === id) {
-                                resetEditorPanel();
+                        const structureToDelete = savedStructures.find(s => s.id === id);
+
+                        const confirmed = await showConfirmation(`Delete structure for ${structureToDelete.class}?`);
+                        if (!confirmed) return;
+
+                        // Show loading state for delete button
+                        const deleteBtn = e.currentTarget;
+                        if (!deleteBtn) return; // Safety check
+                        const originalIcon = deleteBtn.innerHTML;
+                        deleteBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+                        deleteBtn.disabled = true;
+                        deleteBtn.style.pointerEvents = 'none';
+
+                        try {
+                            const res = await fetch(`/api/gradebuilder/delete/${id}`, {
+                                method: 'DELETE',
+                                headers: {
+                                    'X-CSRFToken': window.csrfToken
+                                }
+                            });
+                            const result = await res.json();
+
+                            if (res.ok) {
+                                showNotification(result.message || 'Structure deleted.', 'success');
+                                savedStructures = savedStructures.filter(s => s.id !== id);
+                                renderStructureList();
+                                if (currentEditingStructure && currentEditingStructure.id === id) resetEditorPanel();
+                            } else {
+                                showNotification(result.message || 'Delete failed.', 'error');
+                            }
+                        } catch (err) {
+                            console.error('Error deleting:', err);
+                            showNotification('Network error during deletion. Please try again.', 'error');
+                        } finally {
+                            // Reset delete button
+                            if (deleteBtn) {
+                                deleteBtn.innerHTML = originalIcon;
+                                deleteBtn.disabled = false;
+                                deleteBtn.style.pointerEvents = 'auto';
                             }
                         }
                     });
                 });
             }
 
-            loadStructuresFromDatabase(); // Load structures from database on page load
-
-            // #################### MODAL HANDLER ####################
-
-            // Open Modal
-            createStructureBtn.addEventListener('click', () => {
-                modal.style.display = 'block';
-            });
-
-            // Close Modal on 'x' or outside click
-            closeModalBtn.addEventListener('click', () => {
-                modal.style.display = 'none';
-            });
-
-            window.addEventListener('click', (event) => {
-                if (event.target === modal) {
-                    modal.style.display = 'none';
-                }
-            });
-
-            // Handle class selection
-            classListContainer.querySelectorAll('.btn-class-option').forEach(btn => {
-                btn.addEventListener('click', (e) => {
-                    const className = e.currentTarget.dataset.class;
-                    modal.style.display = 'none';
-                    createNewStructure(className);
+            // #################### CLASS MODAL ####################
+            function renderClassOptions() {
+                classListContainer.innerHTML = '';
+                classes.forEach(c => {
+                    const btn = document.createElement('button');
+                    btn.className = 'btn-class-option w-full text-left bg-gray-100 hover:bg-indigo-50 text-gray-700 py-3 px-4 rounded-lg transition border border-gray-300';
+                    btn.dataset.class = `${c.course} - ${c.section}`;
+                    btn.dataset.classId = c.class_id;
+                    btn.textContent = `${c.course} - ${c.section}`;
+                    classListContainer.appendChild(btn);
                 });
+
+                const otherBtn = document.createElement('button');
+                otherBtn.className = 'btn-class-option w-full text-left bg-gray-100 hover:bg-indigo-50 text-gray-700 py-3 px-4 rounded-lg transition border border-gray-300 font-semibold';
+                otherBtn.dataset.class = 'Other - Blank Structure';
+                otherBtn.dataset.classId = '';
+                otherBtn.textContent = 'Other (Blank Structure)';
+                classListContainer.appendChild(otherBtn);
+
+                classListContainer.querySelectorAll('.btn-class-option').forEach(btn => {
+                    btn.addEventListener('click', e => {
+                        const className = e.currentTarget.dataset.class;
+                        const classId = e.currentTarget.dataset.classId;
+                        modal.style.display = 'none';
+                        createNewStructure(className, classId);
+                    });
+                });
+            }
+
+            createStructureBtn.addEventListener('click', () => (modal.style.display = 'block'));
+            closeModalBtn.addEventListener('click', () => (modal.style.display = 'none'));
+            // History modal event listeners
+            const historyModal = document.getElementById('history-modal');
+            const closeHistoryBtn = historyModal.querySelector('.close-history-btn');
+            closeHistoryBtn.addEventListener('click', () => (historyModal.style.display = 'none'));
+            window.addEventListener('click', e => {
+                if (e.target === modal) modal.style.display = 'none';
+                if (e.target === historyModal) historyModal.style.display = 'none';
+                const confirmModal = document.getElementById('confirmation-modal');
+                if (e.target === confirmModal) confirmModal.style.display = 'none';
             });
 
-            // #################### EDITOR PANEL LOGIC ####################
-
-            /**
-             * Resets the editor to its initial state.
-             */
+            // #################### EDITOR PANEL ####################
             function resetEditorPanel() {
                 currentEditingStructure = null;
+                isEditingExisting = false;
                 currentClassName.textContent = 'Select or Create a Structure';
                 placeholderText.style.display = 'block';
                 gradeStructureBuilder.style.display = 'none';
                 saveBtn.disabled = true;
                 cancelBtn.disabled = true;
+                undoBtn.disabled = true;
+                redoBtn.disabled = true;
+                undoStack = [];
+                redoStack = [];
             }
 
-            /**
-             * Initializes the editor for a new structure.
-             * @param {string} className - The name of the class (e.g., 'Math 101').
-             */
-            function createNewStructure(className) {
+            function createNewStructure(className, classId) {
                 currentEditingStructure = {
-                    id: structureIdCounter++, // Assign a temporary new ID
+                    id: structureIdCounter++,
                     class: className,
-                    structure: {
-                        LABORATORY: [],
-                        LECTURE: []
-                    }
+                    class_id: classId,
+                    structure_name: 'New Structure',
+                    structure: { LABORATORY: [], LECTURE: [] }
                 };
+                isEditingExisting = false;
 
-                // Set up the editor UI
-                currentClassName.textContent = `${className} - Grading Structure`;
+                currentClassName.innerHTML = `<input type="text" class="text-2xl font-semibold text-gray-800 p-1 border-b focus:border-indigo-500 w-full md:w-auto" value="${className.split(' - ')[0]} - New Structure" placeholder="Structure Name">`;
                 placeholderText.style.display = 'none';
                 gradeStructureBuilder.style.display = 'block';
                 saveBtn.disabled = false;
                 cancelBtn.disabled = false;
+                undoBtn.disabled = true;
+                redoBtn.disabled = true;
 
                 labSubCategories.innerHTML = '';
                 lectureSubCategories.innerHTML = '';
+
+                currentClassName.querySelector('input').addEventListener('input', e => {
+                    currentEditingStructure.structure_name = e.target.value;
+                });
+
+                // Initialize undo/redo stacks
+                undoStack = [];
+                redoStack = [];
+                saveStateToUndoStack();
+
                 updatePercentCheckers();
             }
 
-            /**
-             * Loads an existing structure into the editor.
-             * @param {object} structure - The saved structure object.
-             */
             function loadStructureForEditing(structure) {
-                currentEditingStructure = JSON.parse(JSON.stringify(structure)); // Deep copy to allow 'cancel'
-                currentClassName.textContent = `${structure.class} - Grading Structure (Editing)`;
+                currentEditingStructure = JSON.parse(JSON.stringify(structure));
+                isEditingExisting = true;
+
+                currentClassName.innerHTML = `<input type="text" class="text-2xl font-semibold text-gray-800 p-1 border-b focus:border-indigo-500 w-full md:w-auto" value="${structure.class.split(' - ')[0]} - ${structure.structure_name}" placeholder="Structure Name">`;
                 placeholderText.style.display = 'none';
                 gradeStructureBuilder.style.display = 'block';
                 saveBtn.disabled = false;
                 cancelBtn.disabled = false;
+                undoBtn.disabled = true;
+                redoBtn.disabled = true;
 
                 labSubCategories.innerHTML = '';
                 lectureSubCategories.innerHTML = '';
 
-                // Render LAB
-                (currentEditingStructure.structure.LABORATORY || []).forEach(subCat => {
-                    addSubCategoryElement('LAB', subCat);
+                currentClassName.querySelector('input').addEventListener('input', e => {
+                    currentEditingStructure.structure_name = e.target.value.replace(structure.class.split(' - ')[0] + ' - ', '').trim();
                 });
 
-                // Render LECTURE
-                (currentEditingStructure.structure.LECTURE || []).forEach(subCat => {
-                    addSubCategoryElement('LECTURE', subCat);
-                });
+                (currentEditingStructure.structure.LABORATORY || []).forEach(subCat => addSubCategoryElement('LAB', subCat));
+                (currentEditingStructure.structure.LECTURE || []).forEach(subCat => addSubCategoryElement('LECTURE', subCat));
+
+                // Initialize undo/redo stacks
+                undoStack = [];
+                redoStack = [];
+                saveStateToUndoStack();
 
                 updatePercentCheckers();
             }
 
-            cancelBtn.addEventListener('click', resetEditorPanel);
+            undoBtn.addEventListener('click', undo);
+            redoBtn.addEventListener('click', redo);
 
-            // #################### DYNAMIC EDITOR BUILDING ####################
+            cancelBtn.addEventListener('click', async () => {
+                const confirmed = await showConfirmation('Discard all unsaved changes? This action cannot be undone.');
+                if (confirmed) {
+                    showNotification('Changes discarded.', 'info');
+                    resetEditorPanel();
+                }
+            });
 
-            // Event listeners for Add Sub-Category buttons
+            // #################### HISTORY MODAL ####################
+            function showHistoryModal(structureId, structure) {
+                const historyModal = document.getElementById('history-modal');
+                const historyContent = document.getElementById('history-content');
+
+                historyContent.innerHTML = '<p class="text-center py-4"><i class="fas fa-spinner fa-spin mr-2"></i>Loading history...</p>';
+                historyModal.style.display = 'block';
+
+                // Fetch history
+                fetch(`/api/gradebuilder/history/${structureId}`)
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data.success) {
+                            renderHistory(structureId, structure, data.history);
+                        } else {
+                            historyContent.innerHTML = '<p class="text-center text-red-500 py-4">Failed to load history.</p>';
+                        }
+                    })
+                    .catch(err => {
+                        console.error('Error loading history:', err);
+                        historyContent.innerHTML = '<p class="text-center text-red-500 py-4">Error loading history.</p>';
+                    });
+            }
+
+            function renderHistory(structureId, structure, history) {
+                const historyContent = document.getElementById('history-content');
+
+                if (history.length === 0) {
+                    historyContent.innerHTML = '<p class="text-center text-gray-500 py-4">No history available for this structure.</p>';
+                    return;
+                }
+
+                let html = '<div class="space-y-4">';
+                history.forEach(entry => {
+                    const date = new Date(entry.changed_at).toLocaleString();
+                    html += `
+                        <div class="border border-gray-200 rounded-lg p-4">
+                            <div class="flex justify-between items-center mb-2">
+                                <h4 class="font-semibold">Version ${entry.version}</h4>
+                                <span class="text-sm text-gray-500">${date}</span>
+                            </div>
+                            <div class="text-sm text-gray-600 mb-3">
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <strong>LAB:</strong> ${entry.structure.LABORATORY?.length || 0} categories
+                                    </div>
+                                    <div>
+                                        <strong>LECTURE:</strong> ${entry.structure.LECTURE?.length || 0} categories
+                                    </div>
+                                </div>
+                            </div>
+                            <button class="restore-btn bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded text-sm"
+                                    data-structure-id="${structureId}"
+                                    data-history-id="${entry.id}"
+                                    data-version="${entry.version}">
+                                Restore to this version
+                            </button>
+                        </div>
+                    `;
+                });
+                html += '</div>';
+
+                historyContent.innerHTML = html;
+
+                // Add restore button listeners
+                document.querySelectorAll('.restore-btn').forEach(btn => {
+                    btn.addEventListener('click', async e => {
+                        const structureId = e.target.dataset.structureId;
+                        const historyId = e.target.dataset.historyId;
+                        const version = e.target.dataset.version;
+
+                        const confirmed = await showConfirmation(`Restore structure to version ${version}?`);
+                        if (!confirmed) return;
+
+                        // Show loading
+                        e.target.textContent = 'Restoring...';
+                        e.target.disabled = true;
+
+                        try {
+                            const res = await fetch(`/api/gradebuilder/restore/${structureId}/${historyId}`, {
+                                method: 'POST',
+                                headers: {
+                                    'X-CSRFToken': window.csrfToken
+                                }
+                            });
+                            const result = await res.json();
+
+                            if (res.ok) {
+                                showNotification(result.message || 'Structure restored!', 'success');
+                                document.getElementById('history-modal').style.display = 'none';
+                                await loadBackendData();
+                            } else {
+                                showNotification(result.message || 'Restore failed.', 'error');
+                            }
+                        } catch (err) {
+                            console.error('Error restoring:', err);
+                            showNotification('Network error during restore.', 'error');
+                        } finally {
+                            e.target.textContent = `Restore to this version`;
+                            e.target.disabled = false;
+                        }
+                    });
+                });
+            }
+
+            // #################### DYNAMIC BUILDER ####################
             document.querySelectorAll('.btn-add-sub').forEach(btn => {
-                btn.addEventListener('click', (e) => {
-                    const type = e.currentTarget.dataset.type; // 'LAB' or 'LECTURE'
+                btn.addEventListener('click', e => {
+                    const type = e.currentTarget.dataset.type;
                     addSubCategoryElement(type);
+                    saveStateToUndoStack();
                     updatePercentCheckers();
                 });
             });
 
-            /**
-             * Creates and appends a new Sub-Category element.
-             * @param {string} type - 'LAB' or 'LECTURE'.
-             * @param {object} [data] - Optional existing data for loading.
-             */
             function addSubCategoryElement(type, data = { name: '', weight: 0, assessments: [] }) {
                 const container = type === 'LAB' ? labSubCategories : lectureSubCategories;
-                const subCatId = `sub-${Date.now()}-${Math.random().toFixed(4).slice(2)}`; // Unique ID
-
+                const subCatId = `sub-${Date.now()}-${Math.random().toFixed(4).slice(2)}`;
                 const el = document.createElement('div');
-                el.className = 'sub-category-item';
+                el.className = 'sub-category-item shadow-sm';
                 el.dataset.id = subCatId;
                 el.dataset.type = type;
                 el.innerHTML = `
-            <div class="sub-category-header">
-                <input type="text" placeholder="Category Name (e.g., Quizzes)" value="${data.name}" data-field="name">
-                <input type="number" min="0" max="100" placeholder="0" value="${data.weight}" data-field="weight">
-                <span>%</span>
-                <button class="btn-icon add-assessment-btn" title="Add Assessment"><i class="fas fa-file-alt"> Add Assessment</i></button>
-                <button class="btn-icon delete-sub-btn" title="Delete Category"><i class="fas fa-times"></i></button>
-            </div>
-            <div class="assessment-list" data-sub-id="${subCatId}">
-                </div>
-        `;
+                        <div class="sub-category-header">
+                            <input type="text" placeholder="Category Name" value="${data.name}" data-field="name" class="w-2/5 md:w-1/2">
+                            <input type="number" min="0" max="100" placeholder="0" value="${data.weight}" data-field="weight" class="w-16 text-center font-bold">
+                            <span class="font-bold">%</span>
+                            <button class="btn-icon add-assessment-btn text-indigo-500 hover:text-indigo-700 ml-2"><i class="fas fa-file-alt mr-1"></i> Add Assessment</button>
+                            <button class="btn-icon delete-sub-btn ml-auto text-red-500 hover:text-red-700"><i class="fas fa-trash"></i></button>
+                        </div>
+                        <div class="assessment-list pl-4 mt-2 border-l border-gray-300" data-sub-id="${subCatId}"></div>
+                    `;
                 container.appendChild(el);
 
-                // Load existing assessments
                 const assessmentList = el.querySelector('.assessment-list');
-                data.assessments.forEach(assName => {
-                    addAssessmentElement(assessmentList, assName);
-                });
+                data.assessments.forEach(a => addAssessmentElement(assessmentList, a));
 
-                // Add listeners for the new elements
                 el.querySelector('.delete-sub-btn').addEventListener('click', () => {
                     el.remove();
+                    saveStateToUndoStack();
                     updatePercentCheckers();
                 });
-
                 el.querySelector('.add-assessment-btn').addEventListener('click', () => {
                     addAssessmentElement(assessmentList);
+                    saveStateToUndoStack();
                 });
-
-                el.querySelector('input[data-field="weight"]').addEventListener('input', updatePercentCheckers);
+                el.querySelector('input[data-field="weight"]').addEventListener('input', e => {
+                    updatePercentCheckers();
+                    // Debounce state saving for weight changes
+                    clearTimeout(el._weightTimeout);
+                    el._weightTimeout = setTimeout(() => saveStateToUndoStack(), 500);
+                });
             }
 
-            /**
-             * Creates and appends a new Assessment input field.
-             * @param {HTMLElement} container - The assessment-list div.
-             * @param {string} [name] - Optional existing assessment name.
-             */
             function addAssessmentElement(container, name = '') {
                 const assId = `ass-${Date.now()}-${Math.random().toFixed(4).slice(2)}`;
-
                 const el = document.createElement('div');
                 el.className = 'assessment-item';
                 el.dataset.id = assId;
                 el.innerHTML = `
-            <input type="text" placeholder="Assessment Name (e.g., Quiz 1)" value="${name}" data-field="assessment-name">
-            <button class="btn-icon delete-assessment-btn" title="Delete Assessment"><i class="fas fa-trash"></i></button>
-        `;
+                        <input type="text" placeholder="Assessment Name" value="${name}" data-field="assessment-name" class="flex-grow text-sm">
+                        <button class="btn-icon delete-assessment-btn text-red-400 hover:text-red-600 p-1 rounded-full" title="Delete assessment"><i class="fas fa-trash"></i></button>
+                    `;
                 container.appendChild(el);
-
-                // Add listener for delete
                 el.querySelector('.delete-assessment-btn').addEventListener('click', () => {
                     el.remove();
+                    saveStateToUndoStack();
                 });
             }
 
-            /**
-             * Calculates and updates the percentage checkers for LAB and LECTURE.
-             */
             function updatePercentCheckers() {
-                const checkLab = document.getElementById('lab-percent-checker');
-                const checkLecture = document.getElementById('lecture-percent-checker');
-
-                let totalLab = 0;
-                let totalLecture = 0;
-
+                const labCheck = document.getElementById('lab-percent-checker');
+                const lectureCheck = document.getElementById('lecture-percent-checker');
+                let totalLab = 0, totalLecture = 0;
                 document.querySelectorAll('.sub-category-item').forEach(item => {
-                    const weightInput = item.querySelector('input[data-field="weight"]');
-                    const weight = parseFloat(weightInput.value) || 0;
-                    const type = item.dataset.type;
-
-                    if (type === 'LAB') {
-                        totalLab += weight;
-                    } else if (type === 'LECTURE') {
-                        totalLecture += weight;
-                    }
+                    const weight = parseFloat(item.querySelector('input[data-field="weight"]').value) || 0;
+                    if (item.dataset.type === 'LAB') totalLab += weight;
+                    else totalLecture += weight;
                 });
-
-                // Update LAB checker
-                checkLab.textContent = `${totalLab}%`;
-                checkLab.classList.toggle('valid', totalLab === 100);
-
-                // Update LECTURE checker
-                checkLecture.textContent = `${totalLecture}%`;
-                checkLecture.classList.toggle('valid', totalLecture === 100);
+                labCheck.textContent = `${totalLab.toFixed(0)}%`;
+                lectureCheck.textContent = `${totalLecture.toFixed(0)}%`;
+                labCheck.classList.toggle('valid', totalLab === 100);
+                lectureCheck.classList.toggle('valid', totalLecture === 100);
             }
 
-            // #################### SAVE & CANCEL ####################
-
-            /**
-             * Builds the JSON structure from the current editor content.
-             */
+            // #################### SAVE ####################
             function buildStructureJson() {
-                const structure = {
-                    LAB: [],
-                    LECTURE: []
-                };
+                const structure = { LAB: [], LECTURE: [] };
+                const labChecker = document.getElementById('lab-percent-checker');
+                const lectureChecker = document.getElementById('lecture-percent-checker');
+                const totalLab = parseFloat(labChecker.textContent) || 0;
+                const totalLecture = parseFloat(lectureChecker.textContent) || 0;
 
-                document.querySelectorAll('.sub-category-item').forEach(subCatEl => {
-                    const type = subCatEl.dataset.type;
-                    const name = subCatEl.querySelector('input[data-field="name"]').value.trim();
-                    const weight = parseFloat(subCatEl.querySelector('input[data-field="weight"]').value) || 0;
+                if (totalLab !== 100 && totalLab !== 0) {
+                    showNotification(`LAB must total 100% or 0%. Current: ${totalLab}%`, 'error');
+                    return null;
+                }
+                if (totalLecture !== 100 && totalLecture !== 0) {
+                    showNotification(`LECTURE must total 100% or 0%. Current: ${totalLecture}%`, 'error');
+                    return null;
+                }
+                if (totalLab === 0 && totalLecture === 0) {
+                    showNotification('Add at least one category with assessments before saving.', 'warning');
+                    return null;
+                }
 
+                document.querySelectorAll('.sub-category-item').forEach(sub => {
+                    const type = sub.dataset.type;
+                    const name = sub.querySelector('input[data-field="name"]').value.trim();
+                    const weight = parseFloat(sub.querySelector('input[data-field="weight"]').value) || 0;
                     const assessments = [];
-                    subCatEl.querySelectorAll('.assessment-item input[data-field="assessment-name"]').forEach(assInput => {
-                        const assName = assInput.value.trim();
-                        if (assName) {
-                            assessments.push(assName);
-                        }
+                    sub.querySelectorAll('.assessment-item input[data-field="assessment-name"]').forEach(a => {
+                        if (a.value.trim()) assessments.push(a.value.trim());
                     });
-
                     if (name && weight > 0) {
                         structure[type].push({ name, weight, assessments });
                     }
                 });
-
                 return structure;
             }
 
-            /**
-             * Saves the current structure to the in-memory array and updates the list.
-             */
-             saveBtn.addEventListener('click', async () => {
+            saveBtn.addEventListener('click', async () => {
                 if (!currentEditingStructure) return;
+                const built = buildStructureJson();
+                if (!built) return;
 
-                const structure = buildStructureJson();
-                // Use class_id from the structure if editing existing, otherwise from modal selection
-                let classId = currentEditingStructure.class_id;
-                if (!classId) {
-                    let course;
-                    if (currentEditingStructure.class.includes(' ')) {
-                        course = currentEditingStructure.class.split(' ').slice(0, -1).join(' ');
-                    } else {
-                        course = currentEditingStructure.class;
-                    }
-                    const classBtn = document.querySelector(`.btn-class-option[data-class="${course}"]`);
-                    classId = classBtn ? classBtn.dataset.classId : null;
-                }
+                // Show loading state
+                saveBtn.disabled = true;
+                saveBtnText.textContent = 'Saving...';
+                saveBtn.classList.add('opacity-75', 'cursor-not-allowed');
 
                 const payload = {
-                    class_id: classId,
+                    id: currentEditingStructure.id,
+                    class_id: parseInt(currentEditingStructure.class_id),
                     structure_name: currentEditingStructure.structure_name || currentEditingStructure.class,
-                    structure
+                    structure_json: JSON.stringify({
+                        LABORATORY: built.LAB,
+                        LECTURE: built.LECTURE
+                    })
                 };
 
+                console.log('Frontend save payload:', payload);
+
                 try {
-                    const response = await fetch(`/api/gradebuilder/${profId}/save`, {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
+                    const res = await fetch('/api/gradebuilder/save', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': window.csrfToken
+                        },
                         body: JSON.stringify(payload)
                     });
-
-                    const result = await response.json();
-                    if (result.status === "success") {
-                        alert("Grading structure saved successfully!");
+                    console.log('Frontend save response status:', res.status);
+                    const result = await res.json();
+                    console.log('Frontend save response data:', result);
+                    if (res.ok) {
+                        showNotification(result.message || 'Structure saved!', 'success');
+                        await loadBackendData();
                         resetEditorPanel();
-                        loadStructuresFromDatabase(); // Reload structures from database to show updates
                     } else {
-                        alert("Error saving: " + result.error);
+                        showNotification(result.message || 'Save failed.', 'error');
                     }
                 } catch (err) {
-                    console.error("Save failed:", err);
-                    alert("Connection error while saving structure.");
+                    console.error('Save error:', err);
+                    showNotification('Network error. Please check your connection and try again.', 'error');
+                } finally {
+                    // Reset loading state
+                    saveBtn.disabled = false;
+                    saveBtnText.textContent = 'Save Structure';
+                    saveBtn.classList.remove('opacity-75', 'cursor-not-allowed');
                 }
             });
 
-
-            // Run initial percentage check
             updatePercentCheckers();
         });
     </script>
+        
 </body>
 
 </html>

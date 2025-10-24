@@ -58,16 +58,29 @@
         </div>
     </div>
 
-    <!-- Class Members Modal -->
-    <div id="members-modal" class="modal">
+    <!-- Class Details Modal -->
+    <div id="class-details-modal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
-                <h2 class="modal-title" id="modal-title">Class Members</h2>
+                <h2 class="modal-title" id="modal-title">Class Details</h2>
                 <span class="close" onclick="closeModal()">&times;</span>
             </div>
             <div class="modal-body">
-                <div id="members-list">
-                    <div class="loading">Loading members...</div>
+                <div id="class-details-content">
+                    <div class="class-details-buttons">
+                        <button class="detail-btn" onclick="showViewMembers()">
+                            👥 View Members
+                        </button>
+                        <button class="detail-btn" onclick="showViewClassRecord()">
+                            📊 View Class Record
+                        </button>
+                        <button class="detail-btn" onclick="showViewClassDetails()">
+                            📋 View Class Details
+                        </button>
+                    </div>
+                    <div id="detail-view-container">
+                        <div class="loading">Select an option above...</div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -144,8 +157,8 @@
                             </div>
                         </div>
                         <div class="class-actions">
-                            <button class="view-members-btn" onclick="viewClassMembers(${cls.id}, '${cls.class_id}')">
-                                👥 View Members (${memberCount})
+                            <button class="view-members-btn" onclick="viewClassDetails(${cls.id}, '${cls.class_id}')">
+                                📋 View Class Details (${memberCount})
                             </button>
                         </div>
                     </div>
@@ -155,95 +168,185 @@
             container.innerHTML = html;
         }
 
-        async function viewClassMembers(classId, className) {
-            document.getElementById('modal-title').textContent = `Members of ${className}`;
-            document.getElementById('members-modal').style.display = 'block';
-            document.getElementById('members-modal').classList.add('show');
-            document.getElementById('members-list').innerHTML = '<div class="loading"><div class="spinner"></div>Loading members...</div>';
+        let currentClassId = null;
+        let currentClassName = null;
 
-            // Show loading toast
-            Swal.fire({
-                title: 'Loading Members...',
-                text: 'Please wait while we fetch class members',
-                allowOutsideClick: false,
-                showConfirmButton: false,
-                willOpen: () => {
-                    Swal.showLoading();
-                }
-            });
+        async function viewClassDetails(classId, className) {
+            currentClassId = classId;
+            currentClassName = className;
+            document.getElementById('modal-title').textContent = `Class Details - ${className}`;
+            document.getElementById('class-details-modal').style.display = 'block';
+            document.getElementById('class-details-modal').classList.add('show');
+            document.getElementById('detail-view-container').innerHTML = '<div class="loading">Select an option above...</div>';
+        }
+
+        async function showViewMembers() {
+            const container = document.getElementById('detail-view-container');
+            container.innerHTML = '<div class="loading"><div class="spinner"></div>Loading members...</div>';
 
             try {
-                const response = await fetch(`/api/instructor/classes/${classId}/members`);
-                Swal.close(); // Close loading toast
-
+                const response = await fetch(`/api/instructor/classes/${currentClassId}/members`);
                 if (response.ok) {
                     const data = await response.json();
                     renderMembers(data.members);
-
-                    // Success notification
-                    Swal.fire({
-                        icon: 'success',
-                        title: 'Members Loaded!',
-                        text: `Found ${data.members.length} member${data.members.length !== 1 ? 's' : ''}`,
-                        timer: 2000,
-                        timerProgressBar: true,
-                        showConfirmButton: false,
-                        toast: true,
-                        position: 'top-end',
-                        background: '#d1fae5',
-                        color: '#065f46'
-                    });
                 } else {
-                    document.getElementById('members-list').innerHTML = '<div class="no-members">Failed to load members</div>';
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Loading Error',
-                        text: 'Failed to load class members.'
-                    });
+                    container.innerHTML = '<div class="no-members">Failed to load members</div>';
                 }
             } catch (error) {
                 console.error('Error loading members:', error);
-                Swal.close(); // Close loading toast
-                document.getElementById('members-list').innerHTML = '<div class="no-members">Error loading members</div>';
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Connection Error',
-                    text: 'Error loading members. Please check your connection.'
-                });
+                container.innerHTML = '<div class="no-members">Error loading members</div>';
+            }
+        }
+
+        async function showViewClassRecord() {
+            const container = document.getElementById('detail-view-container');
+            container.innerHTML = '<div class="coming-soon"><h3>📊 Class Record</h3><p>This feature is coming soon...</p></div>';
+        }
+
+        async function showViewClassDetails() {
+            const container = document.getElementById('detail-view-container');
+            container.innerHTML = '<div class="loading"><div class="spinner"></div>Loading class details...</div>';
+
+            try {
+                const response = await fetch(`/api/instructor/classes/${currentClassId}/details`);
+                if (response.ok) {
+                    const data = await response.json();
+                    renderClassDetails(data);
+                } else {
+                    container.innerHTML = '<div class="error">Failed to load class details</div>';
+                }
+            } catch (error) {
+                console.error('Error loading class details:', error);
+                container.innerHTML = '<div class="error">Error loading class details</div>';
             }
         }
 
         function renderMembers(members) {
-            const container = document.getElementById('members-list');
+            const container = document.getElementById('detail-view-container');
 
             if (members.length === 0) {
                 container.innerHTML = '<div class="no-members">No students have joined this class yet</div>';
                 return;
             }
 
-            let html = '<ul class="member-list">';
+            let html = `
+                <div class="members-section">
+                    <h3>👥 Class Members (${members.length})</h3>
+                    <div class="search-container">
+                        <input type="text" id="member-search" placeholder="Search by name or ID..." onkeyup="filterMembers()">
+                    </div>
+                    <div class="members-list" id="members-list">
+            `;
+
             members.forEach(member => {
                 const joinedDate = new Date(member.joined_at).toLocaleDateString();
+                const fullName = member.student_name || `${member.first_name || ''} ${member.middle_name || ''} ${member.last_name || ''}`.trim();
                 html += `
-                    <li class="member-item">
+                    <div class="member-item" data-name="${fullName.toLowerCase()}" data-id="${member.school_id.toLowerCase()}">
                         <div class="member-info">
-                            <div class="member-name">${member.student_name}</div>
+                            <div class="member-name">${fullName}</div>
                             <div class="member-details">
-                                School ID: ${member.school_id}<br>
-                                Course: ${member.course} • Year: ${member.year_level}
+                                <strong>ID:</strong> ${member.school_id}<br>
+                                <strong>Course:</strong> ${member.course} • <strong>Track:</strong> ${member.track || 'N/A'} • <strong>Year:</strong> ${member.year_level} • <strong>Section:</strong> ${member.section}
                             </div>
-                            <div class="joined-date">Joined: ${joinedDate}</div>
+                            <div class="joined-date">📅 Joined: ${joinedDate}</div>
                         </div>
-                    </li>
+                    </div>
                 `;
             });
-            html += '</ul>';
+
+            html += `
+                    </div>
+                </div>
+            `;
+
+            container.innerHTML = html;
+        }
+
+        function filterMembers() {
+            const searchTerm = document.getElementById('member-search').value.toLowerCase();
+            const members = document.querySelectorAll('.member-item');
+
+            members.forEach(member => {
+                const name = member.getAttribute('data-name');
+                const id = member.getAttribute('data-id');
+                if (name.includes(searchTerm) || id.includes(searchTerm)) {
+                    member.style.display = 'block';
+                } else {
+                    member.style.display = 'none';
+                }
+            });
+        }
+
+        function renderClassDetails(data) {
+            const container = document.getElementById('detail-view-container');
+            const classInfo = data.class_info;
+            const instructorInfo = data.instructor_info;
+
+            let html = `
+                <div class="class-details-section">
+                    <h3>📋 Class Information</h3>
+                    <div class="details-grid">
+                        <div class="detail-item">
+                            <strong>Year:</strong> ${classInfo.year}
+                        </div>
+                        <div class="detail-item">
+                            <strong>Semester:</strong> ${classInfo.semester}
+                        </div>
+                        <div class="detail-item">
+                            <strong>Course:</strong> ${classInfo.course}
+                        </div>
+                        <div class="detail-item">
+                            <strong>Track:</strong> ${classInfo.track}
+                        </div>
+                        <div class="detail-item">
+                            <strong>Section:</strong> ${classInfo.section}
+                        </div>
+                        <div class="detail-item">
+                            <strong>Schedule:</strong> ${classInfo.schedule}
+                        </div>
+                        <div class="detail-item">
+                            <strong>Class Code:</strong> ${classInfo.class_code}
+                        </div>
+                        <div class="detail-item">
+                            <strong>Join Code:</strong> ${classInfo.join_code}
+                        </div>
+                        <div class="detail-item">
+                            <strong>Created:</strong> ${new Date(classInfo.created_at).toLocaleDateString()}
+                        </div>
+                        <div class="detail-item">
+                            <strong>Updated:</strong> ${new Date(classInfo.updated_at).toLocaleDateString()}
+                        </div>
+                    </div>
+
+                    <h3>👨‍🏫 Instructor Information</h3>
+                    <div class="details-grid">
+                        <div class="detail-item">
+                            <strong>Name:</strong> ${instructorInfo.full_name}
+                        </div>
+                        <div class="detail-item">
+                            <strong>Department:</strong> ${instructorInfo.department}
+                        </div>
+                        <div class="detail-item">
+                            <strong>Specialization:</strong> ${instructorInfo.specialization || 'N/A'}
+                        </div>
+                        <div class="detail-item">
+                            <strong>Email:</strong> ${instructorInfo.email}
+                        </div>
+                    </div>
+
+                    <div class="class-actions">
+                        <button class="action-btn" onclick="regenerateJoinCode()">🔄 Regenerate Join Code</button>
+                        <button class="action-btn" onclick="editClassInfo()">✏️ Edit Class Info</button>
+                    </div>
+                </div>
+            `;
 
             container.innerHTML = html;
         }
 
         function closeModal() {
-            const modal = document.getElementById('members-modal');
+            const modal = document.getElementById('class-details-modal');
             modal.classList.remove('show');
             setTimeout(() => {
                 modal.style.display = 'none';
@@ -252,10 +355,36 @@
 
         // Close modal when clicking outside
         window.onclick = function (event) {
-            const modal = document.getElementById('members-modal');
+            const modal = document.getElementById('class-details-modal');
             if (event.target === modal) {
                 closeModal();
             }
+        }
+
+        function regenerateJoinCode() {
+            Swal.fire({
+                title: 'Regenerate Join Code?',
+                text: 'This will create a new join code for this class. The old code will no longer work.',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#3085d6',
+                cancelButtonColor: '#d33',
+                confirmButtonText: 'Yes, regenerate'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    // TODO: Implement API call to regenerate join code
+                    Swal.fire('Coming Soon!', 'This feature will be implemented soon.', 'info');
+                }
+            });
+        }
+
+        function editClassInfo() {
+            Swal.fire({
+                title: 'Edit Class Information',
+                text: 'This feature will allow you to edit class details.',
+                icon: 'info',
+                confirmButtonText: 'Coming Soon'
+            });
         }
 
         // Refresh classes function
@@ -300,7 +429,7 @@
             setTimeout(() => {
                 Swal.fire({
                     title: '👨‍🏫 Welcome back, Instructor!',
-                    text: 'Your dashboard is ready. Click "View Members" to see enrolled students.',
+                    text: 'Your dashboard is ready. Click "View Class Details" to manage your classes.',
                     icon: 'info',
                     timer: 4000,
                     timerProgressBar: true,

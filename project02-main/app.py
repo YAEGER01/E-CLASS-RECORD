@@ -1507,7 +1507,7 @@ def get_class_members(class_id):
             # Get all student enrollments for this class
             cursor.execute(
                 """SELECT sc.*, s.id as student_id, s.course, s.track, s.year_level, s.section,
-                         u.school_id, pi.first_name, pi.last_name, pi.middle_name
+                          u.school_id, pi.first_name, pi.last_name, pi.middle_name
                 FROM student_classes sc
                 JOIN students s ON sc.student_id = s.id
                 JOIN users u ON s.user_id = u.id
@@ -1520,12 +1520,16 @@ def get_class_members(class_id):
             members = []
             for enrollment in enrollments:
                 # Format student name
-                if enrollment["first_name"] and enrollment["last_name"]:
+                first_name = enrollment.get("first_name", "")
+                middle_name = enrollment.get("middle_name", "")
+                last_name = enrollment.get("last_name", "")
+
+                if first_name and last_name:
                     student_name = (
-                        f"{enrollment['first_name']} {enrollment['last_name']}"
+                        f"{first_name} {middle_name} {last_name}".strip()
+                        if middle_name
+                        else f"{first_name} {last_name}"
                     )
-                    if enrollment["middle_name"]:
-                        student_name = f"{enrollment['first_name']} {enrollment['middle_name']} {enrollment['last_name']}"
                 else:
                     student_name = enrollment["school_id"]
 
@@ -1534,6 +1538,9 @@ def get_class_members(class_id):
                         "id": enrollment["student_id"],
                         "school_id": enrollment["school_id"],
                         "student_name": student_name,
+                        "first_name": first_name,
+                        "middle_name": middle_name,
+                        "last_name": last_name,
                         "course": enrollment["course"],
                         "track": enrollment["track"],
                         "year_level": enrollment["year_level"],
@@ -1561,6 +1568,112 @@ def get_class_members(class_id):
     except Exception as e:
         logger.error(f"Failed to get members for class {class_id}: {str(e)}")
         return jsonify({"error": "Failed to get class members"}), 500
+
+
+@app.route("/api/instructor/classes/<int:class_id>/details", methods=["GET"])
+@login_required
+def get_class_details(class_id):
+    """Get detailed information about a specific class."""
+    if session.get("role") != "instructor":
+        return jsonify({"error": "Access denied"}), 403
+
+    try:
+        with get_db_connection().cursor() as cursor:
+            # Get instructor ID to verify ownership
+            cursor.execute(
+                "SELECT id FROM instructors WHERE user_id = %s", (session["user_id"],)
+            )
+            instructor = cursor.fetchone()
+
+            if not instructor:
+                return jsonify({"error": "Instructor profile not found"}), 404
+
+            # Find the class and verify ownership
+            cursor.execute(
+                "SELECT * FROM classes WHERE id = %s AND instructor_id = %s",
+                (class_id, instructor["id"]),
+            )
+            class_obj = cursor.fetchone()
+
+            if not class_obj:
+                return jsonify({"error": "Class not found or access denied"}), 404
+
+            # Get instructor information
+            cursor.execute(
+                """SELECT i.*, pi.first_name, pi.last_name, pi.middle_name, pi.email
+                FROM instructors i
+                LEFT JOIN personal_info pi ON i.personal_info_id = pi.id
+                WHERE i.id = %s""",
+                (instructor["id"],),
+            )
+            instructor_info = cursor.fetchone()
+
+            # Format instructor name
+            instructor_name = ""
+            if instructor_info:
+                first_name = instructor_info.get("first_name", "")
+                middle_name = instructor_info.get("middle_name", "")
+                last_name = instructor_info.get("last_name", "")
+                if first_name and last_name:
+                    instructor_name = (
+                        f"{first_name} {middle_name} {last_name}".strip()
+                        if middle_name
+                        else f"{first_name} {last_name}"
+                    )
+                else:
+                    instructor_name = "Instructor"
+
+            class_info = {
+                "id": class_obj["id"],
+                "year": class_obj["year"],
+                "semester": class_obj["semester"],
+                "course": class_obj["course"],
+                "track": class_obj["track"],
+                "section": class_obj["section"],
+                "schedule": class_obj["schedule"],
+                "class_code": class_obj["class_code"],
+                "join_code": class_obj["join_code"],
+                "grading_template_id": class_obj["grading_template_id"],
+                "created_at": (
+                    class_obj["created_at"].isoformat()
+                    if class_obj["created_at"]
+                    else None
+                ),
+                "updated_at": (
+                    class_obj["updated_at"].isoformat()
+                    if class_obj["updated_at"]
+                    else None
+                ),
+            }
+
+            instructor_details = {
+                "full_name": instructor_name,
+                "department": (
+                    instructor_info.get("department", "N/A")
+                    if instructor_info
+                    else "N/A"
+                ),
+                "specialization": (
+                    instructor_info.get("specialization") if instructor_info else None
+                ),
+                "email": (
+                    instructor_info.get("email", "N/A") if instructor_info else "N/A"
+                ),
+            }
+
+        logger.info(
+            f"Instructor {session.get('school_id')} viewed details of class {class_id}"
+        )
+        return jsonify(
+            {
+                "class_info": class_info,
+                "instructor_info": instructor_details,
+            }
+        )
+
+    except Exception as e:
+        logger.error(f"Failed to get details for class {class_id}: {str(e)}")
+        return jsonify({"error": "Failed to get class details"}), 500
 
 
 @app.route("/api/student/leave-class/<int:class_id>", methods=["DELETE"])
@@ -2165,6 +2278,12 @@ def gradebuilder_save():
                 f"Failed to create grade structure for instructor {session.get('school_id')}: {str(e)}"
             )
             return jsonify({"success": False, "error": "Failed to save structure"}), 500
+
+
+@app.route("/classrecord")
+def classrecord():
+    logger.info("Class Record page accessed")
+    return render_template("classrecord.html")
 
 
 if __name__ == "__main__":

@@ -73,6 +73,11 @@
       
     </div>
 
+    <!-- CSRF Token for JavaScript -->
+    <script>
+        const csrfToken = "{{ csrf_token() }}";
+    </script>
+
     <!-- SweetAlert2 JS -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.7.32/dist/sweetalert2.all.min.js"></script>
 
@@ -310,7 +315,10 @@
                     // Send to server
                     fetch('/admin/create-instructor', {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': csrfToken
+                        },
                         body: JSON.stringify(data)
                     })
                         .then(response => response.json())
@@ -738,7 +746,10 @@
 
             fetch(`/api/admin/instructors/${instructorId}/status`, {
                 method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrfToken
+                },
                 body: JSON.stringify({ status: newStatus })
             })
             .then(response => {
@@ -769,7 +780,10 @@
             console.log(`Deleting instructor ${instructorId}`);
 
             fetch(`/api/admin/instructors/${instructorId}`, {
-                method: 'DELETE'
+                method: 'DELETE',
+                headers: {
+                    'X-CSRFToken': csrfToken
+                }
             })
             .then(response => {
                 console.log('Delete response status:', response.status);

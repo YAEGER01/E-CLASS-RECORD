@@ -9,10 +9,10 @@ import sys
 import tkinter as tk
 from tkinter import messagebox, ttk
 from werkzeug.security import generate_password_hash
-from db_conn import get_db_connection
 
-# Add current directory to path
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+# Add parent directory to path to import db_conn
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from db_conn import get_db_connection
 
 
 def create_admin():

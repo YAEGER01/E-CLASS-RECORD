@@ -71,8 +71,8 @@
                         <button class="detail-btn" onclick="showViewMembers()">
                             👥 View Members
                         </button>
-                        <button class="detail-btn" onclick="showViewClassRecord()">
-                            📊 View Class Record
+                        <button class="detail-btn" onclick="showGradeEntry()">
+                            📊 Grade Entry
                         </button>
                         <button class="detail-btn" onclick="showViewClassDetails()">
                             📋 View Class Details
@@ -198,9 +198,9 @@
             }
         }
 
-        async function showViewClassRecord() {
-            const container = document.getElementById('detail-view-container');
-            container.innerHTML = '<div class="coming-soon"><h3>📊 Class Record</h3><p>This feature is coming soon...</p></div>';
+        async function showGradeEntry() {
+            // Redirect to grade entry page
+            window.location.href = `/grades/${currentClassId}`;
         }
 
         async function showViewClassDetails() {

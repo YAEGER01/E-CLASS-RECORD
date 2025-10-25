@@ -662,6 +662,7 @@ def get_instructor_classes():
                 classes_data.append(
                     {
                         "id": cls["id"],
+                        "classType": cls["class_type"],
                         "year": cls["year"],
                         "semester": cls["semester"],
                         "course": cls["course"],
@@ -713,6 +714,7 @@ def create_class():
 
             # Validate required fields
             required_fields = [
+                "classType",
                 "year",
                 "semester",
                 "course",
@@ -723,6 +725,13 @@ def create_class():
             for field in required_fields:
                 if not data.get(field):
                     return jsonify({"error": f"{field} is required"}), 400
+
+            # Validate classType
+            if data.get("classType") not in ["MINOR", "MAJOR"]:
+                return (
+                    jsonify({"error": "classType must be either MINOR or MAJOR"}),
+                    400,
+                )
 
             # Validate section format (should be like "1A", "2B", etc.)
             section = data["section"]
@@ -750,10 +759,11 @@ def create_class():
             # Create new class
             cursor.execute(
                 """INSERT INTO classes
-                (instructor_id, year, semester, course, track, section, schedule, class_code, join_code)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)""",
+                (instructor_id, class_type, year, semester, course, track, section, schedule, class_code, join_code)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)""",
                 (
                     instructor["id"],
+                    data["classType"],
                     data["year"],
                     data["semester"],
                     data["course"],
@@ -777,6 +787,7 @@ def create_class():
                     "message": "Class created successfully",
                     "class": {
                         "id": class_id,
+                        "classType": data["classType"],
                         "year": data["year"],
                         "semester": data["semester"],
                         "course": data["course"],
@@ -2278,12 +2289,6 @@ def gradebuilder_save():
                 f"Failed to create grade structure for instructor {session.get('school_id')}: {str(e)}"
             )
             return jsonify({"success": False, "error": "Failed to save structure"}), 500
-
-
-@app.route("/classrecord")
-def classrecord():
-    logger.info("Class Record page accessed")
-    return render_template("classrecord.html")
 
 
 if __name__ == "__main__":

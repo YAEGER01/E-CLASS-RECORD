@@ -17,89 +17,108 @@
             <h1>E-Class Record - Class Management</h1>
 
             <form id="class-form" onsubmit="event.preventDefault(); handleFormSubmit();">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                 <input type="hidden" id="class-id">
-                <div class="form-grid">
-                    <div class="form-group">
-                        <label for="year">Year</label>
-                        <select id="year" required>
-                            <option value="" disabled selected>Select Year</option>
-                            <option value="2024">2024</option>
-                            <option value="2025">2025</option>
-                            <option value="2026">2026</option>
-                            <option value="addNewOption">Add New Year...</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label for="semester">Semester</label>
-                        <select id="semester" required>
-                            <option value="" disabled selected>Select Semester</option>
-                            <option value="1st sem">1st Semester</option>
-                            <option value="2nd sem">2nd Semester</option>
-                            <option value="addNewOption">Add New Semester...</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label for="course">Course</label>
-                        <select id="course" required>
-                            <option value="" disabled selected>Select Course</option>
-                            <option value="BSIT">BS Information Technology</option>
-                            <option value="BSCS">BS Computer Science</option>
-                            <option value="BSIS">BS Information Systems</option>
-                            <option value="BSCpE">BS Computer Engineering</option>
-                            <option value="BSEMC">BS Entertainment & Multimedia Computing</option>
-                            <option value="addNewOption">Add New Course...</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label for="track">Track</label>
-                        <select id="track" required>
-                            <option value="" disabled selected>Select Track</option>
-                            <option value="Programming">Programming Track</option>
-                            <option value="Networking">Networking Track</option>
-                            <option value="Database">Database Track</option>
-                            <option value="Web Development">Web Development Track</option>
-                            <option value="Mobile Development">Mobile Development Track</option>
-                            <option value="addNewOption">Add New Track...</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label for="sectionNumber">Section</label>
-                        <div class="section-group">
-                            <select id="sectionNumber" required aria-label="Section Number">
-                                <option value="" disabled selected>Num</option>
-                                <option value="1">1</option>
-                                <option value="2">2</option>
-                                <option value="3">3</option>
-                                <option value="4">4</option>
-                                <option value="5">5</option>
+                <div id="step1" class="form-step">
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="classType">Class Type</label>
+                            <select id="classType" required>
+                                <option value="" disabled selected>Select Type</option>
+                                <option value="MINOR">MINOR</option>
+                                <option value="MAJOR">MAJOR</option>
                             </select>
-                            <select id="sectionLetter" required aria-label="Section Letter">
-                                <option value="" disabled selected>Letter</option>
-                                <option value="A">A</option>
-                                <option value="B">B</option>
-                                <option value="C">C</option>
-                                <option value="D">D</option>
+                        </div>
+                        <div class="form-group">
+                            <label for="year">Year</label>
+                            <select id="year" required>
+                                <option value="" disabled selected>Select Year</option>
+                                <option value="2024">2024</option>
+                                <option value="2025">2025</option>
+                                <option value="2026">2026</option>
+                                <option value="addNewOption">Add New Year...</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="semester">Semester</label>
+                            <select id="semester" required>
+                                <option value="" disabled selected>Select Semester</option>
+                                <option value="1st sem">1st Semester</option>
+                                <option value="2nd sem">2nd Semester</option>
+                                <option value="addNewOption">Add New Semester...</option>
                             </select>
                         </div>
                     </div>
-                    <div class="form-group">
-                        <label for="schedule">Schedule</label>
-                        <select id="schedule" required>
-                            <option value="" disabled selected>Select Schedule</option>
-                            <option value="M-W-F 8-10AM">M-W-F 8-10AM</option>
-                            <option value="T-Th 10-12PM">T-Th 10-12PM</option>
-                            <option value="M-W-F 1-3PM">M-W-F 1-3PM</option>
-                            <option value="T-Th 3-5PM">T-Th 3-5PM</option>
-                            <option value="addNewOption">Add New Schedule...</option>
-                        </select>
+                    <div class="button-group">
+                        <button type="button" id="next-btn" class="btn-primary">Next</button>
+                        <button type="button" id="clear-btn" class="btn-secondary">Clear Form</button>
                     </div>
                 </div>
-                <div class="button-group">
-                    <button type="submit" id="submit-btn" class="btn-primary">
-                        <span id="submit-text">Add Class</span>
-                        <span id="submit-loading" class="loading" style="display: none;"></span>
-                    </button>
-                    <button type="button" id="clear-btn" class="btn-secondary">Clear Form</button>
+                <div id="step2" class="form-step" style="display: none;">
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="course">Course</label>
+                            <select id="course" required>
+                                <option value="" disabled selected>Select Course</option>
+                                <option value="BSIT">BS Information Technology</option>
+                                <option value="BSCS">BS Computer Science</option>
+                                <option value="BSIS">BS Information Systems</option>
+                                <option value="BSCpE">BS Computer Engineering</option>
+                                <option value="BSEMC">BS Entertainment & Multimedia Computing</option>
+                                <option value="addNewOption">Add New Course...</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="track">Track</label>
+                            <select id="track" required>
+                                <option value="" disabled selected>Select Track</option>
+                                <option value="Programming">WMAD</option>
+                                <option value="Networking">NETWORKING SECURITY</option>
+                                <option value="Database">BPO</option>
+                                <option value="Web Development">BA</option>
+
+                                <option value="addNewOption">Add New Track...</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="sectionNumber">Section</label>
+                            <div class="section-group">
+                                <select id="sectionNumber" required aria-label="Section Number">
+                                    <option value="" disabled selected>Num</option>
+                                    <option value="1">1</option>
+                                    <option value="2">2</option>
+                                    <option value="3">3</option>
+                                    <option value="4">4</option>
+                                    <option value="5">5</option>
+                                </select>
+                                <select id="sectionLetter" required aria-label="Section Letter">
+                                    <option value="" disabled selected>Letter</option>
+                                    <option value="A">A</option>
+                                    <option value="B">B</option>
+                                    <option value="C">C</option>
+                                    <option value="D">D</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="schedule">Schedule</label>
+                            <select id="schedule" required>
+                                <option value="" disabled selected>Select Schedule</option>
+                                <option value="M-W-F 8-10AM">M-W-F 8-10AM</option>
+                                <option value="T-Th 10-12PM">T-Th 10-12PM</option>
+                                <option value="M-W-F 1-3PM">M-W-F 1-3PM</option>
+                                <option value="T-Th 3-5PM">T-Th 3-5PM</option>
+                                <option value="addNewOption">Add New Schedule...</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="button-group">
+                        <button type="button" id="back-btn" class="btn-secondary">Back</button>
+                        <button type="submit" id="submit-btn" class="btn-primary">
+                            <span id="submit-text">Add Class</span>
+                            <span id="submit-loading" class="loading" style="display: none;"></span>
+                        </button>
+                    </div>
                 </div>
             </form>
         </div>
@@ -126,6 +145,21 @@
         </div>
     </div>
 
+    <!-- Modal for class preview -->
+    <div id="preview-modal" class="modal-overlay">
+        <div class="modal-content">
+            <h3>Class Preview</h3>
+            <p>Is the information correct? If so, proceed to ADD CLASS.</p>
+            <div id="preview-details" class="preview-details">
+                <!-- Preview content will be inserted here -->
+            </div>
+            <div class="button-group">
+                <button id="preview-confirm" class="btn-primary">ADD CLASS</button>
+                <button id="preview-cancel" class="btn-secondary">Cancel</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         let classes = [];
         let editingId = null;
@@ -145,8 +179,12 @@
         document.addEventListener('DOMContentLoaded', () => {
             loadOptions();
             document.getElementById('clear-btn').addEventListener('click', clearForm);
+            document.getElementById('next-btn').addEventListener('click', nextStep);
+            document.getElementById('back-btn').addEventListener('click', prevStep);
             document.getElementById('modal-save').addEventListener('click', handleModalSave);
             document.getElementById('modal-cancel').addEventListener('click', hideModal);
+            document.getElementById('preview-confirm').addEventListener('click', confirmAddClass);
+            document.getElementById('preview-cancel').addEventListener('click', hidePreviewModal);
             loadClasses();
         });
 
@@ -318,6 +356,7 @@
                         </div>
                     </div>
                     <div class="record-details">
+                        <div class="detail-item"><span class="detail-label">Type:</span><span>${cls.classType || 'N/A'}</span></div>
                         <div class="detail-item"><span class="detail-label">Year:</span><span>${cls.year}</span></div>
                         <div class="detail-item"><span class="detail-label">Semester:</span><span>${cls.semester}</span></div>
                         <div class="detail-item"><span class="detail-label">Course:</span><span>${cls.course}</span></div>
@@ -331,8 +370,60 @@
             });
         }
 
-        // Function to handle form submission
-        async function handleFormSubmit() {
+        // Function to handle form submission (now shows preview modal)
+        function handleFormSubmit() {
+            const classType = document.getElementById('classType').value;
+            const year = document.getElementById('year').value;
+            const semester = document.getElementById('semester').value;
+            const course = document.getElementById('course').value;
+            const track = document.getElementById('track').value;
+            const sectionNumber = document.getElementById('sectionNumber').value;
+            const sectionLetter = document.getElementById('sectionLetter').value;
+            const section = sectionNumber + sectionLetter;
+            const schedule = document.getElementById('schedule').value;
+
+            // Validate all fields
+            if (!classType || !year || !semester || !course || !track || !sectionNumber || !sectionLetter || !schedule) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Incomplete Information',
+                    text: 'Please fill in all fields.',
+                    confirmButtonColor: '#f59e0b'
+                });
+                return;
+            }
+
+            // Show preview modal
+            showPreviewModal(classType, year, semester, course, track, section, schedule);
+        }
+
+        // Function to show preview modal
+        function showPreviewModal(classType, year, semester, course, track, section, schedule) {
+            const previewDetails = document.getElementById('preview-details');
+            previewDetails.innerHTML = `
+                <div class="preview-item"><strong>Class Type:</strong> ${classType}</div>
+                <div class="preview-item"><strong>Year:</strong> ${year}</div>
+                <div class="preview-item"><strong>Semester:</strong> ${semester}</div>
+                <div class="preview-item"><strong>Course:</strong> ${course}</div>
+                <div class="preview-item"><strong>Track:</strong> ${track}</div>
+                <div class="preview-item"><strong>Section:</strong> ${section}</div>
+                <div class="preview-item"><strong>Schedule:</strong> ${schedule}</div>
+            `;
+
+            const modal = document.getElementById('preview-modal');
+            modal.classList.add('show');
+        }
+
+        // Function to hide preview modal
+        function hidePreviewModal() {
+            const modal = document.getElementById('preview-modal');
+            modal.classList.remove('show');
+        }
+
+        // Function to confirm and add class
+        async function confirmAddClass() {
+            hidePreviewModal();
+
             const submitBtn = document.getElementById('submit-btn');
             const submitText = document.getElementById('submit-text');
             const submitLoading = document.getElementById('submit-loading');
@@ -342,6 +433,7 @@
             submitLoading.style.display = 'inline-block';
             submitBtn.disabled = true;
 
+            const classType = document.getElementById('classType').value;
             const year = document.getElementById('year').value;
             const semester = document.getElementById('semester').value;
             const course = document.getElementById('course').value;
@@ -352,6 +444,7 @@
             const schedule = document.getElementById('schedule').value;
 
             const classData = {
+                classType,
                 year,
                 semester,
                 course,
@@ -359,6 +452,9 @@
                 section,
                 schedule
             };
+
+            // Get CSRF token from the hidden input
+            const csrfToken = document.querySelector('input[name="csrf_token"]').value;
 
             try {
                 let response;
@@ -368,6 +464,7 @@
                         method: 'PUT',
                         headers: {
                             'Content-Type': 'application/json',
+                            'X-CSRFToken': csrfToken
                         },
                         body: JSON.stringify(classData)
                     });
@@ -377,6 +474,7 @@
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
+                            'X-CSRFToken': csrfToken
                         },
                         body: JSON.stringify(classData)
                     });
@@ -434,6 +532,7 @@
         function editClass(id) {
             const classToEdit = classes.find(c => c.id === id);
             if (classToEdit) {
+                document.getElementById('classType').value = classToEdit.classType || '';
                 document.getElementById('year').value = classToEdit.year;
                 document.getElementById('semester').value = classToEdit.semester;
                 document.getElementById('course').value = classToEdit.course;
@@ -448,6 +547,9 @@
 
                 editingId = id;
                 document.getElementById('submit-text').textContent = 'Update Class';
+                // Show step 2 directly for editing
+                document.getElementById('step1').style.display = 'none';
+                document.getElementById('step2').style.display = 'block';
                 window.scrollTo({ top: 0, behavior: 'smooth' });
             }
         }
@@ -569,6 +671,35 @@
             document.getElementById('class-form').reset();
             editingId = null;
             document.getElementById('submit-text').textContent = 'Add Class';
+            // Reset to step 1
+            document.getElementById('step1').style.display = 'block';
+            document.getElementById('step2').style.display = 'none';
+        }
+
+        // Function to go to next step
+        function nextStep() {
+            const classType = document.getElementById('classType').value;
+            const year = document.getElementById('year').value;
+            const semester = document.getElementById('semester').value;
+
+            if (!classType || !year || !semester) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Incomplete Information',
+                    text: 'Please fill in all fields in step 1.',
+                    confirmButtonColor: '#f59e0b'
+                });
+                return;
+            }
+
+            document.getElementById('step1').style.display = 'none';
+            document.getElementById('step2').style.display = 'block';
+        }
+
+        // Function to go to previous step
+        function prevStep() {
+            document.getElementById('step2').style.display = 'none';
+            document.getElementById('step1').style.display = 'block';
         }
     </script>
 </body>

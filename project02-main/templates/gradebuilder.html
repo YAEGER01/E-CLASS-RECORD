@@ -5,246 +5,121 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Responsive Grade Structure Editor</title>
-    <!-- Load Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
+    
     <!-- Load Font Awesome for Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    <style>
-        /* Custom styles for better aesthetics and percentage checks */
-        .page-header {
-            background-color: #1f2937; /* Darker header */
-            color: #f9fafb;
-            padding: 1.5rem 2rem;
-            border-bottom: 4px solid #10b981; /* Accent color */
-        }
-        .card {
-            background-color: #ffffff;
-            border-radius: 0.75rem;
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-            padding: 1.5rem;
-            transition: all 0.3s ease;
-        }
-        .sub-category-item {
-            border: 1px solid #d1d5db;
-            padding: 1rem;
-            border-radius: 0.5rem;
-            margin-bottom: 0.75rem;
-            background-color: #f9fafb;
-        }
-        .sub-category-header input[type="text"] {
-            font-weight: 600;
-        }
-        .percent-checker {
-            font-weight: 700;
-            padding: 0.25rem 0.5rem;
-            border-radius: 9999px; /* Full rounded */
-            transition: background-color 0.3s, color 0.3s;
-            margin-left: 1rem;
-            min-width: 60px;
-            text-align: center;
-            color: #dc2626; /* Default: Red for not 100% */
-            background-color: #fee2e2;
-        }
-        .percent-checker.valid {
-            color: #059669; /* Green for 100% */
-            background-color: #d1fae5;
-        }
-        .structure-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 0.75rem 0.5rem;
-            border-bottom: 1px solid #e5e7eb;
-            cursor: pointer;
-            transition: background-color 0.2s;
-        }
-        .structure-item:hover {
-            background-color: #f3f4f6;
-        }
-        /* Custom modal styles */
-        .modal {
-            display: none;
-            position: fixed;
-            z-index: 100;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            overflow: auto;
-            background-color: rgba(0, 0, 0, 0.4);
-            backdrop-filter: blur(2px);
-        }
-        .modal-content {
-            background-color: #fefefe;
-            margin: 15vh auto;
-            padding: 20px;
-            border-radius: 12px;
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
-            width: 90%;
-            max-width: 500px;
-            animation: slideIn 0.3s ease-out;
-        }
-        @keyframes slideIn {
-            from { transform: translateY(-50px); opacity: 0; }
-            to { transform: translateY(0); opacity: 1; }
-        }
-        /* Notification Box */
-        #notification-box {
-            position: fixed;
-            top: 1rem;
-            right: 1rem;
-            z-index: 200;
-            max-width: 300px;
-            padding: 1rem;
-            border-radius: 0.5rem;
-            color: white;
-            opacity: 0;
-            transition: opacity 0.5s ease-in-out;
-            pointer-events: none;
-        }
-        #notification-box.show {
-            opacity: 1;
-            pointer-events: auto;
-        }
-        .sub-category-header, .assessment-item {
-            display: flex;
-            gap: 0.5rem;
-            align-items: center;
-        }
-        .assessment-item {
-            margin-left: 1rem;
-            padding: 0.5rem 0;
-        }
-        /* Responsive tweaks */
-        @media (max-width: 768px) {
-            .main-content-container {
-                flex-direction: column;
-            }
-            .card-30, .card-70 {
-                width: 100%;
-                margin-bottom: 1rem;
-            }
-        }
-        /* Style the input fields better */
-        .editor-content input[type="text"], .editor-content input[type="number"] {
-            border: 1px solid #d1d5db;
-            padding: 0.5rem 0.75rem;
-            border-radius: 0.375rem;
-            transition: border-color 0.2s, box-shadow 0.2s;
-        }
-        .editor-content input:focus {
-            border-color: #10b981;
-            outline: none;
-            box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2);
-        }
-
-    </style>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/gradebuilder.css') }}">
+    <script src="{{ url_for('static', filename='js/swal.js') }}"></script>
 </head>
 
-<body class="bg-gray-100 min-h-screen font-sans">
+<body>
 
 
     <!-- Header -->
     <header class="page-header">
-        <h1 class="text-3xl font-extrabold mb-1">Grade Structure Editor</h1>
-        <h3 class="text-xl font-light">Instructor: <span id="instructor-name">Loading...</span></h3>
-        <p class="text-sm opacity-75">Email: <span id="instructor-email">Loading...</span></p>
+        <div class="header-content">
+            <a href="{{ url_for('instructor_dashboard') }}" class="back-link">← Back to Dashboard</a>
+            <h1>Grade Structure Editor</h1>
+            <div class="instructor-info">
+                <h3>Instructor: <span id="instructor-name">Loading...</span></h3>
+                <p>Email: <span id="instructor-email">Loading...</span></p>
+            </div>
+        </div>
     </header>
 
     <!-- Main Content Container -->
-    <main class="main-content-container flex flex-col md:flex-row p-4 md:p-8 gap-6">
+    <main class="main-content-container">
 
         <!-- Left Panel: Saved Structures (30%) -->
-        <div class="card card-30 w-full md:w-1/3 h-fit">
-            <div class="card-header flex justify-between items-center mb-4">
-                <h2 class="text-2xl font-semibold text-gray-800">Saved Structures</h2>
-                <button class="btn btn-primary bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-3 rounded-lg transition" id="create-structure-btn">
-                    <i class="fas fa-plus mr-2"></i> Create New
+        <div class="card card-30">
+            <div class="card-header">
+                <h2>Saved Structures</h2>
+                <button class="btn btn-primary" id="create-structure-btn">
+                    <i class="fas fa-plus"></i> Create New
                 </button>
             </div>
 
-            <div class="structure-list-container space-y-1" id="structure-list">
+            <div class="structure-list-container" id="structure-list">
                 <!-- Structure items will be rendered here -->
-                <p class="text-center text-gray-500 py-4">Loading saved structures...</p>
+                <p class="loading-text">Loading saved structures...</p>
             </div>
         </div>
 
         <!-- Right Panel: Editor (70%) -->
-        <div class="card card-70 w-full md:w-2/3 min-h-[60vh]" id="editor-panel">
-            <div class="card-header editor-header flex justify-between items-center pb-4 border-b border-gray-200 mb-4">
-                <h2 class="text-2xl font-semibold text-gray-800" id="current-class-name">Select or Create a Structure</h2>
-                <div class="header-actions flex gap-3">
-                    <button class="btn btn-secondary border border-gray-300 hover:bg-gray-100 text-gray-700 font-medium py-2 px-4 rounded-lg transition" id="undo-btn" disabled title="Undo last change">
+        <div class="card card-70" id="editor-panel">
+            <div class="card-header editor-header">
+                <h2 id="current-class-name">Select or Create a Structure</h2>
+                <div class="header-actions">
+                    <button class="btn btn-secondary" id="undo-btn" disabled title="Undo last change">
                         <i class="fas fa-undo"></i>
                     </button>
-                    <button class="btn btn-secondary border border-gray-300 hover:bg-gray-100 text-gray-700 font-medium py-2 px-4 rounded-lg transition" id="redo-btn" disabled title="Redo last undone change">
+                    <button class="btn btn-secondary" id="redo-btn" disabled title="Redo last undone change">
                         <i class="fas fa-redo"></i>
                     </button>
-                    <button class="btn btn-secondary border border-gray-300 hover:bg-gray-100 text-gray-700 font-medium py-2 px-4 rounded-lg transition" id="cancel-editor-btn" disabled>
-                        <i class="fas fa-times mr-1"></i> Cancel
+                    <button class="btn btn-secondary" id="cancel-editor-btn" disabled>
+                        <i class="fas fa-times"></i> Cancel
                     </button>
-                    <button class="btn btn-primary bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-lg transition" id="save-structure-btn" disabled>
-                        <i class="fas fa-save mr-1"></i> <span id="save-btn-text">Save Structure</span>
+                    <button class="btn btn-primary" id="save-structure-btn" disabled>
+                        <i class="fas fa-save"></i> <span id="save-btn-text">Save Structure</span>
                     </button>
                 </div>
             </div>
 
             <div class="editor-content" id="grading-editor-content">
-                <p class="placeholder-text text-center text-gray-500 p-10 text-lg" style="display: block;">
+                <p class="placeholder-text">
                     Click "Create New" to begin or select a saved structure from the left panel.
                 </p>
 
-                <div id="grade-structure-builder" style="display: none;">
+                <div id="grade-structure-builder">
 
                     <!-- Lab Category Panel -->
-                    <div class="main-category-panel mb-8" data-type="LAB">
-                        <div class="flex items-center justify-between border-b-2 border-indigo-200 pb-2 mb-4">
-                            <h3 class="text-xl font-bold text-indigo-700 flex items-center">
-                                <i class="fas fa-flask mr-3 text-2xl"></i> LABORATORY 
-                                <span class="category-weight ml-3 text-base font-normal text-gray-500">(100% Target)</span>
+                    <div class="main-category-panel" data-type="LAB">
+                        <div>
+                            <h3>
+                                <i class="fas fa-flask"></i> LABORATORY
+                                <span class="category-weight">(100% Target)</span>
                             </h3>
-                            <span class="percent-checker text-lg" id="lab-percent-checker">0%</span>
+                            <span class="percent-checker" id="lab-percent-checker">0%</span>
                         </div>
-                        <div class="sub-categories space-y-4" id="lab-sub-categories">
+                        <div class="sub-categories" id="lab-sub-categories">
                             <!-- Sub-categories will be appended here -->
                         </div>
-                        <button class="btn btn-add-sub w-full mt-4 py-2 text-indigo-600 border border-indigo-300 rounded-lg hover:bg-indigo-50 transition" data-type="LAB">
-                            <i class="fas fa-plus mr-2"></i> Add Sub-Category
+                        <button class="btn btn-add-sub" data-type="LAB">
+                            <i class="fas fa-plus"></i> Add Sub-Category
                         </button>
                     </div>
 
                     <!-- Lecture Category Panel -->
                     <div class="main-category-panel" data-type="LECTURE">
-                        <div class="flex items-center justify-between border-b-2 border-indigo-200 pb-2 mb-4">
-                            <h3 class="text-xl font-bold text-indigo-700 flex items-center">
-                                <i class="fas fa-chalkboard-teacher mr-3 text-2xl"></i> LECTURE 
-                                <span class="category-weight ml-3 text-base font-normal text-gray-500">(100% Target)</span>
+                        <div>
+                            <h3>
+                                <i class="fas fa-chalkboard-teacher"></i> LECTURE
+                                <span class="category-weight">(100% Target)</span>
                             </h3>
-                            <span class="percent-checker text-lg" id="lecture-percent-checker">0%</span>
+                            <span class="percent-checker" id="lecture-percent-checker">0%</span>
                         </div>
-                        <div class="sub-categories space-y-4" id="lecture-sub-categories">
+                        <div class="sub-categories" id="lecture-sub-categories">
                             <!-- Sub-categories will be appended here -->
                         </div>
-                        <button class="btn btn-add-sub w-full mt-4 py-2 text-indigo-600 border border-indigo-300 rounded-lg hover:bg-indigo-50 transition" data-type="LECTURE">
-                            <i class="fas fa-plus mr-2"></i> Add Sub-Category
+                        <button class="btn btn-add-sub" data-type="LECTURE">
+                            <i class="fas fa-plus"></i> Add Sub-Category
                         </button>
                     </div>
                 </div>
             </div>
-        </div>
 
     </main>
 
-    <!-- Modal for Class Selection -->
+     <!-- Modal for Class Selection -->
     <div id="class-selection-modal" class="modal">
         <div class="modal-content">
-            <div class="flex justify-between items-center border-b pb-2 mb-4">
-                <h2 class="text-2xl font-bold text-gray-800">Select Class for New Structure</h2>
-                <span class="close-btn text-gray-500 text-3xl font-light cursor-pointer">&times;</span>
+            <div class="modal-header">
+                <h2>Select Class for New Structure</h2>
+                <span class="close-btn">&times;</span>
             </div>
-            <p class="text-gray-600 mb-4">Choose a class to associate with the new grading structure.</p>
+            <p class="modal-description">Choose a class to associate with the new grading structure.</p>
 
-            <div class="class-list grid grid-cols-1 gap-3" id="class-list">
+            <div class="class-list" id="class-list">
                 <!-- Class buttons will be rendered here via JS -->
             </div>
         </div>
@@ -256,23 +131,25 @@
     <!-- Custom Confirmation Modal -->
     <div id="confirmation-modal" class="modal">
         <div class="modal-content">
-            <h3 class="text-xl font-semibold mb-4" id="confirm-title">Confirm Action</h3>
-            <p class="text-gray-700 mb-6" id="confirm-message">Are you sure you want to proceed?</p>
-            <div class="flex justify-end gap-3">
-                <button id="confirm-cancel" class="border border-gray-300 hover:bg-gray-100 text-gray-700 font-medium py-2 px-4 rounded-lg">Cancel</button>
-                <button id="confirm-ok" class="bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-4 rounded-lg">OK</button>
+            <div class="modal-header">
+                <h3 id="confirm-title">Confirm Action</h3>
+            </div>
+            <p id="confirm-message">Are you sure you want to proceed?</p>
+            <div class="modal-actions">
+                <button id="confirm-cancel">Cancel</button>
+                <button id="confirm-ok">OK</button>
             </div>
         </div>
     </div>
 
     <!-- History Modal -->
     <div id="history-modal" class="modal">
-        <div class="modal-content max-w-4xl">
-            <div class="flex justify-between items-center border-b pb-2 mb-4">
-                <h2 class="text-2xl font-bold text-gray-800">Structure History</h2>
-                <span class="close-history-btn text-gray-500 text-3xl font-light cursor-pointer">&times;</span>
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Structure History</h2>
+                <span class="close-history-btn">&times;</span>
             </div>
-            <div id="history-content" class="max-h-96 overflow-y-auto">
+            <div id="history-content">
                 <!-- History entries will be loaded here -->
             </div>
         </div>
@@ -316,12 +193,18 @@
                     labCategories: Array.from(labSubCategories.children).map(cat => ({
                         name: cat.querySelector('input[data-field="name"]').value,
                         weight: cat.querySelector('input[data-field="weight"]').value,
-                        assessments: Array.from(cat.querySelectorAll('.assessment-item input[data-field="assessment-name"]')).map(input => input.value)
+                        assessments: Array.from(cat.querySelectorAll('.assessment-item')).map(item => ({
+                            name: item.querySelector('input[data-field="assessment-name"]').value,
+                            max_score: parseFloat(item.querySelector('input[data-field="max-score"]').value) || 100
+                        }))
                     })),
                     lectureCategories: Array.from(lectureSubCategories.children).map(cat => ({
                         name: cat.querySelector('input[data-field="name"]').value,
                         weight: cat.querySelector('input[data-field="weight"]').value,
-                        assessments: Array.from(cat.querySelectorAll('.assessment-item input[data-field="assessment-name"]')).map(input => input.value)
+                        assessments: Array.from(cat.querySelectorAll('.assessment-item')).map(item => ({
+                            name: item.querySelector('input[data-field="assessment-name"]').value,
+                            max_score: parseFloat(item.querySelector('input[data-field="max-score"]').value) || 100
+                        }))
                     }))
                 };
 
@@ -359,12 +242,22 @@
 
                 // Restore LAB categories
                 state.labCategories.forEach(cat => {
-                    addSubCategoryElement('LAB', cat);
+                    // Ensure assessments have max_score for backward compatibility
+                    const processedCat = {
+                        ...cat,
+                        assessments: cat.assessments.map(a => typeof a === 'string' ? { name: a, max_score: 100 } : a)
+                    };
+                    addSubCategoryElement('LAB', processedCat);
                 });
 
                 // Restore LECTURE categories
                 state.lectureCategories.forEach(cat => {
-                    addSubCategoryElement('LECTURE', cat);
+                    // Ensure assessments have max_score for backward compatibility
+                    const processedCat = {
+                        ...cat,
+                        assessments: cat.assessments.map(a => typeof a === 'string' ? { name: a, max_score: 100 } : a)
+                    };
+                    addSubCategoryElement('LECTURE', processedCat);
                 });
 
                 updatePercentCheckers();
@@ -470,12 +363,12 @@
                     const el = document.createElement('div');
                     el.className = 'structure-item';
                     el.innerHTML = `
-                            <span class="text-gray-700 font-medium">${item.class.split(' - ')[0]}</span>
-                            <span class="text-sm text-gray-500 ml-2">${item.class.split(' - ')[1] || item.structure_name}</span>
-                            <div class="item-actions flex gap-2">
-                                <button class="btn-icon edit-btn text-blue-500 hover:text-blue-700 p-1 rounded-full" data-id="${item.id}" title="Edit"><i class="fas fa-edit"></i></button>
-                                <button class="btn-icon history-btn text-purple-500 hover:text-purple-700 p-1 rounded-full" data-id="${item.id}" title="View History"><i class="fas fa-history"></i></button>
-                                <button class="btn-icon delete-btn text-red-500 hover:text-red-700 p-1 rounded-full" data-id="${item.id}" title="Delete"><i class="fas fa-trash"></i></button>
+                            <span>${item.class.split(' - ')[0]}</span>
+                            <span>${item.class.split(' - ')[1] || item.structure_name}</span>
+                            <div class="item-actions">
+                                <button class="btn-icon edit-btn" data-id="${item.id}" title="Edit"><i class="fas fa-edit"></i></button>
+                                <button class="btn-icon history-btn" data-id="${item.id}" title="View History"><i class="fas fa-history"></i></button>
+                                <button class="btn-icon delete-btn" data-id="${item.id}" title="Delete"><i class="fas fa-trash"></i></button>
                             </div>
                         `;
                     listContainer.appendChild(el);
@@ -559,7 +452,7 @@
                 classListContainer.innerHTML = '';
                 classes.forEach(c => {
                     const btn = document.createElement('button');
-                    btn.className = 'btn-class-option w-full text-left bg-gray-100 hover:bg-indigo-50 text-gray-700 py-3 px-4 rounded-lg transition border border-gray-300';
+                    btn.className = 'btn-class-option';
                     btn.dataset.class = `${c.course} - ${c.section}`;
                     btn.dataset.classId = c.class_id;
                     btn.textContent = `${c.course} - ${c.section}`;
@@ -567,7 +460,7 @@
                 });
 
                 const otherBtn = document.createElement('button');
-                otherBtn.className = 'btn-class-option w-full text-left bg-gray-100 hover:bg-indigo-50 text-gray-700 py-3 px-4 rounded-lg transition border border-gray-300 font-semibold';
+                otherBtn.className = 'btn-class-option';
                 otherBtn.dataset.class = 'Other - Blank Structure';
                 otherBtn.dataset.classId = '';
                 otherBtn.textContent = 'Other (Blank Structure)';
@@ -621,7 +514,7 @@
                 };
                 isEditingExisting = false;
 
-                currentClassName.innerHTML = `<input type="text" class="text-2xl font-semibold text-gray-800 p-1 border-b focus:border-indigo-500 w-full md:w-auto" value="${className.split(' - ')[0]} - New Structure" placeholder="Structure Name">`;
+                currentClassName.innerHTML = `<input type="text" value="${className.split(' - ')[0]} - New Structure" placeholder="Structure Name" class="structure-name-input">`;
                 placeholderText.style.display = 'none';
                 gradeStructureBuilder.style.display = 'block';
                 saveBtn.disabled = false;
@@ -648,7 +541,7 @@
                 currentEditingStructure = JSON.parse(JSON.stringify(structure));
                 isEditingExisting = true;
 
-                currentClassName.innerHTML = `<input type="text" class="text-2xl font-semibold text-gray-800 p-1 border-b focus:border-indigo-500 w-full md:w-auto" value="${structure.class.split(' - ')[0]} - ${structure.structure_name}" placeholder="Structure Name">`;
+                currentClassName.innerHTML = `<input type="text" value="${structure.class.split(' - ')[0]} - ${structure.structure_name}" placeholder="Structure Name" class="structure-name-input">`;
                 placeholderText.style.display = 'none';
                 gradeStructureBuilder.style.display = 'block';
                 saveBtn.disabled = false;
@@ -663,8 +556,22 @@
                     currentEditingStructure.structure_name = e.target.value.replace(structure.class.split(' - ')[0] + ' - ', '').trim();
                 });
 
-                (currentEditingStructure.structure.LABORATORY || []).forEach(subCat => addSubCategoryElement('LAB', subCat));
-                (currentEditingStructure.structure.LECTURE || []).forEach(subCat => addSubCategoryElement('LECTURE', subCat));
+                (currentEditingStructure.structure.LABORATORY || []).forEach(subCat => {
+                    // Handle backward compatibility for assessments
+                    const processedSubCat = {
+                        ...subCat,
+                        assessments: subCat.assessments.map(a => typeof a === 'string' ? { name: a, max_score: 100 } : a)
+                    };
+                    addSubCategoryElement('LAB', processedSubCat);
+                });
+                (currentEditingStructure.structure.LECTURE || []).forEach(subCat => {
+                    // Handle backward compatibility for assessments
+                    const processedSubCat = {
+                        ...subCat,
+                        assessments: subCat.assessments.map(a => typeof a === 'string' ? { name: a, max_score: 100 } : a)
+                    };
+                    addSubCategoryElement('LECTURE', processedSubCat);
+                });
 
                 // Initialize undo/redo stacks
                 undoStack = [];
@@ -721,29 +628,29 @@
                 history.forEach(entry => {
                     const date = new Date(entry.changed_at).toLocaleString();
                     html += `
-                        <div class="border border-gray-200 rounded-lg p-4">
-                            <div class="flex justify-between items-center mb-2">
-                                <h4 class="font-semibold">Version ${entry.version}</h4>
-                                <span class="text-sm text-gray-500">${date}</span>
-                            </div>
-                            <div class="text-sm text-gray-600 mb-3">
-                                <div class="grid grid-cols-2 gap-4">
-                                    <div>
-                                        <strong>LAB:</strong> ${entry.structure.LABORATORY?.length || 0} categories
+                            <div>
+                                <div class="history-entry">
+                                    <div class="history-header">
+                                        <h4>Version ${entry.version}</h4>
+                                        <span class="history-date">${date}</span>
                                     </div>
-                                    <div>
-                                        <strong>LECTURE:</strong> ${entry.structure.LECTURE?.length || 0} categories
+                                    <div class="history-details">
+                                        <div>
+                                            <strong>LAB:</strong> ${entry.structure.LABORATORY?.length || 0} categories
+                                        </div>
+                                        <div>
+                                            <strong>LECTURE:</strong> ${entry.structure.LECTURE?.length || 0} categories
+                                        </div>
                                     </div>
+                                    <button class="restore-btn btn btn-primary"
+                                            data-structure-id="${structureId}"
+                                            data-history-id="${entry.id}"
+                                            data-version="${entry.version}">
+                                        Restore to this version
+                                    </button>
                                 </div>
                             </div>
-                            <button class="restore-btn bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded text-sm"
-                                    data-structure-id="${structureId}"
-                                    data-history-id="${entry.id}"
-                                    data-version="${entry.version}">
-                                Restore to this version
-                            </button>
-                        </div>
-                    `;
+                        `;
                 });
                 html += '</div>';
 
@@ -809,18 +716,22 @@
                 el.dataset.type = type;
                 el.innerHTML = `
                         <div class="sub-category-header">
-                            <input type="text" placeholder="Category Name" value="${data.name}" data-field="name" class="w-2/5 md:w-1/2">
-                            <input type="number" min="0" max="100" placeholder="0" value="${data.weight}" data-field="weight" class="w-16 text-center font-bold">
-                            <span class="font-bold">%</span>
-                            <button class="btn-icon add-assessment-btn text-indigo-500 hover:text-indigo-700 ml-2"><i class="fas fa-file-alt mr-1"></i> Add Assessment</button>
-                            <button class="btn-icon delete-sub-btn ml-auto text-red-500 hover:text-red-700"><i class="fas fa-trash"></i></button>
+                            <input type="text" placeholder="Category Name" value="${data.name}" data-field="name">
+                            <input type="number" min="0" max="100" placeholder="0" value="${data.weight}" data-field="weight">
+                            <span>%</span>
+                            <button class="btn-icon add-assessment-btn"><i class="fas fa-file-alt"></i> Add Assessment</button>
+                            <button class="btn-icon delete-sub-btn"><i class="fas fa-trash"></i></button>
                         </div>
-                        <div class="assessment-list pl-4 mt-2 border-l border-gray-300" data-sub-id="${subCatId}"></div>
+                        <div class="assessment-list" data-sub-id="${subCatId}"></div>
                     `;
                 container.appendChild(el);
 
                 const assessmentList = el.querySelector('.assessment-list');
-                data.assessments.forEach(a => addAssessmentElement(assessmentList, a));
+                data.assessments.forEach(a => {
+                    // Handle backward compatibility: if a is a string, convert to object
+                    const assessmentData = typeof a === 'string' ? { name: a, max_score: 100 } : a;
+                    addAssessmentElement(assessmentList, assessmentData);
+                });
 
                 el.querySelector('.delete-sub-btn').addEventListener('click', () => {
                     el.remove();
@@ -839,14 +750,15 @@
                 });
             }
 
-            function addAssessmentElement(container, name = '') {
+            function addAssessmentElement(container, data = { name: '', max_score: 100 }) {
                 const assId = `ass-${Date.now()}-${Math.random().toFixed(4).slice(2)}`;
                 const el = document.createElement('div');
                 el.className = 'assessment-item';
                 el.dataset.id = assId;
                 el.innerHTML = `
-                        <input type="text" placeholder="Assessment Name" value="${name}" data-field="assessment-name" class="flex-grow text-sm">
-                        <button class="btn-icon delete-assessment-btn text-red-400 hover:text-red-600 p-1 rounded-full" title="Delete assessment"><i class="fas fa-trash"></i></button>
+                        <input type="text" placeholder="Assessment Name" value="${data.name}" data-field="assessment-name">
+                        <input type="number" min="0" placeholder="Max Score" value="${data.max_score}" data-field="max-score">
+                        <button class="btn-icon delete-assessment-btn" title="Delete assessment"><i class="fas fa-trash"></i></button>
                     `;
                 container.appendChild(el);
                 el.querySelector('.delete-assessment-btn').addEventListener('click', () => {
@@ -896,8 +808,12 @@
                     const name = sub.querySelector('input[data-field="name"]').value.trim();
                     const weight = parseFloat(sub.querySelector('input[data-field="weight"]').value) || 0;
                     const assessments = [];
-                    sub.querySelectorAll('.assessment-item input[data-field="assessment-name"]').forEach(a => {
-                        if (a.value.trim()) assessments.push(a.value.trim());
+                    sub.querySelectorAll('.assessment-item').forEach(item => {
+                        const assessmentName = item.querySelector('input[data-field="assessment-name"]').value.trim();
+                        const maxScore = parseFloat(item.querySelector('input[data-field="max-score"]').value) || 100;
+                        if (assessmentName) {
+                            assessments.push({ name: assessmentName, max_score: maxScore });
+                        }
                     });
                     if (name && weight > 0) {
                         structure[type].push({ name, weight, assessments });
@@ -941,7 +857,12 @@
                     const result = await res.json();
                     console.log('Frontend save response data:', result);
                     if (res.ok) {
-                        showNotification(result.message || 'Structure saved!', 'success');
+                        Swal.fire({
+                            title: 'Success!',
+                            text: result.message || 'Structure saved successfully!',
+                            icon: 'success',
+                            confirmButtonText: 'OK'
+                        });
                         await loadBackendData();
                         resetEditorPanel();
                     } else {

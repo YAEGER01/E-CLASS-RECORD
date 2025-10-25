@@ -180,10 +180,18 @@ _connection = None
 
 
 def get_db_connection():
-    """Get PyMySQL database connection, create if not exists"""
+    """Get PyMySQL database connection, create if not exists or reconnect if lost"""
     global _connection
-    if _connection is None:
+    if _connection is None or not _is_connection_alive():
         try:
+            # Close existing connection if it exists
+            if _connection:
+                try:
+                    _connection.close()
+                except:
+                    pass
+                _connection = None
+
             # Load environment variables
             load_dotenv()
             logger.info("Environment variables loaded from .env file")
@@ -218,9 +226,23 @@ def get_db_connection():
                 password=db_password,
                 database=db_name,
                 cursorclass=pymysql.cursors.DictCursor,
+                autocommit=False,  # Disable autocommit for transaction control
             )
             logger.info(f"PyMySQL database connection established for {environment}")
         except Exception as e:
             logger.error(f"PyMySQL database connection failed: {str(e)}")
             raise e
     return _connection
+
+
+def _is_connection_alive():
+    """Check if the database connection is alive"""
+    global _connection
+    if _connection is None:
+        return False
+    try:
+        # Try to ping the connection
+        _connection.ping(reconnect=False)
+        return True
+    except:
+        return False

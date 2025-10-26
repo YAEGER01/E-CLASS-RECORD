@@ -1050,3 +1050,18 @@ body::after {
     box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
   }
 }
+.structure-name-input {
+  width: 100%;
+  padding: 10px 14px;
+  border: 1px solid #d0d7de;
+  border-radius: 8px;
+  font-size: 1rem;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  transition: all 0.2s ease;
+}
+
+.structure-name-input:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2);
+  outline: none;
+}

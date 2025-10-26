@@ -378,6 +378,12 @@
             }
 
             function attachListEventListeners() {
+                // 🟡 DEBUG: Make sure buttons exist
+                console.log("Attaching listeners to structure list...");
+                const deleteButtons = document.querySelectorAll('.delete-btn');
+                console.log("Found delete buttons:", deleteButtons.length);
+
+                // ===== Edit buttons =====
                 document.querySelectorAll('.edit-btn').forEach(btn => {
                     btn.addEventListener('click', e => {
                         e.stopPropagation();
@@ -387,56 +393,64 @@
                     });
                 });
 
+                // ===== History buttons =====
                 document.querySelectorAll('.history-btn').forEach(btn => {
                     btn.addEventListener('click', async e => {
                         e.stopPropagation();
                         const id = parseInt(e.currentTarget.dataset.id);
                         const structure = savedStructures.find(s => s.id === id);
-
-                        // Show history modal
                         showHistoryModal(id, structure);
                     });
                 });
 
-                document.querySelectorAll('.delete-btn').forEach(btn => {
+                // ===== Delete buttons =====
+                deleteButtons.forEach(btn => {
                     btn.addEventListener('click', async e => {
                         e.stopPropagation();
-                        const id = parseInt(e.currentTarget.dataset.id);
+                        const deleteBtn = e.currentTarget; // ✅ capture early reference
+                        const id = parseInt(deleteBtn.dataset.id);
                         const structureToDelete = savedStructures.find(s => s.id === id);
+                        console.log("🟡 Delete clicked for ID:", id, structureToDelete);
 
                         const confirmed = await showConfirmation(`Delete structure for ${structureToDelete.class}?`);
                         if (!confirmed) return;
 
-                        // Show loading state for delete button
-                        const deleteBtn = e.currentTarget;
-                        if (!deleteBtn) return; // Safety check
+                        // ✅ check again to be safe
+                        if (!deleteBtn) {
+                            console.warn("Delete button no longer exists after confirmation.");
+                            return;
+                        }
+
+                        // Loading state
                         const originalIcon = deleteBtn.innerHTML;
                         deleteBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
                         deleteBtn.disabled = true;
                         deleteBtn.style.pointerEvents = 'none';
 
                         try {
+                            console.log("🟢 Sending DELETE:", `/api/gradebuilder/delete/${id}`);
                             const res = await fetch(`/api/gradebuilder/delete/${id}`, {
                                 method: 'DELETE',
-                                headers: {
-                                    'X-CSRFToken': window.csrfToken
-                                }
+                                headers: { 'X-CSRFToken': window.csrfToken }
                             });
+                            console.log("Response received:", res.status);
+
                             const result = await res.json();
+                            console.log("Result:", result);
 
                             if (res.ok) {
                                 showNotification(result.message || 'Structure deleted.', 'success');
                                 savedStructures = savedStructures.filter(s => s.id !== id);
-                                renderStructureList();
+                                renderStructureList(); // auto rebinds listeners
                                 if (currentEditingStructure && currentEditingStructure.id === id) resetEditorPanel();
                             } else {
                                 showNotification(result.message || 'Delete failed.', 'error');
                             }
                         } catch (err) {
-                            console.error('Error deleting:', err);
+                            console.error('❌ Error deleting:', err);
                             showNotification('Network error during deletion. Please try again.', 'error');
                         } finally {
-                            // Reset delete button
+                            // Reset button safely
                             if (deleteBtn) {
                                 deleteBtn.innerHTML = originalIcon;
                                 deleteBtn.disabled = false;
@@ -445,7 +459,9 @@
                         }
                     });
                 });
+
             }
+
 
             // #################### CLASS MODAL ####################
             function renderClassOptions() {

@@ -2030,54 +2030,78 @@ def gradebuilder_restore(structure_id, history_id):
 @app.route("/api/gradebuilder/delete/<int:structure_id>", methods=["DELETE"])
 def gradebuilder_delete(structure_id):
     """Delete a grading structure."""
+
+    print("\n=== [DELETE REQUEST RECEIVED] ===")
+    print(f"Structure ID: {structure_id}")
+    print(f"Session Info: {dict(session)}")
+
+    # Session and role check
     if "user_id" not in session or session.get("role") != "instructor":
+        print("[ERROR] Unauthorized access attempt.")
         return jsonify({"error": "unauthorized"}), 403
 
     instructor_id = session.get("instructor_id")
     if not instructor_id:
+        print("[ERROR] Instructor ID not found in session.")
         return jsonify({"error": "instructor_not_found"}), 404
 
-    # Validate structure_id is positive integer
+    # Validate structure_id
     if structure_id <= 0:
+        print("[ERROR] Invalid structure_id received.")
         return jsonify({"error": "invalid_structure_id"}), 400
 
+    conn = get_db_connection()
     try:
-        with get_db_connection().cursor() as cursor:
-            # Check if structure exists and belongs to instructor
+        with conn.cursor() as cursor:
+            print(
+                f"[DB] Checking if structure {structure_id} belongs to instructor {instructor_id}..."
+            )
             cursor.execute(
                 "SELECT id FROM grade_structures WHERE id = %s AND created_by = %s",
                 (structure_id, instructor_id),
             )
-            if not cursor.fetchone():
+            row = cursor.fetchone()
+
+            if not row:
+                print("[DB] Structure not found or instructor mismatch.")
                 return jsonify({"error": "structure_not_found_or_unauthorized"}), 404
 
-            # Delete history first (cascade should handle this, but being explicit)
+            # Delete related history (optional if cascade)
+            print(f"[DB] Deleting history for structure {structure_id}...")
             cursor.execute(
                 "DELETE FROM grade_structure_history WHERE structure_id = %s",
                 (structure_id,),
             )
 
-            # Delete the structure
+            # Delete main structure
+            print(f"[DB] Deleting grade structure {structure_id}...")
             cursor.execute(
                 "DELETE FROM grade_structures WHERE id = %s AND created_by = %s",
                 (structure_id, instructor_id),
             )
 
-        get_db_connection().commit()
+        conn.commit()
+        print("[SUCCESS] Structure deleted successfully.")
         logger.info(
             f"Instructor {session.get('school_id')} deleted grade structure {structure_id}"
         )
+
         return (
             jsonify({"success": True, "message": "Structure deleted successfully"}),
             200,
         )
 
     except Exception as e:
-        get_db_connection().rollback()
+        conn.rollback()
+        print(f"[EXCEPTION] {str(e)}")
         logger.error(
             f"Failed to delete grade structure {structure_id} for instructor {session.get('school_id')}: {str(e)}"
         )
-        return jsonify({"success": False, "error": "Failed to delete structure"}), 500
+        return jsonify({"success": False, "error": str(e)}), 500
+
+    finally:
+        conn.close()
+        print("[CLOSE] Database connection closed.\n")
 
 
 @app.route("/api/gradebuilder/save", methods=["POST"])

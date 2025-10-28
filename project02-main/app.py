@@ -2315,6 +2315,62 @@ def gradebuilder_save():
             return jsonify({"success": False, "error": "Failed to save structure"}), 500
 
 
+from flask import render_template
+
+
+@app.route("/test-grade-normalizer/<int:class_id>")
+def test_grade_normalizer(class_id):
+    try:
+        conn = get_db_connection()
+        with conn.cursor() as cursor:
+            cursor.execute(
+                """
+                SELECT structure_json 
+                FROM grade_structures 
+                WHERE class_id = %s AND is_active = 1 
+                LIMIT 1
+            """,
+                (class_id,),
+            )
+            structure_row = cursor.fetchone()
+
+        if not structure_row:
+            return "<h3 style='text-align:center; color:red;'>No active grade structure found for this class.</h3>"
+
+        import json
+
+        structure_data = json.loads(structure_row["structure_json"])
+
+        # Flatten normalized data
+        structure = []
+        for category, subcats in structure_data.items():
+            for sub in subcats:
+                structure.append(
+                    {
+                        "category": category,
+                        "subcategory": sub["name"],
+                        "weight": sub["weight"],
+                        "assessments": sub["assessments"],
+                    }
+                )
+
+        # Demo student list (you’ll replace with DB fetch later)
+        students = [
+            {"name": "Student 1"},
+            {"name": "Student 2"},
+            {"name": "Student 3"},
+        ]
+
+        return render_template(
+            "test_grade_normalizer.html", structure=structure, students=students
+        )
+
+    except Exception as e:
+        import traceback
+
+        return f"<pre style='color:red;'>{traceback.format_exc()}</pre>"
+
+
 if __name__ == "__main__":
     logger.info("Application startup initiated")
     app.run(debug=True)

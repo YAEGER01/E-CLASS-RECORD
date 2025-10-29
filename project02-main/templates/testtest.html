@@ -261,12 +261,10 @@
                 /* w-48 equivalent */
             }
         }
-
         /* Header action buttons (hidden until expanded) */
         .accordion-item .header-actions {
-            display: none;
-            /* toggled when expanded */
-        }
+            display: none; /* toggled when expanded */
+        }   
 
         .accordion-item.expanded .header-actions {
             display: inline-flex;
@@ -275,7 +273,7 @@
         }
 
         .action-btn {
-            background: rgba(255, 255, 255, 0.12);
+            background: rgba(255,255,255,0.12);
             border: none;
             padding: 0.25rem;
             border-radius: 0.375rem;
@@ -285,90 +283,22 @@
             cursor: pointer;
         }
 
-        .action-btn:hover {
-            background: rgba(255, 255, 255, 0.18);
-        }
+        .action-btn:hover { background: rgba(255,255,255,0.18); }
 
         /* Simple modal styles */
-        .modal-backdrop {
-            position: fixed;
-            inset: 0;
-            background: rgba(0, 0, 0, 0.45);
-            display: none;
-            align-items: center;
-            justify-content: center;
-            z-index: 50;
-        }
+        .modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.45); display: none; align-items: center; justify-content: center; z-index: 50; }
+        .modal-backdrop.show { display: flex; }
+        .modal { background: white; border-radius: 0.5rem; padding: 1rem; width: 95%; max-width: 520px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); }
+        .modal h3 { font-weight: 700; margin-bottom: 0.5rem; }
+        .modal .modal-row { display: flex; gap: 0.5rem; margin-bottom: 0.5rem; }
+        .modal label { font-size: 0.875rem; font-weight: 600; }
+        .modal input[type="text"], .modal input[type="number"] { padding: 0.5rem; border-radius: 0.375rem; border: 1px solid #d1d5db; width: 100%; }
+        .modal .modal-actions { display:flex; gap:0.5rem; justify-content:flex-end; margin-top:0.5rem; }
 
-        .modal-backdrop.show {
-            display: flex;
-        }
-
-        .modal {
-            background: white;
-            border-radius: 0.5rem;
-            padding: 1rem;
-            width: 95%;
-            max-width: 520px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
-        }
-
-        .modal h3 {
-            font-weight: 700;
-            margin-bottom: 0.5rem;
-        }
-
-        .modal .modal-row {
-            display: flex;
-            gap: 0.5rem;
-            margin-bottom: 0.5rem;
-        }
-
-        .modal label {
-            font-size: 0.875rem;
-            font-weight: 600;
-        }
-
-        .modal input[type="text"],
-        .modal input[type="number"] {
-            padding: 0.5rem;
-            border-radius: 0.375rem;
-            border: 1px solid #d1d5db;
-            width: 100%;
-        }
-
-        .modal .modal-actions {
-            display: flex;
-            gap: 0.5rem;
-            justify-content: flex-end;
-            margin-top: 0.5rem;
-        }
-
-        /* Loading overlay used when lazily rendering large tables */
-        .loading-overlay {
-            position: absolute;
-            inset: 0;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background: rgba(255, 255, 255, 0.7);
-            z-index: 30;
-        }
-
-        .spinner {
-            width: 36px;
-            height: 36px;
-            border-radius: 9999px;
-            border: 4px solid rgba(0, 0, 0, 0.08);
-            border-top-color: rgba(0, 0, 0, 0.6);
-            animation: spin 0.8s linear infinite;
-        }
-
-        @keyframes spin {
-            to {
-                transform: rotate(360deg);
-            }
-        }
+    /* Loading overlay used when lazily rendering large tables */
+    .loading-overlay { position: absolute; inset: 0; display:flex; align-items:center; justify-content:center; background: rgba(255,255,255,0.7); z-index: 30; }
+    .spinner { width: 36px; height: 36px; border-radius: 9999px; border: 4px solid rgba(0,0,0,0.08); border-top-color: rgba(0,0,0,0.6); animation: spin 0.8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
     </style>
 </head>
 
@@ -394,18 +324,14 @@
                         aria-expanded="false" data-target="content-1" data-category="lab-participation">
                         <div class="accordion-header-inner">
                             <span class="mb-2 sm:mb-4 text-green-700">LAB PARTICIPATION</span>
-                            <div class="header-actions ml-2 hidden">
-                                <span class="action-btn add-criteria-btn" role="button" tabindex="0"
-                                    title="Add criteria" data-category="lab-participation">
-                                    <!-- Plus icon -->
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-white"
-                                        viewBox="0 0 20 20" fill="currentColor">
-                                        <path fill-rule="evenodd"
-                                            d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z"
-                                            clip-rule="evenodd" />
-                                    </svg>
-                                </span>
-                            </div>
+                                                        <div class="header-actions ml-2 hidden">
+                                                                <span class="action-btn add-criteria-btn" role="button" tabindex="0" title="Add criteria" data-category="lab-participation">
+                                                                        <!-- Plus icon -->
+                                                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-white" viewBox="0 0 20 20" fill="currentColor">
+                                                                            <path fill-rule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clip-rule="evenodd" />
+                                                                        </svg>
+                                                                </span>
+                                                        </div>
                         </div>
                     </button>
                     <div id="content-1" class="accordion-content-wrapper bg-white h-full flex-grow">
@@ -429,17 +355,13 @@
                         aria-expanded="false" data-target="content-2" data-category="lab-homework">
                         <div class="accordion-header-inner">
                             <span class="mb-2 sm:mb-4 text-blue-700">LAB HOMEWORK</span>
-                            <div class="header-actions ml-2 hidden">
-                                <span class="action-btn add-criteria-btn" role="button" tabindex="0"
-                                    title="Add criteria" data-category="lab-homework">
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-white"
-                                        viewBox="0 0 20 20" fill="currentColor">
-                                        <path fill-rule="evenodd"
-                                            d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z"
-                                            clip-rule="evenodd" />
-                                    </svg>
-                                </span>
-                            </div>
+                                                        <div class="header-actions ml-2 hidden">
+                                                                <span class="action-btn add-criteria-btn" role="button" tabindex="0" title="Add criteria" data-category="lab-homework">
+                                                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-white" viewBox="0 0 20 20" fill="currentColor">
+                                                                            <path fill-rule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clip-rule="evenodd" />
+                                                                        </svg>
+                                                                </span>
+                                                        </div>
                         </div>
                     </button>
                     <div id="content-2" class="accordion-content-wrapper bg-white h-full flex-grow">
@@ -463,17 +385,13 @@
                         aria-expanded="false" data-target="content-3" data-category="lab-exercise">
                         <div class="accordion-header-inner">
                             <span class="mb-2 sm:mb-4 text-orange-700">LAB EXERCISE</span>
-                            <div class="header-actions ml-2 hidden">
-                                <span class="action-btn add-criteria-btn" role="button" tabindex="0"
-                                    title="Add criteria" data-category="lab-exercise">
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-white"
-                                        viewBox="0 0 20 20" fill="currentColor">
-                                        <path fill-rule="evenodd"
-                                            d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z"
-                                            clip-rule="evenodd" />
-                                    </svg>
-                                </span>
-                            </div>
+                                                        <div class="header-actions ml-2 hidden">
+                                                                <span class="action-btn add-criteria-btn" role="button" tabindex="0" title="Add criteria" data-category="lab-exercise">
+                                                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-white" viewBox="0 0 20 20" fill="currentColor">
+                                                                            <path fill-rule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clip-rule="evenodd" />
+                                                                        </svg>
+                                                                </span>
+                                                        </div>
                         </div>
                     </button>
                     <div id="content-3" class="accordion-content-wrapper bg-white h-full flex-grow">
@@ -497,17 +415,13 @@
                         aria-expanded="false" data-target="content-4" data-category="midterm-lab-exam">
                         <div class="accordion-header-inner">
                             <span class="mb-2 sm:mb-4 text-red-700">MIDTERM LAB EXAM</span>
-                            <div class="header-actions ml-2 hidden">
-                                <span class="action-btn add-criteria-btn" role="button" tabindex="0"
-                                    title="Add criteria" data-category="midterm-lab-exam">
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-white"
-                                        viewBox="0 0 20 20" fill="currentColor">
-                                        <path fill-rule="evenodd"
-                                            d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z"
-                                            clip-rule="evenodd" />
-                                    </svg>
-                                </span>
-                            </div>
+                                                        <div class="header-actions ml-2 hidden">
+                                                                <span class="action-btn add-criteria-btn" role="button" tabindex="0" title="Add criteria" data-category="midterm-lab-exam">
+                                                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-white" viewBox="0 0 20 20" fill="currentColor">
+                                                                            <path fill-rule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clip-rule="evenodd" />
+                                                                        </svg>
+                                                                </span>
+                                                        </div>
                         </div>
                     </button>
                     <div id="content-4" class="accordion-content-wrapper bg-white h-full flex-grow">
@@ -531,17 +445,13 @@
                         aria-expanded="false" data-target="content-5" data-category="final-lab-exam">
                         <div class="accordion-header-inner">
                             <span class="mb-2 sm:mb-4 text-violet-700">FINAL LAB EXAM</span>
-                            <div class="header-actions ml-2 hidden">
-                                <span class="action-btn add-criteria-btn" role="button" tabindex="0"
-                                    title="Add criteria" data-category="final-lab-exam">
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-white"
-                                        viewBox="0 0 20 20" fill="currentColor">
-                                        <path fill-rule="evenodd"
-                                            d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z"
-                                            clip-rule="evenodd" />
-                                    </svg>
-                                </span>
-                            </div>
+                                                        <div class="header-actions ml-2 hidden">
+                                                                <span class="action-btn add-criteria-btn" role="button" tabindex="0" title="Add criteria" data-category="final-lab-exam">
+                                                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-white" viewBox="0 0 20 20" fill="currentColor">
+                                                                            <path fill-rule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clip-rule="evenodd" />
+                                                                        </svg>
+                                                                </span>
+                                                        </div>
                         </div>
                     </button>
                     <div id="content-5" class="accordion-content-wrapper bg-white h-full flex-grow">
@@ -675,7 +585,7 @@
         }
 
         // Load persisted state if present and not expired. Mutate CATEGORY_CONFIG and studentData in-place.
-        (function restorePersistedState() {
+        (function restorePersistedState(){
             const persisted = loadState();
             if (!persisted) return;
             try {
@@ -1070,8 +980,7 @@
                     <input id="criteria-max" type="number" min="1" value="10" />
                 </div>
             </div>
-            <div style="font-size:0.85rem;color:#6b7280;margin-bottom:0.5rem">The new score column will be appended to
-                the right for all students in this category.</div>
+            <div style="font-size:0.85rem;color:#6b7280;margin-bottom:0.5rem">The new score column will be appended to the right for all students in this category.</div>
             <div class="modal-actions">
                 <button id="criteria-cancel" class="action-btn" type="button">Cancel</button>
                 <button id="criteria-add" class="action-btn" type="button">Add</button>
@@ -1080,7 +989,7 @@
     </div>
 
     <script>
-        (function () {
+        (function(){
             let currentModalCategory = null;
             const modal = document.getElementById('addCriteriaModal');
             const nameInput = document.getElementById('criteria-name');
@@ -1088,31 +997,31 @@
             const addBtn = document.getElementById('criteria-add');
             const cancelBtn = document.getElementById('criteria-cancel');
 
-            function openAddCriteriaModal(categoryKey) {
+            function openAddCriteriaModal(categoryKey){
                 currentModalCategory = categoryKey;
                 const cfg = CATEGORY_CONFIG[categoryKey];
-                if (!cfg) return;
+                if(!cfg) return;
                 nameInput.value = `Score ${cfg.count + 1}`;
                 maxInput.value = cfg.maxScore;
                 modal.classList.add('show');
-                modal.setAttribute('aria-hidden', 'false');
+                modal.setAttribute('aria-hidden','false');
                 // focus name input after a tick
-                setTimeout(() => nameInput.focus(), 50);
+                setTimeout(()=> nameInput.focus(), 50);
             }
 
-            function closeAddCriteriaModal() {
+            function closeAddCriteriaModal(){
                 modal.classList.remove('show');
-                modal.setAttribute('aria-hidden', 'true');
+                modal.setAttribute('aria-hidden','true');
                 currentModalCategory = null;
             }
 
             // Adds the new criterion: updates config and student data and re-renders the table
-            function submitAddCriteria() {
-                if (!currentModalCategory) return closeAddCriteriaModal();
+            function submitAddCriteria(){
+                if(!currentModalCategory) return closeAddCriteriaModal();
                 const cat = currentModalCategory;
                 const name = (nameInput.value || `Score ${CATEGORY_CONFIG[cat].count + 1}`).trim();
                 let max = parseFloat(maxInput.value);
-                if (isNaN(max) || max <= 0) max = CATEGORY_CONFIG[cat].maxScore;
+                if(isNaN(max) || max <= 0) max = CATEGORY_CONFIG[cat].maxScore;
 
                 // Update config: increment count and set (uniform) maxScore for category
                 CATEGORY_CONFIG[cat].count = (CATEGORY_CONFIG[cat].count || 0) + 1;
@@ -1120,7 +1029,7 @@
 
                 // Append a default score (0) for every student in that category
                 studentData.forEach(s => {
-                    if (!s.scores[cat]) s.scores[cat] = [];
+                    if(!s.scores[cat]) s.scores[cat] = [];
                     s.scores[cat].push(0);
                 });
 
@@ -1134,19 +1043,19 @@
             }
 
             // Wire modal buttons
-            addBtn.addEventListener('click', (e) => { e.preventDefault(); submitAddCriteria(); });
-            cancelBtn.addEventListener('click', (e) => { e.preventDefault(); closeAddCriteriaModal(); });
+            addBtn.addEventListener('click', (e)=>{ e.preventDefault(); submitAddCriteria(); });
+            cancelBtn.addEventListener('click', (e)=>{ e.preventDefault(); closeAddCriteriaModal(); });
 
             // Clicking backdrop closes modal
-            modal.addEventListener('click', (e) => { if (e.target === modal) closeAddCriteriaModal(); });
+            modal.addEventListener('click', (e)=>{ if(e.target === modal) closeAddCriteriaModal(); });
 
             // Attach listeners to header action buttons (stop propagation to avoid toggling)
-            function wireHeaderActionButtons() {
+            function wireHeaderActionButtons(){
                 document.querySelectorAll('.add-criteria-btn').forEach(btn => {
                     // avoid double-binding
-                    if (btn._wired) return;
+                    if(btn._wired) return;
                     btn._wired = true;
-                    btn.addEventListener('click', (ev) => {
+                    btn.addEventListener('click', (ev)=>{
                         ev.stopPropagation();
                         ev.preventDefault();
                         const cat = btn.getAttribute('data-category');
@@ -1156,17 +1065,17 @@
             }
 
             // Initial wiring now and also after DOM content load
-            if (document.readyState === 'complete' || document.readyState === 'interactive') {
+            if(document.readyState === 'complete' || document.readyState === 'interactive'){
                 wireHeaderActionButtons();
             } else {
                 document.addEventListener('DOMContentLoaded', wireHeaderActionButtons);
             }
 
             // Also observe DOM mutations in case header buttons get re-rendered in the future
-            const observer = new MutationObserver((mutations) => { wireHeaderActionButtons(); });
-            observer.observe(document.body, { childList: true, subtree: true });
+            const observer = new MutationObserver((mutations)=>{ wireHeaderActionButtons(); });
+            observer.observe(document.body, { childList:true, subtree:true });
         })();
     </script>
 </body>
 
-</html>
+</html> 

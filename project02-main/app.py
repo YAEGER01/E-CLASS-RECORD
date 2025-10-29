@@ -2341,25 +2341,81 @@ def test_grade_normalizer(class_id):
 
         structure_data = json.loads(structure_row["structure_json"])
 
-        # Flatten normalized data
+        # Normalize structure into a flat list of subcategories with assessments metadata
         structure = []
-        for category, subcats in structure_data.items():
+        # structure_data may be either an object with categories as keys or a list
+        if isinstance(structure_data, dict):
+            categories_iter = structure_data.items()
+        else:
+            # if already a list, make a simple iterator
+            categories_iter = enumerate(structure_data)
+
+        for cat_key, subcats in categories_iter:
+            # subcats expected to be a list of subcategory objects
+            if not isinstance(subcats, list):
+                continue
             for sub in subcats:
+                # Ensure each assessment has at least a name and optional max
+                assessments = []
+                for a in sub.get("assessments", []) if sub.get("assessments") else []:
+                    assessments.append(
+                        {
+                            "name": a.get("name") or a.get("label") or "Assessment",
+                            "max": a.get("max")
+                            or a.get("max_score")
+                            or a.get("maxScore")
+                            or None,
+                        }
+                    )
+
                 structure.append(
                     {
-                        "category": category,
-                        "subcategory": sub["name"],
-                        "weight": sub["weight"],
-                        "assessments": sub["assessments"],
+                        "category": cat_key,
+                        "subcategory": sub.get("name") or sub.get("label") or cat_key,
+                        "weight": sub.get("weight"),
+                        "assessments": assessments,
                     }
                 )
 
-        # Demo student list (you’ll replace with DB fetch later)
-        students = [
-            {"name": "Student 1"},
-            {"name": "Student 2"},
-            {"name": "Student 3"},
-        ]
+        # Fetch enrolled students for this class from the DB (reuse enrollment query logic)
+        students = []
+        with get_db_connection().cursor() as cursor:
+            cursor.execute(
+                """
+                SELECT sc.*, s.id as student_id, u.school_id, pi.first_name, pi.last_name, pi.middle_name
+                FROM student_classes sc
+                JOIN students s ON sc.student_id = s.id
+                JOIN users u ON s.user_id = u.id
+                LEFT JOIN personal_info pi ON s.personal_info_id = pi.id
+                WHERE sc.class_id = %s
+                ORDER BY pi.last_name, pi.first_name
+                """,
+                (class_id,),
+            )
+            enrollments = cursor.fetchall()
+
+            for enrollment in enrollments:
+                first_name = enrollment.get("first_name") or ""
+                middle_name = enrollment.get("middle_name") or ""
+                last_name = enrollment.get("last_name") or ""
+                if first_name and last_name:
+                    student_name = (
+                        f"{last_name}, {first_name} {middle_name}".strip()
+                        if middle_name
+                        else f"{last_name}, {first_name}"
+                    )
+                else:
+                    student_name = (
+                        enrollment.get("school_id")
+                        or f"Student {enrollment.get('student_id')}"
+                    )
+
+                students.append(
+                    {
+                        "id": enrollment.get("student_id"),
+                        "name": student_name,
+                    }
+                )
 
         return render_template(
             "test_grade_normalizer.html", structure=structure, students=students

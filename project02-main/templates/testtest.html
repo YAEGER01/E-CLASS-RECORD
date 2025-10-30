@@ -4,84 +4,181 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Responsive Horizontal Class Record Accordion (Full View)</title>
-    <!-- Load Tailwind CSS -->
+    <title>Filtered Class Record: Sticky Label + Expanding Data</title>
+
+
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         /* Custom font and base styles */
         body {
             font-family: 'Inter', sans-serif;
             background-color: #f7f9fb;
-            /* Ensure body covers the viewport for correct vh/vw calculations */
             min-height: 100vh;
             width: 100vw;
         }
 
-        /* --- Custom CSS for Horizontal Accordion --- */
+        /* --- CONSTANTS --- */
+        :root {
+            --fixed-label-width: 64px;
+            --expanded-header-height: 64px;
+        }
 
+        /* --- ACCORDION DATA COLUMNS --- */
+
+        /* Accordion Item Parent Container */
         .accordion-item {
-            /* Set transition properties for smooth resizing of the column */
-            /* faster, smoother transition and hint to browser to optimize */
-            transition: width 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+            transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
             flex-shrink: 0;
             overflow: hidden;
             border-right: 1px solid #e5e7eb;
-            /* Default width is set to a fixed pixel value for the header in JS */
-            width: 64px;
-            will-change: width;
+            width: var(--fixed-label-width);
+            /* Default collapsed width */
+            opacity: 1;
         }
 
-        /* Header in a horizontal accordion must have vertical text when collapsed */
-        .accordion-header-inner {
-            writing-mode: vertical-rl;
-            /* Rotate text 90 degrees */
-            transform: rotate(180deg);
+        .accordion-item.expanded {
+            /* Width set by JS */
+        }
+
+        .accordion-item.hidden {
+            width: 0 !important;
+            opacity: 0;
+            margin: 0 !important;
+            padding: 0 !important;
+            border: none;
+            transition: width 0.5s, opacity 0.5s;
+        }
+
+        /* Inner Wrapper: Always a flex row to hold Col 1 (Label) and Col 2 (Content) */
+        .inner-accordion-wrapper {
+            display: flex;
+            flex-direction: row;
             height: 100%;
+            width: 100%;
+        }
+
+        /* Col 1: Fixed Label Column (Always visible, always vertical text) */
+        .accordion-fixed-col {
+            width: var(--fixed-label-width);
+            background-color: #e5e7eb;
+            color: #4b5563;
+            writing-mode: vertical-rl;
+            transform: rotate(180deg);
             display: flex;
             align-items: center;
             justify-content: center;
             flex-direction: column-reverse;
-            /* Put icon below text in vertical mode */
             white-space: nowrap;
-            /* Prevent wrapping of the header text */
-            /* Ensure the text size scales responsively for the header button */
+            cursor: pointer;
+            flex-shrink: 0;
+            border-bottom: 1px solid #d1d5db;
+            height: 100%;
+        }
+
+        .accordion-label-inner {
             font-size: 0.75rem;
-            /* Base size */
+            font-weight: 600;
         }
 
         @media (min-width: 640px) {
-            .accordion-header-inner {
+            .accordion-label-inner {
                 font-size: 1rem;
-                /* sm:text-base */
             }
         }
 
-        @media (min-width: 1024px) {
-            .accordion-header-inner {
-                font-size: 1.25rem;
-                /* lg:text-xl */
-            }
-        }
-
-        /* Content area needs to be a standard flex column */
+        /* Col 2: Content Expander (The "Open Column" data) */
         .accordion-content-wrapper {
-            display: flex;
-            flex-direction: column;
-            width: 100%;
+            flex-grow: 1;
+            width: 0;
+            opacity: 0;
+            transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s 0.2s;
+            overflow-x: hidden;
+            background-color: white;
             position: relative;
-            /* Context for absolute Close button */
         }
 
-        /* Initially hide content in the wrapper */
+        /* Show content and give it calculated width when expanded */
+        .accordion-item.expanded .accordion-content-wrapper {
+            opacity: 1;
+            /* Width is set by JS */
+            transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s 0.5s;
+        }
+
+        /* Expanded Header/Title (The "Open Column" name) */
+        .expanded-header-title {
+            padding: 0 1rem;
+            height: var(--expanded-header-height);
+            display: none;
+            align-items: center;
+            justify-content: space-between;
+            font-weight: 800;
+            color: white;
+            border-bottom: 1px solid #d1d5db;
+            flex-shrink: 0;
+        }
+
+        /* Apply specific colors to the expanded header (1-5 Lab, 6 Lab Total, 7-10 Lecture) */
+        #item-1.expanded .expanded-header-title {
+            background-color: #16a34a;
+        }
+
+        /* Green */
+        #item-2.expanded .expanded-header-title {
+            background-color: #2563eb;
+        }
+
+        /* Blue */
+        #item-3.expanded .expanded-header-title {
+            background-color: #f97316;
+        }
+
+        /* Orange */
+        #item-4.expanded .expanded-header-title {
+            background-color: #dc2626;
+        }
+
+        /* Red */
+        #item-5.expanded .expanded-header-title {
+            background-color: #7c3aed;
+        }
+
+        /* Violet */
+        #item-6.expanded .expanded-header-title {
+            background-color: #059669;
+        }
+
+        /* Emerald */
+        #item-7.expanded .expanded-header-title {
+            background-color: #0369a1;
+        }
+
+        /* Sky Blue */
+        #item-8.expanded .expanded-header-title {
+            background-color: #ca8a04;
+        }
+
+        /* Amber */
+        #item-9.expanded .expanded-header-title {
+            background-color: #be185d;
+        }
+
+        /* Pink */
+        #item-10.expanded .expanded-header-title {
+            background-color: #4338ca;
+        }
+
+        /* Indigo */
+
+
+        /* Actual scrollable content area */
         .accordion-content {
-            opacity: 0;
-            transition: opacity 0.3s ease-in-out;
-            width: 0;
-            overflow-x: hidden;
+            padding: 1rem;
+            height: calc(100% - var(--expanded-header-height));
+            /* Subtract header height */
             overflow-y: auto;
         }
 
-        /* --- HIDDEN SCROLLBAR STYLES (Applies to .accordion-content) --- */
+        /* --- HIDDEN SCROLLBAR STYLES --- */
         .accordion-content::-webkit-scrollbar {
             width: 0;
             height: 0;
@@ -93,116 +190,24 @@
             scrollbar-width: none;
         }
 
-        /* --------------------------------- */
-
-        /* Base expanded header style */
-        .accordion-item.expanded .accordion-header {
-            background-color: #3b82f6;
-            color: white;
-            padding: 0;
-            height: 64px;
-            width: 100%;
-        }
-
-        /* Expanded header styling: make text horizontal */
-        .accordion-item.expanded .accordion-header-inner {
-            writing-mode: horizontal-tb;
-            transform: none;
-            flex-direction: row;
-            justify-content: flex-start;
-            padding: 0 1rem;
-            /* Responsive padding */
-        }
-
-        @media (min-width: 640px) {
-            .accordion-item.expanded .accordion-header-inner {
-                padding: 0 2rem;
-            }
-        }
-
-        /* Specific header colors for distinction */
-        #item-1.expanded .accordion-header {
-            background-color: #16a34a;
-        }
-
-        /* Green */
-        #item-2.expanded .accordion-header {
-            background-color: #2563eb;
-        }
-
-        /* Blue */
-        #item-3.expanded .accordion-header {
-            background-color: #f97316;
-        }
-
-        /* Orange */
-        #item-4.expanded .accordion-header {
-            background-color: #dc2626;
-        }
-
-        /* Red */
-        #item-5.expanded .accordion-header {
-            background-color: #7c3aed;
-        }
-
-        /* Violet */
-
-        .accordion-item.expanded .accordion-content {
-            opacity: 1;
-            width: auto;
-            padding: 1rem;
-            /* Responsive padding */
-            overflow-x: auto;
-        }
-
-        @media (min-width: 640px) {
-            .accordion-item.expanded .accordion-content {
-                padding: 2rem;
-            }
-        }
-
-        /* Styling for all input fields for a clean, modern look */
+        /* Table and Input Styles */
         .score-input {
-            width: 50px;
-            /* Smaller for mobile */
-            padding: 0.25rem;
+            width: 60px;
+            padding: 0.4rem;
+            font-size: 0.8rem;
             border-radius: 0.25rem;
             border-width: 1px;
-            font-size: 0.75rem;
             text-align: center;
         }
 
-        @media (min-width: 640px) {
-            .score-input {
-                width: 60px;
-                padding: 0.4rem;
-                font-size: 0.8rem;
-            }
-        }
-
-        .score-input:focus {
-            outline: none;
-            border-color: #3b82f6;
-            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.3);
-        }
-
-        /* Styling for read-only calculated totals */
         .total-output {
             border: none;
             box-shadow: none;
             background-color: #e5e7eb;
             font-weight: 700;
-            width: 70px;
-            /* Smaller for mobile */
+            width: 80px;
         }
 
-        @media (min-width: 640px) {
-            .total-output {
-                width: 80px;
-            }
-        }
-
-        /* Ensure table borders are clearly defined */
         .score-table {
             border-collapse: separate;
             border-spacing: 0;
@@ -210,23 +215,12 @@
             border: 1px solid #d1d5db;
         }
 
-        /* Table cell styling (responsive padding/font) */
         .score-table th,
         .score-table td {
             border-right: 1px solid #e5e7eb;
             border-bottom: 1px solid #e5e7eb;
-            padding: 0.4rem 0.5rem;
-            font-size: 0.75rem;
-        }
-
-        @media (min-width: 640px) {
-
-            .score-table th,
-            .score-table td {
-                padding: 0.5rem 0.75rem;
-                font-size: 0.875rem;
-                /* sm:text-sm */
-            }
+            padding: 0.5rem 0.75rem;
+            font-size: 0.875rem;
         }
 
         .score-table tbody tr:last-child td {
@@ -238,7 +232,7 @@
             border-right: none;
         }
 
-        /* Sticky student name column */
+        /* Sticky student name column inside the table */
         .sticky-col {
             position: sticky;
             left: 0;
@@ -246,7 +240,6 @@
             background-color: white;
             box-shadow: 2px 0 2px -2px rgba(0, 0, 0, 0.1);
             width: 120px;
-            /* Smaller base width for mobile */
         }
 
         @media (min-width: 640px) {
@@ -258,234 +251,527 @@
         @media (min-width: 1024px) {
             .sticky-col {
                 width: 192px;
-                /* w-48 equivalent */
             }
         }
-        /* Header action buttons (hidden until expanded) */
-        .accordion-item .header-actions {
-            display: none; /* toggled when expanded */
-        }   
 
-        .accordion-item.expanded .header-actions {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.5rem;
+        /* Sticky header for the student name column within the table */
+        .sticky-col-header {
+            position: sticky;
+            left: 0;
+            z-index: 15;
+            background-color: #f9fafb;
+            box-shadow: 2px 0 2px -2px rgba(0, 0, 0, 0.1);
         }
 
-        .action-btn {
-            background: rgba(255,255,255,0.12);
-            border: none;
-            padding: 0.25rem;
-            border-radius: 0.375rem;
-            display: inline-flex;
+        /* --- MODAL STYLES --- */
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            z-index: 50;
+            /* Above everything else */
+            display: none;
             align-items: center;
             justify-content: center;
-            cursor: pointer;
+            opacity: 0;
+            transition: opacity 0.3s ease-out;
         }
 
-        .action-btn:hover { background: rgba(255,255,255,0.18); }
+        .modal.open {
+            display: flex;
+            opacity: 1;
+        }
 
-        /* Simple modal styles */
-        .modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.45); display: none; align-items: center; justify-content: center; z-index: 50; }
-        .modal-backdrop.show { display: flex; }
-        .modal { background: white; border-radius: 0.5rem; padding: 1rem; width: 95%; max-width: 520px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); }
-        .modal h3 { font-weight: 700; margin-bottom: 0.5rem; }
-        .modal .modal-row { display: flex; gap: 0.5rem; margin-bottom: 0.5rem; }
-        .modal label { font-size: 0.875rem; font-weight: 600; }
-        .modal input[type="text"], .modal input[type="number"] { padding: 0.5rem; border-radius: 0.375rem; border: 1px solid #d1d5db; width: 100%; }
-        .modal .modal-actions { display:flex; gap:0.5rem; justify-content:flex-end; margin-top:0.5rem; }
+        .modal-content {
+            background-color: white;
+            border-radius: 1rem;
+            width: 90%;
+            max-width: 600px;
+            padding: 1.5rem;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+            transform: scale(0.9);
+            transition: transform 0.3s ease-out;
+        }
 
-    /* Loading overlay used when lazily rendering large tables */
-    .loading-overlay { position: absolute; inset: 0; display:flex; align-items:center; justify-content:center; background: rgba(255,255,255,0.7); z-index: 30; }
-    .spinner { width: 36px; height: 36px; border-radius: 9999px; border: 4px solid rgba(0,0,0,0.08); border-top-color: rgba(0,0,0,0.6); animation: spin 0.8s linear infinite; }
-    @keyframes spin { to { transform: rotate(360deg); } }
+        .modal.open .modal-content {
+            transform: scale(1);
+        }
+
+        /* --- NOTIFICATION TOAST STYLES --- */
+        #notification-toast {
+            position: fixed;
+            top: 1rem;
+            right: 1rem;
+            z-index: 60;
+            transform: translateX(120%);
+            transition: transform 0.3s ease-in-out;
+            max-width: 300px;
+        }
+
+        #notification-toast.show {
+            transform: translateX(0);
+        }
+
+        /* --- LOADING OVERLAY STYLES --- */
+        #loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(255, 255, 255, 0.8);
+            z-index: 55;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        #loading-overlay.show {
+            display: flex;
+            opacity: 1;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3b82f6;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
     </style>
 </head>
 
 <body class="flex items-center justify-center min-h-screen w-screen p-2 md:p-4">
 
-    <!-- Main container using responsive screen units (80% on larger screens) -->
+
+
     <div id="main-container"
-        class="w-[95%] h-[95vh] sm:w-[80vw] sm:h-[80vh] bg-white shadow-2xl rounded-xl flex flex-col overflow-hidden">
+        class="w-[90vw] h-[90vh] bg-white shadow-2xl rounded-2xl border border-black flex flex-col overflow-hidden">
 
-        <!-- Responsive Title -->
-        <h1
-            class="text-xl sm:text-2xl md:text-3xl font-extrabold p-3 sm:p-4 text-gray-800 bg-gray-50 border-b-2 border-indigo-100">
-            1ST SEMESTER CLASS RECORD (50 Students)
-        </h1>
 
-        <div id="accordion-container" class="flex flex-row h-full w-full min-h-0">
 
-            <!-- ACCORDION ITEM 1: LAB PARTICIPATION -->
-            <div id="item-1" class="accordion-item bg-gray-100 rounded-tl-xl rounded-bl-xl">
-                <div class="flex flex-col h-full w-full">
-                    <button
-                        class="accordion-header flex-shrink-0 h-full w-16 p-2 text-xl font-semibold text-gray-700 hover:bg-gray-200 transition-colors duration-300"
-                        aria-expanded="false" data-target="content-1" data-category="lab-participation">
-                        <div class="accordion-header-inner">
-                            <span class="mb-2 sm:mb-4 text-green-700">LAB PARTICIPATION</span>
-                                                        <div class="header-actions ml-2 hidden">
-                                                                <span class="action-btn add-criteria-btn" role="button" tabindex="0" title="Add criteria" data-category="lab-participation">
-                                                                        <!-- Plus icon -->
-                                                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-white" viewBox="0 0 20 20" fill="currentColor">
-                                                                            <path fill-rule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clip-rule="evenodd" />
-                                                                        </svg>
-                                                                </span>
-                                                        </div>
-                        </div>
-                    </button>
-                    <div id="content-1" class="accordion-content-wrapper bg-white h-full flex-grow">
-                        <div class="accordion-content">
-                            <!-- Responsive heading -->
-                            <h2 class="text-lg sm:text-xl md:text-2xl font-bold mb-3 sm:mb-4 text-green-800">1. Lab
-                                Participation Scores (Max 10 per item)</h2>
-                            <div id="table-lab-participation" class="overflow-y-auto max-h-full">
-                                <!-- Table content dynamically generated here -->
+        <header
+            class="p-3 sm:p-4 text-gray-800 bg-gray-50 border-b-2 border-indigo-100 flex items-center justify-between flex-wrap">
+            <h1 class="text-xl sm:text-2xl md:text-3xl font-extrabold text-gray-800 flex-grow">
+                1ST SEMESTER CLASS RECORD (50 Students)
+            </h1>
+            <div class="flex items-center space-x-3 mt-2 sm:mt-0">
+                <label for="view-filter" class="text-sm font-semibold text-gray-700 hidden sm:inline">View
+                    Category:</label>
+                <select id="view-filter"
+                    class="p-2 border border-gray-300 rounded-lg text-sm font-medium bg-white shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
+                    <option value="LABORATORY">LABORATORY</option>
+                    <option value="LECTURE">LECTURE</option>
+                </select>
+            </div>
+        </header>
+
+        <div id="content-row" class="flex flex-row h-full w-full min-h-0">
+
+
+
+            <div id="accordion-container" class="flex flex-row h-full w-full flex-grow overflow-x-auto">
+
+                <!-- LABORATORY ITEMS (1-6) -->
+                <div id="item-1" class="accordion-item bg-gray-100" data-view="LABORATORY" data-item-id="1">
+                    <div class="inner-accordion-wrapper">
+                        <button class="accordion-fixed-col" aria-expanded="false" data-category="lab-participation"
+                            data-title="LAB PARTICIPATION">
+                            <div class="accordion-label-inner text-green-700">LAB PARTICIPATION</div>
+                        </button>
+                        <div id="content-1" class="accordion-content-wrapper">
+                            <div class="expanded-header-title">
+                                <div class="flex items-center space-x-2">
+                                    <span class="text-xl">LAB PARTICIPATION</span>
+                                    <span class="text-xs font-normal opacity-70">(Criteria: <span
+                                            id="criteria-count-1">10</span>)</span>
+                                </div>
+                                <button id="options-btn-1"
+                                    class="options-button p-2 bg-white text-gray-800 rounded-full hover:bg-gray-100 transition-colors shadow-lg text-sm font-medium">
+                                    Options
+                                </button>
+                            </div>
+                            <div class="accordion-content">
+                                <h2 class="text-lg sm:text-xl md:text-2xl font-bold mb-3 sm:mb-4 text-green-800">1. Lab
+                                    Participation Scores (Max 10 per item)</h2>
+                                <div id="table-lab-participation" class="max-h-full"></div>
                             </div>
                         </div>
                     </div>
                 </div>
-            </div>
 
-            <!-- ACCORDION ITEM 2: LAB HOMEWORK -->
-            <div id="item-2" class="accordion-item bg-gray-100">
-                <div class="flex flex-col h-full w-full">
-                    <button
-                        class="accordion-header flex-shrink-0 h-full w-16 p-2 text-xl font-semibold text-gray-700 hover:bg-gray-200 transition-colors duration-300"
-                        aria-expanded="false" data-target="content-2" data-category="lab-homework">
-                        <div class="accordion-header-inner">
-                            <span class="mb-2 sm:mb-4 text-blue-700">LAB HOMEWORK</span>
-                                                        <div class="header-actions ml-2 hidden">
-                                                                <span class="action-btn add-criteria-btn" role="button" tabindex="0" title="Add criteria" data-category="lab-homework">
-                                                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-white" viewBox="0 0 20 20" fill="currentColor">
-                                                                            <path fill-rule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clip-rule="evenodd" />
-                                                                        </svg>
-                                                                </span>
-                                                        </div>
-                        </div>
-                    </button>
-                    <div id="content-2" class="accordion-content-wrapper bg-white h-full flex-grow">
-                        <div class="accordion-content">
-                            <!-- Responsive heading -->
-                            <h2 class="text-lg sm:text-xl md:text-2xl font-bold mb-3 sm:mb-4 text-blue-800">2. Lab
-                                Homework Scores (Max 20 per item)</h2>
-                            <div id="table-lab-homework" class="overflow-y-auto max-h-full">
-                                <!-- Table content dynamically generated here -->
+                <div id="item-2" class="accordion-item bg-gray-100" data-view="LABORATORY" data-item-id="2">
+                    <div class="inner-accordion-wrapper">
+                        <button class="accordion-fixed-col" aria-expanded="false" data-category="lab-homework"
+                            data-title="LAB HOMEWORK">
+                            <div class="accordion-label-inner text-blue-700">LAB HOMEWORK</div>
+                        </button>
+                        <div id="content-2" class="accordion-content-wrapper">
+                            <div class="expanded-header-title">
+                                <div class="flex items-center space-x-2">
+                                    <span class="text-xl">LAB HOMEWORK</span>
+                                    <span class="text-xs font-normal opacity-70">(Criteria: <span
+                                            id="criteria-count-2">3</span>)</span>
+                                </div>
+                                <button id="options-btn-2"
+                                    class="options-button p-2 bg-white text-gray-800 rounded-full hover:bg-gray-100 transition-colors shadow-lg text-sm font-medium">
+                                    Options
+                                </button>
+                            </div>
+                            <div class="accordion-content">
+                                <h2 class="text-lg sm:text-xl md::text-2xl font-bold mb-3 sm:mb-4 text-blue-800">2. Lab
+                                    Homework Scores (Max 20 per item)</h2>
+                                <div id="table-lab-homework" class="max-h-full"></div>
                             </div>
                         </div>
                     </div>
                 </div>
-            </div>
 
-            <!-- ACCORDION ITEM 3: LAB EXERCISE -->
-            <div id="item-3" class="accordion-item bg-gray-100">
-                <div class="flex flex-col h-full w-full">
-                    <button
-                        class="accordion-header flex-shrink-0 h-full w-16 p-2 text-xl font-semibold text-gray-700 hover:bg-gray-200 transition-colors duration-300"
-                        aria-expanded="false" data-target="content-3" data-category="lab-exercise">
-                        <div class="accordion-header-inner">
-                            <span class="mb-2 sm:mb-4 text-orange-700">LAB EXERCISE</span>
-                                                        <div class="header-actions ml-2 hidden">
-                                                                <span class="action-btn add-criteria-btn" role="button" tabindex="0" title="Add criteria" data-category="lab-exercise">
-                                                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-white" viewBox="0 0 20 20" fill="currentColor">
-                                                                            <path fill-rule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clip-rule="evenodd" />
-                                                                        </svg>
-                                                                </span>
-                                                        </div>
-                        </div>
-                    </button>
-                    <div id="content-3" class="accordion-content-wrapper bg-white h-full flex-grow">
-                        <div class="accordion-content">
-                            <!-- Responsive heading -->
-                            <h2 class="text-lg sm:text-xl md:text-2xl font-bold mb-3 sm:mb-4 text-orange-800">3. Lab
-                                Exercise Scores (Max 30 per item)</h2>
-                            <div id="table-lab-exercise" class="overflow-y-auto max-h-full">
-                                <!-- Table content dynamically generated here -->
+                <div id="item-3" class="accordion-item bg-gray-100" data-view="LABORATORY" data-item-id="3">
+                    <div class="inner-accordion-wrapper">
+                        <button class="accordion-fixed-col" aria-expanded="false" data-category="lab-exercise"
+                            data-title="LAB EXERCISE">
+                            <div class="accordion-label-inner text-orange-700">LAB EXERCISE</div>
+                        </button>
+                        <div id="content-3" class="accordion-content-wrapper">
+                            <div class="expanded-header-title">
+                                <div class="flex items-center space-x-2">
+                                    <span class="text-xl">LAB EXERCISE</span>
+                                    <span class="text-xs font-normal opacity-70">(Criteria: <span
+                                            id="criteria-count-3">3</span>)</span>
+                                </div>
+                                <button id="options-btn-3"
+                                    class="options-button p-2 bg-white text-gray-800 rounded-full hover:bg-gray-100 transition-colors shadow-lg text-sm font-medium">
+                                    Options
+                                </button>
+                            </div>
+                            <div class="accordion-content">
+                                <h2 class="text-lg sm:text-xl md:text-2xl font-bold mb-3 sm:mb-4 text-orange-800">3. Lab
+                                    Exercise Scores (Max 30 per item)</h2>
+                                <div id="table-lab-exercise" class="max-h-full"></div>
                             </div>
                         </div>
                     </div>
                 </div>
-            </div>
 
-            <!-- ACCORDION ITEM 4: MIDTERM LAB EXAM -->
-            <div id="item-4" class="accordion-item bg-gray-100">
-                <div class="flex flex-col h-full w-full">
-                    <button
-                        class="accordion-header flex-shrink-0 h-full w-16 p-2 text-xl font-semibold text-gray-700 hover:bg-gray-200 transition-colors duration-300"
-                        aria-expanded="false" data-target="content-4" data-category="midterm-lab-exam">
-                        <div class="accordion-header-inner">
-                            <span class="mb-2 sm:mb-4 text-red-700">MIDTERM LAB EXAM</span>
-                                                        <div class="header-actions ml-2 hidden">
-                                                                <span class="action-btn add-criteria-btn" role="button" tabindex="0" title="Add criteria" data-category="midterm-lab-exam">
-                                                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-white" viewBox="0 0 20 20" fill="currentColor">
-                                                                            <path fill-rule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clip-rule="evenodd" />
-                                                                        </svg>
-                                                                </span>
-                                                        </div>
-                        </div>
-                    </button>
-                    <div id="content-4" class="accordion-content-wrapper bg-white h-full flex-grow">
-                        <div class="accordion-content">
-                            <!-- Responsive heading -->
-                            <h2 class="text-lg sm:text-xl md:text-2xl font-bold mb-3 sm:mb-4 text-red-800">4. Midterm
-                                Lab Exam (Max 100)</h2>
-                            <div id="table-midterm-lab-exam" class="overflow-y-auto max-h-full">
-                                <!-- Table content dynamically generated here -->
+                <div id="item-4" class="accordion-item bg-gray-100" data-view="LABORATORY" data-item-id="4">
+                    <div class="inner-accordion-wrapper">
+                        <button class="accordion-fixed-col" aria-expanded="false" data-category="midterm-lab-exam"
+                            data-title="MIDTERM LAB EXAM">
+                            <div class="accordion-label-inner text-red-700">MIDTERM LAB EXAM</div>
+                        </button>
+                        <div id="content-4" class="accordion-content-wrapper">
+                            <div class="expanded-header-title">
+                                <div class="flex items-center space-x-2">
+                                    <span class="text-xl">MIDTERM LAB EXAM</span>
+                                    <span class="text-xs font-normal opacity-70">(Criteria: <span
+                                            id="criteria-count-4">1</span>)</span>
+                                </div>
+                                <button id="options-btn-4"
+                                    class="options-button p-2 bg-white text-gray-800 rounded-full hover:bg-gray-100 transition-colors shadow-lg text-sm font-medium">
+                                    Options
+                                </button>
+                            </div>
+                            <div class="accordion-content">
+                                <h2 class="text-lg sm:text-xl md:text-2xl font-bold mb-3 sm:mb-4 text-red-800">4.
+                                    Midterm Lab Exam (Max 100)</h2>
+                                <div id="table-midterm-lab-exam" class="max-h-full"></div>
                             </div>
                         </div>
                     </div>
                 </div>
-            </div>
 
-            <!-- ACCORDION ITEM 5: FINAL LAB EXAM -->
-            <div id="item-5" class="accordion-item bg-gray-100 rounded-tr-xl rounded-br-xl">
-                <div class="flex flex-col h-full w-full">
-                    <button
-                        class="accordion-header flex-shrink-0 h-full w-16 p-2 text-xl font-semibold text-gray-700 hover:bg-gray-200 transition-colors duration-300"
-                        aria-expanded="false" data-target="content-5" data-category="final-lab-exam">
-                        <div class="accordion-header-inner">
-                            <span class="mb-2 sm:mb-4 text-violet-700">FINAL LAB EXAM</span>
-                                                        <div class="header-actions ml-2 hidden">
-                                                                <span class="action-btn add-criteria-btn" role="button" tabindex="0" title="Add criteria" data-category="final-lab-exam">
-                                                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-white" viewBox="0 0 20 20" fill="currentColor">
-                                                                            <path fill-rule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clip-rule="evenodd" />
-                                                                        </svg>
-                                                                </span>
-                                                        </div>
-                        </div>
-                    </button>
-                    <div id="content-5" class="accordion-content-wrapper bg-white h-full flex-grow">
-                        <div class="accordion-content">
-                            <!-- Responsive heading -->
-                            <h2 class="text-lg sm:text-xl md:text-2xl font-bold mb-3 sm:mb-4 text-violet-800">5. Final
-                                Lab Exam (Max 150)</h2>
-                            <div id="table-final-lab-exam" class="overflow-y-auto max-h-full">
-                                <!-- Table content dynamically generated here -->
+                <div id="item-5" class="accordion-item bg-gray-100" data-view="LABORATORY" data-item-id="5">
+                    <div class="inner-accordion-wrapper">
+                        <button class="accordion-fixed-col" aria-expanded="false" data-category="final-lab-exam"
+                            data-title="FINAL LAB EXAM">
+                            <div class="accordion-label-inner text-violet-700">FINAL LAB EXAM</div>
+                        </button>
+                        <div id="content-5" class="accordion-content-wrapper">
+                            <div class="expanded-header-title">
+                                <div class="flex items-center space-x-2">
+                                    <span class="text-xl">FINAL LAB EXAM</span>
+                                    <span class="text-xs font-normal opacity-70">(Criteria: <span
+                                            id="criteria-count-5">1</span>)</span>
+                                </div>
+                                <button id="options-btn-5"
+                                    class="options-button p-2 bg-white text-gray-800 rounded-full hover:bg-gray-100 transition-colors shadow-lg text-sm font-medium">
+                                    Options
+                                </button>
+                            </div>
+                            <div class="accordion-content">
+                                <h2 class="text-lg sm:text-xl md:text-2xl font-bold mb-3 sm:mb-4 text-violet-800">5.
+                                    Final Lab Exam (Max 150)</h2>
+                                <div id="table-final-lab-exam" class="max-h-full"></div>
                             </div>
                         </div>
+                    </div>
+                </div>
+
+                <!-- LABORATORY TOTAL (Calculated) -->
+                <div id="item-6" class="accordion-item bg-gray-100" data-view="LABORATORY" data-item-id="6">
+                    <div class="inner-accordion-wrapper">
+                        <button class="accordion-fixed-col" aria-expanded="false" data-category="total-lab-grade"
+                            data-title="LAB TOTAL">
+                            <div class="accordion-label-inner text-emerald-700 font-bold">LAB TOTAL</div>
+                        </button>
+                        <div id="content-6" class="accordion-content-wrapper">
+                            <div class="expanded-header-title">
+                                <div class="flex items-center space-x-2">
+                                    <span class="text-xl">TOTAL LABORATORY GRADE</span>
+                                    <span class="text-xs font-normal opacity-70">(Calculated)</span>
+                                </div>
+                                <!-- No options for calculated column -->
+                            </div>
+                            <div class="accordion-content">
+                                <h2 class="text-lg sm:text-xl md:text-2xl font-bold mb-3 sm:mb-4 text-emerald-800">6.
+                                    Total Laboratory Grade Summary</h2>
+                                <p class="text-sm text-gray-600 mb-4">This table sums up the total scores from all
+                                    Laboratory criteria columns (1-5).</p>
+                                <div id="table-total-lab-grade" class="max-h-full"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- LECTURE ITEMS (7-10) -->
+                <div id="item-7" class="accordion-item bg-gray-100 hidden" data-view="LECTURE" data-item-id="7">
+                    <div class="inner-accordion-wrapper">
+                        <button class="accordion-fixed-col" aria-expanded="false" data-category="class-participation"
+                            data-title="CLASS PARTICIPATION">
+                            <div class="accordion-label-inner text-sky-700">CLASS PARTICIPATION</div>
+                        </button>
+                        <div id="content-7" class="accordion-content-wrapper">
+                            <div class="expanded-header-title">
+                                <div class="flex items-center space-x-2">
+                                    <span class="text-xl">CLASS PARTICIPATION</span>
+                                    <span class="text-xs font-normal opacity-70">(Criteria: <span
+                                            id="criteria-count-7">5</span>)</span>
+                                </div>
+                                <button id="options-btn-7"
+                                    class="options-button p-2 bg-white text-gray-800 rounded-full hover:bg-gray-100 transition-colors shadow-lg text-sm font-medium">
+                                    Options
+                                </button>
+                            </div>
+                            <div class="accordion-content">
+                                <h2 class="text-lg sm:text-xl md:text-2xl font-bold mb-3 sm:mb-4 text-sky-800">7. Class
+                                    Participation (Max 10 per item)</h2>
+                                <div id="table-class-participation" class="max-h-full"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="item-8" class="accordion-item bg-gray-100 hidden" data-view="LECTURE" data-item-id="8">
+                    <div class="inner-accordion-wrapper">
+                        <button class="accordion-fixed-col" aria-expanded="false" data-category="quizzes-seatwork"
+                            data-title="QUIZZES/SEATWORK">
+                            <div class="accordion-label-inner text-amber-700">QUIZZES/SEATWORK</div>
+                        </button>
+                        <div id="content-8" class="accordion-content-wrapper">
+                            <div class="expanded-header-title">
+                                <div class="flex items-center space-x-2">
+                                    <span class="text-xl">QUIZZES/SEATWORK</span>
+                                    <span class="text-xs font-normal opacity-70">(Criteria: <span
+                                            id="criteria-count-8">4</span>)</span>
+                                </div>
+                                <button id="options-btn-8"
+                                    class="options-button p-2 bg-white text-gray-800 rounded-full hover:bg-gray-100 transition-colors shadow-lg text-sm font-medium">
+                                    Options
+                                </button>
+                            </div>
+                            <div class="accordion-content">
+                                <h2 class="text-lg sm:text-xl md:text-2xl font-bold mb-3 sm:mb-4 text-amber-800">8.
+                                    Quizzes / Seatwork (Max 40 per item)</h2>
+                                <div id="table-quizzes-seatwork" class="max-h-full"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="item-9" class="accordion-item bg-gray-100 hidden" data-view="LECTURE" data-item-id="9">
+                    <div class="inner-accordion-wrapper">
+                        <button class="accordion-fixed-col" aria-expanded="false" data-category="midterm-lecture-exam"
+                            data-title="MIDTERM LECTURE EXAM">
+                            <div class="accordion-label-inner text-pink-700">MIDTERM LECTURE EXAM</div>
+                        </button>
+                        <div id="content-9" class="accordion-content-wrapper">
+                            <div class="expanded-header-title">
+                                <div class="flex items-center space-x-2">
+                                    <span class="text-xl">MIDTERM LECTURE EXAM</span>
+                                    <span class="text-xs font-normal opacity-70">(Criteria: <span
+                                            id="criteria-count-9">1</span>)</span>
+                                </div>
+                                <button id="options-btn-9"
+                                    class="options-button p-2 bg-white text-gray-800 rounded-full hover:bg-gray-100 transition-colors shadow-lg text-sm font-medium">
+                                    Options
+                                </button>
+                            </div>
+                            <div class="accordion-content">
+                                <h2 class="text-lg sm:text-xl md:text-2xl font-bold mb-3 sm:mb-4 text-pink-800">9.
+                                    Midterm Lecture Exam (Max 100)</h2>
+                                <div id="table-midterm-lecture-exam" class="max-h-full"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="item-10" class="accordion-item bg-gray-100 hidden rounded-tr-2xl rounded-br-2xl"
+                    data-view="LECTURE" data-item-id="10">
+                    <div class="inner-accordion-wrapper">
+                        <button class="accordion-fixed-col" aria-expanded="false" data-category="final-lecture-exam"
+                            data-title="FINAL LECTURE EXAM">
+                            <div class="accordion-label-inner text-indigo-700">FINAL LECTURE EXAM</div>
+                        </button>
+                        <div id="content-10" class="accordion-content-wrapper">
+                            <div class="expanded-header-title">
+                                <div class="flex items-center space-x-2">
+                                    <span class="text-xl">FINAL LECTURE EXAM</span>
+                                    <span class="text-xs font-normal opacity-70">(Criteria: <span
+                                            id="criteria-count-10">1</span>)</span>
+                                </div>
+                                <button id="options-btn-10"
+                                    class="options-button p-2 bg-white text-gray-800 rounded-full hover:bg-gray-100 transition-colors shadow-lg text-sm font-medium">
+                                    Options
+                                </button>
+                            </div>
+                            <div class="accordion-content">
+                                <h2 class="text-lg sm:text-xl md:text-2xl font-bold mb-3 sm:mb-4 text-indigo-800">10.
+                                    Final Lecture Exam (Max 150)</h2>
+                                <div id="table-final-lecture-exam" class="max-h-full"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- --- MODAL STRUCTURE --- -->
+    <div id="options-modal" class="modal" aria-hidden="true">
+        <div class="modal-content">
+            <header class="flex justify-between items-center border-b pb-3 mb-4">
+                <h3 class="text-2xl font-bold text-gray-800">What do you want to do, Prof?</h3>
+                <button id="close-modal-btn" class="text-gray-400 hover:text-gray-600">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24"
+                        stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </header>
+
+            <div class="space-y-6">
+
+                <!-- Grade Actions Section -->
+                <div>
+                    <h4 class="text-lg font-semibold text-indigo-600 mb-3">Grade Actions for: <span
+                            id="modal-category-title" class="font-extrabold"></span></h4>
+                    <div class="grid grid-cols-3 gap-3">
+                        <button data-action="save"
+                            class="modal-action-btn bg-green-500 hover:bg-green-600 text-white font-medium py-3 px-2 rounded-lg transition-colors text-sm shadow-md">
+                            Save Grades
+                        </button>
+                        <button data-action="submit"
+                            class="modal-action-btn bg-blue-500 hover:bg-blue-600 text-white font-medium py-3 px-2 rounded-lg transition-colors text-sm shadow-md">
+                            Submit/Release Grades
+                        </button>
+                        <button data-action="lock"
+                            class="modal-action-btn bg-red-500 hover:bg-red-600 text-white font-medium py-3 px-2 rounded-lg transition-colors text-sm shadow-md">
+                            Lock Grades
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Criteria Management Section -->
+                <div>
+                    <h4 class="text-lg font-semibold text-indigo-600 mb-3 border-t pt-4">Criteria Management</h4>
+                    <div class="flex flex-col space-y-3">
+                        <input type="text" id="criteria-name-input" list="criteria-suggestions"
+                            placeholder="Enter Criteria Name (e.g., Quiz 4)"
+                            class="p-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500" />
+                        <datalist id="criteria-suggestions"></datalist>
+                        <input type="number" id="criteria-max-input" min="1" placeholder="Enter Max Score (e.g., 25)"
+                            class="p-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500" />
+                        <button id="add-criteria-btn"
+                            class="bg-indigo-500 hover:bg-indigo-600 text-white font-medium py-2 rounded-lg transition-colors shadow-md">
+                            Add New Criteria
+                        </button>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 
+    <!-- --- NOTIFICATION TOAST --- -->
+    <div id="notification-toast"
+        class="p-4 rounded-xl shadow-2xl transition-all duration-300 ease-in-out text-white font-semibold flex items-center space-x-2">
+        <svg id="toast-icon" class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"
+            xmlns="http://www.w3.org/2000/svg">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+        </svg>
+        <span id="toast-message">Action Successful!</span>
+    </div>
+
+    <!-- --- LOADING OVERLAY --- -->
+    <div id="loading-overlay">
+        <div class="flex flex-col items-center">
+            <div class="spinner"></div>
+            <p class="mt-4 text-lg font-medium text-gray-700">Loading data...</p>
+        </div>
+    </div>
+
     <script>
-        // Configuration for each category: number of inputs and max score per input
-        const CATEGORY_CONFIG = {
-            'lab-participation': { count: 5, maxScore: 10, name: 'LAB PARTICIPATION' },
-            'lab-homework': { count: 3, maxScore: 20, name: 'LAB HOMEWORK' },
-            'lab-exercise': { count: 3, maxScore: 30, name: 'LAB EXERCISE' },
-            'midterm-lab-exam': { count: 1, maxScore: 100, name: 'MIDTERM LAB EXAM' },
-            'final-lab-exam': { count: 1, maxScore: 150, name: 'FINAL LAB EXAM' },
+        // --- CONSTANTS AND CONFIG ---
+        const FIXED_LABEL_WIDTH = 64;
+        const BATCH_SIZE = 20; // Number of students to load at once
+
+        let CATEGORY_CONFIG = {
+            'lab-participation': { id: 1, view: 'LABORATORY', isCalculated: false, title: "Lab Participation", criteria: Array.from({ length: 10 }, (_, i) => ({ name: `Attendance ${i + 1}`, max: 10, index: i })) },
+            'lab-homework': { id: 2, view: 'LABORATORY', isCalculated: false, title: "Lab Homework", criteria: Array.from({ length: 3 }, (_, i) => ({ name: `Homework ${i + 1}`, max: 20, index: i })) },
+            'lab-exercise': { id: 3, view: 'LABORATORY', isCalculated: false, title: "Lab Exercise", criteria: Array.from({ length: 3 }, (_, i) => ({ name: `Exercise ${i + 1}`, max: 30, index: i })) },
+            'midterm-lab-exam': { id: 4, view: 'LABORATORY', isCalculated: false, title: "Midterm Lab Exam", criteria: [{ name: 'Midterm Lab Exam', max: 100, index: 0 }] },
+            'final-lab-exam': { id: 5, view: 'LABORATORY', isCalculated: false, title: "Final Lab Exam", criteria: [{ name: 'Final Lab Exam', max: 150, index: 0 }] },
+            'total-lab-grade': {
+                id: 6, view: 'LABORATORY', isCalculated: true, title: "Total Laboratory Grade", criteria: [
+                    { name: 'Lab Participation Total', source: 'lab-participation' },
+                    { name: 'Lab Homework Total', source: 'lab-homework' },
+                    { name: 'Lab Exercise Total', source: 'lab-exercise' },
+                    { name: 'Midterm Lab Exam Score', source: 'midterm-lab-exam' },
+                    { name: 'Final Lab Exam Score', source: 'final-lab-exam' },
+                ]
+            },
+
+            'class-participation': { id: 7, view: 'LECTURE', isCalculated: false, title: "Class Participation", criteria: Array.from({ length: 5 }, (_, i) => ({ name: `Participation ${i + 1}`, max: 10, index: i })) },
+            'quizzes-seatwork': { id: 8, view: 'LECTURE', isCalculated: false, title: "Quizzes/Seatwork", criteria: Array.from({ length: 4 }, (_, i) => ({ name: `Quiz ${i + 1}`, max: 40, index: i })) },
+            'midterm-lecture-exam': { id: 9, view: 'LECTURE', isCalculated: false, title: "Midterm Lecture Exam", criteria: [{ name: 'Midterm Lecture Exam', max: 100, index: 0 }] },
+            'final-lecture-exam': { id: 10, view: 'LECTURE', isCalculated: false, title: "Final Lecture Exam", criteria: [{ name: 'Final Lecture Exam', max: 150, index: 0 }] },
         };
+        const NUM_TOTAL_ITEMS = 10;
+        const NUM_STUDENTS = 50;
 
-        // --- MOCK DATA GENERATION (50 STUDENTS) ---
+        let expandedItem = null;
+        let activeCategoryKey = null; // Key of the currently expanded item for modal operations
 
-        /**
-         * Generates mock student data with random scores based on CATEGORY_CONFIG.
-         * @param {number} count - The number of students to generate.
-         * @returns {Array<Object>} The array of student data.
-         */
+        // --- MOCK DATA GENERATION ---
+
         const generateStudentData = (count) => {
             const names = [
                 "Reyes, Sofia L.", "Cruz, Juan M.", "Santos, Maria K.", "Garcia, Antonio B.",
@@ -495,271 +781,111 @@
             const surnames = ["Alvarez", "Bautista", "Castillo", "Diaz", "Estrada", "Fernandez", "Gomez", "Herrera", "Ibarra", "Javier"];
 
             const students = [];
+
+            const getRandomScore = (maxScore, i) => {
+                const avgPercent = (70 + (i % 30));
+                let score = maxScore * (avgPercent / 100);
+                score += (Math.random() - 0.5) * (maxScore * 0.1);
+                score = Math.min(maxScore, Math.max(0, score));
+                return Math.round(score * 10) / 10;
+            };
+
+
             for (let i = 1; i <= count; i++) {
                 const baseName = names[i % names.length];
                 const lastName = surnames[i % surnames.length];
-                // Create a unique name/ID combination
                 const studentName = `${lastName}, ${baseName.split(', ')[1]} (ID: ${i.toString().padStart(2, '0')})`;
 
-                // Function to generate a score array based on category config and a small random variance
-                const generateScores = (categoryKey) => {
-                    const { count, maxScore } = CATEGORY_CONFIG[categoryKey];
-                    const scores = [];
-                    // Base average score from 70% to 100% based on student ID to vary performance
-                    const avgPercent = (70 + (i % 30));
-
-                    for (let j = 0; j < count; j++) {
-                        // Calculate score: (Max Score * Avg Percent) +/- variance
-                        let score = maxScore * (avgPercent / 100);
-                        score += (Math.random() - 0.5) * (maxScore * 0.1); // +/- 5% variance
-                        score = Math.min(maxScore, Math.max(0, score)); // Clamp between 0 and Max
-                        scores.push(Math.round(score * 10) / 10); // Round to one decimal place
+                const studentScores = {};
+                for (const key in CATEGORY_CONFIG) {
+                    if (!CATEGORY_CONFIG[key].isCalculated) {
+                        studentScores[key] = CATEGORY_CONFIG[key].criteria.map(c =>
+                            getRandomScore(c.max, i)
+                        );
                     }
-                    return scores;
-                };
+                }
 
                 students.push({
                     id: i,
                     name: studentName,
-                    scores: {
-                        'lab-participation': generateScores('lab-participation'),
-                        'lab-homework': generateScores('lab-homework'),
-                        'lab-exercise': generateScores('lab-exercise'),
-                        'midterm-lab-exam': generateScores('midterm-lab-exam'),
-                        'final-lab-exam': generateScores('final-lab-exam')
-                    }
+                    scores: studentScores,
+                    loaded: false // Flag for lazy loading
                 });
             }
             return students;
         };
 
-        // Use 'let' because we may replace this with persisted data from localStorage
-        let studentData = generateStudentData(50);
+        const studentData = generateStudentData(NUM_STUDENTS);
 
-        /*
-         * Persistence: save the current state (studentData + CATEGORY_CONFIG) to localStorage
-         * so changes survive a page refresh for a configurable TTL (in minutes).
-         *
-         * To change the duration that saved changes persist, edit DEFAULT_TTL_MINUTES below.
-         */
-        const PERSIST_KEY = 'eclass_saved_state_v1';
-        // Default TTL in minutes (customize this value as needed) --- change here to persist longer/shorter
-        const DEFAULT_TTL_MINUTES = 15; // <-- change this value to control how long changes survive a refresh
+        // --- UTILITY FUNCTIONS ---
 
-        function _nowMs() { return Date.now(); }
+        function showNotification(message, type = 'success', duration = 3000) {
+            const toast = document.getElementById('notification-toast');
+            const messageEl = document.getElementById('toast-message');
+            const iconEl = document.getElementById('toast-icon');
 
-        // Save state to localStorage. Optionally provide `expandedId` to remember which column is open.
-        function saveState(ttlMinutes = DEFAULT_TTL_MINUTES, expandedId = null) {
-            try {
-                const payload = {
-                    ts: _nowMs(),
-                    ttlMinutes: ttlMinutes,
-                    categoryConfig: CATEGORY_CONFIG,
-                    studentData: studentData,
-                    expandedId: expandedId
-                };
-                localStorage.setItem(PERSIST_KEY, JSON.stringify(payload));
-            } catch (err) {
-                // If storage quota exceeded or unavailable, fail silently
-                console.warn('Could not save state to localStorage:', err);
+            toast.className = 'p-4 rounded-xl shadow-2xl transition-all duration-300 ease-in-out text-white font-semibold flex items-center space-x-2'; // Reset classes
+
+            let iconPath, bgColor;
+
+            if (type === 'success') {
+                bgColor = 'bg-green-500';
+                iconPath = 'M5 13l4 4L19 7'; // Checkmark
+            } else if (type === 'error') {
+                bgColor = 'bg-red-500';
+                iconPath = 'M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z'; // X in Circle
+            } else {
+                bgColor = 'bg-blue-500';
+                iconPath = 'M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z'; // Info Circle
             }
+
+            toast.classList.add(bgColor);
+            messageEl.textContent = message;
+            iconEl.innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="${iconPath}"></path>`;
+
+            // Show the toast
+            setTimeout(() => {
+                toast.classList.add('show');
+            }, 50);
+
+            // Hide the toast after duration
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, duration);
         }
 
-        function loadState() {
-            try {
-                const raw = localStorage.getItem(PERSIST_KEY);
-                if (!raw) return null;
-                const payload = JSON.parse(raw);
-                if (!payload || !payload.ts) return null;
-                const ageMinutes = (Date.now() - payload.ts) / 60000;
-                const ttl = (typeof payload.ttlMinutes === 'number') ? payload.ttlMinutes : DEFAULT_TTL_MINUTES;
-                if (ageMinutes > ttl) {
-                    // expired
-                    return null;
-                }
-                return payload;
-            } catch (err) {
-                console.warn('Could not load persisted state:', err);
-                return null;
-            }
+        function showLoadingOverlay() {
+            document.getElementById('loading-overlay').classList.add('show');
         }
 
-        // Load persisted state if present and not expired. Mutate CATEGORY_CONFIG and studentData in-place.
-        (function restorePersistedState(){
-            const persisted = loadState();
-            if (!persisted) return;
-            try {
-                // Restore category config (mutate existing CONFIG object so references remain valid)
-                Object.keys(persisted.categoryConfig || {}).forEach(k => {
-                    if (CATEGORY_CONFIG[k]) {
-                        // copy fields
-                        Object.assign(CATEGORY_CONFIG[k], persisted.categoryConfig[k]);
-                    } else {
-                        // new category - assign entire object
-                        CATEGORY_CONFIG[k] = persisted.categoryConfig[k];
-                    }
-                });
-
-                // Restore student data
-                if (Array.isArray(persisted.studentData)) {
-                    studentData = persisted.studentData;
-                }
-
-                // Expose restored expanded id so DOMContentLoaded code can expand the same column.
-                if (persisted.expandedId) {
-                    // store globally for later use by the accordion initialization
-                    window.__RESTORED_EXPANDED_ID = persisted.expandedId;
-                }
-            } catch (err) {
-                console.warn('Failed to restore persisted state:', err);
-            }
-        })();
-
-        // ------------------ Performance helpers ------------------
-        // Debounced save so rapid typing doesn't thrash localStorage or cause FPS drops.
-        let __saveTimer = null;
-        function getExpandedId() {
-            const el = document.querySelector('.accordion-item.expanded');
-            return el ? el.id : null;
-        }
-        function scheduleSave(delay = 700) {
-            // coalesce saves
-            if (__saveTimer) clearTimeout(__saveTimer);
-            __saveTimer = setTimeout(() => {
-                try { saveState(DEFAULT_TTL_MINUTES, getExpandedId()); } catch (e) { /* ignore */ }
-                __saveTimer = null;
-            }, delay);
+        function hideLoadingOverlay() {
+            document.getElementById('loading-overlay').classList.remove('show');
         }
 
-
-
-        // --- DYNAMIC TABLE GENERATION & SCORING LOGIC ---
-
-        /**
-         * Renders the score table for a specific category into its content area.
-         */
-        function renderTable(categoryKey) {
-            const { count, maxScore } = CATEGORY_CONFIG[categoryKey];
-            const tableContainer = document.getElementById(`table-${categoryKey}`);
-
-            // Start HTML string for the table
-            let tableHTML = `
-                <table class="w-full text-left score-table bg-white shadow-md">
-                    <thead class="bg-gray-50 sticky top-0 z-10">
-                        <tr>
-                            <th class="font-bold text-gray-700 sticky-col bg-gray-50">NAME OF STUDENTS</th>
-            `;
-
-            // Generate score column headers
-            for (let i = 1; i <= count; i++) {
-                tableHTML += `<th class="font-medium text-gray-600 text-center">Score ${i} <span class="text-xs font-normal">(Max ${maxScore})</span></th>`;
-            }
-
-            // Add Total column header
-            tableHTML += `
-                            <th class="font-extrabold text-white bg-gray-700 text-center">TOTAL</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-            `;
-
-            // Generate rows for each student
-            studentData.forEach(student => {
-                tableHTML += `<tr data-student-id="${student.id}" class="hover:bg-gray-100 transition-colors">
-                                <td class="font-medium text-gray-800 sticky-col">${student.name}</td>`;
-
-                // Generate input fields for scores in this category
-                for (let i = 0; i < count; i++) {
-                    const scoreValue = student.scores[categoryKey][i] !== undefined ? student.scores[categoryKey][i] : 0;
-                    tableHTML += `<td>
-                                    <input type="number" 
-                                           class="score-input border-gray-300 data-input" 
-                                           data-category="${categoryKey}"
-                                           data-student-id="${student.id}"
-                                           data-index="${i}"
-                                           min="0"
-                                           max="${maxScore}"
-                                           value="${scoreValue}"
-                                           placeholder="0"
-                                    />
-                                  </td>`;
-                }
-
-                // Add the Total Score output field
-                tableHTML += `<td class="bg-gray-50 text-center">
-                                <input type="text" 
-                                       class="total-output text-center" 
-                                       id="total-${categoryKey}-${student.id}" 
-                                       value="0" 
-                                       readonly
-                                />
-                              </td>
-                            </tr>`;
-            });
-
-            tableHTML += `</tbody></table>`;
-
-            // --- ADD CLOSE BUTTON HTML ---
-            const closeButtonHTML = `
-                <button id="close-btn-${categoryKey}" 
-                        class="close-button absolute top-2 right-2 sm:top-4 sm:right-4 z-20 text-gray-400 hover:text-gray-700 p-2 rounded-full bg-white hover:bg-gray-100 transition-colors shadow-md">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                </button>
-            `;
-
-            // Place the button and table content
-            tableContainer.innerHTML = tableHTML;
-
-            // Find the correct content wrapper element by traversing the DOM from the table container.
-            const contentDiv = tableContainer.closest('.accordion-content');
-            const contentWrapper = contentDiv ? contentDiv.parentElement : null;
-
-            // Add the close button to the content wrapper if it's not already there
-            if (contentWrapper && !document.getElementById(`close-btn-${categoryKey}`)) {
-                contentWrapper.insertAdjacentHTML('afterbegin', closeButtonHTML);
-            }
-
-            // Attach event listeners after content is rendered
-            attachInputListeners(categoryKey);
-
-            // Calculate totals for all rows initially
-            studentData.forEach(student => calculateRowTotal(student.id, categoryKey));
-
-            // Attach listener for the new close button
-            const closeButton = document.getElementById(`close-btn-${categoryKey}`);
-            if (closeButton) {
-                closeButton.addEventListener('click', (event) => {
-                    event.stopPropagation(); // Prevents outside-click logic from firing unnecessarily
-                    const item = closeButton.closest('.accordion-item');
-                    const header = item ? item.querySelector('.accordion-header') : null;
-                    // collapsePanel is declared inside the DOMContentLoaded handler and isn't
-                    // available here (renderTable is in the outer scope). Programmatically
-                    // click the header so its click handler (which toggles expansion) runs.
-                    if (header && typeof header.click === 'function') {
-                        header.click();
-                    } else if (item) {
-                        // Fallback: remove expanded class and update aria if header isn't present
-                        item.classList.remove('expanded');
-                        const hdr = item.querySelector('.accordion-header');
-                        if (hdr) hdr.setAttribute('aria-expanded', 'false');
-                        // Reset widths for all items (best-effort fallback)
-                        document.querySelectorAll('.accordion-item').forEach(i => i.style.width = '64px');
-                    }
-                });
-            }
-        }
-
-        /**
-         * Calculates and updates the total score for a single student in a given category.
-         */
+        // Helper to calculate total
         function calculateRowTotal(studentId, categoryKey) {
             const student = studentData.find(s => s.id === studentId);
             if (!student) return;
 
-            const scores = student.scores[categoryKey] || [];
-            const total = scores.reduce((sum, score) => sum + parseFloat(score || 0), 0);
+            const config = CATEGORY_CONFIG[categoryKey];
+            let total = 0;
+
+            if (config.isCalculated) {
+                // Total Lab Grade calculation (sums up totals from other categories)
+                config.criteria.forEach(c => {
+                    const sourceKey = c.source;
+                    const sourceConfig = CATEGORY_CONFIG[sourceKey];
+                    if (sourceConfig) {
+                        const sourceScores = student.scores[sourceKey] || [];
+                        const sourceTotal = sourceScores.reduce((sum, score) => sum + parseFloat(score || 0), 0);
+                        total += sourceTotal;
+                    }
+                });
+            } else {
+                // Normal category: sum up scores within its own criteria
+                const scores = student.scores[categoryKey] || [];
+                total = scores.reduce((sum, score) => sum + parseFloat(score || 0), 0);
+            }
 
             const totalInput = document.getElementById(`total-${categoryKey}-${studentId}`);
             if (totalInput) {
@@ -767,39 +893,234 @@
             }
         }
 
+        function updateAllCalculatedTotals() {
+            // Recalculate 'total-lab-grade' for all students
+            studentData.forEach(student => {
+                calculateRowTotal(student.id, 'total-lab-grade');
+            });
+        }
+
+        // --- DYNAMIC RENDERING FUNCTIONS ---
+        let currentLoadedCount = 0; // Tracks students loaded in the current expanded category
+
         /**
-         * Attaches 'input' listeners to all generated score fields in the current category.
+         * Renders the score table for a specific category into its content area.
          */
-        function attachInputListeners(categoryKey) {
-            // Use event delegation: attach a single input handler to the table container
-            const container = document.getElementById(`table-${categoryKey}`);
-            if (!container) return;
-            if (container._inputWired) return; // avoid double-binding
-            container._inputWired = true;
+        function renderTable(categoryKey, start = 0) {
+            const config = CATEGORY_CONFIG[categoryKey];
+            const tableContainer = document.getElementById(`table-${categoryKey}`);
+            const isCalculated = config.isCalculated;
 
-            container.addEventListener('input', (event) => {
-                const target = event.target;
-                if (!target || !target.classList || !target.classList.contains('data-input')) return;
-                const studentId = parseInt(target.getAttribute('data-student-id'));
-                const index = parseInt(target.getAttribute('data-index'));
-                const max = parseFloat(target.getAttribute('max'));
+            // Determine which students to load
+            const end = Math.min(start + BATCH_SIZE, studentData.length);
+            const studentsToLoad = studentData.slice(start, end);
 
-                // 1. Update the underlying data model (fast, in-memory)
-                let value = parseFloat(target.value);
-                if (isNaN(value) || value < 0) value = 0;
-                if (value > max) { value = max; target.value = max; }
+            let tableHTML = start === 0 ? '' : tableContainer.querySelector('tbody').innerHTML; // Keep existing rows if batch loading
 
-                const student = studentData.find(s => s.id === studentId);
-                if (student) {
-                    student.scores[categoryKey][index] = value;
+            if (start === 0) {
+                tableHTML += `
+                    <table class="w-full text-left score-table bg-white shadow-md">
+                        <thead class="bg-gray-50 sticky top-0 z-10">
+                            <tr>
+                                <th class="font-bold text-gray-700 sticky-col sticky-col-header bg-gray-50">NAME OF STUDENTS</th>
+                `;
+
+                // Generate score column headers
+                config.criteria.forEach(criteria => {
+                    tableHTML += `<th class="font-medium text-gray-600 text-center whitespace-nowrap">
+                                        ${criteria.name} 
+                                        ${!isCalculated ? `<span class="text-xs font-normal">(Max ${criteria.max})</span>` : ''}
+                                  </th>`;
+                });
+
+                // Add Total column header
+                tableHTML += `
+                                <th class="font-extrabold text-white bg-gray-700 text-center">TOTAL</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                `;
+            }
+
+            // Generate rows for the current batch
+            studentsToLoad.forEach(student => {
+                tableHTML += `<tr data-student-id="${student.id}" class="hover:bg-gray-100 transition-colors">
+                                <td class="font-medium text-gray-800 sticky-col">${student.name}</td>`;
+
+                // Generate input/output fields
+                config.criteria.forEach((criteria, i) => {
+                    if (isCalculated) {
+                        // Calculated column: Display the total score from the source category
+                        const sourceTotal = studentData.find(s => s.id === student.id).scores[criteria.source]
+                            .reduce((sum, score) => sum + parseFloat(score || 0), 0);
+
+                        tableHTML += `<td class="bg-gray-50 text-center font-bold">${sourceTotal.toFixed(2)}</td>`;
+
+                    } else {
+                        // Input column: Display editable score
+                        const scoreValue = student.scores[categoryKey][criteria.index] !== undefined ? student.scores[categoryKey][criteria.index] : 0;
+                        tableHTML += `<td>
+                                        <input type="number" 
+                                            class="score-input border-gray-300 data-input" 
+                                            data-category="${categoryKey}"
+                                            data-student-id="${student.id}"
+                                            data-index="${criteria.index}"
+                                            min="0"
+                                            max="${criteria.max}"
+                                            value="${scoreValue}"
+                                            placeholder="0"
+                                        />
+                                    </td>`;
+                    }
+                });
+
+                // Add the Total Score output field
+                tableHTML += `<td class="bg-gray-50 text-center">
+                                <input type="text" 
+                                    class="total-output text-center" 
+                                    id="total-${categoryKey}-${student.id}" 
+                                    value="0" 
+                                    readonly
+                                />
+                              </td>
+                            </tr>`;
+            });
+
+            if (start === 0) {
+                tableHTML += `</tbody></table>`;
+            } else {
+                tableContainer.querySelector('tbody').innerHTML += studentsToLoad.map(student => {
+                    // Re-generate the row HTML for appending
+                    let rowHTML = `<tr data-student-id="${student.id}" class="hover:bg-gray-100 transition-colors">
+                                    <td class="font-medium text-gray-800 sticky-col">${student.name}</td>`;
+
+                    config.criteria.forEach((criteria, i) => {
+                        if (isCalculated) {
+                            const sourceTotal = studentData.find(s => s.id === student.id).scores[criteria.source]
+                                .reduce((sum, score) => sum + parseFloat(score || 0), 0);
+                            rowHTML += `<td class="bg-gray-50 text-center font-bold">${sourceTotal.toFixed(2)}</td>`;
+                        } else {
+                            const scoreValue = student.scores[categoryKey][criteria.index] !== undefined ? student.scores[categoryKey][criteria.index] : 0;
+                            rowHTML += `<td>
+                                            <input type="number" 
+                                                class="score-input border-gray-300 data-input" 
+                                                data-category="${categoryKey}"
+                                                data-student-id="${student.id}"
+                                                data-index="${criteria.index}"
+                                                min="0"
+                                                max="${criteria.max}"
+                                                value="${scoreValue}"
+                                                placeholder="0"
+                                            />
+                                        </td>`;
+                        }
+                    });
+
+                    rowHTML += `<td class="bg-gray-50 text-center">
+                                    <input type="text" 
+                                        class="total-output text-center" 
+                                        id="total-${categoryKey}-${student.id}" 
+                                        value="0" 
+                                        readonly
+                                    />
+                                </td></tr>`;
+                    return rowHTML;
+                }).join('');
+            }
+
+            if (start === 0) {
+                tableContainer.innerHTML = tableHTML;
+            }
+
+            currentLoadedCount = end;
+
+            // Manage the "Load More" button
+            const existingLoadMore = document.getElementById('load-more-btn');
+            if (existingLoadMore) existingLoadMore.remove();
+
+            if (currentLoadedCount < studentData.length) {
+                const loadMoreBtn = document.createElement('button');
+                loadMoreBtn.id = 'load-more-btn';
+                loadMoreBtn.className = 'w-full mt-4 p-3 bg-indigo-500 text-white rounded-lg font-semibold hover:bg-indigo-600 transition-colors shadow-md';
+                loadMoreBtn.textContent = `Load More Students (${currentLoadedCount} / ${studentData.length} visible)`;
+                loadMoreBtn.addEventListener('click', () => {
+                    const contentArea = loadMoreBtn.closest('.accordion-content');
+                    contentArea.scrollTop = contentArea.scrollHeight; // Scroll to bottom before loading
+                    showLoadingOverlay();
+                    setTimeout(() => {
+                        renderTable(categoryKey, currentLoadedCount);
+                        hideLoadingOverlay();
+                        attachInputListeners(categoryKey); // Re-attach listeners for new inputs
+                        // Re-calculate totals for the newly loaded batch
+                        studentsToLoad.forEach(student => calculateRowTotal(student.id, categoryKey));
+                        updateAllCalculatedTotals();
+                    }, 500); // Simulate network delay
+                });
+                tableContainer.closest('.accordion-content').appendChild(loadMoreBtn);
+            } else if (studentData.length > 0 && tableContainer.closest('.accordion-content')) {
+                const contentArea = tableContainer.closest('.accordion-content');
+                let footer = contentArea.querySelector('#end-of-list');
+                if (!footer) {
+                    footer = document.createElement('p');
+                    footer.id = 'end-of-list';
+                    footer.className = 'text-center text-sm text-gray-500 mt-4 mb-2';
+                    contentArea.appendChild(footer);
                 }
+                footer.textContent = `All ${studentData.length} students loaded.`;
+            }
 
-                // 2. Recalculate and update the row total (DOM update for single cell)
-                calculateRowTotal(studentId, categoryKey);
+            // Attach input listeners only if it's not a calculated column
+            if (!isCalculated) {
+                attachInputListeners(categoryKey);
+            }
 
-                // 3. Schedule a debounced save instead of saving on every keystroke
-                scheduleSave();
-            }, { passive: true });
+            // Calculate totals for all rows initially
+            studentData.forEach(student => calculateRowTotal(student.id, categoryKey));
+            updateAllCalculatedTotals();
+        }
+
+        // Helper to attach input listeners
+        function attachInputListeners(categoryKey) {
+            const inputs = document.querySelectorAll(`#table-${categoryKey} .data-input`);
+            inputs.forEach(input => {
+                input.removeEventListener('input', handleScoreInput); // Remove existing to prevent duplication
+                input.addEventListener('input', handleScoreInput);
+            });
+        }
+
+        // Single handler for score input events
+        function handleScoreInput(event) {
+            const target = event.target;
+            const studentId = parseInt(target.getAttribute('data-student-id'));
+            const index = parseInt(target.getAttribute('data-index'));
+            const categoryKey = target.getAttribute('data-category');
+            const max = parseFloat(target.getAttribute('max'));
+
+            let value = parseFloat(target.value);
+            if (isNaN(value) || value < 0) {
+                value = 0;
+            }
+            if (value > max) {
+                value = max;
+                target.value = max;
+            }
+
+            const student = studentData.find(s => s.id === studentId);
+            if (student) {
+                // Ensure scores array is large enough
+                while (student.scores[categoryKey].length <= index) {
+                    student.scores[categoryKey].push(0);
+                }
+                student.scores[categoryKey][index] = value;
+            }
+
+            calculateRowTotal(studentId, categoryKey);
+            updateAllCalculatedTotals();
+
+            // If the total-lab-grade column is currently expanded, re-render it to reflect changes
+            if (expandedItem && expandedItem.getAttribute('data-category') === 'total-lab-grade') {
+                renderTable('total-lab-grade', 0); // Quick re-render of the summary table
+            }
         }
 
 
@@ -808,274 +1129,334 @@
             const container = document.getElementById('accordion-container');
             const items = container.querySelectorAll('.accordion-item');
             const mainContainer = document.getElementById('main-container');
+            const viewFilter = document.getElementById('view-filter');
 
-            // If a restored expanded id was loaded from localStorage, keep it here until
-            // after the expandPanel/collapsePanel functions are defined and we can call them.
-            const restoredExpandedId = window.__RESTORED_EXPANDED_ID || null;
-
-            // Define fixed width for the collapsed header in pixels (best for vertical text legibility)
-            const COLLAPSED_WIDTH_PX = 64;
-            let expandedItem = null;
-
-            // Function to find the currently expanded item
-            const getExpandedItem = () => document.querySelector('.accordion-item.expanded');
-            // Helpers to show/hide a loading overlay inside an accordion-content-wrapper
-            function showLoadingOverlay(targetId) {
-                const wrapper = document.getElementById(targetId);
-                if (!wrapper) return null;
-                // If already has overlay, return it
-                let overlay = wrapper.querySelector('.loading-overlay');
-                if (overlay) { overlay.style.display = 'flex'; return overlay; }
-                overlay = document.createElement('div');
-                overlay.className = 'loading-overlay';
-                overlay.innerHTML = '<div class="spinner" aria-hidden="true"></div>';
-                // Ensure wrapper is positioned (it already is) and insert overlay
-                wrapper.insertAdjacentElement('beforeend', overlay);
-                return overlay;
-            }
-
-            function hideLoadingOverlay(targetId) {
-                const wrapper = document.getElementById(targetId);
-                if (!wrapper) return;
-                const overlay = wrapper.querySelector('.loading-overlay');
-                if (overlay) overlay.style.display = 'none';
-            }
-
+            // Attach event listeners to all fixed columns
             items.forEach(item => {
-                const header = item.querySelector('.accordion-header');
-                const categoryKey = header.getAttribute('data-category');
-
-                // Do NOT pre-render all tables on load (lazy render when expanded)
-                header.addEventListener('click', () => {
+                const fixedCol = item.querySelector('.accordion-fixed-col');
+                fixedCol.addEventListener('click', () => {
+                    const categoryKey = fixedCol.getAttribute('data-category');
                     const isExpanded = item.classList.contains('expanded');
 
                     if (isExpanded) {
-                        // Clicking an expanded header should close it
-                        collapsePanel(item, header);
+                        collapsePanel(item, fixedCol);
                     } else {
-                        // Clicking a collapsed header should expand it
-                        expandPanel(item, header);
-
-                        // After expansion animation begins, lazily render the table if needed
-                        if (categoryKey) {
-                            const targetId = header.getAttribute('data-target');
-                            const wrapper = document.getElementById(targetId);
-                            const already = wrapper && wrapper.dataset && wrapper.dataset.rendered === 'true';
-                            if (wrapper && !already) {
-                                showLoadingOverlay(targetId);
-                                // Give the browser a moment to paint the expanded panel, then render data.
-                                setTimeout(() => {
-                                    const doRender = () => {
-                                        renderTable(categoryKey);
-                                        // mark as rendered to avoid future re-renders
-                                        const contentDiv = document.getElementById(`table-${categoryKey}`)?.closest('.accordion-content');
-                                        const contentWrapper = contentDiv ? contentDiv.parentElement : null;
-                                        if (contentWrapper) contentWrapper.dataset.rendered = 'true';
-                                        hideLoadingOverlay(targetId);
-                                    };
-                                    if ('requestIdleCallback' in window) {
-                                        requestIdleCallback(doRender, { timeout: 300 });
-                                    } else {
-                                        // fallback: small delay to avoid jank during animation
-                                        setTimeout(doRender, 60);
-                                    }
-                                }, 40);
-                            }
-                        }
+                        showLoadingOverlay();
+                        setTimeout(() => { // Simulate delay for loading content
+                            expandPanel(item, fixedCol);
+                            hideLoadingOverlay();
+                        }, 500);
                     }
                 });
             });
 
-            /**
-             * Collapses a specific accordion panel (column) and resets all items.
-             */
-            function collapsePanel(item, header) {
+            // --- View Filter Logic ---
+            const filterItems = (view) => {
+                let totalVisibleItems = 0;
+                items.forEach(item => {
+                    if (item.getAttribute('data-view') === view) {
+                        item.classList.remove('hidden');
+                        totalVisibleItems++;
+                    } else {
+                        item.classList.add('hidden');
+                    }
+                });
+                return totalVisibleItems;
+            };
+
+            viewFilter.addEventListener('change', (event) => {
+                const newView = event.target.value;
+                showLoadingOverlay();
+
+                // Collapse any currently expanded panel before switching view
+                const currentlyExpanded = getExpandedItem();
+                if (currentlyExpanded) {
+                    const currentFixedCol = currentlyExpanded.querySelector('.accordion-fixed-col');
+                    collapsePanel(currentlyExpanded, currentFixedCol, false); // No global collapse
+                }
+
+                showNotification(`Switching view to ${newView}...`, 'info', 1000);
+
+                setTimeout(() => {
+                    filterItems(newView);
+                    hideLoadingOverlay();
+                    showNotification(`${newView} view loaded successfully!`, 'success', 3000);
+                }, 800);
+            });
+
+            // Initial filter setting
+            const initialView = viewFilter.value;
+            filterItems(initialView);
+
+            // Function to get the currently expanded item
+            const getExpandedItem = () => document.querySelector('.accordion-item.expanded');
+
+
+            // --- Core Accordion Functions ---
+            function collapsePanel(item, fixedCol, isGlobalCollapse = true) {
                 if (!item.classList.contains('expanded')) return;
 
                 item.classList.remove('expanded');
-                header.setAttribute('aria-expanded', 'false');
+                fixedCol.setAttribute('aria-expanded', 'false');
                 expandedItem = null;
+                activeCategoryKey = null;
 
-                // Reset all items to their collapsed header width. Use rAF to coalesce layout changes.
-                requestAnimationFrame(() => {
-                    items.forEach(i => {
-                        i.style.width = `${COLLAPSED_WIDTH_PX}px`;
-                    });
+                const contentWrapper = item.querySelector('.accordion-content-wrapper');
+                contentWrapper.style.width = '0px';
+
+                // Remove close button
+                // FIX: Query the item for the descendant close button, not using closest()
+                const closeButton = item.querySelector('.close-button');
+                if (closeButton) closeButton.remove();
+
+                // Hide header title
+                const headerTitle = item.querySelector('.expanded-header-title');
+                if (headerTitle) headerTitle.style.display = 'none';
+
+                // Reset all visible items to their initial collapsed width (64px)
+                const visibleItems = container.querySelectorAll('.accordion-item:not(.hidden)');
+                visibleItems.forEach(i => {
+                    const iContentWrapper = i.querySelector('.accordion-content-wrapper');
+                    i.style.width = `${FIXED_LABEL_WIDTH}px`;
+                    iContentWrapper.style.width = '0px';
                 });
-                // Persist the fact that no column is expanded
-                try { saveState(DEFAULT_TTL_MINUTES, null); } catch (e) { /* ignore */ }
+
+                // Remove Load More button from its container if it exists
+                const existingLoadMore = document.getElementById('load-more-btn');
+                if (existingLoadMore) existingLoadMore.remove();
+
+                // Remove end of list footer
+                const endOfList = document.getElementById('end-of-list');
+                if (endOfList) endOfList.remove();
             }
 
-            /**
-             * Expands a specific accordion panel (column) to full width, hiding others.
-             */
-            function expandPanel(item, header) {
-                // Collapse all other panels and hide them
-                // Use rAF to batch DOM writes for smoother animations
-                requestAnimationFrame(() => {
-                    items.forEach(otherItem => {
-                        const otherHeader = otherItem.querySelector('.accordion-header');
-                        if (otherItem === item) {
-                            // Expanded item takes the full width
-                            otherItem.style.width = '100%';
-                            otherItem.classList.add('expanded');
-                            if (otherHeader) otherHeader.setAttribute('aria-expanded', 'true');
-                            expandedItem = item;
-                        } else {
-                            // Other items become 0 width to disappear
-                            otherItem.style.width = '0px';
-                            otherItem.classList.remove('expanded');
-                            if (otherHeader) otherHeader.setAttribute('aria-expanded', 'false');
+            function expandPanel(item, fixedCol) {
+                // Collapse any currently expanded item first, if it's a different one
+                const currentlyExpanded = getExpandedItem();
+                if (currentlyExpanded && currentlyExpanded !== item) {
+                    const currentFixedCol = currentlyExpanded.querySelector('.accordion-fixed-col');
+                    collapsePanel(currentlyExpanded, currentFixedCol);
+                }
+
+                const categoryKey = fixedCol.getAttribute('data-category');
+                const view = fixedCol.closest('.accordion-item').getAttribute('data-view');
+                const visibleItems = container.querySelectorAll(`.accordion-item[data-view="${view}"]:not(.hidden)`);
+                const numVisibleItems = visibleItems.length;
+
+                item.classList.add('expanded');
+                fixedCol.setAttribute('aria-expanded', 'true');
+                activeCategoryKey = categoryKey;
+
+                // 1. Render the table content (triggers lazy load if necessary)
+                renderTable(categoryKey, 0);
+
+                // 2. Calculate the required expanded width
+
+                const totalAvailableWidth = container.offsetWidth;
+                const otherItemsCount = numVisibleItems - 1;
+                const totalCollapsedWidth = otherItemsCount * FIXED_LABEL_WIDTH;
+                const TOTAL_BORDER_WIDTH = numVisibleItems; // Each visible item has a right border
+
+                // 3. Apply widths
+                const expandedItemTotalWidth = `calc(100% - ${totalCollapsedWidth}px - ${TOTAL_BORDER_WIDTH}px)`;
+                const expandedContentWidth = `calc(${expandedItemTotalWidth} - ${FIXED_LABEL_WIDTH}px)`;
+
+
+                visibleItems.forEach(otherItem => {
+                    const otherContentWrapper = otherItem.querySelector('.accordion-content-wrapper');
+
+                    if (otherItem === item) {
+                        // Expanded item takes the calculated large width
+                        otherItem.style.width = expandedItemTotalWidth;
+
+                        // Content wrapper takes the calculated remaining width
+                        otherContentWrapper.style.width = expandedContentWidth;
+
+                        // Show header title
+                        const headerTitle = otherItem.querySelector('.expanded-header-title');
+                        if (headerTitle) headerTitle.style.display = 'flex';
+
+                        // Add or ensure Close button
+                        const closeButtonId = `close-btn-${categoryKey}`;
+                        // Use querySelector to find the inner wrapper, not closest, since it's a child.
+                        const innerWrapper = otherItem.querySelector('.inner-accordion-wrapper');
+
+                        if (innerWrapper && !innerWrapper.querySelector('.close-button')) {
+                            const closeButtonHTML = `
+                                <button id="${closeButtonId}" 
+                                        class="close-button absolute top-2 right-2 sm:top-4 sm:right-4 z-20 text-gray-400 hover:text-gray-700 p-2 rounded-full bg-white hover:bg-gray-100 transition-colors shadow-md">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                                    </svg>
+                                </button>
+                            `;
+                            // Use the found innerWrapper as the parent for inserting the close button
+                            innerWrapper.insertAdjacentHTML('beforeend', closeButtonHTML);
+
+                            const newCloseButton = document.getElementById(closeButtonId);
+                            if (newCloseButton) {
+                                newCloseButton.addEventListener('click', (event) => {
+                                    event.stopPropagation();
+                                    const btnItem = newCloseButton.closest('.accordion-item');
+                                    const btnFixedCol = btnItem.querySelector('.accordion-fixed-col');
+                                    collapsePanel(btnItem, btnFixedCol);
+                                });
+                            }
                         }
-                    });
+
+                        expandedItem = item;
+                    } else {
+                        // Other visible items remain at the fixed label width (64px)
+                        otherItem.style.width = `${FIXED_LABEL_WIDTH}px`;
+                        otherItem.classList.remove('expanded');
+                        otherItem.querySelector('.accordion-fixed-col').setAttribute('aria-expanded', 'false');
+
+                        // Hide content wrapper completely
+                        otherContentWrapper.style.width = '0px';
+                        const headerTitle = otherItem.querySelector('.expanded-header-title');
+                        if (headerTitle) headerTitle.style.display = 'none';
+                    }
                 });
-                // Persist which column is expanded so it can be restored after refresh
-                try { saveState(DEFAULT_TTL_MINUTES, item.id); } catch (e) { /* ignore */ }
+
+                // Set modal title
+                document.getElementById('modal-category-title').textContent = fixedCol.getAttribute('data-title');
             }
 
             // --- Global Click Listener for Outside Click ---
             document.body.addEventListener('click', (event) => {
                 const expanded = getExpandedItem();
-                if (!expanded) return;
+                const modal = document.getElementById('options-modal');
+                if (!expanded || modal.classList.contains('open')) return;
 
                 // Check if the click occurred outside the main application container
                 if (!mainContainer.contains(event.target)) {
-                    const header = expanded.querySelector('.accordion-header');
-                    collapsePanel(expanded, header);
+                    const fixedCol = expanded.querySelector('.accordion-fixed-col');
+                    collapsePanel(expanded, fixedCol);
                 }
             });
 
             // Initial setup: ensure all panels are fully collapsed on load
             items.forEach(item => {
-                const header = item.querySelector('.accordion-header');
-                // Use a direct style manipulation here to prevent transition upon load
-                item.style.width = `${COLLAPSED_WIDTH_PX}px`;
-                header.setAttribute('aria-expanded', 'false');
+                const contentWrapper = item.querySelector('.accordion-content-wrapper');
+                item.style.width = `${FIXED_LABEL_WIDTH}px`;
+                contentWrapper.style.width = '0px';
+                item.querySelector('.accordion-fixed-col').setAttribute('aria-expanded', 'false');
+                const headerTitle = item.querySelector('.expanded-header-title');
+                if (headerTitle) headerTitle.style.display = 'none';
+
+                // Update criteria counts
+                const itemId = item.getAttribute('data-item-id');
+                const config = Object.values(CATEGORY_CONFIG).find(c => c.id == itemId);
+                if (config && document.getElementById(`criteria-count-${itemId}`)) {
+                    document.getElementById(`criteria-count-${itemId}`).textContent = config.criteria.length;
+                }
             });
 
-            // If a column was expanded in the persisted state, expand it now
-            if (restoredExpandedId) {
-                const el = document.getElementById(restoredExpandedId);
-                if (el) {
-                    const hdr = el.querySelector('.accordion-header');
-                    if (hdr) {
-                        expandPanel(el, hdr);
+            // --- MODAL & ACTION LOGIC ---
+            const modal = document.getElementById('options-modal');
+            const closeModalBtn = document.getElementById('close-modal-btn');
+
+            // Open Modal Listener
+            document.querySelectorAll('.options-button').forEach(button => {
+                button.addEventListener('click', (event) => {
+                    event.stopPropagation();
+                    modal.classList.add('open');
+                    modal.setAttribute('aria-hidden', 'false');
+
+                    // Populate suggestions for criteria name
+                    const suggestions = new Set([
+                        'Quiz', 'Attendance', 'Lab Report', 'Project', 'Midterm', 'Final', 'Seatwork', 'Recitation', 'Performance Task'
+                    ]);
+                    // Add existing criteria names
+                    for (const key in CATEGORY_CONFIG) {
+                        if (!CATEGORY_CONFIG[key].isCalculated) {
+                            CATEGORY_CONFIG[key].criteria.forEach(c => suggestions.add(c.name));
+                        }
                     }
+
+                    const datalist = document.getElementById('criteria-suggestions');
+                    datalist.innerHTML = '';
+                    suggestions.forEach(name => {
+                        const option = document.createElement('option');
+                        option.value = name;
+                        datalist.appendChild(option);
+                    });
+                });
+            });
+
+            // Close Modal Listener
+            closeModalBtn.addEventListener('click', () => {
+                modal.classList.remove('open');
+                modal.setAttribute('aria-hidden', 'true');
+                document.getElementById('criteria-name-input').value = '';
+                document.getElementById('criteria-max-input').value = '';
+            });
+            modal.addEventListener('click', (event) => {
+                if (event.target === modal) {
+                    closeModalBtn.click();
                 }
-            }
+            });
+
+            // Modal Action Buttons (Mock Functionality)
+            document.querySelectorAll('.modal-action-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const action = btn.getAttribute('data-action');
+                    showNotification(`Mock Action: ${btn.textContent} executed for ${CATEGORY_CONFIG[activeCategoryKey].title}!`, 'success');
+                    closeModalBtn.click();
+                });
+            });
+
+            // Add Criteria Button Logic
+            document.getElementById('add-criteria-btn').addEventListener('click', () => {
+                const nameInput = document.getElementById('criteria-name-input');
+                const maxInput = document.getElementById('criteria-max-input');
+                const name = nameInput.value.trim();
+                const max = parseInt(maxInput.value);
+
+                if (!name || isNaN(max) || max <= 0) {
+                    showNotification('Please enter a valid criteria name and max score.', 'error');
+                    return;
+                }
+
+                if (CATEGORY_CONFIG[activeCategoryKey].isCalculated) {
+                    showNotification('Cannot add criteria to a calculated total column.', 'error');
+                    return;
+                }
+
+                showLoadingOverlay();
+                setTimeout(() => {
+                    const config = CATEGORY_CONFIG[activeCategoryKey];
+                    const newIndex = config.criteria.length;
+
+                    config.criteria.push({
+                        name: name,
+                        max: max,
+                        index: newIndex
+                    });
+
+                    // Add a default score (0) for the new criteria for ALL students
+                    studentData.forEach(student => {
+                        student.scores[activeCategoryKey].push(0);
+                    });
+
+                    // Update criteria count display
+                    document.getElementById(`criteria-count-${config.id}`).textContent = config.criteria.length;
+
+                    // Re-render the expanded panel to show the new column
+                    const expandedItem = getExpandedItem();
+                    const fixedCol = expandedItem.querySelector('.accordion-fixed-col');
+                    collapsePanel(expandedItem, fixedCol);
+                    expandPanel(expandedItem, fixedCol); // Re-expand to trigger full re-render
+
+                    hideLoadingOverlay();
+                    showNotification(`New Criteria "${name}" (Max ${max}) added!`, 'success');
+                    closeModalBtn.click();
+
+                }, 500);
+            });
         });
     </script>
 
-    <!-- Add Criteria Modal (reusable) -->
-    <div id="addCriteriaModal" class="modal-backdrop" aria-hidden="true">
-        <div class="modal" role="dialog" aria-modal="true" aria-labelledby="addCriteriaTitle">
-            <h3 id="addCriteriaTitle">Add Assessment / Criteria</h3>
-            <div class="modal-row">
-                <div style="flex:1">
-                    <label for="criteria-name">Name</label>
-                    <input id="criteria-name" type="text" placeholder="e.g. Score 6" />
-                </div>
-                <div style="width:140px">
-                    <label for="criteria-max">Max Score</label>
-                    <input id="criteria-max" type="number" min="1" value="10" />
-                </div>
-            </div>
-            <div style="font-size:0.85rem;color:#6b7280;margin-bottom:0.5rem">The new score column will be appended to the right for all students in this category.</div>
-            <div class="modal-actions">
-                <button id="criteria-cancel" class="action-btn" type="button">Cancel</button>
-                <button id="criteria-add" class="action-btn" type="button">Add</button>
-            </div>
-        </div>
-    </div>
-
-    <script>
-        (function(){
-            let currentModalCategory = null;
-            const modal = document.getElementById('addCriteriaModal');
-            const nameInput = document.getElementById('criteria-name');
-            const maxInput = document.getElementById('criteria-max');
-            const addBtn = document.getElementById('criteria-add');
-            const cancelBtn = document.getElementById('criteria-cancel');
-
-            function openAddCriteriaModal(categoryKey){
-                currentModalCategory = categoryKey;
-                const cfg = CATEGORY_CONFIG[categoryKey];
-                if(!cfg) return;
-                nameInput.value = `Score ${cfg.count + 1}`;
-                maxInput.value = cfg.maxScore;
-                modal.classList.add('show');
-                modal.setAttribute('aria-hidden','false');
-                // focus name input after a tick
-                setTimeout(()=> nameInput.focus(), 50);
-            }
-
-            function closeAddCriteriaModal(){
-                modal.classList.remove('show');
-                modal.setAttribute('aria-hidden','true');
-                currentModalCategory = null;
-            }
-
-            // Adds the new criterion: updates config and student data and re-renders the table
-            function submitAddCriteria(){
-                if(!currentModalCategory) return closeAddCriteriaModal();
-                const cat = currentModalCategory;
-                const name = (nameInput.value || `Score ${CATEGORY_CONFIG[cat].count + 1}`).trim();
-                let max = parseFloat(maxInput.value);
-                if(isNaN(max) || max <= 0) max = CATEGORY_CONFIG[cat].maxScore;
-
-                // Update config: increment count and set (uniform) maxScore for category
-                CATEGORY_CONFIG[cat].count = (CATEGORY_CONFIG[cat].count || 0) + 1;
-                CATEGORY_CONFIG[cat].maxScore = max;
-
-                // Append a default score (0) for every student in that category
-                studentData.forEach(s => {
-                    if(!s.scores[cat]) s.scores[cat] = [];
-                    s.scores[cat].push(0);
-                });
-
-                // Re-render the table for this category
-                renderTable(cat);
-
-                // Persist changes after adding a new criterion
-                try { saveState(); } catch (e) { /* ignore if save not available */ }
-
-                closeAddCriteriaModal();
-            }
-
-            // Wire modal buttons
-            addBtn.addEventListener('click', (e)=>{ e.preventDefault(); submitAddCriteria(); });
-            cancelBtn.addEventListener('click', (e)=>{ e.preventDefault(); closeAddCriteriaModal(); });
-
-            // Clicking backdrop closes modal
-            modal.addEventListener('click', (e)=>{ if(e.target === modal) closeAddCriteriaModal(); });
-
-            // Attach listeners to header action buttons (stop propagation to avoid toggling)
-            function wireHeaderActionButtons(){
-                document.querySelectorAll('.add-criteria-btn').forEach(btn => {
-                    // avoid double-binding
-                    if(btn._wired) return;
-                    btn._wired = true;
-                    btn.addEventListener('click', (ev)=>{
-                        ev.stopPropagation();
-                        ev.preventDefault();
-                        const cat = btn.getAttribute('data-category');
-                        openAddCriteriaModal(cat);
-                    });
-                });
-            }
-
-            // Initial wiring now and also after DOM content load
-            if(document.readyState === 'complete' || document.readyState === 'interactive'){
-                wireHeaderActionButtons();
-            } else {
-                document.addEventListener('DOMContentLoaded', wireHeaderActionButtons);
-            }
-
-            // Also observe DOM mutations in case header buttons get re-rendered in the future
-            const observer = new MutationObserver((mutations)=>{ wireHeaderActionButtons(); });
-            observer.observe(document.body, { childList:true, subtree:true });
-        })();
-    </script>
 </body>
 
-</html> 
+</html>

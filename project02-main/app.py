@@ -14,6 +14,12 @@ from flask import (
     session,
     jsonify,
 )
+
+# Create Flask app
+app = Flask(__name__)
+
+# Add enumerate to Jinja environment
+app.jinja_env.globals.update(enumerate=enumerate)
 from flask_wtf.csrf import CSRFProtect, generate_csrf
 from werkzeug.security import generate_password_hash, check_password_hash
 from functools import wraps
@@ -2318,71 +2324,42 @@ def gradebuilder_save():
 from flask import render_template
 
 
-@app.route("/test-grade-normalizer/<int:class_id>")
+@app.route("/test-grade-normalizer/<class_id>")
 def test_grade_normalizer(class_id):
     try:
-        conn = get_db_connection()
-        with conn.cursor() as cursor:
-            cursor.execute(
-                """
-                SELECT structure_json 
-                FROM grade_structures 
-                WHERE class_id = %s AND is_active = 1 
-                LIMIT 1
-            """,
-                (class_id,),
-            )
-            structure_row = cursor.fetchone()
-
-        if not structure_row:
-            return "<h3 style='text-align:center; color:red;'>No active grade structure found for this class.</h3>"
-
-        import json
-
-        structure_data = json.loads(structure_row["structure_json"])
-
-        # Normalize structure into a flat list of subcategories with assessments metadata
-        structure = []
-        # structure_data may be either an object with categories as keys or a list
-        if isinstance(structure_data, dict):
-            categories_iter = structure_data.items()
-        else:
-            # if already a list, make a simple iterator
-            categories_iter = enumerate(structure_data)
-
-        for cat_key, subcats in categories_iter:
-            # subcats expected to be a list of subcategory objects
-            if not isinstance(subcats, list):
-                continue
-            for sub in subcats:
-                # Ensure each assessment has at least a name and optional max
-                assessments = []
-                for a in sub.get("assessments", []) if sub.get("assessments") else []:
-                    assessments.append(
-                        {
-                            "name": a.get("name") or a.get("label") or "Assessment",
-                            "max": a.get("max")
-                            or a.get("max_score")
-                            or a.get("maxScore")
-                            or None,
-                        }
-                    )
-
-                structure.append(
-                    {
-                        "category": cat_key,
-                        "subcategory": sub.get("name") or sub.get("label") or cat_key,
-                        "weight": sub.get("weight"),
-                        "assessments": assessments,
-                    }
-                )
-
-        # Fetch enrolled students for this class from the DB (reuse enrollment query logic)
-        students = []
+        # Get the active grade structure for this class
         with get_db_connection().cursor() as cursor:
             cursor.execute(
                 """
-                SELECT sc.*, s.id as student_id, u.school_id, pi.first_name, pi.last_name, pi.middle_name
+                SELECT gs.*, c.course, c.track, c.section, c.class_type
+                FROM grade_structures gs
+                JOIN classes c ON gs.class_id = c.id
+                WHERE gs.class_id = %s AND gs.is_active = 1
+                """,
+                (class_id,),
+            )
+            grade_structure = cursor.fetchone()
+
+            if not grade_structure:
+                flash("No active grading structure found for this class.", "error")
+                return redirect(url_for("instructor_dashboard"))
+
+            # Parse the structure JSON - it's already in the format we need
+            structure = json.loads(grade_structure["structure_json"])
+
+            # Get enrolled students
+            cursor.execute(
+                """
+                SELECT 
+                    sc.*, 
+                    s.id as student_id,
+                    s.course as student_course,
+                    s.year_level,
+                    s.section as student_section,
+                    u.school_id,
+                    pi.first_name,
+                    pi.last_name,
+                    pi.middle_name
                 FROM student_classes sc
                 JOIN students s ON sc.student_id = s.id
                 JOIN users u ON s.user_id = u.id
@@ -2394,10 +2371,14 @@ def test_grade_normalizer(class_id):
             )
             enrollments = cursor.fetchall()
 
+            # Format student data
+            students = []
             for enrollment in enrollments:
                 first_name = enrollment.get("first_name") or ""
                 middle_name = enrollment.get("middle_name") or ""
                 last_name = enrollment.get("last_name") or ""
+                school_id = enrollment.get("school_id") or ""
+
                 if first_name and last_name:
                     student_name = (
                         f"{last_name}, {first_name} {middle_name}".strip()
@@ -2406,25 +2387,142 @@ def test_grade_normalizer(class_id):
                     )
                 else:
                     student_name = (
-                        enrollment.get("school_id")
-                        or f"Student {enrollment.get('student_id')}"
+                        school_id or f"Student {enrollment.get('student_id')}"
                     )
+
+                # Get student scores if any exist
+                cursor.execute(
+                    """
+                    SELECT ss.*, ga.name as assessment_name 
+                    FROM student_scores ss
+                    JOIN grade_assessments ga ON ss.assessment_id = ga.id
+                    WHERE ss.student_id = %s
+                    """,
+                    (enrollment.get("student_id"),),
+                )
+                scores = {
+                    score["assessment_name"]: score["score"]
+                    for score in cursor.fetchall()
+                }
 
                 students.append(
                     {
                         "id": enrollment.get("student_id"),
                         "name": student_name,
+                        "school_id": school_id,
+                        "scores": scores,
                     }
                 )
 
-        return render_template(
-            "test_grade_normalizer.html", structure=structure, students=students
-        )
+            # Debug print to verify structure
+            print("Structure being passed to template:", structure)
+
+            return render_template(
+                "test_grade_normalizer.html",
+                structure=structure,
+                students=students,
+                class_id=class_id,
+            )
 
     except Exception as e:
         import traceback
 
+        logger.error(
+            f"Error in test_grade_normalizer: {str(e)}\n{traceback.format_exc()}"
+        )
         return f"<pre style='color:red;'>{traceback.format_exc()}</pre>"
+
+
+@app.route("/api/classes/<int:class_id>/live-version", methods=["GET"])
+@login_required
+def get_class_live_version(class_id: int):
+    """Return a version hash that changes whenever relevant class data changes.
+
+    This combines timestamps and counts from grade_structures, classes,
+    student_classes, student_scores, and personal_info tied to the class.
+    The client can poll this and reload when the version changes.
+    """
+    try:
+        with get_db_connection().cursor() as cursor:
+            # Grade structure (active)
+            cursor.execute(
+                """
+                SELECT COALESCE(MAX(updated_at), '1970-01-01 00:00:00') AS max_updated,
+                       COALESCE(MAX(version), 0) AS max_version
+                FROM grade_structures
+                WHERE class_id = %s AND is_active = 1
+                """,
+                (class_id,),
+            )
+            gs = cursor.fetchone() or {}
+
+            # Class row updated_at
+            cursor.execute(
+                """
+                SELECT COALESCE(MAX(updated_at), '1970-01-01 00:00:00') AS class_updated
+                FROM classes
+                WHERE id = %s
+                """,
+                (class_id,),
+            )
+            cls = cursor.fetchone() or {}
+
+            # Enrollment changes
+            cursor.execute(
+                """
+                SELECT COUNT(*) AS cnt, COALESCE(MAX(joined_at), '1970-01-01 00:00:00') AS max_joined
+                FROM student_classes
+                WHERE class_id = %s
+                """,
+                (class_id,),
+            )
+            sc = cursor.fetchone() or {}
+
+            # Student scores under this class
+            cursor.execute(
+                """
+                SELECT COUNT(*) AS cnt, COALESCE(MAX(ss.updated_at), '1970-01-01 00:00:00') AS max_score_updated
+                FROM student_scores ss
+                WHERE ss.student_id IN (
+                    SELECT sc2.student_id FROM student_classes sc2 WHERE sc2.class_id = %s
+                )
+                """,
+                (class_id,),
+            )
+            ss = cursor.fetchone() or {}
+
+            # Personal info updates for enrolled students (affects displayed names)
+            cursor.execute(
+                """
+                SELECT COALESCE(MAX(pi.updated_at), '1970-01-01 00:00:00') AS max_pi_updated
+                FROM personal_info pi
+                JOIN students s ON s.personal_info_id = pi.id
+                JOIN student_classes sc3 ON sc3.student_id = s.id
+                WHERE sc3.class_id = %s
+                """,
+                (class_id,),
+            )
+            pi = cursor.fetchone() or {}
+
+        # Build a stable string and hash it
+        parts = [
+            str(gs.get("max_updated")),
+            str(gs.get("max_version")),
+            str(cls.get("class_updated")),
+            str(sc.get("cnt")),
+            str(sc.get("max_joined")),
+            str(ss.get("cnt")),
+            str(ss.get("max_score_updated")),
+            str(pi.get("max_pi_updated")),
+        ]
+        payload = "|".join(parts)
+        version = hashlib.sha256(payload.encode("utf-8")).hexdigest()
+
+        return jsonify({"version": version, "generated_at": datetime.now().isoformat()})
+
+    except Exception as e:
+        logger.error(f"Failed to compute live version for class {class_id}: {str(e)}")
+        return jsonify({"error": "Failed to compute version"}), 500
 
 
 if __name__ == "__main__":

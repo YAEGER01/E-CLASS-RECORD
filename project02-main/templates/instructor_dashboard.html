@@ -5,6 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Instructor Dashboard - E-Class Record</title>
+    <meta name="theme-color" content="#0ea5e9">
     <!-- CSRF Token for JavaScript -->
     <script>
         const csrfToken = "{{ csrf_token() }}";
@@ -12,37 +13,66 @@
 
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/instructor-dashboard.css') }}">
 </head>
 
 <body>
-    <div class="header">
-        <h1>👨‍🏫 Instructor Dashboard</h1>
-        <p>Welcome, Instructor {{ user.school_id }}!</p>
-        <a href="{{ url_for('logout') }}" class="logout-btn">Logout</a>
-    </div>
+    <header class="header">
+        <div class="brand">
+            <div class="brand-mark" aria-hidden="true">🧮</div>
+            <div class="brand-text">
+                <h1>Instructor Dashboard</h1>
+                <p class="subtitle">E‑Class Record</p>
+            </div>
+        </div>
+        <div class="header-actions">
+            <div class="user-chip" title="Logged in as {{ user.school_id }}" aria-label="User {{ user.school_id }}">
+                <div class="avatar" aria-hidden="true">{{ (user.school_id|string)[:2]|upper }}</div>
+                <span class="user-id">{{ user.school_id }}</span>
+            </div>
+            <a href="{{ url_for('logout') }}" class="btn btn-ghost logout-btn" aria-label="Logout">Logout</a>
+        </div>
+    </header>
 
     <div class="dashboard-grid">
-        <div class="card">
-            <h3>📚 My Classes</h3>
-            <p>Manage your class schedules and subjects.</p>
-            <a href="{{ url_for('instructor_classes') }}" class="manage-btn">Manage Classes</a>
-
-            <div class="class-list" id="class-list" data-classes-url="{{ url_for('instructor_classes') }}">
-                <div class="loading">Loading classes...</div>
+        <div class="card card-stretch">
+            <div class="card-header">
+                <div>
+                    <h3>📚 My Classes</h3>
+                    <p class="muted">Manage your class schedules and subjects.</p>
+                </div>
+                <div class="card-tools">
+                    <a href="{{ url_for('instructor_classes') }}" class="btn btn-primary" aria-label="Create or manage classes">Create/Manage</a>
+                    <button class="btn" onclick="refreshClasses(this)" aria-label="Refresh classes">
+                        <span class="spinner small" aria-hidden="true"></span>
+                        <span>Refresh</span>
+                    </button>
+                </div>
             </div>
 
-            <div style="text-align: center; margin-top: 15px;">
-                <button class="manage-btn" onclick="refreshClasses()" style="font-size: 14px; padding: 8px 16px;">
-                    🔄 Refresh Classes
-                </button>
+            <div class="toolbar">
+                <div class="search">
+                    <input type="text" id="class-search" placeholder="Search classes by code, course, or schedule…" aria-label="Search classes" oninput="filterClassList()">
+                </div>
+                <div class="pill" id="class-count" aria-live="polite">0 classes</div>
+            </div>
+
+            <div class="class-list" id="class-list" data-classes-url="{{ url_for('instructor_classes') }}" aria-live="polite" aria-busy="true">
+                <div class="skeletons">
+                    <div class="skeleton-card"></div>
+                    <div class="skeleton-card"></div>
+                    <div class="skeleton-card"></div>
+                </div>
             </div>
         </div>
 
         <div class="card">
             <h3>👥 Students</h3>
             <p>View and manage your students.</p>
-            
+            <div class="empty-note">Link coming soon</div>
         </div>
 
         <div class="card">
@@ -54,29 +84,23 @@
         <div class="card">
             <h3>📋 Reports</h3>
             <p>Generate class reports and analytics.</p>
-            
+            <div class="empty-note">Analytics module WIP</div>
         </div>
     </div>
 
     <!-- Class Details Modal -->
-    <div id="class-details-modal" class="modal">
-        <div class="modal-content">
+    <div id="class-details-modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title" aria-hidden="true">
+        <div class="modal-content" role="document">
             <div class="modal-header">
                 <h2 class="modal-title" id="modal-title">Class Details</h2>
-                <span class="close" onclick="closeModal()">&times;</span>
+                <button class="close" onclick="closeModal()" aria-label="Close modal">&times;</button>
             </div>
             <div class="modal-body">
                 <div id="class-details-content">
                     <div class="class-details-buttons">
-                        <button class="detail-btn" onclick="showViewMembers()">
-                            👥 View Members
-                        </button>
-                        <button class="detail-btn" onclick="showGradeEntry()">
-                            📊 Grade Entry
-                        </button>
-                        <button class="detail-btn" onclick="showViewClassDetails()">
-                            📋 View Class Details
-                        </button>
+                        <button class="detail-btn" onclick="showViewMembers()" aria-label="View members">� View Members</button>
+                        <button class="detail-btn" onclick="showGradeEntry()" aria-label="Open grade entry">� Grade Entry</button>
+                        <button class="detail-btn" onclick="showViewClassDetails()" aria-label="View class details">📋 View Class Details</button>
                     </div>
                     <div id="detail-view-container">
                         <div class="loading">Select an option above...</div>
@@ -88,20 +112,27 @@
 
     <script>
         let classes = [];
-
+        let currentClassId = null;
+        let currentClassName = null;
 
         async function loadClasses() {
             const container = document.getElementById('class-list');
-            container.innerHTML = '<div class="loading"><div class="spinner"></div>Loading classes...</div>';
+            container.setAttribute('aria-busy', 'true');
+            container.innerHTML = `
+                <div class="skeletons">
+                    <div class="skeleton-card"></div>
+                    <div class="skeleton-card"></div>
+                    <div class="skeleton-card"></div>
+                </div>
+            `;
 
             try {
                 const response = await fetch('/api/instructor/classes');
                 if (response.ok) {
                     const data = await response.json();
-                    classes = data.classes;
+                    classes = Array.isArray(data.classes) ? data.classes : [];
                     renderClasses();
 
-                    // Success notification
                     if (classes.length > 0) {
                         Swal.fire({
                             icon: 'success',
@@ -132,51 +163,62 @@
                     title: 'Connection Error',
                     text: 'Error loading classes. Please check your connection.'
                 });
+            } finally {
+                container.removeAttribute('aria-busy');
             }
         }
 
         function renderClasses() {
             const container = document.getElementById('class-list');
             const classesUrl = container.getAttribute('data-classes-url');
+            const countEl = document.getElementById('class-count');
 
-            if (classes.length === 0) {
-                container.innerHTML = '<div class="empty-state">No classes found. <a href="' + classesUrl + '">Create your first class</a></div>';
+            if (!classes || classes.length === 0) {
+                container.innerHTML = '<div class="empty-state">No classes found. <a class="link" href="' + classesUrl + '">Create your first class</a></div>';
+                if (countEl) countEl.textContent = '0 classes';
                 return;
             }
 
             let html = '';
             classes.forEach(cls => {
                 const memberCount = cls.member_count || 0;
+                const schedule = cls.schedule || 'Schedule N/A';
+                const joinCode = cls.join_code || 'N/A';
                 html += `
-                    <div class="class-item">
+                    <div class="class-item" data-class-id="${cls.id}" data-class-name="${cls.class_id}">
                         <div class="class-info">
-                            <div class="class-title">${cls.class_id}</div>
+                            <div class="class-title-row">
+                                <div class="class-title">${cls.class_id}</div>
+                                <span class="badge" title="Members">${memberCount}</span>
+                            </div>
                             <div class="class-details">
-                                ${cls.course} • ${cls.track} • ${cls.schedule}<br>
-                                <span class="join-code">Join Code: ${cls.join_code || 'N/A'}</span>
+                                ${cls.course} • ${cls.track} • ${schedule}
+                            </div>
+                            <div class="class-meta">
+                                <span class="join-code" title="Join code">Join Code: <code>${joinCode}</code></span>
+                                <button class="btn btn-ghost btn-xs" aria-label="Copy join code" onclick="copyJoinCode('${joinCode}')">Copy</button>
                             </div>
                         </div>
                         <div class="class-actions">
-                            <button class="view-members-btn" onclick="viewClassDetails(${cls.id}, '${cls.class_id}')">
-                                📋 View Class Details (${memberCount})
-                            </button>
+                            <button class="btn btn-primary" onclick="viewClassDetails(${cls.id}, '${cls.class_id}')" aria-label="View class details ${cls.class_id}">📋 Details</button>
                         </div>
                     </div>
                 `;
             });
 
             container.innerHTML = html;
+            if (countEl) countEl.textContent = `${classes.length} class${classes.length === 1 ? '' : 'es'}`;
         }
-
-        let currentClassId = null;
-        let currentClassName = null;
 
         async function viewClassDetails(classId, className) {
             currentClassId = classId;
             currentClassName = className;
             document.getElementById('modal-title').textContent = `Class Details - ${className}`;
-            document.getElementById('class-details-modal').style.display = 'block';
-            document.getElementById('class-details-modal').classList.add('show');
+            const modal = document.getElementById('class-details-modal');
+            modal.style.display = 'block';
+            requestAnimationFrame(() => modal.classList.add('show'));
+            modal.setAttribute('aria-hidden', 'false');
+            document.body.classList.add('modal-open');
             document.getElementById('detail-view-container').innerHTML = '<div class="loading">Select an option above...</div>';
         }
 
@@ -188,7 +230,7 @@
                 const response = await fetch(`/api/instructor/classes/${currentClassId}/members`);
                 if (response.ok) {
                     const data = await response.json();
-                    renderMembers(data.members);
+                    renderMembers(data.members || []);
                 } else {
                     container.innerHTML = '<div class="no-members">Failed to load members</div>';
                 }
@@ -199,10 +241,9 @@
         }
 
         async function showGradeEntry() {
-                // Temporary test route for grade normalizer
-                window.location.href = `/test-grade-normalizer/${currentClassId}`;
+            // Temporary test route for grade normalizer
+            window.location.href = `/test-grade-normalizer/${currentClassId}`;
         }
-
 
         async function showViewClassDetails() {
             const container = document.getElementById('detail-view-container');
@@ -225,7 +266,7 @@
         function renderMembers(members) {
             const container = document.getElementById('detail-view-container');
 
-            if (members.length === 0) {
+            if (!members || members.length === 0) {
                 container.innerHTML = '<div class="no-members">No students have joined this class yet</div>';
                 return;
             }
@@ -234,21 +275,21 @@
                 <div class="members-section">
                     <h3>👥 Class Members (${members.length})</h3>
                     <div class="search-container">
-                        <input type="text" id="member-search" placeholder="Search by name or ID..." onkeyup="filterMembers()">
+                        <input type="text" id="member-search" placeholder="Search by name or ID..." oninput="filterMembers()" aria-label="Search members by name or ID">
                     </div>
                     <div class="members-list" id="members-list">
             `;
 
             members.forEach(member => {
-                const joinedDate = new Date(member.joined_at).toLocaleDateString();
+                const joinedDate = member.joined_at ? new Date(member.joined_at).toLocaleDateString() : '—';
                 const fullName = member.student_name || `${member.first_name || ''} ${member.middle_name || ''} ${member.last_name || ''}`.trim();
                 html += `
-                    <div class="member-item" data-name="${fullName.toLowerCase()}" data-id="${member.school_id.toLowerCase()}">
+                    <div class="member-item" data-name="${fullName.toLowerCase()}" data-id="${(member.school_id||'').toLowerCase()}">
                         <div class="member-info">
                             <div class="member-name">${fullName}</div>
                             <div class="member-details">
-                                <strong>ID:</strong> ${member.school_id}<br>
-                                <strong>Course:</strong> ${member.course} • <strong>Track:</strong> ${member.track || 'N/A'} • <strong>Year:</strong> ${member.year_level} • <strong>Section:</strong> ${member.section}
+                                <strong>ID:</strong> ${member.school_id || '—'}<br>
+                                <strong>Course:</strong> ${member.course || '—'} • <strong>Track:</strong> ${member.track || 'N/A'} • <strong>Year:</strong> ${member.year_level || '—'} • <strong>Section:</strong> ${member.section || '—'}
                             </div>
                             <div class="joined-date">📅 Joined: ${joinedDate}</div>
                         </div>
@@ -265,12 +306,12 @@
         }
 
         function filterMembers() {
-            const searchTerm = document.getElementById('member-search').value.toLowerCase();
+            const searchTerm = (document.getElementById('member-search')?.value || '').toLowerCase();
             const members = document.querySelectorAll('.member-item');
 
             members.forEach(member => {
-                const name = member.getAttribute('data-name');
-                const id = member.getAttribute('data-id');
+                const name = member.getAttribute('data-name') || '';
+                const id = member.getAttribute('data-id') || '';
                 if (name.includes(searchTerm) || id.includes(searchTerm)) {
                     member.style.display = 'block';
                 } else {
@@ -281,59 +322,31 @@
 
         function renderClassDetails(data) {
             const container = document.getElementById('detail-view-container');
-            const classInfo = data.class_info;
-            const instructorInfo = data.instructor_info;
+            const classInfo = data.class_info || {};
+            const instructorInfo = data.instructor_info || {};
 
             let html = `
                 <div class="class-details-section">
                     <h3>📋 Class Information</h3>
                     <div class="details-grid">
-                        <div class="detail-item">
-                            <strong>Year:</strong> ${classInfo.year}
-                        </div>
-                        <div class="detail-item">
-                            <strong>Semester:</strong> ${classInfo.semester}
-                        </div>
-                        <div class="detail-item">
-                            <strong>Course:</strong> ${classInfo.course}
-                        </div>
-                        <div class="detail-item">
-                            <strong>Track:</strong> ${classInfo.track}
-                        </div>
-                        <div class="detail-item">
-                            <strong>Section:</strong> ${classInfo.section}
-                        </div>
-                        <div class="detail-item">
-                            <strong>Schedule:</strong> ${classInfo.schedule}
-                        </div>
-                        <div class="detail-item">
-                            <strong>Class Code:</strong> ${classInfo.class_code}
-                        </div>
-                        <div class="detail-item">
-                            <strong>Join Code:</strong> ${classInfo.join_code}
-                        </div>
-                        <div class="detail-item">
-                            <strong>Created:</strong> ${new Date(classInfo.created_at).toLocaleDateString()}
-                        </div>
-                        <div class="detail-item">
-                            <strong>Updated:</strong> ${new Date(classInfo.updated_at).toLocaleDateString()}
-                        </div>
+                        <div class="detail-item"><strong>Year:</strong> ${classInfo.year || '—'}</div>
+                        <div class="detail-item"><strong>Semester:</strong> ${classInfo.semester || '—'}</div>
+                        <div class="detail-item"><strong>Course:</strong> ${classInfo.course || '—'}</div>
+                        <div class="detail-item"><strong>Track:</strong> ${classInfo.track || '—'}</div>
+                        <div class="detail-item"><strong>Section:</strong> ${classInfo.section || '—'}</div>
+                        <div class="detail-item"><strong>Schedule:</strong> ${classInfo.schedule || '—'}</div>
+                        <div class="detail-item"><strong>Class Code:</strong> ${classInfo.class_code || '—'}</div>
+                        <div class="detail-item"><strong>Join Code:</strong> ${classInfo.join_code || '—'}</div>
+                        <div class="detail-item"><strong>Created:</strong> ${classInfo.created_at ? new Date(classInfo.created_at).toLocaleDateString() : '—'}</div>
+                        <div class="detail-item"><strong>Updated:</strong> ${classInfo.updated_at ? new Date(classInfo.updated_at).toLocaleDateString() : '—'}</div>
                     </div>
 
                     <h3>👨‍🏫 Instructor Information</h3>
                     <div class="details-grid">
-                        <div class="detail-item">
-                            <strong>Name:</strong> ${instructorInfo.full_name}
-                        </div>
-                        <div class="detail-item">
-                            <strong>Department:</strong> ${instructorInfo.department}
-                        </div>
-                        <div class="detail-item">
-                            <strong>Specialization:</strong> ${instructorInfo.specialization || 'N/A'}
-                        </div>
-                        <div class="detail-item">
-                            <strong>Email:</strong> ${instructorInfo.email}
-                        </div>
+                        <div class="detail-item"><strong>Name:</strong> ${instructorInfo.full_name || '—'}</div>
+                        <div class="detail-item"><strong>Department:</strong> ${instructorInfo.department || '—'}</div>
+                        <div class="detail-item"><strong>Specialization:</strong> ${instructorInfo.specialization || 'N/A'}</div>
+                        <div class="detail-item"><strong>Email:</strong> ${instructorInfo.email || '—'}</div>
                     </div>
 
                     <div class="class-actions">
@@ -349,9 +362,11 @@
         function closeModal() {
             const modal = document.getElementById('class-details-modal');
             modal.classList.remove('show');
+            modal.setAttribute('aria-hidden', 'true');
+            document.body.classList.remove('modal-open');
             setTimeout(() => {
                 modal.style.display = 'none';
-            }, 300); // Match animation duration
+            }, 300);
         }
 
         // Close modal when clicking outside
@@ -361,6 +376,14 @@
                 closeModal();
             }
         }
+
+        // Close modal on ESC key
+        window.addEventListener('keydown', (e) => {
+            const modal = document.getElementById('class-details-modal');
+            if (e.key === 'Escape' && modal.classList.contains('show')) {
+                closeModal();
+            }
+        });
 
         function regenerateJoinCode() {
             Swal.fire({
@@ -389,16 +412,13 @@
         }
 
         // Refresh classes function
-        function refreshClasses() {
-            const button = event.target;
-            const originalText = button.textContent;
-
+        function refreshClasses(button) {
             // Add loading animation
-            button.textContent = '⏳ Refreshing...';
+            button.classList.add('loading');
+            button.querySelector('span:last-child').textContent = 'Refreshing…';
             button.style.transform = 'scale(0.95)';
             button.disabled = true;
 
-            // Show loading toast
             Swal.fire({
                 title: 'Refreshing...',
                 text: 'Updating class list',
@@ -412,7 +432,8 @@
             setTimeout(() => {
                 loadClasses().then(() => {
                     Swal.close();
-                    button.textContent = originalText;
+                    button.classList.remove('loading');
+                    button.querySelector('span:last-child').textContent = 'Refresh';
                     button.style.transform = 'scale(1)';
                     button.disabled = false;
 
@@ -422,7 +443,52 @@
                         button.style.animation = '';
                     }, 600);
                 });
-            }, 500); // Small delay for better UX
+            }, 500);
+        }
+
+        function filterClassList() {
+            const term = (document.getElementById('class-search')?.value || '').toLowerCase();
+            const container = document.getElementById('class-list');
+            if (!container) return;
+            const items = container.querySelectorAll('.class-item');
+            let visible = 0;
+            items.forEach(item => {
+                const name = (item.getAttribute('data-class-name') || '').toLowerCase();
+                const details = item.querySelector('.class-details')?.textContent.toLowerCase() || '';
+                const show = name.includes(term) || details.includes(term);
+                item.style.display = show ? 'grid' : 'none';
+                if (show) visible++;
+            });
+            const countEl = document.getElementById('class-count');
+            if (countEl) countEl.textContent = `${visible} class${visible === 1 ? '' : 'es'}`;
+        }
+
+        function copyJoinCode(code) {
+            if (!code || code === 'N/A') {
+                Swal.fire({
+                    icon: 'info',
+                    title: 'No join code',
+                    text: 'This class does not have a join code yet.'
+                });
+                return;
+            }
+            navigator.clipboard.writeText(code).then(() => {
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Copied!',
+                    text: `Join code ${code} copied to clipboard`,
+                    timer: 1500,
+                    showConfirmButton: false,
+                    toast: true,
+                    position: 'top-end'
+                });
+            }).catch(() => {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Copy failed',
+                    text: 'Unable to copy join code. Please copy it manually.'
+                });
+            });
         }
 
         // Welcome notification on page load
@@ -440,7 +506,7 @@
                     background: '#e0f2fe',
                     color: '#0c4a6e'
                 });
-            }, 1500); // Show after initial animations
+            }, 1500);
 
             loadClasses();
         });

@@ -14,6 +14,7 @@ from flask import (
     session,
     jsonify,
 )
+from flask_socketio import SocketIO, emit, join_room, leave_room
 
 # Create Flask app
 app = Flask(__name__)
@@ -59,6 +60,9 @@ app.secret_key = "dev-secret-key-change-in-production"
 
 # Initialize CSRF protection
 csrf = CSRFProtect(app)
+
+# Initialize SocketIO
+socketio = SocketIO(app, cors_allowed_origins="*")
 
 
 @app.route("/")
@@ -898,6 +902,11 @@ def join_class():
             logger.info(
                 f"Student {session.get('school_id')} joined class: {computed_class_id}"
             )
+            # Notify listeners
+            try:
+                emit_live_version_update(int(class_obj["id"]))
+            except Exception as _e:
+                logger.warning(f"Emit after join class failed: {str(_e)}")
             return jsonify(
                 {
                     "success": True,
@@ -1777,6 +1786,12 @@ def leave_class(class_id):
             f"Student {session.get('school_id')} left class: {class_obj['class_id'] if class_obj else 'Unknown'}"
         )
 
+        # Notify listeners
+        try:
+            emit_live_version_update(int(class_id))
+        except Exception as _e:
+            logger.warning(f"Emit after leave class failed: {str(_e)}")
+
         return jsonify(
             {
                 "success": True,
@@ -2012,6 +2027,18 @@ def gradebuilder_restore(structure_id, history_id):
             )
 
         get_db_connection().commit()
+        # Emit version update for this class
+        try:
+            with get_db_connection().cursor() as cursor:
+                cursor.execute(
+                    "SELECT class_id FROM grade_structures WHERE id = %s",
+                    (structure_id,),
+                )
+                row = cursor.fetchone()
+                if row:
+                    emit_live_version_update(int(row["class_id"]))
+        except Exception as _e:
+            logger.warning(f"Emit after restore failed: {str(_e)}")
         logger.info(
             f"Instructor {session.get('school_id')} restored structure {structure_id} to version {history_entry['version']}"
         )
@@ -2057,13 +2084,14 @@ def gradebuilder_delete(structure_id):
         return jsonify({"error": "invalid_structure_id"}), 400
 
     conn = get_db_connection()
+    affected_class_id = None
     try:
         with conn.cursor() as cursor:
             print(
                 f"[DB] Checking if structure {structure_id} belongs to instructor {instructor_id}..."
             )
             cursor.execute(
-                "SELECT id FROM grade_structures WHERE id = %s AND created_by = %s",
+                "SELECT id, class_id FROM grade_structures WHERE id = %s AND created_by = %s",
                 (structure_id, instructor_id),
             )
             row = cursor.fetchone()
@@ -2072,6 +2100,7 @@ def gradebuilder_delete(structure_id):
                 print("[DB] Structure not found or instructor mismatch.")
                 return jsonify({"error": "structure_not_found_or_unauthorized"}), 404
 
+            affected_class_id = row.get("class_id")
             # Delete related history (optional if cascade)
             print(f"[DB] Deleting history for structure {structure_id}...")
             cursor.execute(
@@ -2091,6 +2120,13 @@ def gradebuilder_delete(structure_id):
         logger.info(
             f"Instructor {session.get('school_id')} deleted grade structure {structure_id}"
         )
+
+        # Emit version update
+        try:
+            if affected_class_id:
+                emit_live_version_update(int(affected_class_id))
+        except Exception as _e:
+            logger.warning(f"Emit after delete failed: {str(_e)}")
 
         return (
             jsonify({"success": True, "message": "Structure deleted successfully"}),
@@ -2174,8 +2210,13 @@ def gradebuilder_save():
     if not isinstance(structure_json, dict):
         return jsonify({"error": "structure_json_must_be_object"}), 400
 
-    if "LABORATORY" not in structure_json or "LECTURE" not in structure_json:
-        return jsonify({"error": "structure_json_missing_required_keys"}), 400
+    # Detailed schema validation
+    is_valid, val_errors = validate_structure_json(structure_json)
+    if not is_valid:
+        return (
+            jsonify({"error": "invalid_structure_schema", "details": val_errors}),
+            400,
+        )
 
     now = datetime.now()
 
@@ -2265,6 +2306,11 @@ def gradebuilder_save():
             logger.info(
                 f"Instructor {session.get('school_id')} updated grade structure {structure_id} to version {new_version}"
             )
+            # Broadcast version update for this class
+            try:
+                emit_live_version_update(int(class_id))
+            except Exception as _e:
+                logger.warning(f"Emit after update structure failed: {str(_e)}")
             return (
                 jsonify(
                     {
@@ -2308,6 +2354,11 @@ def gradebuilder_save():
             logger.info(
                 f"Instructor {session.get('school_id')} created new grade structure for class {class_id}"
             )
+            # Broadcast version update for this class
+            try:
+                emit_live_version_update(int(class_id))
+            except Exception as _e:
+                logger.warning(f"Emit after create structure failed: {str(_e)}")
             return (
                 jsonify({"success": True, "message": "Structure saved successfully"}),
                 201,
@@ -2433,18 +2484,425 @@ def test_grade_normalizer(class_id):
         return f"<pre style='color:red;'>{traceback.format_exc()}</pre>"
 
 
-@app.route("/api/classes/<int:class_id>/live-version", methods=["GET"])
-@login_required
-def get_class_live_version(class_id: int):
-    """Return a version hash that changes whenever relevant class data changes.
+def normalize_structure(structure: dict):
+    """Flatten structure_json into a list of row dicts.
 
-    This combines timestamps and counts from grade_structures, classes,
-    student_classes, student_scores, and personal_info tied to the class.
-    The client can poll this and reload when the version changes.
+    Expected input shape:
+    {
+      "LABORATORY": [{"name": str, "weight": num, "assessments": [{"name": str, "max_score": num}]}],
+      "LECTURE":    [{...}]
+    }
+    Returns list of dicts: {category, name, weight, assessment, max_score}
     """
+    rows = []
+    if not isinstance(structure, dict):
+        return rows
+
+    for category_key in ["LABORATORY", "LECTURE"]:
+        categories = structure.get(category_key, []) or []
+        if not isinstance(categories, list):
+            continue
+        for cat in categories:
+            if not isinstance(cat, dict):
+                continue
+            name = cat.get("name") or ""
+            weight = cat.get("weight") or 0
+            assessments = cat.get("assessments", []) or []
+            if not isinstance(assessments, list):
+                continue
+            for a in assessments:
+                if not isinstance(a, dict):
+                    continue
+                rows.append(
+                    {
+                        "category": category_key,
+                        "name": name,
+                        "weight": weight,
+                        "assessment": a.get("name") or "",
+                        "max_score": a.get("max_score") or 0,
+                    }
+                )
+    return rows
+
+
+def _instructor_owns_class(class_id: int, user_id: int) -> bool:
+    """Check if the logged-in instructor owns the class."""
     try:
         with get_db_connection().cursor() as cursor:
-            # Grade structure (active)
+            cursor.execute("SELECT id FROM instructors WHERE user_id = %s", (user_id,))
+            instr = cursor.fetchone()
+            if not instr:
+                return False
+            cursor.execute(
+                "SELECT id FROM classes WHERE id = %s AND instructor_id = %s",
+                (class_id, instr["id"]),
+            )
+            return cursor.fetchone() is not None
+    except Exception:
+        return False
+
+
+def group_structure(normalized_rows: list):
+    """Split normalized rows into strings vs numbers collections.
+
+    Input row shape: {category, name, weight, assessment, max_score}
+    Output: { strings: [{category, name, assessment}, ...], numbers: [{weight, max_score}, ...] }
+    """
+    strings = []
+    numbers = []
+    if not isinstance(normalized_rows, list):
+        return {"strings": strings, "numbers": numbers}
+
+    for row in normalized_rows:
+        if not isinstance(row, dict):
+            continue
+        strings.append(
+            {
+                "category": row.get("category"),
+                "name": row.get("name"),
+                "assessment": row.get("assessment"),
+            }
+        )
+        numbers.append(
+            {
+                "weight": row.get("weight", 0),
+                "max_score": row.get("max_score", 0),
+            }
+        )
+
+    return {"strings": strings, "numbers": numbers}
+
+
+def get_equivalent(final_grade: float) -> str:
+    """Map numeric grade to equivalent string. Placeholder scale; adjust to institution policy."""
+    if final_grade >= 96:
+        return "1.00"
+    if final_grade >= 93:
+        return "1.25"
+    if final_grade >= 90:
+        return "1.50"
+    if final_grade >= 87:
+        return "1.75"
+    if final_grade >= 84:
+        return "2.00"
+    if final_grade >= 81:
+        return "2.25"
+    if final_grade >= 78:
+        return "2.50"
+    if final_grade >= 75:
+        return "2.75"
+    return "5.00"
+
+
+def perform_grade_computation(
+    formula: dict, normalized_rows: list, student_scores_named: list[dict]
+) -> list[dict]:
+    """Compute per-student grades.
+
+    Assumptions:
+    - normalized_rows contain repeated 'weight' per group name; we sum unique group weights per (category, name)
+    - If formula defines category parts with weights, we use the sum of those weights as the category's total weight.
+      We scale the category contribution from structure weights to match the formula total weight. If structure weight is 0,
+      we use category average percent * formula total weight.
+    - student_scores_named carries {'student_id', 'assessment_name', 'score'}; we match by assessment_name to normalized rows.
+    """
+    # Build lookup: assessment_name -> (category, group_name, max_score, group_weight)
+    assess_lookup = {}
+    # Also compute per-category group weights and assessment sets
+    from collections import defaultdict
+
+    category_group_weights = defaultdict(float)  # (category, group_name) -> weight
+    category_assessments = defaultdict(list)  # category -> list of assessment names
+
+    for row in normalized_rows:
+        aname = row.get("assessment")
+        category = row.get("category")
+        gname = row.get("name")
+        weight = float(row.get("weight") or 0)
+        max_score = float(row.get("max_score") or 0)
+        if aname:
+            assess_lookup[aname] = (category, gname, max_score, weight)
+            if category:
+                category_assessments[category].append(aname)
+        if category and gname:
+            # Sum unique group weight: last one wins if repeated; we'll just ensure it's set (weights should be same per group's assessments)
+            category_group_weights[(category, gname)] = weight
+
+    # Compute category total weight from structure
+    category_weight_structure = defaultdict(float)
+    for (category, gname), w in category_group_weights.items():
+        category_weight_structure[category] += float(w or 0)
+
+    # Compute category total weight from formula (sum of parts)
+    category_weight_formula = {}
+    if isinstance(formula, dict):
+        for category, details in formula.items():
+            if isinstance(details, dict):
+                total_w = 0.0
+                for part in details.values():
+                    try:
+                        total_w += float(part.get("weight", 0))
+                    except Exception:
+                        continue
+                category_weight_formula[category] = total_w
+
+    # Group scores per student
+    by_student = defaultdict(list)
+    for rec in student_scores_named:
+        sid = rec.get("student_id")
+        aname = rec.get("assessment_name")
+        score = rec.get("score")
+        if sid is None or aname is None:
+            continue
+        by_student[sid].append((aname, float(score or 0)))
+
+    results = []
+    for student_id, pairs in by_student.items():
+        # category -> { group_name -> (sum_score, sum_max) }
+        cat_group_totals = defaultdict(lambda: defaultdict(lambda: [0.0, 0.0]))
+        for aname, score in pairs:
+            if aname not in assess_lookup:
+                # Unknown assessment (not in current structure); skip
+                continue
+            category, gname, max_score, gweight = assess_lookup[aname]
+            if max_score and max_score > 0:
+                cat_group_totals[category][gname][0] += float(score)
+                cat_group_totals[category][gname][1] += float(max_score)
+
+        total_grade = 0.0
+        for category, groups in cat_group_totals.items():
+            # Compute contribution by groups using structure group weights
+            cat_contrib = 0.0
+            for gname, (sum_score, sum_max) in groups.items():
+                if sum_max <= 0:
+                    continue
+                avg_percent = sum_score / sum_max  # 0..1
+                gweight = category_group_weights.get((category, gname), 0.0)
+                cat_contrib += avg_percent * gweight
+
+            # Scale category contribution if formula dictates a different total weight
+            desired_w = category_weight_formula.get(category)
+            struct_w = category_weight_structure.get(category) or 0.0
+            if desired_w is not None:
+                if struct_w > 0:
+                    cat_contrib = cat_contrib * (desired_w / struct_w)
+                else:
+                    # No structure weights; fallback to averaging all assessments in the category
+                    assessments = category_assessments.get(category, [])
+                    if assessments:
+                        sum_score = 0.0
+                        sum_max = 0.0
+                        for aname in assessments:
+                            # find student's score for this assessment
+                            for a2, sc2 in pairs:
+                                if a2 == aname:
+                                    _, _, mx, _ = assess_lookup.get(
+                                        a2, (None, None, 0.0, 0.0)
+                                    )
+                                    sum_score += sc2
+                                    sum_max += float(mx or 0)
+                        if sum_max > 0:
+                            cat_contrib = (sum_score / sum_max) * desired_w
+
+            total_grade += cat_contrib
+
+        final_grade = round(total_grade, 2)
+        equivalent = get_equivalent(final_grade)
+        results.append(
+            {
+                "student_id": student_id,
+                "final_grade": final_grade,
+                "equivalent": equivalent,
+            }
+        )
+
+    # Include students with no scores yet (enrolled but missing in by_student)
+    try:
+        with get_db_connection().cursor() as cursor:
+            cursor.execute(
+                "SELECT sc.student_id FROM student_classes sc WHERE sc.class_id = %s",
+                (
+                    (
+                        request.view_args.get("class_id")
+                        if request and request.view_args
+                        else None
+                    ),
+                ),
+            )
+            enrolled = [row["student_id"] for row in cursor.fetchall() or []]
+    except Exception:
+        enrolled = []
+    existing_ids = {r["student_id"] for r in results}
+    for sid in enrolled:
+        if sid not in existing_ids:
+            results.append(
+                {"student_id": sid, "final_grade": 0.0, "equivalent": "5.00"}
+            )
+
+    return sorted(results, key=lambda r: r["student_id"])  # stable order
+
+
+def validate_structure_json(structure: dict):
+    """Validate grade_structures.structure_json shape and types.
+
+    Rules:
+    - Top-level: dict with keys 'LABORATORY' and 'LECTURE' (arrays)
+    - Each category item: { name: str, weight: number, assessments: array }
+    - Each assessment: { name: str, max_score: number }
+
+    Returns: (is_valid: bool, errors: list[str])
+    """
+    errors = []
+
+    if not isinstance(structure, dict):
+        return False, ["structure_json must be an object"]
+
+    for top_key in ("LABORATORY", "LECTURE"):
+        if top_key not in structure:
+            errors.append(f"Missing required key: {top_key}")
+            continue
+        items = structure.get(top_key)
+        if not isinstance(items, list):
+            errors.append(f"{top_key} must be an array")
+            continue
+        for i, cat in enumerate(items):
+            path = f"{top_key}[{i}]"
+            if not isinstance(cat, dict):
+                errors.append(f"{path} must be an object")
+                continue
+            name = cat.get("name")
+            if not isinstance(name, str) or not name.strip():
+                errors.append(f"{path}.name must be a non-empty string")
+            weight = cat.get("weight")
+            if not isinstance(weight, (int, float)):
+                errors.append(f"{path}.weight must be a number")
+            assessments = cat.get("assessments")
+            if assessments is None:
+                errors.append(f"{path}.assessments is required and must be an array")
+                continue
+            if not isinstance(assessments, list):
+                errors.append(f"{path}.assessments must be an array")
+                continue
+            for j, a in enumerate(assessments):
+                apath = f"{path}.assessments[{j}]"
+                if not isinstance(a, dict):
+                    errors.append(f"{apath} must be an object")
+                    continue
+                aname = a.get("name")
+                if not isinstance(aname, str) or not aname.strip():
+                    errors.append(f"{apath}.name must be a non-empty string")
+                max_score = a.get("max_score")
+                if not isinstance(max_score, (int, float)):
+                    errors.append(f"{apath}.max_score must be a number")
+
+    return len(errors) == 0, errors
+
+
+def emit_live_version_update(class_id: int):
+    """Emit the latest live version for a class to its room."""
+    try:
+        version = get_cached_class_live_version(class_id)
+        socketio.emit(
+            "live_version",
+            {"class_id": class_id, "version": version},
+            room=f"class-{class_id}",
+        )
+    except Exception as e:
+        logger.error(f"Failed to emit live version for class {class_id}: {str(e)}")
+
+
+@socketio.on("connect")
+def _on_connect():
+    emit("connected", {"message": "connected"})
+
+
+@socketio.on("disconnect")
+def _on_disconnect():
+    # No-op; could add logging if needed
+    pass
+
+
+@socketio.on("subscribe_live_version")
+def _on_subscribe_live_version(data):
+    try:
+        class_id = int(data.get("class_id"))
+    except Exception:
+        emit("error", {"message": "invalid class_id"})
+        return
+    join_room(f"class-{class_id}")
+    # Immediately send current version to the subscriber only
+    version = get_cached_class_live_version(class_id)
+    emit("live_version", {"class_id": class_id, "version": version})
+
+
+@socketio.on("unsubscribe_live_version")
+def _on_unsubscribe_live_version(data):
+    try:
+        class_id = int(data.get("class_id"))
+    except Exception:
+        return
+    leave_room(f"class-{class_id}")
+
+
+# Simple in-memory cache for normalized structures, keyed by class_id + live version
+_NORMALIZED_CACHE = {}
+_NORMALIZED_CACHE_MAX = 200  # basic cap to prevent unbounded growth
+
+
+def _cache_put(key: str, value):
+    from datetime import datetime as _dt
+
+    # Evict oldest if at capacity
+    if len(_NORMALIZED_CACHE) >= _NORMALIZED_CACHE_MAX:
+        oldest_key = None
+        oldest_ts = None
+        for k, v in _NORMALIZED_CACHE.items():
+            ts = v.get("ts")
+            if oldest_ts is None or (ts and ts < oldest_ts):
+                oldest_key = k
+                oldest_ts = ts
+        if oldest_key:
+            _NORMALIZED_CACHE.pop(oldest_key, None)
+
+    _NORMALIZED_CACHE[key] = {"data": value, "ts": _dt.now()}
+
+
+def _cache_get(key: str):
+    item = _NORMALIZED_CACHE.get(key)
+    return item.get("data") if item else None
+
+
+# Grouped cache
+_GROUPED_CACHE = {}
+_GROUPED_CACHE_MAX = 200
+
+
+def _grouped_cache_put(key: str, value):
+    from datetime import datetime as _dt
+
+    if len(_GROUPED_CACHE) >= _GROUPED_CACHE_MAX:
+        oldest_key = None
+        oldest_ts = None
+        for k, v in _GROUPED_CACHE.items():
+            ts = v.get("ts")
+            if oldest_ts is None or (ts and ts < oldest_ts):
+                oldest_key = k
+                oldest_ts = ts
+        if oldest_key:
+            _GROUPED_CACHE.pop(oldest_key, None)
+
+    _GROUPED_CACHE[key] = {"data": value, "ts": _dt.now()}
+
+
+def _grouped_cache_get(key: str):
+    item = _GROUPED_CACHE.get(key)
+    return item.get("data") if item else None
+
+
+def compute_class_live_version(class_id: int) -> str:
+    """Compute the live version hash for a class, matching the API endpoint logic."""
+    try:
+        with get_db_connection().cursor() as cursor:
             cursor.execute(
                 """
                 SELECT COALESCE(MAX(updated_at), '1970-01-01 00:00:00') AS max_updated,
@@ -2456,7 +2914,6 @@ def get_class_live_version(class_id: int):
             )
             gs = cursor.fetchone() or {}
 
-            # Class row updated_at
             cursor.execute(
                 """
                 SELECT COALESCE(MAX(updated_at), '1970-01-01 00:00:00') AS class_updated
@@ -2467,7 +2924,6 @@ def get_class_live_version(class_id: int):
             )
             cls = cursor.fetchone() or {}
 
-            # Enrollment changes
             cursor.execute(
                 """
                 SELECT COUNT(*) AS cnt, COALESCE(MAX(joined_at), '1970-01-01 00:00:00') AS max_joined
@@ -2478,7 +2934,6 @@ def get_class_live_version(class_id: int):
             )
             sc = cursor.fetchone() or {}
 
-            # Student scores under this class
             cursor.execute(
                 """
                 SELECT COUNT(*) AS cnt, COALESCE(MAX(ss.updated_at), '1970-01-01 00:00:00') AS max_score_updated
@@ -2491,7 +2946,6 @@ def get_class_live_version(class_id: int):
             )
             ss = cursor.fetchone() or {}
 
-            # Personal info updates for enrolled students (affects displayed names)
             cursor.execute(
                 """
                 SELECT COALESCE(MAX(pi.updated_at), '1970-01-01 00:00:00') AS max_pi_updated
@@ -2504,7 +2958,6 @@ def get_class_live_version(class_id: int):
             )
             pi = cursor.fetchone() or {}
 
-        # Build a stable string and hash it
         parts = [
             str(gs.get("max_updated")),
             str(gs.get("max_version")),
@@ -2516,10 +2969,317 @@ def get_class_live_version(class_id: int):
             str(pi.get("max_pi_updated")),
         ]
         payload = "|".join(parts)
-        version = hashlib.sha256(payload.encode("utf-8")).hexdigest()
+        return hashlib.sha256(payload.encode("utf-8")).hexdigest()
+    except Exception as e:
+        logger.error(f"Failed to compute class live version for {class_id}: {str(e)}")
+        return ""
 
+
+# Micro-cache for live-version to reduce DB queries during frequent polling
+_LIVE_VERSION_CACHE = {}
+_LIVE_VERSION_TTL_SECONDS = 2.0
+
+
+def get_cached_class_live_version(class_id: int) -> str:
+    try:
+        now_ts = datetime.now().timestamp()
+        entry = _LIVE_VERSION_CACHE.get(class_id)
+        if entry and (now_ts - entry.get("ts", 0)) < _LIVE_VERSION_TTL_SECONDS:
+            return entry.get("version", "")
+
+        version = compute_class_live_version(class_id)
+        _LIVE_VERSION_CACHE[class_id] = {"version": version, "ts": now_ts}
+        return version
+    except Exception as e:
+        logger.error(f"Live-version micro-cache error for class {class_id}: {str(e)}")
+        return compute_class_live_version(class_id)
+
+
+@app.route("/api/classes/<int:class_id>/normalized", methods=["GET"])
+@login_required
+def api_get_normalized(class_id: int):
+    """Return flattened normalized structure for a class."""
+    role = session.get("role")
+
+    # Access control: instructors must own the class; admins allowed; students denied for now
+    if role == "instructor":
+        if not _instructor_owns_class(class_id, session.get("user_id")):
+            return jsonify({"error": "access_denied"}), 403
+    elif role == "admin":
+        pass
+    else:
+        return jsonify({"error": "access_denied"}), 403
+
+    try:
+        # Use live version as cache key discriminator
+        live_version = get_cached_class_live_version(class_id) or "noversion"
+        cache_key = f"{class_id}:{live_version}"
+
+        cached = _cache_get(cache_key)
+        if cached is not None:
+            return (
+                jsonify({"class_id": class_id, "normalized": cached, "cached": True}),
+                200,
+            )
+
+        with get_db_connection().cursor() as cursor:
+            cursor.execute(
+                """
+                SELECT structure_json
+                FROM grade_structures
+                WHERE class_id = %s AND is_active = 1
+                ORDER BY updated_at DESC
+                LIMIT 1
+                """,
+                (class_id,),
+            )
+            row = cursor.fetchone()
+
+        if not row:
+            return jsonify({"error": "no_active_structure"}), 404
+
+        structure = (
+            json.loads(row["structure_json"]) if row.get("structure_json") else {}
+        )
+        normalized = normalize_structure(structure)
+        _cache_put(cache_key, normalized)
+        return (
+            jsonify({"class_id": class_id, "normalized": normalized, "cached": False}),
+            200,
+        )
+    except Exception as e:
+        logger.error(f"Failed to normalize class {class_id}: {str(e)}")
+        return jsonify({"error": "failed_to_normalize"}), 500
+
+
+@app.route("/api/classes/<int:class_id>/grouped", methods=["GET"])
+@login_required
+def api_get_grouped(class_id: int):
+    """Return grouped strings vs numbers for a class based on normalized structure."""
+    role = session.get("role")
+
+    # Access control mirrors normalized endpoint
+    if role == "instructor":
+        if not _instructor_owns_class(class_id, session.get("user_id")):
+            return jsonify({"error": "access_denied"}), 403
+    elif role == "admin":
+        pass
+    else:
+        return jsonify({"error": "access_denied"}), 403
+
+    try:
+        live_version = get_cached_class_live_version(class_id) or "noversion"
+        cache_key = f"{class_id}:{live_version}"
+
+        cached = _grouped_cache_get(cache_key)
+        if cached is not None:
+            return (
+                jsonify({"class_id": class_id, "grouped": cached, "cached": True}),
+                200,
+            )
+
+        # Load active structure
+        with get_db_connection().cursor() as cursor:
+            cursor.execute(
+                """
+                SELECT structure_json
+                FROM grade_structures
+                WHERE class_id = %s AND is_active = 1
+                ORDER BY updated_at DESC
+                LIMIT 1
+                """,
+                (class_id,),
+            )
+            row = cursor.fetchone()
+
+        if not row:
+            return jsonify({"error": "no_active_structure"}), 404
+
+        structure = (
+            json.loads(row["structure_json"]) if row.get("structure_json") else {}
+        )
+        normalized = normalize_structure(structure)
+        grouped = group_structure(normalized)
+        _grouped_cache_put(cache_key, grouped)
+        return jsonify({"class_id": class_id, "grouped": grouped, "cached": False}), 200
+    except Exception as e:
+        logger.error(f"Failed to group class {class_id}: {str(e)}")
+        return jsonify({"error": "failed_to_group"}), 500
+
+
+@app.route("/api/classes/<int:class_id>/calculate", methods=["GET"])
+@login_required
+def api_calculate_grades(class_id: int):
+    """Perform grade computation using active formula (professor override or default)."""
+    role = session.get("role")
+
+    # Access control: instructors must own; admins allowed; students denied for now (Phase 7 will open)
+    if role == "instructor":
+        if not _instructor_owns_class(class_id, session.get("user_id")):
+            return jsonify({"error": "access_denied"}), 403
+    elif role == "admin":
+        pass
+    else:
+        return jsonify({"error": "access_denied"}), 403
+
+    try:
+        # Load structure and build normalized rows
+        structure = _load_active_structure(class_id)
+        if not structure:
+            return jsonify({"error": "no_active_structure"}), 404
+
+        normalized = normalize_structure(structure)
+
+        # Resolve formula
+        formula = _resolve_active_formula_for_class(class_id)
+
+        # Load student scores with names
+        student_scores = _load_student_scores_with_names_for_class(class_id)
+
+        results = perform_grade_computation(formula, normalized, student_scores)
+        return (
+            jsonify(
+                {
+                    "class_id": class_id,
+                    "results": results,
+                    "used_formula": bool(formula),
+                }
+            ),
+            200,
+        )
+    except Exception as e:
+        logger.error(f"Failed to calculate grades for class {class_id}: {str(e)}")
+        return jsonify({"error": "failed_to_calculate"}), 500
+
+
+@app.route("/instructor/class/<int:class_id>/grades", methods=["GET"])
+@login_required
+def instructor_class_grades(class_id: int):
+    """Official instructor page for grade entry/visualization (initial version).
+
+    Currently reuses the test template while we stabilize the API/UI.
+    """
+    if session.get("role") != "instructor":
+        session.clear()
+        flash("Unauthorized access.", "error")
+        return redirect(url_for("login"))
+
+    if not _instructor_owns_class(class_id, session.get("user_id")):
+        flash("You do not have access to this class.", "error")
+        return redirect(url_for("instructor_dashboard"))
+
+    # Reuse the existing data assembly from the test route
+    try:
+        with get_db_connection().cursor() as cursor:
+            cursor.execute(
+                """
+                SELECT gs.*, c.course, c.track, c.section, c.class_type
+                FROM grade_structures gs
+                JOIN classes c ON gs.class_id = c.id
+                WHERE gs.class_id = %s AND gs.is_active = 1
+                """,
+                (class_id,),
+            )
+            grade_structure = cursor.fetchone()
+
+            if not grade_structure:
+                flash("No active grading structure found for this class.", "error")
+                return redirect(url_for("instructor_dashboard"))
+
+            structure = (
+                json.loads(grade_structure["structure_json"])
+                if grade_structure.get("structure_json")
+                else {}
+            )
+
+            cursor.execute(
+                """
+                SELECT 
+                    sc.*, 
+                    s.id as student_id,
+                    s.course as student_course,
+                    s.year_level,
+                    s.section as student_section,
+                    u.school_id,
+                    pi.first_name,
+                    pi.last_name,
+                    pi.middle_name
+                FROM student_classes sc
+                JOIN students s ON sc.student_id = s.id
+                JOIN users u ON s.user_id = u.id
+                LEFT JOIN personal_info pi ON s.personal_info_id = pi.id
+                WHERE sc.class_id = %s
+                ORDER BY pi.last_name, pi.first_name
+                """,
+                (class_id,),
+            )
+            enrollments = cursor.fetchall()
+
+            students = []
+            for enrollment in enrollments:
+                first_name = enrollment.get("first_name") or ""
+                middle_name = enrollment.get("middle_name") or ""
+                last_name = enrollment.get("last_name") or ""
+                school_id = enrollment.get("school_id") or ""
+
+                if first_name and last_name:
+                    student_name = (
+                        f"{last_name}, {first_name} {middle_name}".strip()
+                        if middle_name
+                        else f"{last_name}, {first_name}"
+                    )
+                else:
+                    student_name = (
+                        school_id or f"Student {enrollment.get('student_id')}"
+                    )
+
+                cursor.execute(
+                    """
+                    SELECT ss.*, ga.name as assessment_name 
+                    FROM student_scores ss
+                    JOIN grade_assessments ga ON ss.assessment_id = ga.id
+                    WHERE ss.student_id = %s
+                    """,
+                    (enrollment.get("student_id"),),
+                )
+                scores = {
+                    score["assessment_name"]: score["score"]
+                    for score in cursor.fetchall()
+                }
+
+                students.append(
+                    {
+                        "id": enrollment.get("student_id"),
+                        "name": student_name,
+                        "school_id": school_id,
+                        "scores": scores,
+                    }
+                )
+
+            return render_template(
+                "test_grade_normalizer.html",  # Temporary reuse of test template
+                structure=structure,
+                students=students,
+                class_id=class_id,
+            )
+    except Exception as e:
+        import traceback
+
+        logger.error(
+            f"Error in instructor_class_grades: {str(e)}\n{traceback.format_exc()}"
+        )
+        return f"<pre style='color:red;'>{traceback.format_exc()}</pre>"
+
+
+@app.route("/api/classes/<int:class_id>/live-version", methods=["GET"])
+@login_required
+def get_class_live_version(class_id: int):
+    """Return a version hash that changes whenever relevant class data changes."""
+    try:
+        version = get_cached_class_live_version(class_id)
+        if not version:
+            return jsonify({"error": "Failed to compute version"}), 500
         return jsonify({"version": version, "generated_at": datetime.now().isoformat()})
-
     except Exception as e:
         logger.error(f"Failed to compute live version for class {class_id}: {str(e)}")
         return jsonify({"error": "Failed to compute version"}), 500
@@ -2527,4 +3287,4 @@ def get_class_live_version(class_id: int):
 
 if __name__ == "__main__":
     logger.info("Application startup initiated")
-    app.run(debug=True)
+    socketio.run(app, debug=True)

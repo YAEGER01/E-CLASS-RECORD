@@ -17,6 +17,210 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/instructor-dashboard.css') }}">
+    <style>
+        /* Modern modal styles - scoped to this page */
+        :root {
+            --modal-bg: #0b1220cc; /* slate-950 with alpha */
+            --panel-bg: #ffffff;
+            --panel-text: #0f172a; /* slate-900 */
+            --muted-text: #64748b; /* slate-500 */
+            --ring: #0ea5e9; /* sky-500 */
+            --ring-muted: #bae6fd; /* sky-200 */
+            --divider: #e2e8f0; /* slate-200 */
+            --shadow: 0 20px 50px -12px rgba(2, 6, 23, .45);
+        }
+
+        body.modal-open { overflow: hidden; }
+
+        .modal {
+            position: fixed;
+            inset: 0;
+            display: none; /* toggled by .show */
+            align-items: center;
+            justify-content: center;
+            background: var(--modal-bg);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            z-index: 1000;
+            padding: 2rem;
+        }
+
+        .modal.show { display: flex; animation: modal-fade-in .18s ease-out; }
+
+        .modal .modal-content {
+            width: min(960px, 96vw);
+            max-height: 85vh;
+            background: radial-gradient(1200px 600px at 0% -10%, #f8fafc 5%, #ffffff 55%) no-repeat;
+            color: var(--panel-text);
+            border-radius: 16px;
+            box-shadow: var(--shadow);
+            overflow: hidden;
+            transform: translateY(8px) scale(.98);
+            opacity: 0;
+            transition: transform .18s ease-out, opacity .18s ease-out;
+            border: 1px solid #eef2f7;
+        }
+
+        /* Small modal variant for the Options dialog */
+        .modal .modal-content.modal-sm {
+            width: min(420px, 92vw);
+            max-height: none;
+        }
+
+        /* Elevated options modal above the class details modal */
+        .modal.modal-elevated { z-index: 1100; }
+
+        .modal.show .modal-content { transform: translateY(0) scale(1); opacity: 1; }
+
+        .modal-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--divider);
+            background: linear-gradient(180deg, #f8fafc 0%, #ffffff 100%);
+        }
+
+        .modal-title {
+            font-size: 1.1rem;
+            font-weight: 700;
+            letter-spacing: .2px;
+            display: inline-flex;
+            align-items: center;
+            gap: .5rem;
+            color: var(--panel-text);
+        }
+
+        .modal-title::before {
+            content: "📘";
+            font-size: 1.15rem;
+        }
+
+        .modal-body {
+            padding: 0;
+            display: grid;
+            grid-template-rows: auto minmax(0, 1fr);
+        }
+
+        .class-details-toolbar {
+            display: flex;
+            align-items: center;
+            gap: .5rem;
+            padding: 12px;
+            background: #f8fafc;
+            border-bottom: 1px solid var(--divider);
+        }
+
+        .class-details-buttons {
+            display: inline-flex;
+            padding: .25rem;
+            background: #ffffff;
+            border: 1px solid var(--divider);
+            border-radius: 999px;
+            box-shadow: 0 1px 2px rgba(15, 23, 42, .06);
+            gap: .25rem;
+        }
+
+        .class-details-buttons .detail-btn {
+            appearance: none;
+            border: 0;
+            background: transparent;
+            color: #0f172a;
+            font-weight: 600;
+            font-size: .95rem;
+            padding: .55rem .9rem;
+            border-radius: 999px;
+            line-height: 1;
+            transition: background .18s ease, color .18s ease, box-shadow .18s ease;
+        }
+
+        .class-details-buttons .detail-btn:hover {
+            background: #f1f5f9;
+        }
+
+        .class-details-buttons .detail-btn:focus-visible {
+            outline: 2px solid var(--ring);
+            outline-offset: 2px;
+        }
+
+        .class-details-buttons .detail-btn[aria-pressed="true"] {
+            background: #0ea5e9;
+            color: #fff;
+            box-shadow: 0 4px 10px -4px rgba(14, 165, 233, .6);
+        }
+
+        #detail-view-container {
+            padding: 16px 20px;
+            overflow: auto;
+            max-height: calc(85vh - 130px);
+        }
+
+        .close {
+            appearance: none;
+            border: 0;
+            background: #ffffff;
+            color: #0f172a;
+            width: 36px;
+            height: 36px;
+            border-radius: 999px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.1rem;
+            line-height: 1;
+            cursor: pointer;
+            box-shadow: 0 1px 2px rgba(15, 23, 42, .12);
+            transition: transform .12s ease, background .12s ease, box-shadow .12s ease;
+        }
+
+        .close:hover { background: #f1f5f9; transform: scale(1.05); }
+        .close:active { transform: scale(.98); }
+        .close:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
+
+        .loading {
+            display: grid;
+            place-items: center;
+            color: var(--muted-text);
+            gap: .75rem;
+            min-height: 140px;
+        }
+
+        .loading .spinner {
+            width: 24px;
+            height: 24px;
+            border: 3px solid var(--ring-muted);
+            border-top-color: var(--ring);
+            border-radius: 999px;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+        @keyframes modal-fade-in { from { opacity: 0; } to { opacity: 1; } }
+
+        /* Options action styles */
+        .options-actions { display: grid; gap: .5rem; padding: 12px 16px 20px; }
+        .options-actions .option-btn {
+            display: flex;
+            align-items: center;
+            gap: .6rem;
+            width: 100%;
+            padding: .7rem .9rem;
+            border-radius: 10px;
+            border: 1px solid var(--divider);
+            background: #fff;
+            color: #0f172a;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background .18s ease, box-shadow .18s ease, transform .06s ease;
+            box-shadow: 0 1px 2px rgba(15, 23, 42, .06);
+        }
+        .options-actions .option-btn:hover { background: #f8fafc; box-shadow: 0 2px 6px rgba(2, 6, 23, .08); }
+        .options-actions .option-btn:active { transform: translateY(1px); }
+        .options-actions .option-btn:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
+        .options-actions .option-icon { font-size: 1.15rem; width: 1.5rem; text-align: center; }
+        .options-header { padding: 16px 20px; border-bottom: 1px solid var(--divider); background: linear-gradient(180deg, #f8fafc 0%, #ffffff 100%); }
+    .options-title { margin: 0; font-size: 1rem; font-weight: 700; color: var(--panel-text); }
+    </style>
 </head>
 
 <body>
@@ -90,22 +294,45 @@
 
     <!-- Class Details Modal -->
     <div id="class-details-modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title" aria-hidden="true">
-        <div class="modal-content" role="document">
+        <div class="modal-content" role="document" tabindex="-1">
             <div class="modal-header">
                 <h2 class="modal-title" id="modal-title">Class Details</h2>
-                <button class="close" onclick="closeModal()" aria-label="Close modal">&times;</button>
+                <button class="close" onclick="closeModal()" aria-label="Close modal" title="Close">×</button>
             </div>
             <div class="modal-body">
-                <div id="class-details-content">
-                    <div class="class-details-buttons">
-                        <button class="detail-btn" onclick="showViewMembers()" aria-label="View members">� View Members</button>
-                        <button class="detail-btn" onclick="showGradeEntry()" aria-label="Open grade entry">� Grade Entry</button>
-                        <button class="detail-btn" onclick="showViewClassDetails()" aria-label="View class details">📋 View Class Details</button>
-                    </div>
-                    <div id="detail-view-container">
-                        <div class="loading">Select an option above...</div>
+                <div class="class-details-toolbar" role="toolbar" aria-label="Class detail actions">
+                    <button class="btn btn-primary options-trigger" onclick="openOptionsModal()" aria-haspopup="dialog" aria-controls="options-modal">⚙️ Options</button>
+                </div>
+                <div id="detail-view-container" role="region" aria-live="polite" aria-label="Detail view">
+                    <div class="loading">
+                        <div class="spinner" aria-hidden="true"></div>
+                        <div>Select an option above…</div>
                     </div>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Options Modal (secondary) -->
+    <div id="options-modal" class="modal modal-elevated" role="dialog" aria-modal="true" aria-labelledby="options-title" aria-hidden="true">
+        <div class="modal-content modal-sm" role="document" tabindex="-1">
+            <div class="modal-header options-header">
+                <h2 class="options-title" id="options-title">What do you want to do, Prof?</h2>
+                <button class="close" onclick="closeOptionsModal()" aria-label="Close options" title="Close">×</button>
+            </div>
+            <div class="options-actions" role="group" aria-label="Available actions">
+                <button class="option-btn" onclick="closeOptionsModal(); showViewMembers();">
+                    <span class="option-icon" aria-hidden="true">�</span>
+                    <span>View Members</span>
+                </button>
+                <button class="option-btn" onclick="closeOptionsModal(); showGradeEntry();">
+                    <span class="option-icon" aria-hidden="true">🧮</span>
+                    <span>Grade Entry</span>
+                </button>
+                <button class="option-btn" onclick="closeOptionsModal(); showViewClassDetails();">
+                    <span class="option-icon" aria-hidden="true">📋</span>
+                    <span>Class Details</span>
+                </button>
             </div>
         </div>
     </div>
@@ -220,6 +447,10 @@
             modal.setAttribute('aria-hidden', 'false');
             document.body.classList.add('modal-open');
             document.getElementById('detail-view-container').innerHTML = '<div class="loading">Select an option above...</div>';
+            // Move focus into the modal for accessibility
+            setTimeout(() => {
+                modal.querySelector('.close')?.focus();
+            }, 60);
         }
 
         async function showViewMembers() {
@@ -241,8 +472,8 @@
         }
 
         async function showGradeEntry() {
-            // Temporary test route for grade normalizer
-            window.location.href = `/test-grade-normalizer/${currentClassId}`;
+            // Official instructor grades page
+            window.location.href = `/instructor/class/${currentClassId}/grades`;
         }
 
         async function showViewClassDetails() {
@@ -371,19 +602,49 @@
 
         // Close modal when clicking outside
         window.onclick = function (event) {
+            const options = document.getElementById('options-modal');
+            if (event.target === options && options.classList.contains('show')) {
+                closeOptionsModal();
+                return;
+            }
             const modal = document.getElementById('class-details-modal');
-            if (event.target === modal) {
+            if (event.target === modal && modal.classList.contains('show')) {
                 closeModal();
             }
         }
 
-        // Close modal on ESC key
+        // Close on ESC key: prioritize closing options modal if open
         window.addEventListener('keydown', (e) => {
+            if (e.key !== 'Escape') return;
+            const options = document.getElementById('options-modal');
+            if (options && options.classList.contains('show')) {
+                closeOptionsModal();
+                return;
+            }
             const modal = document.getElementById('class-details-modal');
-            if (e.key === 'Escape' && modal.classList.contains('show')) {
+            if (modal && modal.classList.contains('show')) {
                 closeModal();
             }
         });
+
+        function openOptionsModal() {
+            const options = document.getElementById('options-modal');
+            options.style.display = 'flex';
+            requestAnimationFrame(() => options.classList.add('show'));
+            options.setAttribute('aria-hidden', 'false');
+            setTimeout(() => {
+                options.querySelector('.option-btn')?.focus();
+            }, 60);
+        }
+
+        function closeOptionsModal() {
+            const options = document.getElementById('options-modal');
+            options.classList.remove('show');
+            options.setAttribute('aria-hidden', 'true');
+            setTimeout(() => {
+                options.style.display = 'none';
+            }, 200);
+        }
 
         function regenerateJoinCode() {
             Swal.fire({
@@ -492,7 +753,7 @@
         }
 
         // Welcome notification on page load
-        document.addEventListener('DOMContentLoaded', function () {
+        document.addEventListener('DOMContentLoaded', async function () {
             setTimeout(() => {
                 Swal.fire({
                     title: '👨‍🏫 Welcome back, Instructor!',

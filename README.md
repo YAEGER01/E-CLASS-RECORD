@@ -109,7 +109,8 @@ The system uses a relational MySQL database with the following key tables:
 4. **Setup database**:
 
    - Create a MySQL database named `e_class_record`
-   - Import the schema: `mysql -u username -p e_class_record < db/e_class_record.sql`
+   - Import the base schema: `mysql -u username -p e_class_record < db/e_class_record.sql`
+   - Apply additional migrations (if present), e.g.: `mysql -u username -p e_class_record < db/2025-10-31-grade-calculation-templates.sql`
 
 5. **Configure database connection**:
    Update `db_conn.py` with your MySQL credentials

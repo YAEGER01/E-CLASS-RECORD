@@ -162,6 +162,7 @@
 
     <script>
         let classes = [];
+        let templates = [];
         let editingId = null;
         let activeDropdownId = '';
 
@@ -176,8 +177,9 @@
 
         let optionsData = {};
 
-        document.addEventListener('DOMContentLoaded', () => {
+        document.addEventListener('DOMContentLoaded', async () => {
             loadOptions();
+            await loadTemplates();
             document.getElementById('clear-btn').addEventListener('click', clearForm);
             document.getElementById('next-btn').addEventListener('click', nextStep);
             document.getElementById('back-btn').addEventListener('click', prevStep);
@@ -193,6 +195,55 @@
             for (const key in defaultOptions) {
                 optionsData[key] = JSON.parse(localStorage.getItem(`${key}Options`)) || defaultOptions[key];
                 populateDropdown(key, optionsData[key]);
+            }
+        }
+
+        // Function to load calculation templates
+        async function loadTemplates() {
+            try {
+                const response = await fetch('/api/instructor/calculation-templates');
+                if (response.ok) {
+                    const data = await response.json();
+                    templates = data.templates;
+                } else {
+                    console.error('Failed to load templates');
+                }
+            } catch (error) {
+                console.error('Error loading templates:', error);
+            }
+        }
+
+        // Function to apply calculation to class
+        async function applyCalculation(value, classId) {
+            if (!value) return; // No selection
+
+            const [templateId, templateType] = value.split('_');
+
+            try {
+                const response = await fetch('/api/instructor/apply-calculation', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        template_id: parseInt(templateId),
+                        template_type: templateType,
+                        class_id: classId
+                    })
+                });
+
+                if (response.ok) {
+                    const result = await response.json();
+                    showAlert('Calculation applied successfully!', 'success');
+                    // Reset the select
+                    event.target.value = '';
+                } else {
+                    const error = await response.json();
+                    showAlert(error.error || 'Failed to apply calculation', 'error');
+                }
+            } catch (error) {
+                console.error('Error applying calculation:', error);
+                showAlert('Error applying calculation', 'error');
             }
         }
 
@@ -351,6 +402,10 @@
                             <sub class="class-code">${cls.class_code || 'N/A'}</sub>
                         </div>
                         <div class="record-actions">
+                            <select class="action-select" onchange="applyCalculation(this.value, ${cls.id})" style="margin-bottom: 0.5rem; width: 100%;">
+                                <option value="">Apply grading calculation on this class</option>
+                                ${templates.map(tmpl => `<option value="${tmpl.id}_${tmpl.type}">${tmpl.name}</option>`).join('')}
+                            </select>
                             <button class="action-btn btn-secondary" onclick="editClass(${cls.id})">Edit</button>
                             <button class="action-btn btn-danger" onclick="deleteClass(${cls.id})">Remove</button>
                         </div>

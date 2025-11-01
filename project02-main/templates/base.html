@@ -4,6 +4,8 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- CSRF token for AJAX and fallback injection -->
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>{% block title %}{% endblock %}</title>
     <link rel="icon" type="image/png" href="{{ url_for('static', filename='images/ECRIS.png') }}">
     <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='site.css')}}" />
@@ -21,6 +23,30 @@
         {% endblock %}
 
     </div>
+    <script>
+        // Ensure any form missing a CSRF input gets one injected on submit
+        document.addEventListener('submit', function (e) {
+            try {
+                const form = e.target;
+                if (!form || !(form instanceof HTMLFormElement)) return;
+                const hasToken = form.querySelector('input[name="csrf_token"]');
+                if (!hasToken) {
+                    const meta = document.querySelector('meta[name="csrf-token"]');
+                    const token = meta ? meta.getAttribute('content') : null;
+                    if (token) {
+                        const input = document.createElement('input');
+                        input.type = 'hidden';
+                        input.name = 'csrf_token';
+                        input.value = token;
+                        form.appendChild(input);
+                    }
+                }
+            } catch (err) {
+                // Swallow errors; server-side CSRF will still enforce protection
+                console && console.warn && console.warn('CSRF inject warning:', err);
+            }
+        }, true);
+    </script>
 </body>
 
 </html>

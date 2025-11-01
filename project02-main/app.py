@@ -1,4 +1,7 @@
 import logging
+import os
+import sys
+import ast
 import uuid
 import hashlib
 import random
@@ -22,6 +25,9 @@ app = Flask(__name__)
 # Add enumerate to Jinja environment
 app.jinja_env.globals.update(enumerate=enumerate)
 from flask_wtf.csrf import CSRFProtect, generate_csrf
+
+# Ensure csrf_token() helper is available in all templates
+app.jinja_env.globals.update(csrf_token=generate_csrf)
 from werkzeug.security import generate_password_hash, check_password_hash
 from functools import wraps
 from utils.db_conn import get_db_connection
@@ -82,6 +88,107 @@ socketio = SocketIO(app, cors_allowed_origins="*")
 # Initialize live helpers and register Socket.IO handlers
 initialize_live(socketio, logger)
 register_socketio_handlers(socketio)
+
+
+# -----------------------------
+# Startup health/preflight checks
+# -----------------------------
+def _iter_python_files(base_dir: str):
+    """Yield absolute paths to .py files under base_dir, excluding common virtualenv/cache dirs."""
+    exclude_dirs = {".venv", "venv", "__pycache__", ".pytest_cache", ".git", ".vscode"}
+    for root, dirs, files in os.walk(base_dir):
+        # Prune excluded dirs in-place for efficiency
+        dirs[:] = [d for d in dirs if d not in exclude_dirs]
+        for name in files:
+            if name.endswith(".py"):
+                yield os.path.join(root, name)
+
+
+def check_python_syntax(base_dir: str):
+    """Return (ok: bool, results: dict) where results has counts and any errors found.
+
+    We parse files with ast to catch SyntaxError without executing code.
+    """
+    files = list(_iter_python_files(base_dir))
+    errors = []
+    for path in files:
+        try:
+            with open(path, "r", encoding="utf-8") as f:
+                src = f.read()
+            ast.parse(src, filename=path)
+        except SyntaxError as e:
+            errors.append(
+                {
+                    "file": path,
+                    "line": getattr(e, "lineno", None),
+                    "col": getattr(e, "offset", None),
+                    "msg": str(e),
+                }
+            )
+        except Exception as e:
+            # Non-syntax read error; report as error as well
+            errors.append(
+                {
+                    "file": path,
+                    "line": None,
+                    "col": None,
+                    "msg": f"Read/parse error: {e}",
+                }
+            )
+    return (len(errors) == 0), {"total_files": len(files), "errors": errors}
+
+
+def check_database_connectivity():
+    """Attempt a simple DB connection and SELECT 1. Return (ok: bool, message: str)."""
+    try:
+        conn = get_db_connection()
+        with conn.cursor() as cursor:
+            cursor.execute("SELECT 1")
+            _ = cursor.fetchone()
+        try:
+            conn.close()
+        except Exception:
+            pass
+        return True, "Connected and SELECT 1 succeeded"
+    except Exception as e:
+        return False, f"DB connection failed: {e}"
+
+
+def run_startup_checks_or_exit():
+    """Run preflight checks and exit the process on failure.
+
+    Uses emoji-coded logs for quick visual scanning.
+    """
+    project_root = os.path.dirname(os.path.abspath(__file__))
+    logger.info("🧪 Running startup checks…")
+
+    # 1) Python syntax
+    ok_py, result = check_python_syntax(project_root)
+    total = result.get("total_files", 0)
+    if ok_py:
+        logger.info(f"✅ Python syntax check passed ({total} files scanned)")
+    else:
+        logger.error(
+            f"❌ Python syntax check failed ({total} files scanned, {len(result['errors'])} errors)"
+        )
+        for err in result["errors"][:20]:  # limit output
+            loc = f":{err['line']}:{err['col']}" if err["line"] else ""
+            logger.error(f"   • {err['file']}{loc} → {err['msg']}")
+
+    # 2) Database connectivity
+    ok_db, db_msg = check_database_connectivity()
+    if ok_db:
+        logger.info(f"🗄️  Database check: ✅ {db_msg}")
+    else:
+        logger.error(f"🗄️  Database check: ❌ {db_msg}")
+
+    if ok_py and ok_db:
+        logger.info("🟢 All systems green. Starting server…")
+        return
+    else:
+        logger.error("🔴 Startup checks failed. Aborting launch.")
+        sys.exit(1)
+
 
 # Register blueprints (modular APIs)
 from blueprints.assessments_routes import assessments_bp
@@ -353,4 +460,8 @@ def test_compute_endpoint_exists():
 
 if __name__ == "__main__":
     logger.info("Application startup initiated")
+    # Run preflight checks before launching the server
+    # Note: With the Werkzeug reloader, this may run twice in development.
+    # If this becomes noisy, guard with WERKZEUG_RUN_MAIN env flag.
+    run_startup_checks_or_exit()
     socketio.run(app, debug=True)

@@ -17,7 +17,7 @@
     <div class="grid-overlay"></div>
 
     <div class="main-container">
-        <div class="registration-card">
+        <div class="registration-card"> 
             <header class="header">
                 <div class="brand">
                     <div class="brand-logo">🎓</div>
@@ -44,6 +44,8 @@
                     {% endwith %}
 
                     <form id="registrationForm" method="POST" enctype="multipart/form-data">
+                        <!-- CSRF protection token required by Flask-WTF -->
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
                         <div class="form-grid">
                             <div class="form-field">
                                 <label for="schoolId">

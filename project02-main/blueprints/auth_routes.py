@@ -171,7 +171,7 @@ def instructor_login():
                 f"Instructor login failed: Role mismatch for user {school_id}"
             )
             flash("Invalid instructor credentials.", "error")
-            return redirect(url_for("instructor_login"))
+            return redirect(url_for("auth.instructor_login"))
 
         # Check if instructor is suspended
         try:
@@ -183,7 +183,7 @@ def instructor_login():
         except Exception as e:
             logger.error(f"Database error during instructor status check: {str(e)}")
             flash("An error occurred. Please try again.", "error")
-            return redirect(url_for("instructor_login"))
+            return redirect(url_for("auth.instructor_login"))
 
         if instructor and instructor["status"] == "suspended":
             logger.warning(
@@ -193,7 +193,7 @@ def instructor_login():
                 "Your instructor account has been suspended. Please contact an administrator.",
                 "error",
             )
-            return redirect(url_for("instructor_login"))
+            return redirect(url_for("auth.instructor_login"))
 
         # Login successful
         session["user_id"] = user["id"]

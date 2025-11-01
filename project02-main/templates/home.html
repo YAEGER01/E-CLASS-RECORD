@@ -5,8 +5,8 @@
     <h1>Welcome to E-Class Record</h1>
     <p class="lead-text">A modern class record system for instructors and students.</p>
     <div class="btn-group">
-        <a href="{{ url_for('login') }}" class="btn btn-primary m-2">Login</a>
-        <a href="{{ url_for('signup') }}" class="btn btn-outline-primary m-2">Sign Up</a>
+    <a href="{{ url_for('auth.login') }}" class="btn btn-primary m-2">Login</a>
+    <a href="{{ url_for('auth.register') }}" class="btn btn-outline-primary m-2">Sign Up</a>
     </div>
 </div>
 {% endblock %}

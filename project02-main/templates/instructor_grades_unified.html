@@ -1,0 +1,725 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Unified — Grade Entry</title>
+  <style>
+    :root {
+      --header-bg: #f8fafc;
+      --border: #e2e8f0;
+      --row-hover: #f1f5f9;
+      --sticky-bg: #ffffff;
+      --focus: #0ea5e9;
+    }
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji", "Segoe UI Emoji"; margin:0; }
+    .page { padding: 12px; }
+    .toolbar { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:10px; }
+    .matrix-wrapper { overflow:auto; border:1px solid var(--border); border-radius:10px; }
+    table.matrix { border-collapse: separate; border-spacing:0; min-width: 960px; width:100%; }
+    table.matrix th, table.matrix td { border-bottom:1px solid var(--border); border-right:1px solid var(--border); padding:8px; }
+    table.matrix th { background: var(--header-bg); position: sticky; top: 0; z-index: 2; }
+    table.matrix th.sticky-left, table.matrix td.sticky-left { position: sticky; left: 0; background: var(--sticky-bg); z-index: 3; }
+    table.matrix td.sticky-left { font-weight: 600; }
+    thead tr:nth-child(1) th { text-transform: uppercase; font-size:.85rem; letter-spacing:.03em; }
+    thead tr:nth-child(2) th { font-size:.85rem; }
+    thead tr:nth-child(3) th { font-size:.8rem; white-space:nowrap; }
+    tbody tr { background:#fff; }
+    tbody tr.highlight { background: #fff7ed; }
+    input.score { width: 72px; padding: 6px 8px; font-size: 1rem; border:1px solid var(--border); border-radius:6px; text-align:right; }
+    input.score:focus { outline: 2px solid var(--focus); outline-offset: 1px; background:#fff; }
+    .max { color:#64748b; font-size:.75rem; }
+    .category-cell { text-align:center; font-weight:700; }
+    .subcell { text-align:center; }
+    .assess-head { text-align:center; }
+    .btn { padding:8px 12px; border:1px solid var(--border); background:#fff; border-radius:8px; cursor:pointer; }
+    .btn-primary { background:#0ea5e9; color:#fff; border-color:#0ea5e9; }
+    .status { color:#64748b; }
+    .hidden-by-filter { display: none !important; }
+    .btn-row { display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
+  </style>
+  <script src="{{ url_for('static', filename='js/swal.js') }}"></script>
+</head>
+<body>
+  <div class="page">
+  <div id="page-data" data-class-id="{{ class_id }}" data-structure-id="{{ structure_id }}" data-csrf-token="{{ csrf_token }}" style="display:none"></div>
+    <div class="toolbar" style="outline: 5px solid black; border-radius: 10px;padding: 5px;">
+      <div>
+        <a class="btn" href="{{ url_for('dashboard.instructor_dashboard') }}">← Back</a>
+      </div>
+      <div class="status" id="save-status"></div>
+      <div class="btn-row">
+        <!-- New function buttons -->
+        <button class="btn-primary btn" id="btn-save-grading">Save Grading</button>
+        <button class="btn" id="btn-recalc-modal" title="Recalculate view">Recalculate</button>
+        <button class="btn" id="btn-sort">Sort</button>
+        <button class="btn" id="btn-filter">Filter</button>
+        <button class="btn" id="btn-lock">Lock/Unlock Inputs</button>
+        <button class="btn" id="btn-submit-release">Submit/Release</button>
+
+        <!-- Legacy quick actions preserved -->
+        <button class="btn" id="recalc-btn" title="Quick reload">⟳</button>
+        <button class="btn" id="save-btn" title="Quick save">💾</button>
+      </div>
+    </div>
+<br>
+    <!-- Structure summary and quick add (dropdown per category) -->
+    <div id="structure-actions" style="margin: 8px 0 12px 0;">
+      <h1>Add Assessments</h1>
+      <hr>
+      {% if structure %}
+        {% for cat in ['LECTURE','LABORATORY'] %}
+          {% set sublist = structure.get(cat) or [] %}
+          {% if sublist %}
+            <div style="margin:6px 0; font-weight:700;">{{ cat }}</div>
+            <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
+              <select id="select-{{ cat|lower }}" data-category="{{ cat }}" class="btn" style="min-width: 260px;">
+                {% for sub in sublist %}
+                  {% set sid = (sub_id_map.get(cat, {}) or {}).get(sub.name) %}
+                  <option value="{{ sub.name }}" data-subcategory-id="{{ sid }}">{{ sub.name }} — {{ '%.2f' % (sub.weight|float) }}%</option>
+                {% endfor %}
+              </select>
+              <button class="btn" data-action="add-assessment-select" data-select-id="select-{{ cat|lower }}">+ Add assessment</button>
+            </div>
+          {% endif %}
+        {% endfor %}
+      {% else %}
+        <div class="status">No active grading structure found.</div>
+      {% endif %}
+    </div>
+
+    <div class="matrix-wrapper">
+      <table class="matrix">
+        <thead>
+          <tr>
+            <th class="sticky-left" rowspan="3">Student</th>
+            {% set all_cats = ['LECTURE','LABORATORY'] %}
+            {% for cat in all_cats %}
+              {% set subs = grouped_assessments.get(cat, {}) %}
+              {% set col_span = 0 %}
+              {% for subdef in (structure.get(cat) or []) %}
+                {% set subname = subdef.name %}
+                {% set arr = subs.get(subname, []) %}
+                {% set col_span = col_span + (arr|length if (arr|length) > 0 else 1) %}
+              {% endfor %}
+              {% if col_span > 0 %}
+                <th class="category-cell" colspan="{{ col_span }}">{{ cat }}</th>
+              {% endif %}
+            {% endfor %}
+          </tr>
+          <tr>
+            {% for cat in all_cats %}
+              {% set subs = grouped_assessments.get(cat, {}) %}
+              {% for subdef in (structure.get(cat) or []) %}
+                {% set sub = subdef.name %}
+                {% set arr = subs.get(sub, []) %}
+                {% set spanv = (arr|length if (arr|length) > 0 else 1) %}
+                {% set w = subdef.weight %}
+                <th class="subcell" colspan="{{ spanv }}">{{ sub }}{% if w is not none %} — {{ '%.2f' % (w|float) }}%{% endif %}</th>
+              {% endfor %}
+            {% endfor %}
+          </tr>
+          <tr>
+            {% for cat in all_cats %}
+              {% set subs = grouped_assessments.get(cat, {}) %}
+              {% for subdef in (structure.get(cat) or []) %}
+                {% set sub = subdef.name %}
+                {% set arr = subs.get(sub, []) %}
+                {% if (arr|length) == 0 %}
+                  <th class="assess-head">
+                    <button class="btn" data-action="add-assessment" data-subcategory="{{ sub }}" data-category="{{ cat }}" data-subcategory-id="{{ (sub_id_map.get(cat, {}) or {}).get(sub) }}">+ Add</button>
+                  </th>
+                {% else %}
+                  {% for a in arr %}
+                    <th class="assess-head assess-col" title="Max {{ a.max_score }}" data-assessment-id="{{ a.id }}" data-category="{{ cat }}" data-subcategory="{{ sub }}" data-max="{{ a.max_score }}">{{ a.name }}<div class="max">/ {{ a.max_score }}</div></th>
+                  {% endfor %}
+                {% endif %}
+              {% endfor %}
+            {% endfor %}
+          </tr>
+        </thead>
+        <tbody id="tbody">
+          {% for s in students %}
+            <tr data-student-id="{{ s.id }}">
+              <td class="sticky-left">{{ s.name }}</td>
+              {% for cat in all_cats %}
+                {% set subs = grouped_assessments.get(cat, {}) %}
+                {% for subdef in (structure.get(cat) or []) %}
+                  {% set sub = subdef.name %}
+                  {% set arr = subs.get(sub, []) %}
+                  {% if (arr|length) == 0 %}
+                    <td style="text-align:center; color:#cbd5e1;">—</td>
+                  {% else %}
+                    {% for a in arr %}
+                      {% set sc = scores_map.get((s.id, a.id)) %}
+                      <td><input class="score" type="number" min="0" step="0.01" data-student="{{ s.id }}" data-assessment="{{ a.id }}" value="{{ sc if sc is not none else '' }}" /></td>
+                    {% endfor %}
+                  {% endif %}
+                {% endfor %}
+              {% endfor %}
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <script>
+    (function(){
+      // SweetAlert2 helper
+      const SwalLib = window.Sweetalert2 || window.Swal || null;
+      const swalAlert = async (icon, title, text) => {
+        if (!SwalLib) { window.alert(text || title || ''); return; }
+        await SwalLib.fire({ icon: icon || 'info', title: title || '', text: text || '' });
+      };
+      const swalConfirm = async (title, text, confirmText='Confirm') => {
+        if (!SwalLib) { return window.confirm(text || title || '') ? true : false; }
+        const res = await SwalLib.fire({ title, text: text || '', icon: 'question', showCancelButton: true, confirmButtonText: confirmText });
+        return !!res.isConfirmed;
+      };
+      const swalPromptText = async (title, inputValue) => {
+        if (!SwalLib) { return window.prompt(title || '', inputValue || ''); }
+        const res = await SwalLib.fire({ title: title || '', input: 'text', inputValue: inputValue || '', showCancelButton: true, confirmButtonText: 'Continue' });
+        return res.isConfirmed ? (res.value ?? '') : null;
+      };
+      const swalPromptNumber = async (title, inputValue) => {
+        if (!SwalLib) { const v = window.prompt(title || '', String(inputValue ?? '')); return v == null ? null : v; }
+        const res = await SwalLib.fire({ title: title || '', input: 'number', inputValue: inputValue != null ? String(inputValue) : '', inputAttributes: { min: '1', step: '1' }, showCancelButton: true, confirmButtonText: 'Continue' });
+        return res.isConfirmed ? (res.value ?? '') : null;
+      };
+
+      // Existing assessments map from server (category -> sub -> [{name, max_score, ...}])
+      let GROUPED_CACHE = null;
+      const getGrouped = () => {
+        if (GROUPED_CACHE) return GROUPED_CACHE;
+        try {
+          const gaEl = document.getElementById('ga-json');
+          GROUPED_CACHE = JSON.parse((gaEl && gaEl.textContent) || '{}') || {};
+        } catch(_) { GROUPED_CACHE = {}; }
+        return GROUPED_CACHE;
+      };
+      const getExistingNames = (category, sub) => {
+        try {
+          const G = getGrouped();
+          const arr = (((G || {})[category] || {})[sub] || []);
+          return Array.isArray(arr) ? arr.map(a => a && a.name ? String(a.name) : '').filter(Boolean) : [];
+        } catch(_) { return []; }
+      };
+      const parseName = (name) => {
+        if (!name) return { base: '', index: null };
+        const m = String(name).trim().match(/^(.+?)\s*(\d+)$/);
+        if (!m) return { base: String(name).trim(), index: null };
+        return { base: m[1].trim(), index: parseInt(m[2], 10) };
+      };
+      const nextNameSuggestion = (category, sub, subId, fallbackBase='Assessment') => {
+        const lsKey = `lastName:${classId}:${subId}`;
+        const last = localStorage.getItem(lsKey);
+        if (last) {
+          const p = parseName(last);
+          if (p.base) {
+            const names = getExistingNames(category, sub);
+            let maxIdx = 0;
+            names.forEach(n => { const pn = parseName(n); if (pn.base.toLowerCase() === p.base.toLowerCase() && pn.index) maxIdx = Math.max(maxIdx, pn.index); });
+            const nextIdx = (maxIdx || p.index || 0) + 1;
+            return { suggested: `${p.base} ${nextIdx}`, base: p.base, index: nextIdx, lsKey };
+          }
+        }
+        const names = getExistingNames(category, sub);
+        if (names.length) {
+          // Infer base from first existing item
+          const p0 = parseName(names[0]);
+          const base = p0.base || fallbackBase;
+          let maxIdx = 0;
+          names.forEach(n => { const pn = parseName(n); if (pn.base.toLowerCase() === base.toLowerCase() && pn.index) maxIdx = Math.max(maxIdx, pn.index); });
+          const nextIdx = (maxIdx || 0) + 1;
+          // If no index pattern found at all, start at 1 and only add number when >= 2
+          if (maxIdx === 0) return { suggested: base, base, index: 1, lsKey: `lastName:${classId}:${subId}` };
+          return { suggested: `${base} ${nextIdx}`, base, index: nextIdx, lsKey: `lastName:${classId}:${subId}` };
+        }
+        return { suggested: `${fallbackBase} 1`, base: fallbackBase, index: 1, lsKey: `lastName:${classId}:${subId}` };
+      };
+      const tbody = document.getElementById('tbody');
+      const saveBtn = document.getElementById('save-btn');
+      const status = document.getElementById('save-status');
+      const recalcBtn = document.getElementById('recalc-btn');
+      const dataEl = document.getElementById('page-data');
+      const classId = parseInt(dataEl?.dataset?.classId || '0', 10) || 0;
+      const structureId = parseInt(dataEl?.dataset?.structureId || '0', 10) || 0;
+      const csrfToken = dataEl?.dataset?.csrfToken || null;
+      const actionsBox = document.getElementById('structure-actions');
+
+      // New toolbar buttons
+      const btnSaveGrading = document.getElementById('btn-save-grading');
+      const btnRecalcModal = document.getElementById('btn-recalc-modal');
+      const btnSort = document.getElementById('btn-sort');
+      const btnFilter = document.getElementById('btn-filter');
+      const btnLock = document.getElementById('btn-lock');
+      const btnSubmitRelease = document.getElementById('btn-submit-release');
+
+      // Row highlighting
+      tbody.addEventListener('focusin', (e) => {
+        const tr = e.target && e.target.closest('tr');
+        if (!tr) return;
+        tr.classList.add('highlight');
+      });
+      tbody.addEventListener('focusout', (e) => {
+        const tr = e.target && e.target.closest('tr');
+        if (!tr) return;
+        // small delay to avoid flicker when moving within row
+        setTimeout(() => {
+          if (!tr.contains(document.activeElement)) tr.classList.remove('highlight');
+        }, 50);
+      });
+
+      // Track changes
+      const dirty = new Map(); // key `${sid}:${aid}` -> value
+      tbody.addEventListener('input', (e) => {
+        const inp = e.target;
+        if (!inp.matches('input.score')) return;
+        const sid = parseInt(inp.getAttribute('data-student'), 10);
+        const aid = parseInt(inp.getAttribute('data-assessment'), 10);
+        const val = inp.value;
+        dirty.set(`${sid}:${aid}`, { student_id: sid, assessment_id: aid, class_id: classId, score: val === '' ? null : parseFloat(val) });
+        status.textContent = `${dirty.size} change(s) not saved`;
+      });
+
+      // Debounced save on button
+      async function saveChanges() {
+        if (!dirty.size) { status.textContent = 'No changes'; return; }
+        const scores = Array.from(dirty.values()).map(o => ({ student_id: o.student_id, assessment_id: o.assessment_id, class_id: o.class_id, score: o.score ?? 0 }));
+        status.textContent = 'Saving…';
+        try {
+          const headers = { 'Content-Type': 'application/json' };
+          if (csrfToken) headers['X-CSRFToken'] = csrfToken;
+          const res = await fetch('/api/scores', { method: 'POST', headers, body: JSON.stringify({ scores }) });
+          const out = await res.json();
+          if (!res.ok) {
+            status.textContent = out.error || 'Save failed';
+          } else {
+            status.textContent = 'All changes saved';
+            dirty.clear();
+          }
+        } catch (e) {
+          status.textContent = 'Network error';
+        }
+      }
+      saveBtn.addEventListener('click', saveChanges);
+      recalcBtn.addEventListener('click', () => { window.location.reload(); });
+
+      // Helpers to index columns and rows
+      const getAssessmentColumns = () => {
+        const heads = Array.from(document.querySelectorAll('th.assess-col'));
+        return heads.map((th, idx) => ({
+          idx,
+          id: parseInt(th.getAttribute('data-assessment-id') || '0', 10) || 0,
+          name: th.childNodes[0]?.nodeValue?.trim() || th.textContent.trim(),
+          category: th.getAttribute('data-category') || '',
+          subcategory: th.getAttribute('data-subcategory') || '',
+          max: parseFloat(th.getAttribute('data-max') || '0') || 0
+        })).filter(c => c.id);
+      };
+      const getStudentRows = () => Array.from(tbody.querySelectorAll('tr'));
+
+      // Save Grading modal
+      const openSaveGradingModal = async () => {
+        const pending = dirty.size;
+        if (!SwalLib) { if (window.confirm(`${pending} pending change(s). Save now?`)) await saveChanges(); return; }
+        await SwalLib.fire({
+          title: 'Save Grading',
+          html: `<div style="text-align:left">
+            <p><strong>${pending}</strong> pending change(s).</p>
+            <p>This will save edited scores to the server.</p>
+          </div>`,
+          icon: 'info',
+          showCancelButton: true,
+          confirmButtonText: 'Save now'
+        }).then(async (r) => { if (r.isConfirmed) await saveChanges(); });
+      };
+      btnSaveGrading?.addEventListener('click', openSaveGradingModal);
+
+      // Recalculate modal
+      const openRecalcModal = async () => {
+        const ok = await swalConfirm('Recalculate view', 'This will refresh the page and recalculate derived values. Continue?', 'Recalculate');
+        if (ok) window.location.reload();
+      };
+      btnRecalcModal?.addEventListener('click', openRecalcModal);
+
+      // Sort modal and logic
+      const openSortModal = async () => {
+        const cols = getAssessmentColumns();
+        const options = cols.map(c => `<option value="${c.id}">${c.category} › ${c.subcategory} › ${c.name}</option>`).join('');
+        const html = `
+          <div style="text-align:left;display:grid;gap:8px">
+            <label>Sort by
+              <select id="sort-by" class="swal2-input" style="width:100%">
+                <option value="__name__">Student Name</option>
+                ${options}
+              </select>
+            </label>
+            <label>Order
+              <select id="sort-order" class="swal2-input" style="width:100%">
+                <option value="asc">Ascending</option>
+                <option value="desc">Descending</option>
+              </select>
+            </label>
+            <label>Blank handling
+              <select id="sort-blanks" class="swal2-input" style="width:100%">
+                <option value="bottom">Blanks last</option>
+                <option value="top">Blanks first</option>
+                <option value="zero">Treat blank as 0</option>
+              </select>
+            </label>
+          </div>`;
+        if (!SwalLib) {
+          // Fallback: simple sort by name asc
+          applySort({ key: '__name__', order: 'asc', blanks: 'bottom' });
+          return;
+        }
+        const res = await SwalLib.fire({ title: 'Sort', html, showCancelButton: true, confirmButtonText: 'Apply', focusConfirm: false, preConfirm: () => {
+          const popup = SwalLib.getPopup();
+          return {
+            key: popup.querySelector('#sort-by').value,
+            order: popup.querySelector('#sort-order').value,
+            blanks: popup.querySelector('#sort-blanks').value
+          };
+        }});
+        if (res.isConfirmed) {
+          applySort(res.value);
+        }
+      };
+      const applySort = (opts) => {
+        const rows = getStudentRows();
+        const key = opts.key, order = opts.order || 'asc', blanks = opts.blanks || 'bottom';
+        const sign = order === 'desc' ? -1 : 1;
+        const getVal = (tr) => {
+          if (key === '__name__') {
+            return (tr.querySelector('td.sticky-left')?.textContent || '').trim().toLowerCase();
+          }
+          const inp = tr.querySelector(`input.score[data-assessment="${key}"]`);
+          const v = inp ? inp.value : '';
+          const num = v === '' ? NaN : parseFloat(v);
+          return num;
+        };
+        rows.sort((a,b) => {
+          let va = getVal(a);
+          let vb = getVal(b);
+          if (key === '__name__') {
+            return (va || '').localeCompare(vb || '') * sign;
+          }
+          const aBlank = isNaN(va);
+          const bBlank = isNaN(vb);
+          if (blanks === 'zero') {
+            if (aBlank) va = 0;
+            if (bBlank) vb = 0;
+            return (va - vb) * sign;
+          }
+          if (aBlank && bBlank) return 0;
+          if (aBlank) return blanks === 'top' ? -1 : 1;
+          if (bBlank) return blanks === 'top' ? 1 : -1;
+          return (va - vb) * sign;
+        });
+        // Re-append in new order
+        rows.forEach(r => tbody.appendChild(r));
+      };
+      btnSort?.addEventListener('click', openSortModal);
+
+      // Filter modal and logic
+      let activeFilters = [];
+      const openFilterModal = async () => {
+        const cols = getAssessmentColumns();
+        const options = cols.map(c => `<option value="${c.id}">${c.category} › ${c.subcategory} › ${c.name}</option>`).join('');
+        const html = `
+          <div style="text-align:left;display:grid;gap:8px">
+            <label>Column
+              <select id="filter-col" class="swal2-input" style="width:100%">${options}</select>
+            </label>
+            <label>Operator
+              <select id="filter-op" class="swal2-input" style="width:100%">
+                <option value=">=">≥</option>
+                <option value=">">></option>
+                <option value="<"><</option>
+                <option value="<=">≤</option>
+                <option value="=">=</option>
+                <option value="!=">≠</option>
+                <option value="blank">Is blank</option>
+                <option value="notblank">Is not blank</option>
+              </select>
+            </label>
+            <label id="filter-value-wrap">Value
+              <input id="filter-value" class="swal2-input" type="number" step="0.01" style="width:100%"/>
+            </label>
+            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+              <button type="button" class="swal2-confirm swal2-styled" id="btn-add-filter">Add rule</button>
+              <button type="button" class="swal2-cancel swal2-styled" id="btn-clear-filter">Clear all</button>
+            </div>
+            <div id="filter-rules" style="font-size:.9rem;color:#64748b"></div>
+          </div>`;
+        if (!SwalLib) { // fallback: clear filters
+          clearFilters();
+          return;
+        }
+        const dlg = await SwalLib.fire({ title: 'Filter', html, showCancelButton: true, showConfirmButton: false, didOpen: () => {
+          const popup = SwalLib.getPopup();
+          const opSel = popup.querySelector('#filter-op');
+          const valWrap = popup.querySelector('#filter-value-wrap');
+          const valInp = popup.querySelector('#filter-value');
+          const rulesDiv = popup.querySelector('#filter-rules');
+          const refreshRules = () => {
+            rulesDiv.innerHTML = activeFilters.map((f,i)=>`<div>Rule ${i+1}: [${f.colLabel}] ${f.op} ${f.value ?? ''}</div>`).join('');
+          };
+          const onOpChange = () => {
+            const op = opSel.value;
+            if (op === 'blank' || op === 'notblank') { valWrap.style.display = 'none'; }
+            else { valWrap.style.display = 'block'; }
+          };
+          onOpChange();
+          opSel.addEventListener('change', onOpChange);
+          popup.querySelector('#btn-add-filter').addEventListener('click', () => {
+            const colSel = popup.querySelector('#filter-col');
+            const col = colSel.value;
+            const colLabel = colSel.options[colSel.selectedIndex].text;
+            const op = opSel.value;
+            let val = null;
+            if (!(op === 'blank' || op === 'notblank')) val = parseFloat(valInp.value);
+            activeFilters.push({ col, colLabel, op, value: val });
+            refreshRules();
+            applyFilters();
+          });
+          popup.querySelector('#btn-clear-filter').addEventListener('click', () => {
+            activeFilters = [];
+            refreshRules();
+            clearFilters();
+          });
+          refreshRules();
+        }});
+      };
+      const clearFilters = () => {
+        getStudentRows().forEach(tr => tr.classList.remove('hidden-by-filter'));
+      };
+      const applyFilters = () => {
+        const rows = getStudentRows();
+        rows.forEach(tr => {
+          let visible = true;
+          for (const f of activeFilters) {
+            const inp = tr.querySelector(`input.score[data-assessment="${f.col}"]`);
+            const valStr = inp ? inp.value : '';
+            const num = valStr === '' ? NaN : parseFloat(valStr);
+            switch (f.op) {
+              case 'blank': visible = visible && (valStr === ''); break;
+              case 'notblank': visible = visible && (valStr !== ''); break;
+              case '>=': visible = visible && (!isNaN(num) && num >= f.value); break;
+              case '>': visible = visible && (!isNaN(num) && num > f.value); break;
+              case '<=': visible = visible && (!isNaN(num) && num <= f.value); break;
+              case '<': visible = visible && (!isNaN(num) && num < f.value); break;
+              case '=': visible = visible && (!isNaN(num) && num === f.value); break;
+              case '!=': visible = visible && (!isNaN(num) && num !== f.value); break;
+              default: break;
+            }
+            if (!visible) break;
+          }
+          tr.classList.toggle('hidden-by-filter', !visible);
+        });
+      };
+      btnFilter?.addEventListener('click', openFilterModal);
+
+      // Lock/Unlock modal and logic
+      const openLockModal = async () => {
+        const cols = getAssessmentColumns();
+        const cats = [...new Set(cols.map(c=>c.category))];
+        const subGroups = {};
+        cols.forEach(c => { const k = `${c.category}::${c.subcategory}`; (subGroups[k] ||= []).push(c); });
+        const catChecks = cats.map(cat => `<label style="display:block"><input type="checkbox" class="ck-cat" value="${cat}"> ${cat}</label>`).join('');
+        const subChecks = Object.entries(subGroups).map(([k,list]) => {
+          const [cat, sub] = k.split('::');
+          return `<label style="display:block"><input type="checkbox" class="ck-sub" data-cat="${cat}" value="${sub}"> ${cat} › ${sub}</label>`;
+        }).join('');
+        const assessChecks = cols.map(c => `<label style="display:block"><input type="checkbox" class="ck-assess" data-cat="${c.category}" data-sub="${c.subcategory}" value="${c.id}"> ${c.category} › ${c.subcategory} › ${c.name}</label>`).join('');
+        const html = `
+          <div style="text-align:left;display:grid;gap:12px">
+            <div>
+              <label style="display:block;margin-bottom:6px;font-weight:600">Scope</label>
+              <label><input type="radio" name="lock-scope" value="all" checked> All inputs</label>
+              <label style="margin-left:16px"><input type="radio" name="lock-scope" value="cat"> By category</label>
+              <label style="margin-left:16px"><input type="radio" name="lock-scope" value="sub"> By subcategory</label>
+              <label style="margin-left:16px"><input type="radio" name="lock-scope" value="assess"> By assessment</label>
+            </div>
+            <div id="lock-cats" style="display:none">${catChecks || '<em>No categories</em>'}</div>
+            <div id="lock-subs" style="display:none;max-height:200px;overflow:auto">${subChecks || '<em>No subcategories</em>'}</div>
+            <div id="lock-assess" style="display:none;max-height:240px;overflow:auto">${assessChecks || '<em>No assessments</em>'}</div>
+          </div>`;
+        if (!SwalLib) { // fallback lock all
+          setInputsDisabled(true);
+          return;
+        }
+        await SwalLib.fire({ title: 'Lock/Unlock Inputs', html, showCancelButton: true, showDenyButton: true, confirmButtonText: 'Lock selected', denyButtonText: 'Unlock selected', didOpen: () => {
+          const popup = SwalLib.getPopup();
+          const radios = popup.querySelectorAll('input[name="lock-scope"]');
+          const sect = {
+            all: null,
+            cat: popup.querySelector('#lock-cats'),
+            sub: popup.querySelector('#lock-subs'),
+            assess: popup.querySelector('#lock-assess')
+          };
+          const updateVis = () => {
+            const val = popup.querySelector('input[name="lock-scope"]:checked').value;
+            ['cat','sub','assess'].forEach(k => { if (sect[k]) sect[k].style.display = (val === k) ? 'block' : 'none'; });
+          };
+          radios.forEach(r => r.addEventListener('change', updateVis));
+          updateVis();
+        }}).then(res => {
+          if (!res.isConfirmed && !res.isDenied) return;
+          const popup = SwalLib.getPopup();
+          const scope = popup.querySelector('input[name="lock-scope"]:checked')?.value || 'all';
+          const actionLock = res.isConfirmed; // true=lock, false=unlock
+          let ids = new Set();
+          if (scope === 'all') {
+            ids = new Set(getAssessmentColumns().map(c=>c.id));
+          } else if (scope === 'cat') {
+            const selectedCats = Array.from(popup.querySelectorAll('.ck-cat:checked')).map(el => el.value);
+            getAssessmentColumns().forEach(c => { if (selectedCats.includes(c.category)) ids.add(c.id); });
+          } else if (scope === 'sub') {
+            const selectedSubs = Array.from(popup.querySelectorAll('.ck-sub:checked')).map(el => ({cat: el.dataset.cat, sub: el.value}));
+            getAssessmentColumns().forEach(c => { if (selectedSubs.some(s => s.cat === c.category && s.sub === c.subcategory)) ids.add(c.id); });
+          } else if (scope === 'assess') {
+            ids = new Set(Array.from(popup.querySelectorAll('.ck-assess:checked')).map(el => parseInt(el.value,10) || 0));
+          }
+          setInputsDisabled(actionLock, ids);
+        });
+      };
+      const setInputsDisabled = (disabled, idsSet) => {
+        const selector = idsSet ? Array.from(idsSet).map(id => `input.score[data-assessment="${id}"]`).join(',') : 'input.score';
+        const inputs = selector ? Array.from(document.querySelectorAll(selector)) : Array.from(document.querySelectorAll('input.score'));
+        inputs.forEach(inp => { inp.disabled = !!disabled; });
+      };
+      btnLock?.addEventListener('click', openLockModal);
+
+      // Submit/Release modal and logic
+      const openSubmitReleaseModal = async () => {
+        const rows = getStudentRows();
+        const items = rows.map(tr => ({ id: parseInt(tr.getAttribute('data-student-id')||'0',10)||0, name: (tr.querySelector('td.sticky-left')?.textContent||'').trim() })).filter(s=>s.id);
+        const checks = items.map(s => `<label style="display:block"><input type="checkbox" class="ck-stu" value="${s.id}" checked> ${s.name}</label>`).join('');
+        const html = `
+          <div style="text-align:left">
+            <div style="margin-bottom:8px"><label><input type="checkbox" id="ck-all" checked> Select all</label></div>
+            <div id="stu-list" style="max-height:260px;overflow:auto">${checks}</div>
+          </div>`;
+        if (!SwalLib) { return; }
+        await SwalLib.fire({ title: 'Submit / Release', html, showCancelButton: true, showDenyButton: true, confirmButtonText: 'Submit selected', denyButtonText: 'Release selected', didOpen: () => {
+          const popup = SwalLib.getPopup();
+          const all = popup.querySelector('#ck-all');
+          const cks = popup.querySelectorAll('.ck-stu');
+          all.addEventListener('change', () => { cks.forEach(el => el.checked = all.checked); });
+        }}).then(async res => {
+          if (!res.isConfirmed && !res.isDenied) return;
+          const popup = SwalLib.getPopup();
+          const ids = Array.from(popup.querySelectorAll('.ck-stu:checked')).map(el => parseInt(el.value,10)||0);
+          if (!ids.length) { await swalAlert('warning','No students selected'); return; }
+          const action = res.isConfirmed ? 'submit' : 'release';
+          try {
+            const headers = { 'Content-Type': 'application/json' };
+            if (csrfToken) headers['X-CSRFToken'] = csrfToken;
+            const endpoint = action === 'submit' ? '/api/grades/submit' : '/api/grades/release';
+            const r = await fetch(endpoint, { method: 'POST', headers, body: JSON.stringify({ class_id: classId, student_ids: ids }) });
+            let out = {};
+            try { out = await r.json(); } catch(_) {}
+            if (!r.ok) throw new Error(out.error || `Server responded ${r.status}`);
+            await swalAlert('success', action === 'submit' ? 'Submitted' : 'Released', `${ids.length} student(s) processed.`);
+          } catch(err) {
+            await swalAlert('info', 'Offline action', 'Server endpoint not available; no changes were sent.');
+          }
+        });
+      };
+      btnSubmitRelease?.addEventListener('click', openSubmitReleaseModal);
+
+      // Add assessment inline for a subcategory (with auto-suggest name and SweetAlert modals)
+      const handleAdd = async (btn) => {
+        const subcategory = btn.getAttribute('data-subcategory');
+        const category = btn.getAttribute('data-category');
+        const subcategoryId = parseInt(btn.getAttribute('data-subcategory-id') || '0', 10) || 0;
+        const suggest = nextNameSuggestion(category, subcategory, subcategoryId);
+        let name = await swalPromptText(`New assessment for ${subcategory}`, suggest.suggested);
+        if (name == null) return; // cancelled
+        name = String(name).trim();
+        if (!name) { await swalAlert('warning', 'Name required', 'Please enter an assessment name.'); return; }
+        let maxStr = await swalPromptNumber('Max score (e.g., 100)', 100);
+        if (maxStr == null) return; // cancelled
+        const max = parseFloat(maxStr);
+        if (!isFinite(max) || max <= 0) { await swalAlert('warning', 'Invalid max score', 'Please enter a positive number.'); return; }
+        if (!subcategoryId) { await swalAlert('error', 'Subcategory mapping missing', 'Please refresh this page and try again.'); return; }
+        try {
+          // Simple insert API expects primitives and subcategory_id
+          const payload = {
+            name,
+            subcategory_id: subcategoryId,
+            max_score: max
+          };
+          const formBody = new URLSearchParams();
+          Object.entries(payload).forEach(([k,v]) => {
+            if (v !== undefined && v !== null && v !== '') formBody.append(k, String(v));
+          });
+          const headers2 = { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8' };
+          if (csrfToken) headers2['X-CSRFToken'] = csrfToken;
+          const res = await fetch('/api/assessments/simple', {
+            method: 'POST',
+            headers: headers2,
+            body: formBody.toString()
+          });
+          let out;
+          try { out = await res.json(); } catch(_) { out = {}; }
+          if (!res.ok) {
+            const msg = out && out.error ? out.error : `Failed to create assessment (HTTP ${res.status})`;
+            await swalAlert('error', 'Create failed', msg);
+            return;
+          }
+          // Update local state for better next suggestion
+          try {
+            localStorage.setItem(`lastName:${classId}:${subcategoryId}`, name);
+            const G = getGrouped();
+            G[category] = G[category] || {};
+            G[category][subcategory] = G[category][subcategory] || [];
+            G[category][subcategory].push({ name, max_score: max });
+          } catch(_) {}
+          await swalAlert('success', 'Assessment created', `${name} added under ${subcategory}.`);
+          window.location.reload();
+        } catch(err) {
+          await swalAlert('error', 'Network error', 'Could not create assessment.');
+        }
+      };
+
+      document.addEventListener('click', async (e) => {
+        // New: category dropdown add
+        const btnSel = e.target.closest('button[data-action="add-assessment-select"]');
+        if (btnSel) {
+          e.preventDefault();
+          const selId = btnSel.getAttribute('data-select-id');
+          const sel = document.getElementById(selId);
+          if (!sel) return;
+          const opt = sel.options[sel.selectedIndex];
+          const sub = opt?.value || '';
+          const category = sel.getAttribute('data-category') || '';
+          const subId = parseInt(opt?.dataset?.subcategoryId || '0', 10) || 0;
+          // Virtual button shim to reuse handleAdd
+          const vbtn = { getAttribute: (k) => {
+            if (k === 'data-subcategory') return sub;
+            if (k === 'data-category') return category;
+            if (k === 'data-subcategory-id') return String(subId || '');
+            return null;
+          }};
+          await handleAdd(vbtn);
+          return;
+        }
+
+        // Legacy: per-sub inline add buttons
+        const btn = e.target.closest('button[data-action="add-assessment"]');
+        if (btn) {
+          e.preventDefault();
+          await handleAdd(btn);
+        }
+      });
+
+      // (handlers already attached above)
+    })();
+  </script>
+  <script id="ga-json" type="application/json">{{ grouped_assessments | tojson }}</script>
+</body>
+</html>

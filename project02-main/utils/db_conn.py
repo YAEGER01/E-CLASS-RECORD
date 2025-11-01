@@ -1,6 +1,5 @@
 import os
 import logging
-import pymysql
 from typing import Optional
 from flask import Flask
 from dotenv import load_dotenv
@@ -218,6 +217,9 @@ def get_db_connection():
                 raise ValueError(
                     f"Invalid ENVIRONMENT value: {environment}. Must be 'local' or 'production'/'online'"
                 )
+
+            # Import PyMySQL lazily to avoid heavy crypto imports during test collection
+            import pymysql
 
             _connection = pymysql.connect(
                 host=db_host,

@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Gradebuilder — Categories & Subcategories</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/gradebuilder_v2.css') }}">
+</head>
+<body>
+  <div class="app-layout">
+    <header class="topbar">
+      <div class="topbar-left">
+  <a href="{{ url_for('dashboard.instructor_dashboard') }}" class="btn btn-secondary back-link" title="Back to dashboard">← Dashboard</a>
+        <button id="toggle-sidebars-btn" class="float-toggle" aria-label="Toggle sidebars">☰</button>
+        <h1 class="brand">Gradebuilder v2</h1>
+      </div>
+      <div class="topbar-center">
+        <div class="search-placeholder">Manage grade structures — categories &amp; subcategory weights</div>
+      </div>
+      <div class="topbar-right">
+        <div id="save-status" class="save-status" role="status" aria-live="polite">&nbsp;</div>
+      </div>
+    </header>
+
+    <aside id="left-sidebar" class="sidebar left-sidebar">
+     
+      <div class="panel card">
+        <h3>Saved Structures</h3>
+        <div id="structure-list" class="structure-list" role="list" aria-label="Saved structures">
+          <!-- populated by JS as clickable items -->
+        </div>
+        <div class="sidebar-actions">
+          <button id="new-structure-btn" class="btn btn-primary">+ New Structure</button>
+          </div>
+      </div>
+    </aside>
+
+    <main id="main-content" class="main card">
+      <div class="content-inner">
+        <section class="editor">
+          <!--div class="editor-header">
+            <label>Structure name: <input id="structure-name" type="text" value="New Structure" /></label>
+            <label class="class-select-label">For class:
+              <select id="class-select" class="class-list" aria-required="true">
+                <option value="">(select class)</option>
+              </select>
+            </label>
+            <div class="editor-actions">
+              <button id="save-btn" class="btn btn-primary" disabled>Save Structure</button>
+            </div>
+          </div-->
+          <div class="editor-header"  > 
+            <button class="clear-fields btn btn-primary">CLEAR FIELDS</button> <!-- as it is, it clears the fields-->
+            <button class="cancel-edit btn btn-primary">CANCEL EDIT</button><!-- this cancels the changes made, eg. i laoded a saved structure, when i made changes and cancelled, it will discard the changes made and restore the save structure as it was before when i loaded it before making changes -->
+          </div>
+
+          <div class="editor-body">
+              <div class="column lab">
+                <h2>LABORATORY <small>(must sum to 100)</small></h2>
+                <div class="small-actions"><button id="lab-add" class="btn">Add Subcategory</button>
+                  <span id="lab-sum" class="percent">Total: 0%</span></div>
+                <div id="lab-list" class="sub-list"></div>
+              </div>
+
+              <div class="column lecture">
+                <h2>LECTURE <small>(must sum to 100)</small></h2>
+                <div class="small-actions"><button id="lecture-add" class="btn">Add Subcategory</button>
+                  <span id="lecture-sum" class="percent">Total: 0%</span></div>
+                <div id="lecture-list" class="sub-list"></div>
+              </div>
+          </div>
+
+          <template id="sub-template">
+            <div class="sub-item">
+              <input data-field="name" placeholder="Subcategory name" />
+              <input data-field="weight" type="number" min="0" max="100" step="0.01" placeholder="0" />
+              <button data-action="remove" class="btn btn-ghost">Remove</button>
+            </div>
+          </template>
+
+        </section>
+      </div>
+    </main>
+
+    <aside id="right-sidebar" class="sidebar right-sidebar">
+      <div class="panel card">
+        <h3>Preview & Actions</h3>
+        <p class="muted">Quick preview, export, or load template.</p>
+        <div class="preview-box" id="preview-box">No preview yet.</div>
+        <hr />
+        <div class="help">
+          <h4>Tips</h4>
+          <ul>
+            <li>Subcategory weights inside each category must sum to 100.</li>
+            <li>Assessments are created on Grade Entry page.</li>
+          </ul>
+        </div>
+      </div>
+    </aside>
+
+    <div class="sticky-bottom card" id="sticky-bottom">
+      <div class="sticky-inner">
+        <div>Ready to save?</div>
+        <div class="sticky-actions">
+          <button id="save-btn-bottom" class="btn btn-primary">Save Structure</button>
+          
+        </div>
+      </div>
+    </div>
+
+    <!-- Confirmation modal for per-item actions -->
+    <div id="confirm-modal" class="modal" aria-hidden="true">
+      <div class="modal-content card" role="dialog" aria-modal="true" aria-labelledby="confirm-modal-title">
+        <div class="modal-header">
+          <h3 id="confirm-modal-title">Confirm action</h3>
+        </div>
+        <div class="modal-body">
+          <p id="confirm-modal-message">Are you sure?</p>
+        </div>
+        <div class="modal-actions" style="display:flex;gap:8px;justify-content:center;margin-top:12px;">
+          <button id="confirm-cancel" class="btn">Cancel</button>
+          <button id="confirm-ok" class="btn btn-primary">Confirm</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+  <script src="{{ url_for('static', filename='js/swal.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/gradebuilder_v2.js') }}"></script>
+</body>
+</html>

@@ -237,9 +237,12 @@
                 <div class="avatar" aria-hidden="true">{{ (user.school_id|string)[:2]|upper }}</div>
                 <span class="user-id">{{ user.school_id }}</span>
             </div>
-            <a href="{{ url_for('logout') }}" class="btn btn-ghost logout-btn" aria-label="Logout">Logout</a>
+            <a href="{{ url_for('auth.logout') }}" class="btn btn-ghost logout-btn" aria-label="Logout">Logout</a>
         </div>
     </header>
+
+    <!-- Flashed messages data (for SweetAlert) -->
+    <div id="flashed-messages" data-json='{{ get_flashed_messages(with_categories=true) | tojson | safe }}' style="display:none"></div>
 
     <div class="dashboard-grid">
         <div class="card card-stretch">
@@ -249,7 +252,7 @@
                     <p class="muted">Manage your class schedules and subjects.</p>
                 </div>
                 <div class="card-tools">
-                    <a href="{{ url_for('instructor_classes') }}" class="btn btn-primary" aria-label="Create or manage classes">Create/Manage</a>
+                    <a href="{{ url_for('instructor.instructor_classes') }}" class="btn btn-primary" aria-label="Create or manage classes">Create/Manage</a>
                     <button class="btn" onclick="refreshClasses(this)" aria-label="Refresh classes">
                         <span class="spinner small" aria-hidden="true"></span>
                         <span>Refresh</span>
@@ -264,7 +267,7 @@
                 <div class="pill" id="class-count" aria-live="polite">0 classes</div>
             </div>
 
-            <div class="class-list" id="class-list" data-classes-url="{{ url_for('instructor_classes') }}" aria-live="polite" aria-busy="true">
+            <div class="class-list" id="class-list" data-classes-url="{{ url_for('instructor.instructor_classes') }}" aria-live="polite" aria-busy="true">
                 <div class="skeletons">
                     <div class="skeleton-card"></div>
                     <div class="skeleton-card"></div>
@@ -282,7 +285,7 @@
         <div class="card">
             <h3>📊 Grade Builder</h3>
             <p>Create and manage grading structures for your classes.</p>
-            <a href="{{ url_for('gradebuilder_entry') }}" class="manage-btn">Open Grade Builder</a>
+            <a href="{{ url_for('instructor.gradebuilder_v2') }}" class="manage-btn">Open Grade Builder (v2)</a>
         </div>
 
         <div class="card">
@@ -341,6 +344,34 @@
         let classes = [];
         let currentClassId = null;
         let currentClassName = null;
+
+        // Display any flashed messages from the server using SweetAlert (toasts only)
+        document.addEventListener('DOMContentLoaded', function () {
+            try {
+                const el = document.getElementById('flashed-messages');
+                const json = el ? el.getAttribute('data-json') || '[]' : '[]';
+                const flashed = JSON.parse(json);
+                if (Array.isArray(flashed) && flashed.length) {
+                    flashed.forEach(item => {
+                        // Each item is [category, message]
+                        const category = Array.isArray(item) ? item[0] : 'info';
+                        const message = Array.isArray(item) ? item[1] : String(item);
+                        const icon = (category === 'success') ? 'success' : (category === 'error') ? 'error' : (category === 'warning') ? 'warning' : 'info';
+                        Swal.fire({
+                            icon,
+                            title: message || 'Notice',
+                            timer: 3000,
+                            timerProgressBar: true,
+                            showConfirmButton: false,
+                            toast: true,
+                            position: 'top-end'
+                        });
+                    });
+                }
+            } catch (e) {
+                console.warn('Failed to render flashed messages', e);
+            }
+        });
 
         async function loadClasses() {
             const container = document.getElementById('class-list');
@@ -472,8 +503,38 @@
         }
 
         async function showGradeEntry() {
-            // Official instructor grades page
-            window.location.href = `/instructor/class/${currentClassId}/grades`;
+            const container = document.getElementById('detail-view-container');
+            if (!currentClassId) return;
+            container.innerHTML = '<div class="loading"><div class="spinner"></div>Checking grade entry…</div>';
+
+            try {
+                const resp = await fetch(`/api/instructor/class/${currentClassId}/has-structure`);
+                if (!resp.ok) {
+                    container.innerHTML = '<div class="error">Unable to check grade entry right now. Please try again.</div>';
+                    return;
+                }
+                const data = await resp.json();
+                if (data && data.has_structure) {
+                    // Open official instructor grades page
+                    window.location.href = `/instructor/class/${currentClassId}/grades`;
+                    return;
+                }
+                // No active structure yet — show guidance
+                container.innerHTML = `
+                    <div class="empty-state" style="display:grid; gap:.5rem; place-items:center; padding:24px; text-align:center;">
+                        <div style="font-size:2rem;">�</div>
+                        <h3 style="margin:0;">No grading structure found</h3>
+                        <p style="margin:0; color:#64748b;">Create a grading structure first to enable grade entry for this class.</p>
+                        <div style="display:flex; gap:.5rem; margin-top:.5rem; flex-wrap:wrap; justify-content:center;">
+                            <button class="btn btn-primary" onclick="window.location.href='/gradebuilder-v2?class_id=${currentClassId}'">Open Grade Builder (v2)</button>
+                            <button class="btn" onclick="closeModal()">Close</button>
+                        </div>
+                    </div>
+                `;
+            } catch (e) {
+                console.error('Error checking grade entry:', e);
+                container.innerHTML = '<div class="error">An error occurred while checking grade entry.</div>';
+            }
         }
 
         async function showViewClassDetails() {
@@ -629,6 +690,7 @@
 
         function openOptionsModal() {
             const options = document.getElementById('options-modal');
+            options.removeAttribute('inert');
             options.style.display = 'flex';
             requestAnimationFrame(() => options.classList.add('show'));
             options.setAttribute('aria-hidden', 'false');
@@ -639,8 +701,21 @@
 
         function closeOptionsModal() {
             const options = document.getElementById('options-modal');
+            const trigger = document.querySelector('.options-trigger');
+
+            // If focus is inside the options modal, move it to a safe element outside
+            if (options.contains(document.activeElement)) {
+                if (trigger) {
+                    trigger.focus();
+                } else {
+                    // fallback to document body
+                    document.body.focus();
+                }
+            }
+
             options.classList.remove('show');
             options.setAttribute('aria-hidden', 'true');
+            options.setAttribute('inert', '');
             setTimeout(() => {
                 options.style.display = 'none';
             }, 200);

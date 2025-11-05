@@ -399,6 +399,14 @@ def validate_structure_json(structure: dict):
     return len(errors) == 0, errors
 
 
+# Route: GET "/grade-structures-cards"
+# Used by: Instructor dashboard card/button
+# Purpose: Renders the grade structures cards UI page
+@app.route("/grade-structures-cards")
+def grade_structures_cards():
+    return render_template("grade_structures_cards.html")
+
+
 # API: GET "/api/classes/<class_id>/normalized"
 # Used by: test/dev tools and future analytics; may be consumed by UI experiments
 # Purpose: Return flattened structure for caching/compute.

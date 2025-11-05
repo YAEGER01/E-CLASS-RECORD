@@ -235,6 +235,7 @@
         <div class="header-actions">
             <div class="user-chip" title="Logged in as {{ user.school_id }}" aria-label="User {{ user.school_id }}">
                 <div class="avatar" aria-hidden="true">{{ (user.school_id|string)[:2]|upper }}</div>
+          
                 <span class="user-id">{{ user.school_id }}</span>
             </div>
             <a href="{{ url_for('auth.logout') }}" class="btn btn-ghost logout-btn" aria-label="Logout">Logout</a>
@@ -287,7 +288,11 @@
             <p>Create and manage grading structures for your classes.</p>
             <a href="{{ url_for('instructor.gradebuilder_v2') }}" class="manage-btn">Open Grade Builder (v2)</a>
         </div>
-
+        <div class="card">
+            <h3>🗂️ Grade Structures (Cards)</h3>
+            <p>View and edit grade structures in a modern card UI.</p>
+            <a href="/grade-structures-cards" class="manage-btn">Open Grade Structures (Cards)</a>
+        </div>
         <div class="card">
             <h3>📋 Reports</h3>
             <p>Generate class reports and analytics.</p>

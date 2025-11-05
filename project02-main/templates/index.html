@@ -14,8 +14,6 @@
 
   <!-- Main stylesheet -->
   <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
-  <script src="{{ url_for('static', filename='js/main.js') }}"></script>
-  <script src="{{ url_for('static', filename='js/helpers.js') }}"></script>
 </head>
 
 <body>
@@ -113,6 +111,7 @@
   </footer>
 
   <!-- Helpers and main scripts (ES Modules) -->
+  <script type="module" src="{{ url_for('static', filename='js/main.js') }}"></script>
 
 </body>
 

@@ -5,6 +5,14 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Unified — Grade Entry</title>
   <style>
+    /* Calasans font for header cells */
+    @font-face {
+      font-family: 'Calasans';
+      src: url("{{ url_for('static', filename='font/calasans/Calasans 04 Solid Demo.otf') }}") format('opentype');
+      font-weight: 700;
+      font-style: normal;
+      font-display: swap;
+    }
     :root {
       --header-bg: #f8fafc;
       --border: #e2e8f0;
@@ -17,14 +25,21 @@
     .toolbar { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:10px; }
     .matrix-wrapper { overflow:auto; border:1px solid var(--border); border-radius:10px; }
     table.matrix { border-collapse: separate; border-spacing:0; min-width: 960px; width:100%; }
-    table.matrix th, table.matrix td { border-bottom:1px solid var(--border); border-right:1px solid var(--border); padding:8px; }
+  table.matrix th, table.matrix td { border-bottom:1px solid var(--border); border-right:1px solid var(--border); padding:8px; }
     table.matrix th { background: var(--header-bg); position: sticky; top: 0; z-index: 2; }
+  /* Apply Calasans to header text */
+  table.matrix th { font-family: 'Calasans', system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji", "Segoe UI Emoji"; }
     table.matrix th.sticky-left, table.matrix td.sticky-left { position: sticky; left: 0; background: var(--sticky-bg); z-index: 3; }
     table.matrix td.sticky-left { font-weight: 600; }
     thead tr:nth-child(1) th { text-transform: uppercase; font-size:.85rem; letter-spacing:.03em; }
     thead tr:nth-child(2) th { font-size:.85rem; }
     thead tr:nth-child(3) th { font-size:.8rem; white-space:nowrap; }
     tbody tr { background:#fff; }
+  /* Section band styles for clear separation */
+  th.section-cell { background:#e2e8f0; text-transform: uppercase; letter-spacing:.06em; font-size: 0.95rem; border-top:2px solid #cbd5e1; border-bottom:2px solid #cbd5e1; }
+  th.section-subtitle { background:#f1f5f9; font-weight:700; font-size:0.9rem; border-bottom:1px solid #cbd5e1; }
+  /* Visual separator between the two sections */
+  th.section-cell + th.section-cell, th.section-subtitle + th.section-subtitle { border-left: 3px solid #94a3b8; }
     tbody tr.highlight { background: #fff7ed; }
     input.score { width: 72px; padding: 6px 8px; font-size: 1rem; border:1px solid var(--border); border-radius:6px; text-align:right; }
     input.score:focus { outline: 2px solid var(--focus); outline-offset: 1px; background:#fff; }
@@ -37,6 +52,12 @@
     .status { color:#64748b; }
     .hidden-by-filter { display: none !important; }
     .btn-row { display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
+    /* Computed columns styling */
+    th.computed-head.total-col, td.computed.total-col { background: #e0f2fe; }
+    th.computed-head.equiv-col, td.computed.equiv-col { background: #e0f2fe; }
+    th.computed-head.reqpct-col, td.computed.reqpct-col { background: #f5f5dc; }
+    th.computed-head { font-weight:700; text-align:center; }
+    td.computed { text-align:right; font-weight:600; }
   </style>
   <script src="{{ url_for('static', filename='js/swal.js') }}"></script>
 </head>
@@ -49,17 +70,20 @@
       </div>
       <div class="status" id="save-status"></div>
       <div class="btn-row">
-        <!-- New function buttons -->
-        <button class="btn-primary btn" id="btn-save-grading">Save Grading</button>
-        <button class="btn" id="btn-recalc-modal" title="Recalculate view">Recalculate</button>
-        <button class="btn" id="btn-sort">Sort</button>
-        <button class="btn" id="btn-filter">Filter</button>
-        <button class="btn" id="btn-lock">Lock/Unlock Inputs</button>
-        <button class="btn" id="btn-submit-release">Submit/Release</button>
+  <!-- New function buttons -->
+  <button class="btn-primary btn" id="btn-save-grading">Save Grading</button>
+  <button class="btn" id="btn-recalc-modal" title="Recalculate view">Recalculate</button>
+  <button class="btn" id="btn-sort">Sort</button>
+  <button class="btn" id="btn-filter">Filter</button>
+  <button class="btn" id="btn-lock">Lock/Unlock Inputs</button>
+  <button class="btn" id="btn-submit-release">Submit/Release</button>
 
-        <!-- Legacy quick actions preserved -->
-        <button class="btn" id="recalc-btn" title="Quick reload">⟳</button>
-        <button class="btn" id="save-btn" title="Quick save">💾</button>
+  <!-- Access Grade Computation Management -->
+  <a class="btn" href="{{ url_for('compute.api_get_grouped', class_id=class_id) }}" title="Grade Computation Management">Computation Management</a>
+
+  <!-- Legacy quick actions preserved -->
+  <button class="btn" id="recalc-btn" title="Quick reload">⟳</button>
+  <button class="btn" id="save-btn" title="Quick save">💾</button>
       </div>
     </div>
 <br>
@@ -91,8 +115,9 @@
     <div class="matrix-wrapper">
       <table class="matrix">
         <thead>
+          <!-- Section titles row for clear separation -->
           <tr>
-            <th class="sticky-left" rowspan="3">Student</th>
+            <th class="sticky-left" rowspan="4">Student</th>
             {% set all_cats = ['LECTURE','LABORATORY'] %}
             {% for cat in all_cats %}
               {% set subs = grouped_assessments.get(cat, {}) %}
@@ -100,10 +125,27 @@
               {% for subdef in (structure.get(cat) or []) %}
                 {% set subname = subdef.name %}
                 {% set arr = subs.get(subname, []) %}
-                {% set col_span = col_span + (arr|length if (arr|length) > 0 else 1) %}
+                {% set arr_len = arr|length %}
+                {% set col_span = col_span + (arr_len + 3 if arr_len > 0 else 1) %}
               {% endfor %}
               {% if col_span > 0 %}
-                <th class="category-cell" colspan="{{ col_span }}">{{ cat }}</th>
+                <th class="section-cell" colspan="{{ col_span }}">{{ cat }}</th>
+              {% endif %}
+            {% endfor %}
+          </tr>
+          <!-- Section subtitles row -->
+          <tr>
+            {% for cat in all_cats %}
+              {% set subs = grouped_assessments.get(cat, {}) %}
+              {% set col_span = 0 %}
+              {% for subdef in (structure.get(cat) or []) %}
+                {% set subname = subdef.name %}
+                {% set arr = subs.get(subname, []) %}
+                {% set arr_len = arr|length %}
+                {% set col_span = col_span + (arr_len + 3 if arr_len > 0 else 1) %}
+              {% endfor %}
+              {% if col_span > 0 %}
+                <th class="section-subtitle" colspan="{{ col_span }}">{% if cat == 'LECTURE' %}Lecture Categories{% else %}Laboratory Categories{% endif %}</th>
               {% endif %}
             {% endfor %}
           </tr>
@@ -113,7 +155,8 @@
               {% for subdef in (structure.get(cat) or []) %}
                 {% set sub = subdef.name %}
                 {% set arr = subs.get(sub, []) %}
-                {% set spanv = (arr|length if (arr|length) > 0 else 1) %}
+                {% set arr_len = arr|length %}
+                {% set spanv = (arr_len + 3 if arr_len > 0 else 1) %}
                 {% set w = subdef.weight %}
                 <th class="subcell" colspan="{{ spanv }}">{{ sub }}{% if w is not none %} — {{ '%.2f' % (w|float) }}%{% endif %}</th>
               {% endfor %}
@@ -125,14 +168,19 @@
               {% for subdef in (structure.get(cat) or []) %}
                 {% set sub = subdef.name %}
                 {% set arr = subs.get(sub, []) %}
+                {% set w = subdef.weight %}
                 {% if (arr|length) == 0 %}
                   <th class="assess-head">
                     <button class="btn" data-action="add-assessment" data-subcategory="{{ sub }}" data-category="{{ cat }}" data-subcategory-id="{{ (sub_id_map.get(cat, {}) or {}).get(sub) }}">+ Add</button>
                   </th>
                 {% else %}
                   {% for a in arr %}
-                    <th class="assess-head assess-col" title="Max {{ a.max_score }}" data-assessment-id="{{ a.id }}" data-category="{{ cat }}" data-subcategory="{{ sub }}" data-max="{{ a.max_score }}">{{ a.name }}<div class="max">/ {{ a.max_score }}</div></th>
+                    <th class="assess-head assess-col" title="Max {{ a.max_score }}" data-assessment-id="{{ a.id }}" data-category="{{ cat }}" data-subcategory="{{ sub }}" data-max="{{ a.max_score }}" data-subweight="{{ (w|float) if w is not none else 0 }}">{{ a.name }}<div class="max">/ {{ a.max_score }}</div></th>
                   {% endfor %}
+                  {# Computed columns per subcategory #}
+                  <th class="assess-head computed-head total-col" data-category="{{ cat }}" data-subcategory="{{ sub }}" data-subweight="{{ (w|float) if w is not none else 0 }}">TOTAL</th>
+                  <th class="assess-head computed-head equiv-col" data-category="{{ cat }}" data-subcategory="{{ sub }}" data-subweight="{{ (w|float) if w is not none else 0 }}">EQUIVALENT RATING</th>
+                  <th class="assess-head computed-head reqpct-col" data-category="{{ cat }}" data-subcategory="{{ sub }}" data-subweight="{{ (w|float) if w is not none else 0 }}">% of REQUIREMENT</th>
                 {% endif %}
               {% endfor %}
             {% endfor %}
@@ -154,6 +202,10 @@
                       {% set sc = scores_map.get((s.id, a.id)) %}
                       <td><input class="score" type="number" min="0" step="0.01" data-student="{{ s.id }}" data-assessment="{{ a.id }}" value="{{ sc if sc is not none else '' }}" /></td>
                     {% endfor %}
+                    {# Computed value cells per subcategory #}
+                    <td class="computed total-col" data-category="{{ cat }}" data-subcategory="{{ sub }}" data-subweight="{{ (subdef.weight|float) if subdef.weight is not none else 0 }}"></td>
+                    <td class="computed equiv-col" data-category="{{ cat }}" data-subcategory="{{ sub }}" data-subweight="{{ (subdef.weight|float) if subdef.weight is not none else 0 }}"></td>
+                    <td class="computed reqpct-col" data-category="{{ cat }}" data-subcategory="{{ sub }}" data-subweight="{{ (subdef.weight|float) if subdef.weight is not none else 0 }}"></td>
                   {% endif %}
                 {% endfor %}
               {% endfor %}
@@ -315,7 +367,8 @@
           name: th.childNodes[0]?.nodeValue?.trim() || th.textContent.trim(),
           category: th.getAttribute('data-category') || '',
           subcategory: th.getAttribute('data-subcategory') || '',
-          max: parseFloat(th.getAttribute('data-max') || '0') || 0
+          max: parseFloat(th.getAttribute('data-max') || '0') || 0,
+          subweight: parseFloat(th.getAttribute('data-subweight') || '0') || 0
         })).filter(c => c.id);
       };
       const getStudentRows = () => Array.from(tbody.querySelectorAll('tr'));
@@ -716,6 +769,66 @@
           await handleAdd(btn);
         }
       });
+
+      // Computed columns: TOTAL, EQUIVALENT RATING, % of REQUIREMENT
+      const buildSubGroups = () => {
+        const cols = getAssessmentColumns();
+        const groups = {};
+        cols.forEach(c => {
+          const key = `${c.category}::${c.subcategory}`;
+          if (!groups[key]) groups[key] = { category: c.category, subcategory: c.subcategory, ids: [], maxes: [], maxTotal: 0, subweight: c.subweight || 0 };
+          groups[key].ids.push(c.id);
+          groups[key].maxes.push(c.max);
+          groups[key].maxTotal += (c.max || 0);
+          if (!groups[key].subweight && c.subweight) groups[key].subweight = c.subweight;
+        });
+        return groups;
+      };
+      const SUB_GROUPS = buildSubGroups();
+
+      const fmt = (num, digits=2) => {
+        if (!isFinite(num)) return '';
+        return Number(num).toFixed(digits);
+      };
+      const recomputeRowForSub = (tr, group) => {
+        if (!tr || !group) return;
+        // Gather inputs for this subcategory within the row
+        let total = 0;
+        group.ids.forEach(id => {
+          const inp = tr.querySelector(`input.score[data-assessment="${id}"]`);
+          if (!inp) return;
+          const v = inp.value === '' ? NaN : parseFloat(inp.value);
+          if (!isNaN(v)) total += v;
+        });
+        const maxTotal = group.maxTotal || 0;
+        const eq = maxTotal > 0 ? (total / maxTotal) * 100 : 0;
+        const weight = (group.subweight || 0);
+        const reqpct = (eq * weight) / 100;
+        const totalCell = tr.querySelector(`td.computed.total-col[data-category="${group.category}"][data-subcategory="${group.subcategory}"]`);
+        const equivCell = tr.querySelector(`td.computed.equiv-col[data-category="${group.category}"][data-subcategory="${group.subcategory}"]`);
+        const reqpctCell = tr.querySelector(`td.computed.reqpct-col[data-category="${group.category}"][data-subcategory="${group.subcategory}"]`);
+        if (totalCell) totalCell.textContent = fmt(total, 2);
+        if (equivCell) equivCell.textContent = `${fmt(eq, 2)}%`;
+        if (reqpctCell) reqpctCell.textContent = `${fmt(reqpct, 2)}%`;
+      };
+      const recomputeRow = (tr) => {
+        if (!tr) return;
+        Object.values(SUB_GROUPS).forEach(g => recomputeRowForSub(tr, g));
+      };
+      const recomputeAll = () => {
+        getStudentRows().forEach(tr => recomputeRow(tr));
+      };
+
+      // Recompute on input changes as well
+      tbody.addEventListener('input', (e) => {
+        const inp = e.target;
+        if (!inp.matches('input.score')) return;
+        const tr = inp.closest('tr');
+        recomputeRow(tr);
+      });
+
+      // Initial compute
+      recomputeAll();
 
       // (handlers already attached above)
     })();

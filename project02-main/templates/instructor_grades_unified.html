@@ -43,6 +43,7 @@
     tbody tr.highlight { background: #fff7ed; }
     input.score { width: 72px; padding: 6px 8px; font-size: 1rem; border:1px solid var(--border); border-radius:6px; text-align:right; }
     input.score:focus { outline: 2px solid var(--focus); outline-offset: 1px; background:#fff; }
+  input.score.score-invalid { border-color: #ef4444; box-shadow: 0 0 0 3px rgba(239,68,68,0.12); }
     .max { color:#64748b; font-size:.75rem; }
     .category-cell { text-align:center; font-weight:700; }
     .subcell { text-align:center; }
@@ -60,6 +61,8 @@
     td.computed { text-align:right; font-weight:600; }
   </style>
   <script src="{{ url_for('static', filename='js/swal.js') }}"></script>
+  <!-- Load Socket.IO client from local static copy for offline support -->
+  <script src="{{ url_for('static', filename='js/socket.io.min.js') }}"></script>
 </head>
 <body>
   <div class="page">
@@ -78,12 +81,19 @@
   <button class="btn" id="btn-lock">Lock/Unlock Inputs</button>
   <button class="btn" id="btn-submit-release">Submit/Release</button>
 
-  <!-- Access Grade Computation Management -->
-  <a class="btn" href="{{ url_for('compute.api_get_grouped', class_id=class_id) }}" title="Grade Computation Management">Computation Management</a>
+
+  {# Computation Management button removed: endpoint no longer exists #}
 
   <!-- Legacy quick actions preserved -->
   <button class="btn" id="recalc-btn" title="Quick reload">⟳</button>
   <button class="btn" id="save-btn" title="Quick save">💾</button>
+      <!-- Persistent save and live sync controls -->
+      <label style="margin-left:8px;display:flex;gap:6px;align-items:center">Keep edits for
+        <input id="persist-minutes" type="number" min="1" max="1440" value="3" style="width:64px;margin-left:6px;padding:6px;border-radius:6px;border:1px solid var(--border)"> minutes
+        <button class="btn" id="btn-enable-persist" style="margin-left:8px">Enable</button>
+        <button class="btn" id="btn-clear-persist" title="Clear persisted edits" style="margin-left:6px">Clear</button>
+      </label>
+      <!-- Live sync is enabled automatically on page load; toggle removed -->
       </div>
     </div>
 <br>
@@ -175,7 +185,12 @@
                   </th>
                 {% else %}
                   {% for a in arr %}
-                    <th class="assess-head assess-col" title="Max {{ a.max_score }}" data-assessment-id="{{ a.id }}" data-category="{{ cat }}" data-subcategory="{{ sub }}" data-max="{{ a.max_score }}" data-subweight="{{ (w|float) if w is not none else 0 }}">{{ a.name }}<div class="max">/ {{ a.max_score }}</div></th>
+                    <th class="assess-head assess-col" title="Max {{ a.max_score }}" data-assessment-id="{{ a.id }}" data-category="{{ cat }}" data-subcategory="{{ sub }}" data-max="{{ a.max_score }}" data-subweight="{{ (w|float) if w is not none else 0 }}">
+                      {{ a.name }}
+                      <div class="max">/ {{ a.max_score }}
+                        <button class="btn" style="padding:2px 6px;font-size:0.85em;margin-left:4px;vertical-align:middle" data-action="edit-assessment" data-assessment-id="{{ a.id }}" data-category="{{ cat }}" data-subcategory="{{ sub }}" data-max="{{ a.max_score }}">✎ Edit</button>
+                      </div>
+                    </th>
                   {% endfor %}
                   {# Computed columns per subcategory #}
                   <th class="assess-head computed-head total-col" data-category="{{ cat }}" data-subcategory="{{ sub }}" data-subweight="{{ (w|float) if w is not none else 0 }}">TOTAL</th>
@@ -200,7 +215,7 @@
                   {% else %}
                     {% for a in arr %}
                       {% set sc = scores_map.get((s.id, a.id)) %}
-                      <td><input class="score" type="number" min="0" step="0.01" data-student="{{ s.id }}" data-assessment="{{ a.id }}" value="{{ sc if sc is not none else '' }}" /></td>
+                      <td><input class="score" type="number" min="0" max="{{ a.max_score }}" step="0.01" data-student="{{ s.id }}" data-assessment="{{ a.id }}" value="{{ sc if sc is not none else '' }}" /></td>
                     {% endfor %}
                     {# Computed value cells per subcategory #}
                     <td class="computed total-col" data-category="{{ cat }}" data-subcategory="{{ sub }}" data-subweight="{{ (subdef.weight|float) if subdef.weight is not none else 0 }}"></td>
@@ -307,6 +322,108 @@
       const btnFilter = document.getElementById('btn-filter');
       const btnLock = document.getElementById('btn-lock');
       const btnSubmitRelease = document.getElementById('btn-submit-release');
+  const persistInput = document.getElementById('persist-minutes');
+  const btnEnablePersist = document.getElementById('btn-enable-persist');
+  const btnClearPersist = document.getElementById('btn-clear-persist');
+
+      // Persistent storage key for this class/structure
+      const PERSIST_KEY = `persist:${classId}:${structureId}`;
+
+      // Socket.IO socket (initialized on demand)
+  let socket = null;
+  let socketConnected = false;
+  let persistTimer = null;
+  // Autosave when live is enabled (debounced)
+  let autoSaveEnabled = false;
+  let autoSaveTimer = null;
+  const AUTO_SAVE_DEBOUNCE = 1200; // ms
+      const initSocket = () => {
+        if (socket) return;
+        try {
+          socket = io();
+          socket.on('connect', () => {
+            socketConnected = true;
+            // Join class room for grade updates
+            socket.emit('subscribe_live_version', { class_id: classId });
+          });
+          socket.on('disconnect', () => { socketConnected = false; });
+          socket.on('grade_update', (data) => {
+            try {
+              const d = data || {};
+              if (parseInt(d.class_id) !== classId) return;
+              const sid = parseInt(d.student_id || 0, 10) || 0;
+              const aid = parseInt(d.assessment_id || 0, 10) || 0;
+              const score = d.score;
+              const tr = tbody.querySelector(`tr[data-student-id="${sid}"]`);
+              if (!tr) return;
+              const inp = tr.querySelector(`input.score[data-assessment="${aid}"]`);
+              if (!inp) return;
+              // Do not overwrite if user is currently focused in the same input
+              if (document.activeElement === inp) return;
+              inp.value = (score === null || score === undefined) ? '' : String(score);
+              // trigger local recompute and persist
+              recomputeRow(tr);
+              savePersistentNow();
+            } catch (e) { /* ignore */ }
+          });
+        } catch (e) { socket = null; }
+      };
+
+      const sendLiveEdit = (student_id, assessment_id, score) => {
+        if (!socketConnected || !socket) return;
+        try { socket.emit('grade_edit', { class_id: classId, student_id, assessment_id, score }); } catch (e) {}
+      };
+
+      // Persistent save helpers
+      const savePersistentNow = () => {
+        try {
+          const minutes = parseInt(persistInput.value || '0', 10) || 0;
+          if (minutes <= 0) return;
+          const expiresAt = Date.now() + minutes * 60 * 1000;
+          const data = {};
+          getStudentRows().forEach(tr => {
+            const sid = parseInt(tr.getAttribute('data-student-id')||'0',10)||0;
+            tr.querySelectorAll('input.score').forEach(inp => {
+              const aid = parseInt(inp.getAttribute('data-assessment')||'0',10)||0;
+              const v = inp.value;
+              if (v !== '') data[`${sid}:${aid}`] = v;
+            });
+          });
+          localStorage.setItem(PERSIST_KEY, JSON.stringify({ expiresAt, ts: Date.now(), data }));
+        } catch (e) { /* ignore */ }
+      };
+
+      const clearPersistent = () => { localStorage.removeItem(PERSIST_KEY); };
+
+      const restorePersistentIfAny = () => {
+        try {
+          const raw = localStorage.getItem(PERSIST_KEY);
+          if (!raw) return;
+          const obj = JSON.parse(raw);
+          if (!obj || !obj.expiresAt) { clearPersistent(); return; }
+          if (Date.now() > obj.expiresAt) { clearPersistent(); return; }
+          const data = obj.data || {};
+          // apply to inputs
+          Object.entries(data).forEach(([k,v]) => {
+            const parts = String(k).split(':');
+            const sid = parts[0]; const aid = parts[1];
+            const tr = tbody.querySelector(`tr[data-student-id="${sid}"]`);
+            if (!tr) return;
+            const inp = tr.querySelector(`input.score[data-assessment="${aid}"]`);
+            if (!inp) return;
+            inp.value = String(v);
+            // mark dirty
+            dirty.set(`${sid}:${aid}`, { student_id: parseInt(sid,10), assessment_id: parseInt(aid,10), class_id: classId, score: parseFloat(v) });
+          });
+          status.textContent = `${dirty.size} change(s) loaded from persisted edits`;
+          // recompute
+          recomputeAll();
+        } catch (e) { /* ignore */ }
+      };
+
+      btnEnablePersist?.addEventListener('click', (e) => { e.preventDefault(); restorePersistentIfAny(); savePersistentNow(); status.textContent = 'Persistent save enabled'; });
+      btnClearPersist?.addEventListener('click', (e) => { e.preventDefault(); clearPersistent(); status.textContent = 'Persistent saved edits cleared'; });
+      // Live is enabled automatically when the page is loaded; see init at end of script
 
       // Row highlighting
       tbody.addEventListener('focusin', (e) => {
@@ -323,21 +440,100 @@
         }, 50);
       });
 
-      // Track changes
+      // Track changes with max-value validation/clamping
       const dirty = new Map(); // key `${sid}:${aid}` -> value
       tbody.addEventListener('input', (e) => {
         const inp = e.target;
         if (!inp.matches('input.score')) return;
+
+        // Validate against max if present on the input element
+        const maxAttr = inp.getAttribute('max');
+        if (maxAttr != null && maxAttr !== '') {
+          const maxVal = parseFloat(maxAttr);
+          const cur = inp.value;
+          if (cur !== '') {
+            const num = parseFloat(cur);
+            if (!isNaN(num) && isFinite(maxVal) && num > maxVal) {
+              // Clamp to max, show brief visual hint and status
+              inp.value = String(maxVal);
+              inp.classList.add('score-invalid');
+              setTimeout(() => inp.classList.remove('score-invalid'), 1400);
+              status.textContent = `Value limited to max ${maxVal}`;
+            }
+          }
+        }
+
         const sid = parseInt(inp.getAttribute('data-student'), 10);
         const aid = parseInt(inp.getAttribute('data-assessment'), 10);
         const val = inp.value;
         dirty.set(`${sid}:${aid}`, { student_id: sid, assessment_id: aid, class_id: classId, score: val === '' ? null : parseFloat(val) });
         status.textContent = `${dirty.size} change(s) not saved`;
+        // Debounce persistent save (if enabled)
+        if (persistTimer) clearTimeout(persistTimer);
+        persistTimer = setTimeout(() => { savePersistentNow(); persistTimer = null; }, 600);
+        // Live update: always send to backend (socket will be initialized automatically)
+        initSocket();
+        const num = (val === '' ? null : parseFloat(val));
+        sendLiveEdit(sid, aid, num);
+        // Schedule autosave of pending dirty entries when autosave is enabled
+        if (autoSaveEnabled) {
+          if (autoSaveTimer) clearTimeout(autoSaveTimer);
+          autoSaveTimer = setTimeout(() => { autoSavePending(); autoSaveTimer = null; }, AUTO_SAVE_DEBOUNCE);
+        }
       });
 
       // Debounced save on button
+      // Autosave pending dirty entries (used when Live/autosave is enabled)
+      async function autoSavePending() {
+        if (!dirty.size) { return; }
+        const cols = getAssessmentColumns();
+        const maxById = new Map(cols.map(c => [c.id, c.max]));
+        // Validate current dirty entries
+        for (const entry of dirty.values()) {
+          const sc = entry.score;
+          if (sc != null) {
+            const max = maxById.get(entry.assessment_id);
+            if (typeof max === 'number' && isFinite(max) && sc > max) {
+              status.textContent = `Score for assessment ${entry.assessment_id} exceeds max ${max}`;
+              return;
+            }
+          }
+        }
+        // Prepare payload only for pending dirty entries
+        const pending = Array.from(dirty.values()).map(o => ({ student_id: o.student_id, assessment_id: o.assessment_id, class_id: o.class_id, score: o.score ?? 0 }));
+        if (!pending.length) return;
+        status.textContent = 'Autosaving…';
+        try {
+          const headers = { 'Content-Type': 'application/json' };
+          if (csrfToken) headers['X-CSRFToken'] = csrfToken;
+          const res = await fetch('/api/scores', { method: 'POST', headers, body: JSON.stringify({ scores: pending }) });
+          const out = await res.json().catch(() => ({}));
+          if (!res.ok) {
+            status.textContent = out.error || 'Autosave failed';
+          } else {
+            // Remove only the entries we sent from dirty map
+            pending.forEach(p => dirty.delete(`${p.student_id}:${p.assessment_id}`));
+            status.textContent = 'Autosaved';
+          }
+        } catch (e) {
+          status.textContent = 'Autosave network error';
+        }
+      }
       async function saveChanges() {
         if (!dirty.size) { status.textContent = 'No changes'; return; }
+        // Validate dirty scores against assessment max values before sending
+        const cols = getAssessmentColumns();
+        const maxById = new Map(cols.map(c => [c.id, c.max]));
+        for (const entry of dirty.values()) {
+          const sc = entry.score;
+          if (sc != null) {
+            const max = maxById.get(entry.assessment_id);
+            if (typeof max === 'number' && isFinite(max) && sc > max) {
+              status.textContent = `Score for assessment ${entry.assessment_id} exceeds max ${max}`;
+              return;
+            }
+          }
+        }
         const scores = Array.from(dirty.values()).map(o => ({ student_id: o.student_id, assessment_id: o.assessment_id, class_id: o.class_id, score: o.score ?? 0 }));
         status.textContent = 'Saving…';
         try {
@@ -355,8 +551,9 @@
           status.textContent = 'Network error';
         }
       }
-      saveBtn.addEventListener('click', saveChanges);
-      recalcBtn.addEventListener('click', () => { window.location.reload(); });
+  saveBtn.addEventListener('click', saveChanges);
+  // Recalculate: perform client recalc and also ask server for authoritative values
+  recalcBtn.addEventListener('click', () => { recomputeAll(); });
 
       // Helpers to index columns and rows
       const getAssessmentColumns = () => {
@@ -405,7 +602,7 @@
           <div style="text-align:left;display:grid;gap:8px">
             <label>Sort by
               <select id="sort-by" class="swal2-input" style="width:100%">
-                <option value="__name__">Student Name</option>
+                <option value="__name__">Student Name</option>  
                 ${options}
               </select>
             </label>
@@ -762,6 +959,92 @@
           return;
         }
 
+        // Edit assessment max score (with inline Delete option)
+        const editBtn = e.target.closest('button[data-action="edit-assessment"]');
+        if (editBtn) {
+          e.preventDefault();
+          const assessmentId = parseInt(editBtn.getAttribute('data-assessment-id') || '0', 10) || 0;
+          const category = editBtn.getAttribute('data-category') || '';
+          const subcategory = editBtn.getAttribute('data-subcategory') || '';
+          const currentMax = parseFloat(editBtn.getAttribute('data-max') || '0') || 0;
+
+          if (!SwalLib) {
+            // fallback to simple prompt
+            let newMaxStr = window.prompt(`Edit max score for ${category} › ${subcategory}`, String(currentMax));
+            if (newMaxStr == null) return;
+            const newMax = parseFloat(newMaxStr);
+            if (!isFinite(newMax) || newMax <= 0) { window.alert('Enter a positive number'); return; }
+            try {
+              const headers = { 'Content-Type': 'application/json' };
+              if (csrfToken) headers['X-CSRFToken'] = csrfToken;
+              const res = await fetch(`/api/assessments/${assessmentId}/update_max`, { method: 'POST', headers, body: JSON.stringify({ max_score: newMax }) });
+              if (!res.ok) { window.alert('Update failed'); return; }
+              window.location.reload();
+            } catch(_) { window.alert('Network error'); }
+            return;
+          }
+
+          const res = await SwalLib.fire({
+            title: `Edit max score — ${category} › ${subcategory}`,
+            html: `<input id="swal-max" type="number" class="swal2-input" min="1" step="0.01" value="${currentMax}">`,
+            showCancelButton: true,
+            showDenyButton: true,
+            confirmButtonText: 'Save',
+            denyButtonText: 'Delete',
+            preConfirm: () => {
+              const val = SwalLib.getPopup().querySelector('#swal-max').value;
+              return val;
+            }
+          });
+
+          // Delete path (deny)
+          if (res.isDenied) {
+            const ok = await swalConfirm('Delete assessment?', 'This will permanently delete the assessment and its scores. Continue?', 'Delete');
+            if (!ok) return;
+            try {
+              const headers = { 'Content-Type': 'application/json' };
+              if (csrfToken) headers['X-CSRFToken'] = csrfToken;
+              const rdel = await fetch(`/api/assessments/${assessmentId}`, { method: 'DELETE', headers });
+              let out = {};
+              try { out = await rdel.json(); } catch(_) {}
+              if (!rdel.ok) {
+                const msg = out && out.error ? out.error : `Failed to delete (HTTP ${rdel.status})`;
+                await swalAlert('error', 'Delete failed', msg);
+                return;
+              }
+              await swalAlert('success', 'Deleted', 'Assessment was deleted.');
+              window.location.reload();
+            } catch(err) {
+              await swalAlert('error', 'Network error', 'Could not delete assessment.');
+            }
+            return;
+          }
+
+          // Save path (confirmed)
+          if (res.isConfirmed) {
+            const newMaxStr = res.value;
+            if (newMaxStr == null) return;
+            const newMax = parseFloat(newMaxStr);
+            if (!isFinite(newMax) || newMax <= 0) { await swalAlert('warning', 'Invalid max score', 'Please enter a positive number.'); return; }
+            try {
+              const headers = { 'Content-Type': 'application/json' };
+              if (csrfToken) headers['X-CSRFToken'] = csrfToken;
+              const r = await fetch(`/api/assessments/${assessmentId}/update_max`, { method: 'POST', headers, body: JSON.stringify({ max_score: newMax }) });
+              let out = {};
+              try { out = await r.json(); } catch(_) {}
+              if (!r.ok) {
+                const msg = out && out.error ? out.error : `Failed to update max score (HTTP ${r.status})`;
+                await swalAlert('error', 'Update failed', msg);
+                return;
+              }
+              await swalAlert('success', 'Max score updated', `Assessment max score is now ${newMax}.`);
+              window.location.reload();
+            } catch(err) {
+              await swalAlert('error', 'Network error', 'Could not update max score.');
+            }
+          }
+        }
+
         // Legacy: per-sub inline add buttons
         const btn = e.target.closest('button[data-action="add-assessment"]');
         if (btn) {
@@ -786,6 +1069,61 @@
       };
       const SUB_GROUPS = buildSubGroups();
 
+      // Server compute: assemble groups + students and POST to /api/grade-entry/compute
+      const computeServerForAll = async () => {
+        try {
+          const groupsPayload = {};
+          Object.entries(SUB_GROUPS).forEach(([k, g]) => {
+            groupsPayload[k] = { ids: g.ids.slice(), maxes: g.maxes.slice(), maxTotal: g.maxTotal || 0, subweight: g.subweight || 0 };
+          });
+          const studentsPayload = getStudentRows().map(tr => {
+            const sid = parseInt(tr.getAttribute('data-student-id')||'0',10)||0;
+            const scores = {};
+            tr.querySelectorAll('input.score').forEach(inp => {
+              const aid = parseInt(inp.getAttribute('data-assessment')||'0',10)||0;
+              const v = inp.value;
+              if (v === '') return; // omit blanks
+              const num = parseFloat(v);
+              if (!isNaN(num)) scores[String(aid)] = num;
+            });
+            return { student_id: sid, scores };
+          });
+
+          const payload = { class_id: classId, groups: groupsPayload, students: studentsPayload };
+          const headers = { 'Content-Type': 'application/json' };
+          if (csrfToken) headers['X-CSRFToken'] = csrfToken;
+          const res = await fetch('/api/grade-entry/compute', { method: 'POST', headers, body: JSON.stringify(payload) });
+          if (!res.ok) return; // do not override client-side compute on failure
+          const out = await res.json();
+          if (!out || !out.results) return;
+          // Apply results to DOM
+          getStudentRows().forEach(tr => {
+            const sid = String(parseInt(tr.getAttribute('data-student-id')||'0',10)||0);
+            const byGroup = out.results[sid] || {};
+            Object.entries(byGroup).forEach(([gkey, vals]) => {
+              const parts = gkey.split('::');
+              const cat = parts[0] || '';
+              const sub = parts[1] || '';
+              const totalCell = tr.querySelector(`td.computed.total-col[data-category="${cat}"][data-subcategory="${sub}"]`);
+              const equivCell = tr.querySelector(`td.computed.equiv-col[data-category="${cat}"][data-subcategory="${sub}"]`);
+              const reqpctCell = tr.querySelector(`td.computed.reqpct-col[data-category="${cat}"][data-subcategory="${sub}"]`);
+              if (totalCell && vals.total !== undefined) totalCell.textContent = Number(vals.total).toFixed(2);
+              if (equivCell && vals.eq_pct !== undefined) equivCell.textContent = Number(vals.eq_pct).toFixed(2);
+              if (reqpctCell) {
+                // prefer server-provided display value; otherwise scale the raw reqpct
+                if (vals.reqpct_display !== undefined) {
+                  reqpctCell.textContent = Number(vals.reqpct_display).toFixed(2);
+                } else if (vals.reqpct !== undefined) {
+                  reqpctCell.textContent = (Number(vals.reqpct) / 10.0).toFixed(2);
+                }
+              }
+            });
+          });
+        } catch (err) {
+          // silent fallback
+        }
+      };
+
       const fmt = (num, digits=2) => {
         if (!isFinite(num)) return '';
         return Number(num).toFixed(digits);
@@ -808,8 +1146,9 @@
         const equivCell = tr.querySelector(`td.computed.equiv-col[data-category="${group.category}"][data-subcategory="${group.subcategory}"]`);
         const reqpctCell = tr.querySelector(`td.computed.reqpct-col[data-category="${group.category}"][data-subcategory="${group.subcategory}"]`);
         if (totalCell) totalCell.textContent = fmt(total, 2);
-        if (equivCell) equivCell.textContent = `${fmt(eq, 2)}%`;
-        if (reqpctCell) reqpctCell.textContent = `${fmt(reqpct, 2)}%`;
+  if (equivCell) equivCell.textContent = fmt(eq, 2);
+        // Display the scaled 'percent of requirement' as a numeric value (e.g. 5.00) instead of percent (e.g. 50.00%)
+        if (reqpctCell) reqpctCell.textContent = fmt(reqpct / 10.0, 2);
       };
       const recomputeRow = (tr) => {
         if (!tr) return;
@@ -817,22 +1156,36 @@
       };
       const recomputeAll = () => {
         getStudentRows().forEach(tr => recomputeRow(tr));
+        // Ask server for authoritative computed values (non-blocking)
+        computeServerForAll();
       };
 
-      // Recompute on input changes as well
+      // Debounced server compute on input changes while still showing instant client-side updates
+      let serverComputeTimer = null;
       tbody.addEventListener('input', (e) => {
         const inp = e.target;
         if (!inp.matches('input.score')) return;
         const tr = inp.closest('tr');
         recomputeRow(tr);
+        if (serverComputeTimer) clearTimeout(serverComputeTimer);
+        serverComputeTimer = setTimeout(() => { computeServerForAll(); serverComputeTimer = null; }, 800);
       });
 
-      // Initial compute
+      // Initial compute (client-side) then request server values
       recomputeAll();
+      // Initialize live/socket and enable autosave automatically for this route
+      try {
+        initSocket();
+        // Disable autosave by default for now to avoid unintended 500s during development.
+        autoSaveEnabled = false;
+        status.textContent = 'Live enabled (autosave OFF)';
+      } catch (e) { /* ignore */ }
 
       // (handlers already attached above)
     })();
   </script>
+
   <script id="ga-json" type="application/json">{{ grouped_assessments | tojson }}</script>
+  <script src="{{ url_for('static', filename='js/instructor_grades_unified.js') }}"></script>
 </body>
 </html>

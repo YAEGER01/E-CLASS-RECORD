@@ -194,21 +194,17 @@ def run_startup_checks_or_exit():
 from blueprints.assessments_routes import assessments_bp
 from blueprints.auth_routes import auth_bp
 from blueprints.admin_routes import admin_bp
-from blueprints.compute_routes import compute_bp, compute_class_grades
+from blueprints.compute_routes import compute_bp
 from blueprints.gradebuilder_routes import gradebuilder_bp
 
 app.register_blueprint(assessments_bp)
 app.register_blueprint(auth_bp)
 app.register_blueprint(admin_bp)
 app.register_blueprint(compute_bp)
-app.register_blueprint(gradebuilder_bp)
+from blueprints.compute_routes import api_grade_entry_compute
 
-# Exempt the compute POST endpoint from CSRF for dev/tests convenience
-try:
-    csrf.exempt(compute_class_grades)
-except Exception:
-    # If CSRF isn't initialized yet or exemption fails, continue; compute endpoint also has a local flag.
-    pass
+csrf.exempt(api_grade_entry_compute)
+app.register_blueprint(gradebuilder_bp)
 
 
 # Route: GET "/"

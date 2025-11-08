@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Student Dashboard - E-Class Record</title>
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="{{ url_for('static', filename='js/swal.js') }}"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/student-dashboard.css') }}">
 </head>
@@ -19,14 +19,36 @@
 
     <div class="dashboard-grid">
         <div class="card">
-            <h3>📚 My Profile</h3>
-            <p><strong>School ID:</strong> {{ user.school_id }}</p>
-            <p><strong>Course:</strong> {{ user.student_profile.course }}</p>
-            <p><strong>Year Level:</strong> {{ user.student_profile.year_level }}</p>
-            <p><strong>Section:</strong> {{ user.student_profile.section }}</p>
-            {% if user.student_profile.track %}
-            <p><strong>Track:</strong> {{ user.student_profile.track }}</p>
-            {% endif %}
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+                <h3 style="margin:0;">📚 My Profile</h3>
+                <button onclick="editProfile()" id="editProfileBtn" style="background:#16a34a; color:white; border:none; padding:6px 12px; border-radius:6px; cursor:pointer; font-weight:600;">✏️ Edit</button>
+            </div>
+
+            <div style="display:flex; align-items:center; margin-top:12px;">
+                {# Prefer stored static paths (face_photo_path), then any photo/photo_path fields, then external URL, finally default image. Use onerror to fallback to default if file missing. #}
+                {% if user.student_profile.face_photo_path %}
+                <img id="profilePhoto" src="{{ url_for('static', filename=user.student_profile.face_photo_path) }}" data-default="{{ url_for('static', filename='images/default-profile.svg') }}" alt="Profile Photo" onerror="this.onerror=null;this.src=this.dataset.default;" style="width:72px; height:72px; object-fit:cover; border-radius:8px; margin-right:12px; border:1px solid #e5e7eb;">
+                {% elif user.student_profile.photo_path %}
+                <img id="profilePhoto" src="{{ url_for('static', filename=user.student_profile.photo_path) }}" data-default="{{ url_for('static', filename='images/default-profile.svg') }}" alt="Profile Photo" onerror="this.onerror=null;this.src=this.dataset.default;" style="width:72px; height:72px; object-fit:cover; border-radius:8px; margin-right:12px; border:1px solid #e5e7eb;">
+                {% elif user.student_profile.photo %}
+                <img id="profilePhoto" src="{{ url_for('static', filename=user.student_profile.photo) }}" data-default="{{ url_for('static', filename='images/default-profile.svg') }}" alt="Profile Photo" onerror="this.onerror=null;this.src=this.dataset.default;" style="width:72px; height:72px; object-fit:cover; border-radius:8px; margin-right:12px; border:1px solid #e5e7eb;">
+                {% elif user.student_profile.photo_url %}
+                <img id="profilePhoto" src="{{ user.student_profile.photo_url }}" data-default="{{ url_for('static', filename='images/default-profile.svg') }}" alt="Profile Photo" onerror="this.onerror=null;this.src=this.dataset.default;" style="width:72px; height:72px; object-fit:cover; border-radius:8px; margin-right:12px; border:1px solid #e5e7eb;">
+                {% else %}
+                <img id="profilePhoto" src="{{ url_for('static', filename='images/default-profile.svg') }}" data-default="{{ url_for('static', filename='images/default-profile.svg') }}" alt="Profile Photo" style="width:72px; height:72px; object-fit:cover; border-radius:8px; margin-right:12px; border:1px solid #e5e7eb;">
+                {% endif %}
+                <div>
+                    <p style="margin:0;"><strong>School ID:</strong> <span id="schoolIdSpan">{{ user.school_id }}</span></p>
+                    <p style="margin:4px 0 0 0;"><strong>Course:</strong> <span id="courseSpan">{{ user.student_profile.course }}</span></p>
+                    <p style="margin:4px 0 0 0;"><strong>Year Level:</strong> <span id="yearLevelSpan">{{ user.student_profile.year_level }}</span></p>
+                    <p style="margin:4px 0 0 0;"><strong>Section:</strong> <span id="sectionSpan">{{ user.student_profile.section }}</span></p>
+                    {% if user.student_profile.track %}
+                    <p style="margin:4px 0 0 0;"><strong>Track:</strong> <span id="trackSpan">{{ user.student_profile.track }}</span></p>
+                    {% else %}
+                    <p style="margin:4px 0 0 0; color:#6b7280; font-style:italic;"><em id="trackSpan">No track set</em></p>
+                    {% endif %}
+                </div>
+            </div>
         </div>
 
         <div class="card">
@@ -89,7 +111,104 @@
         </div>
     </div>
 
+    <template id="swal_edit_profile_template" hidden>
+        <style>
+            .swal2-popup { padding: 10px !important; box-sizing: border-box; }
+            .swal-register-grid { display:grid; grid-template-columns: 1fr 1fr; gap:12px; align-items:start; max-width:100%; box-sizing:border-box; }
+            .swal-register-left { text-align:center; }
+            .swal-photo-zone { border:1px dashed #e5e7eb; padding:8px; border-radius:8px; cursor:pointer; box-sizing:border-box; }
+            .swal-photo-preview { width:120px; height:120px; object-fit:cover; border-radius:8px; border:1px solid #e5e7eb; display:block; margin:0 auto 8px; }
+            .swal-field { margin-bottom:8px; }
+            .swal-field label { display:block; font-size:12px; color:#374151; margin-bottom:4px; }
+            .swal-field input, .swal-field select { width:100%; padding:8px; border-radius:6px; border:1px solid #e5e7eb; box-sizing:border-box; }
+            @media (max-width:780px) { .swal2-popup { width: calc(100vw - 20px) !important; } .swal-register-grid { grid-template-columns: 1fr; } .swal-photo-preview { margin: 0 auto 10px; } }
+        </style>
+
+        <div class="swal-register-grid">
+            <div class="swal-register-left">
+                {% if user.student_profile.face_photo_path %}
+                <img id="swalPhotoPreview" src="{{ url_for('static', filename=user.student_profile.face_photo_path) }}" class="swal-photo-preview" alt="Face Preview">
+                {% elif user.student_profile.face_photo_url %}
+                <img id="swalPhotoPreview" src="{{ user.student_profile.face_photo_url }}" class="swal-photo-preview" alt="Face Preview">
+                {% else %}
+                <img id="swalPhotoPreview" src="{{ url_for('static', filename='images/default-profile.svg') }}" class="swal-photo-preview" alt="Face Preview">
+                {% endif %}
+                <div class="swal-photo-zone" onclick="document.getElementById('swalPhotoInput').click()">
+                    <div style="font-weight:600;">Face Photo</div>
+                    <div style="font-size:12px;color:#6b7280;">Click or drop to upload (JPG/PNG)</div>
+                    <input id="swalPhotoInput" type="file" accept="image/*" style="display:none;" onchange="previewProfilePhoto(this,'swalPhotoPreview')">
+                </div>
+                <div style="height:8px;"></div>
+                <div class="swal-photo-zone" onclick="document.getElementById('swalIdFront').click()">
+                    <div style="font-weight:600;">ID Front</div>
+                    <div style="font-size:12px;color:#6b7280;">Click to upload</div>
+                    <input id="swalIdFront" type="file" accept="image/*" style="display:none;" onchange="previewProfilePhoto(this,'swalIdFrontPreview')">
+                    <div id="swalIdFrontPreview" style="margin-top:8px; min-height:48px">{% if user.student_profile.id_front_path %}<img src="{{ url_for('static', filename=user.student_profile.id_front_path) }}" style="max-width:100%; height:auto; border-radius:6px;">{% endif %}</div>
+                </div>
+                <div style="height:8px;"></div>
+                <div class="swal-photo-zone" onclick="document.getElementById('swalIdBack').click()">
+                    <div style="font-weight:600;">ID Back</div>
+                    <div style="font-size:12px;color:#6b7280;">Click to upload</div>
+                    <input id="swalIdBack" type="file" accept="image/*" style="display:none;" onchange="previewProfilePhoto(this,'swalIdBackPreview')">
+                    <div id="swalIdBackPreview" style="margin-top:8px; min-height:48px">{% if user.student_profile.id_back_path %}<img src="{{ url_for('static', filename=user.student_profile.id_back_path) }}" style="max-width:100%; height:auto; border-radius:6px;">{% endif %}</div>
+                </div>
+            </div>
+            <div>
+                <div class="swal-field"><label>First name</label><input id="swalFirstName" value="{{ user.personal_info.first_name or '' }}"></div>
+                <div class="swal-field"><label>Last name</label><input id="swalLastName" value="{{ user.personal_info.last_name or '' }}"></div>
+                <div class="swal-field"><label>Middle name</label><input id="swalMiddleName" value="{{ user.personal_info.middle_name or '' }}"></div>
+                <div class="swal-field"><label>Email</label><input id="swalEmail" value="{{ user.personal_info.email or '' }}"></div>
+                <div class="swal-field"><label>Phone</label><input id="swalPhone" value="{{ user.personal_info.phone or '' }}"></div>
+                <div class="swal-field"><label>Address</label><input id="swalAddress" value="{{ user.personal_info.address or '' }}"></div>
+                <div style="display:flex; gap:8px;">
+                  <div style="flex:1" class="swal-field"><label>Birth date</label><input id="swalBirthDate" value="{{ user.personal_info.birth_date or '' }}" placeholder="YYYY-MM-DD"></div>
+                  <div style="flex:1" class="swal-field"><label>Gender</label>
+                    <select id="swalGender">
+                      <option value="" {% if not user.personal_info.gender %}selected{% endif %}>Select</option>
+                      <option value="Male" {% if user.personal_info.gender=='Male' %}selected{% endif %}>Male</option>
+                      <option value="Female" {% if user.personal_info.gender=='Female' %}selected{% endif %}>Female</option>
+                      <option value="Other" {% if user.personal_info.gender=='Other' %}selected{% endif %}>Other</option>
+                    </select>
+                  </div>
+                </div>
+                <div style="display:flex; gap:8px; margin-top:6px;">
+                  <div style="flex:1" class="swal-field"><label>Emergency name</label><input id="swalEmergName" value="{{ user.personal_info.emergency_contact_name or '' }}"></div>
+                  <div style="flex:1" class="swal-field"><label>Emergency phone</label><input id="swalEmergPhone" value="{{ user.personal_info.emergency_contact_phone or '' }}"></div>
+                </div>
+
+                <hr style="margin:10px 0; border-color:#eef2f7;">
+
+                <div class="swal-field"><label>School ID</label><input id="swalSchoolId" value="{{ user.school_id }}" disabled></div>
+                <div class="swal-field"><label>Course</label>
+                    <select id="swalCourse">
+                        <option value="">Select Course</option>
+                        <option value="BSIT" {% if user.student_profile.course=='BSIT' %}selected{% endif %}>BSIT</option>
+                        <option value="BSCS" {% if user.student_profile.course=='BSCS' %}selected{% endif %}>BSCS</option>
+                        <option value="BSIS" {% if user.student_profile.course=='BSIS' %}selected{% endif %}>BSIS</option>
+                        <option value="BSCpE" {% if user.student_profile.course=='BSCpE' %}selected{% endif %}>BSCpE</option>
+                        <option value="BSEMC" {% if user.student_profile.course=='BSEMC' %}selected{% endif %}>BSEMC</option>
+                    </select>
+                </div>
+                <div style="display:flex; gap:8px;">
+                  <div style="flex:1" class="swal-field"><label>Year Level</label><select id="swalYearLevel"><option value="">Select</option><option value="1" {% if user.student_profile.year_level==1 or user.student_profile.year_level=='1' %}selected{% endif %}>1</option><option value="2" {% if user.student_profile.year_level==2 or user.student_profile.year_level=='2' %}selected{% endif %}>2</option><option value="3" {% if user.student_profile.year_level==3 or user.student_profile.year_level=='3' %}selected{% endif %}>3</option><option value="4" {% if user.student_profile.year_level==4 or user.student_profile.year_level=='4' %}selected{% endif %}>4</option></select></div>
+                  <div style="flex:1" class="swal-field"><label>Section</label><input id="swalSection" value="{{ user.student_profile.section or '' }}"></div>
+                </div>
+                <div class="swal-field"><label>Track</label><input id="swalTrack" value="{{ user.student_profile.track or '' }}"></div>
+            </div>
+        </div>
+    </template>
+
     <style>
+        /* Global SweetAlert2 popup appearance for this page */
+        .swal2-popup {
+            border-radius: 12px !important;
+            box-shadow: 0 10px 30px rgba(2,6,23,0.12);
+        }
+
+        /* Ensure the confirm/cancel buttons also respect rounded corners when shown as toasts */
+        .swal2-toast .swal2-header, .swal2-toast .swal2-content {
+            border-radius: 8px;
+        }
         .class-item:hover {
             background-color: #f8fafc;
             border-color: #16a34a;
@@ -139,8 +258,11 @@
     </style>
 
     <script>
-        let isClassListExpanded = false;
-        let currentClassId = null;
+    // CSRF token for AJAX requests (Flask-WTF expects this header)
+    const csrfToken = "{{ csrf_token() }}";
+
+    let isClassListExpanded = false;
+    let currentClassId = null;
 
         // Load joined classes when page loads
         document.addEventListener('DOMContentLoaded', function () {
@@ -206,11 +328,12 @@
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
+                    'X-CSRFToken': csrfToken,
                 },
                 body: JSON.stringify({ join_code: joinCode }),
                 credentials: 'same-origin'  // Include cookies for authentication
             })
-                .then(response => {
+                .then(async response => {
                     console.log('Response status:', response.status);
                     console.log('Response type:', response.type);
                     console.log('Response url:', response.url);
@@ -221,18 +344,66 @@
                         throw new Error('Authentication required. Please log in again.');
                     }
 
-                    if (!response.ok) {
-                        throw new Error(`HTTP error! status: ${response.status}`);
+                    // Try to parse JSON body (server may return JSON even on 4xx)
+                    let data = null;
+                    try {
+                        data = await response.json();
+                    } catch (e) {
+                        // Ignore parse errors; data remains null
                     }
 
-                    return response.json();
+                    if (!response.ok) {
+                        // Handle common known server-side validation (e.g., already enrolled)
+                        if (data && data.error && data.error.toLowerCase().includes('already enrolled')) {
+                            console.log('Handling already enrolled response (4xx)');
+                            // Close join loading toast
+                            loadingSwal.close();
+
+                            // Refresh classes immediately
+                            loadJoinedClasses();
+
+                            // Show friendly already-enrolled message
+                            let message = 'You are already a member of this class.';
+                            if (data && data.class_info) {
+                                message += `\n\nClass: ${data.class_info.class_id}\nSchedule: ${data.class_info.schedule}`;
+                            }
+
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Already Enrolled!',
+                                text: message,
+                                timer: 3000,
+                                timerProgressBar: true,
+                                showConfirmButton: false,
+                                toast: true,
+                                position: 'top-end',
+                                background: '#dcfce7',
+                                color: '#166534'
+                            });
+
+                            // Resolve with a handled flag so the chain continues cleanly
+                            return { handled: true };
+                        }
+
+                        // For other errors, prefer server-provided message if available
+                        const errMsg = data && data.error ? data.error : `HTTP error! status: ${response.status}`;
+                        throw new Error(errMsg);
+                    }
+
+                    return data;
                 })
                 .then(data => {
+                    // If the earlier step returned a handled flag, do nothing further.
+                    if (data && data.handled) {
+                        console.log('Already-enrolled case handled; skipping further processing.');
+                        return;
+                    }
+
                     console.log('Response data:', data);
                     // Close loading toast
                     loadingSwal.close();
 
-                    if (data.success) {
+                    if (data && data.success) {
                         console.log('Join successful');
                         // Success notification
                         Swal.fire({
@@ -262,60 +433,23 @@
                             joinButton.style.animation = '';
                         }, 600);
                     } else {
-                        console.log('Join failed, error:', data.error);
-                        // Handle specific error cases
-                        if (data.error && data.error.includes('already enrolled')) {
-                            console.log('Handling already enrolled case');
-                            // If already enrolled error, refresh the classes list
-                            Swal.fire({
-                                icon: 'info',
-                                title: 'Checking Enrollment...',
-                                text: 'Refreshing your classes...',
-                                timer: 1500,
-                                timerProgressBar: true,
-                                showConfirmButton: false,
-                                willOpen: () => {
-                                    Swal.showLoading();
-                                }
-                            });
-
-                            // Refresh classes list after a short delay
-                            setTimeout(() => {
-                                loadJoinedClasses();
-                                Swal.close();
-
-                                // Show success message with class info if available
-                                let message = 'You are already a member of this class.';
-                                if (data.class_info) {
-                                    message += `\n\nClass: ${data.class_info.class_id}\nSchedule: ${data.class_info.schedule}`;
-                                }
-
-                                Swal.fire({
-                                    icon: 'success',
-                                    title: 'Already Enrolled!',
-                                    text: message,
-                                    timer: 3000,
-                                    timerProgressBar: true,
-                                    showConfirmButton: false,
-                                    toast: true,
-                                    position: 'top-end',
-                                    background: '#dcfce7',
-                                    color: '#166534'
-                                });
-                            }, 1000);
-                        } else {
-                            console.log('Generic error case');
-                            Swal.fire({
-                                icon: 'error',
-                                title: 'Failed to Join',
-                                text: data.error || 'Unknown error occurred',
-                                confirmButtonColor: '#16a34a'
-                            });
-                        }
+                        console.log('Join failed, error:', data && data.error);
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Failed to Join',
+                            text: (data && data.error) || 'Unknown error occurred',
+                            confirmButtonColor: '#16a34a'
+                        });
                     }
                 })
                 .catch(error => {
+                    // If we've already handled the 'already enrolled' case, don't show another error toast
+                    if (error && error.message === 'handled_already_enrolled') {
+                        return;
+                    }
+
                     console.error('Network or parsing error:', error);
+
                     loadingSwal.close();
 
                     // Handle authentication errors
@@ -527,6 +661,9 @@
 
             fetch(`/api/student/leave-class/${currentClassId}`, {
                 method: 'DELETE',
+                headers: {
+                    'X-CSRFToken': csrfToken
+                },
                 credentials: 'same-origin'
             })
                 .then(response => response.json())
@@ -595,6 +732,117 @@
                 closeModal();
             }
         });
+
+        // --- Edit profile modal and handlers ---
+        // Assumption: backend endpoint for updating student profile is at /api/student/profile
+        // and accepts PUT with multipart/form-data (photo optional). Adjust endpoint/method as needed.
+
+        function previewProfilePhoto(input, targetId) {
+            if (!input) return;
+            const file = input.files && input.files[0];
+            const tid = targetId || 'swalPhotoPreview';
+            const preview = document.getElementById(tid);
+            if (!file || !preview) return;
+
+            // If preview is an <img>, set src; if it's a container div, inject an <img>
+            const url = URL.createObjectURL(file);
+            if (preview.tagName && preview.tagName.toLowerCase() === 'img') {
+                preview.src = url;
+                preview.onload = () => URL.revokeObjectURL(url);
+            } else {
+                preview.innerHTML = `<img src="${url}" style="max-width:100%; max-height:140px; object-fit:cover; border-radius:8px;">`;
+                // revoke later when image loads
+                const img = preview.querySelector('img');
+                if (img) img.onload = () => URL.revokeObjectURL(url);
+            }
+        }
+
+        function editProfile() {
+            const html = document.getElementById('swal_edit_profile_template').innerHTML;
+
+            Swal.fire({
+                title: '✏️ Edit Profile',
+                html: html,
+                width: '760px',
+                showCancelButton: true,
+                focusConfirm: false,
+                confirmButtonText: 'Update',
+                cancelButtonText: 'Cancel',
+                                
+                preConfirm: () => {
+                    const fd = new FormData();
+                    fd.append('first_name', document.getElementById('swalFirstName').value.trim());
+                    fd.append('last_name', document.getElementById('swalLastName').value.trim());
+                    fd.append('middle_name', document.getElementById('swalMiddleName').value.trim());
+                    fd.append('email', document.getElementById('swalEmail').value.trim());
+                    fd.append('phone', document.getElementById('swalPhone').value.trim());
+                    fd.append('address', document.getElementById('swalAddress').value.trim());
+                    fd.append('birth_date', document.getElementById('swalBirthDate').value.trim());
+                    fd.append('gender', document.getElementById('swalGender').value);
+                    fd.append('emergency_contact_name', document.getElementById('swalEmergName').value.trim());
+                    fd.append('emergency_contact_phone', document.getElementById('swalEmergPhone').value.trim());
+
+                    fd.append('course', document.getElementById('swalCourse').value.trim());
+                    fd.append('year_level', document.getElementById('swalYearLevel').value.trim());
+                    fd.append('section', document.getElementById('swalSection').value.trim());
+                    fd.append('track', document.getElementById('swalTrack').value.trim());
+
+                    const faceInput = document.getElementById('swalPhotoInput');
+                    const idFront = document.getElementById('swalIdFront');
+                    const idBack = document.getElementById('swalIdBack');
+                    const filesProvided = {};
+                    if (faceInput && faceInput.files && faceInput.files.length > 0) { fd.append('face_photo', faceInput.files[0]); filesProvided.face_photo = faceInput.files[0]; }
+                    if (idFront && idFront.files && idFront.files.length > 0) { fd.append('id_front', idFront.files[0]); filesProvided.id_front = idFront.files[0]; }
+                    if (idBack && idBack.files && idBack.files.length > 0) { fd.append('id_back', idBack.files[0]); filesProvided.id_back = idBack.files[0]; }
+
+                    if (!fd.get('first_name') || !fd.get('last_name')) {
+                        Swal.showValidationMessage('First and last name are required');
+                        return false;
+                    }
+
+                    return fetch('/api/student/profile', {
+                        method: 'PUT',
+                        headers: { 'X-CSRFToken': csrfToken },
+                        body: fd,
+                        credentials: 'same-origin'
+                    }).then(async response => {
+                        let data = null;
+                        try { data = await response.json(); } catch (e) { }
+                        if (!response.ok) {
+                            const msg = data && data.error ? data.error : `HTTP ${response.status}`;
+                            throw new Error(msg);
+                        }
+                        return { data: data, filesProvided: filesProvided };
+                    }).catch(err => { throw new Error(err.message || 'Failed to update profile'); });
+                }
+            }).then((result) => {
+                if (result && result.value && result.value.data) {
+                    const res = result.value.data;
+                    const prof = res.profile || res;
+                    if (prof.course !== undefined) document.getElementById('courseSpan').textContent = prof.course;
+                    if (prof.year_level !== undefined) document.getElementById('yearLevelSpan').textContent = prof.year_level;
+                    if (prof.section !== undefined) document.getElementById('sectionSpan').textContent = prof.section;
+                    if (prof.track !== undefined) document.getElementById('trackSpan').textContent = prof.track || 'No track set';
+
+                    const profileImg = document.getElementById('profilePhoto');
+                    if (prof.photo_url || prof.face_photo_url) {
+                        profileImg.src = prof.photo_url || prof.face_photo_url;
+                    } else if (result.value.filesProvided && result.value.filesProvided.face_photo) {
+                        const localUrl = URL.createObjectURL(result.value.filesProvided.face_photo);
+                        profileImg.src = localUrl;
+                        profileImg.onload = () => URL.revokeObjectURL(localUrl);
+                    }
+
+                    Swal.fire({ icon: 'success', title: 'Profile Updated', text: (res.message) ? res.message : 'Your profile has been updated', timer: 1200, showConfirmButton: false, toast: true, position: 'top-end', background: '#dcfce7', color: '#166534' });
+                    // Refresh the page after a short delay so all changes (including uploaded photos)
+                    // are reflected from the server and any cached blobs are cleared.
+                    setTimeout(() => { try { window.location.reload(); } catch (e) { console.warn('Reload failed', e); } }, 1400);
+                }
+            }).catch(err => {
+                console.error('Update profile error:', err);
+                Swal.fire({ icon: 'error', title: 'Update Failed', text: err.message || 'Failed to update profile', confirmButtonColor: '#dc3545' });
+            });
+        }
 
         // Allow Enter key to join class
         document.getElementById('joinCode').addEventListener('keypress', function (e) {

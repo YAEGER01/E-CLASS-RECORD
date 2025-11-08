@@ -146,16 +146,22 @@
       const container = document.querySelector('.container');
       container.style.opacity = '0';
       container.style.transform = 'translateY(20px)';
-
+      
       setTimeout(() => {
         container.style.transition = 'all 0.6s ease';
         container.style.opacity = '1';
         container.style.transform = 'translateY(0)';
       }, 100);
 
-      // Check for error message and show SweetAlert
+      // Check for error message and show SweetAlert only when the login
+      // page was reached via a redirect/referrer. This avoids showing
+      // a modal when the user simply navigates directly to the login page
+      // and there happens to be an older flashed message in the session.
       const errorContainer = document.getElementById('errorContainer');
-      if (errorContainer && errorContainer.textContent.trim()) {
+      const hasError = errorContainer && errorContainer.textContent.trim();
+      const hasReferrer = document.referrer && document.referrer.trim() !== '';
+
+      if (hasError && hasReferrer) {
         const errorMessage = errorContainer.textContent.trim();
         Swal.fire({
           icon: 'error',

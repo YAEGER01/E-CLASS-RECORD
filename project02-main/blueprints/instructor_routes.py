@@ -27,6 +27,87 @@ logger = logging.getLogger(__name__)
 instructor_bp = Blueprint("instructor", __name__)
 
 
+# Update max_score for an assessment
+@instructor_bp.route(
+    "/api/assessments/<int:assessment_id>/update_max", methods=["POST"]
+)
+@login_required
+def api_update_assessment_max_score(assessment_id):
+    """Update the max_score of an assessment by ID."""
+    instructor_id, err = _require_instructor()
+    if err:
+        return err
+    try:
+        data = request.get_json(silent=True) or {}
+        max_score = data.get("max_score")
+        if max_score is None:
+            return jsonify({"error": "max_score_required"}), 400
+        try:
+            max_score = float(max_score)
+        except Exception:
+            return jsonify({"error": "invalid_max_score"}), 400
+        if max_score <= 0:
+            return jsonify({"error": "max_score_must_be_positive"}), 400
+
+        with get_db_connection().cursor() as cursor:
+            # Get subcategory and class for this assessment
+            cursor.execute(
+                """
+                SELECT ga.subcategory_id, gsc.category_id, gc.structure_id, gs.class_id
+                FROM grade_assessments ga
+                JOIN grade_subcategories gsc ON ga.subcategory_id = gsc.id
+                JOIN grade_categories gc ON gsc.category_id = gc.id
+                JOIN grade_structures gs ON gc.structure_id = gs.id
+                WHERE ga.id = %s
+                """,
+                (assessment_id,),
+            )
+            row = cursor.fetchone()
+            if not row:
+                return jsonify({"error": "assessment_not_found"}), 404
+            class_id = row["class_id"] if isinstance(row, dict) else row[3]
+            # Check instructor owns this class
+            if not _instructor_owns_class(class_id, session.get("user_id")):
+                return jsonify({"error": "forbidden"}), 403
+
+            # Update max_score
+            cursor.execute(
+                "UPDATE grade_assessments SET max_score = %s WHERE id = %s",
+                (max_score, assessment_id),
+            )
+        try:
+            get_db_connection().commit()
+        except Exception:
+            pass
+        return (
+            jsonify(
+                {
+                    "success": True,
+                    "assessment_id": assessment_id,
+                    "max_score": max_score,
+                }
+            ),
+            200,
+        )
+    except Exception as e:
+        logger.error(f"Failed to update assessment max_score: {str(e)}")
+        return jsonify({"error": "failed_to_update"}), 500
+
+
+from utils.db_conn import get_db_connection
+from utils.live import (
+    emit_live_version_update,
+    get_cached_class_live_version,
+    _cache_get,
+    _cache_put,
+    _grouped_cache_get,
+    _grouped_cache_put,
+)
+from flask_wtf.csrf import generate_csrf
+
+logger = logging.getLogger(__name__)
+
+
 # Local helpers to avoid circular imports
 def _require_instructor():
     if "user_id" not in session:
@@ -607,13 +688,163 @@ def gradebuilder_v2():
     return render_template("gradebuilder_v2.html")
 
 
-@instructor_bp.route("/api/scores", methods=["GET"], endpoint="api_list_scores")
+@instructor_bp.route("/api/scores", methods=["GET", "POST"], endpoint="api_list_scores")
 @login_required
 def api_list_scores():
     instructor_id, err = _require_instructor()
     if err:
         return err
 
+    # POST: accept JSON payload { scores: [ { student_id, assessment_id, class_id, score }, ... ] }
+    if request.method == "POST":
+        data = request.get_json(silent=True) or {}
+        scores = data.get("scores")
+        if not isinstance(scores, list) or not scores:
+            return jsonify({"error": "scores_required"}), 400
+
+        # Validate class ownership: ensure at least one class_id is present and instructor owns it
+        try:
+            cls_id = int(scores[0].get("class_id", 0))
+        except Exception:
+            return jsonify({"error": "invalid_class_id"}), 400
+
+        # Ensure all submitted entries belong to the same class
+        for s in scores:
+            try:
+                if int(s.get("class_id", 0)) != cls_id:
+                    return jsonify({"error": "mixed_class_ids_not_allowed"}), 400
+            except Exception:
+                return jsonify({"error": "invalid_class_id_in_payload"}), 400
+
+        if not _instructor_owns_class(cls_id, session.get("user_id")):
+            return jsonify({"error": "forbidden"}), 403
+
+        try:
+            conn = get_db_connection()
+            with conn.cursor() as cursor:
+                # Validate that all referenced assessments exist and belong to this class
+                try:
+                    aid_set = set()
+                    for s in scores:
+                        try:
+                            aid_set.add(int(s.get("assessment_id")))
+                        except Exception:
+                            continue
+                    if not aid_set:
+                        return jsonify({"error": "no_valid_assessment_ids"}), 400
+                    placeholders = ",".join(["%s"] * len(aid_set))
+                    params = list(aid_set) + [cls_id]
+                    cursor.execute(
+                        f"SELECT ga.id FROM grade_assessments ga "
+                        f"JOIN grade_subcategories gsc ON ga.subcategory_id = gsc.id "
+                        f"JOIN grade_categories gc ON gsc.category_id = gc.id "
+                        f"JOIN grade_structures gs ON gc.structure_id = gs.id "
+                        f"WHERE ga.id IN ({placeholders}) AND gs.class_id = %s",
+                        params,
+                    )
+                    found = {row["id"] for row in (cursor.fetchall() or [])}
+                    missing = sorted(list(aid_set - found))
+                    if missing:
+                        logger.error(
+                            f"Attempt to save scores for missing assessments: {missing}"
+                        )
+                        return (
+                            jsonify(
+                                {
+                                    "error": "assessments_not_found_or_not_belonging_to_class",
+                                    "missing": missing,
+                                }
+                            ),
+                            400,
+                        )
+                except Exception:
+                    # If validation query fails for some reason, log and abort
+                    logger.exception("Failed to validate assessment ids")
+                    return jsonify({"error": "failed_to_validate_assessments"}), 500
+
+                # Validate that all referenced student IDs belong to this class
+                try:
+                    sid_set = set()
+                    for s in scores:
+                        try:
+                            sid_set.add(int(s.get("student_id")))
+                        except Exception:
+                            continue
+                    if not sid_set:
+                        return jsonify({"error": "no_valid_student_ids"}), 400
+                    placeholders_s = ",".join(["%s"] * len(sid_set))
+                    params_s = list(sid_set) + [cls_id]
+                    cursor.execute(
+                        f"SELECT sc.student_id FROM student_classes sc WHERE sc.student_id IN ({placeholders_s}) AND sc.class_id = %s",
+                        params_s,
+                    )
+                    found_students = {
+                        row["student_id"] for row in (cursor.fetchall() or [])
+                    }
+                    missing_students = sorted(list(sid_set - found_students))
+                    if missing_students:
+                        logger.error(
+                            f"Attempt to save scores for students not in class: {missing_students}"
+                        )
+                        return (
+                            jsonify(
+                                {
+                                    "error": "students_not_enrolled_in_class",
+                                    "missing": missing_students,
+                                }
+                            ),
+                            400,
+                        )
+                except Exception:
+                    logger.exception("Failed to validate student ids")
+                    return jsonify({"error": "failed_to_validate_students"}), 500
+
+                for s in scores:
+                    try:
+                        sid = int(s.get("student_id"))
+                        aid = int(s.get("assessment_id"))
+                        val = s.get("score")
+                        # treat null/empty as NULL (delete?) but we'll store 0 if missing numeric
+                        if val is None or val == "":
+                            score_val = 0
+                        else:
+                            score_val = float(val)
+                    except Exception:
+                        continue
+
+                    # Check if a student_scores row exists
+                    cursor.execute(
+                        "SELECT id FROM student_scores WHERE assessment_id = %s AND student_id = %s",
+                        (aid, sid),
+                    )
+                    existing = cursor.fetchone()
+                    if existing:
+                        cursor.execute(
+                            "UPDATE student_scores SET score = %s WHERE id = %s",
+                            (score_val, existing["id"]),
+                        )
+                    else:
+                        cursor.execute(
+                            "INSERT INTO student_scores (assessment_id, student_id, score) VALUES (%s, %s, %s)",
+                            (aid, sid, score_val),
+                        )
+            try:
+                conn.commit()
+            except Exception:
+                pass
+
+            # Notify live subscribers that class data changed
+            try:
+                emit_live_version_update(cls_id)
+            except Exception:
+                pass
+
+            return jsonify({"success": True, "saved": len(scores)}), 200
+        except Exception as e:
+            logger.error(f"Failed to save scores: {str(e)}")
+            return jsonify({"error": "failed_to_save_scores"}), 500
+
+    # GET: existing behavior (list scores by assessment_id or class_id)
     assessment_id = request.args.get("assessment_id")
     class_id = request.args.get("class_id")
     if not assessment_id and not class_id:
@@ -624,25 +855,31 @@ def api_list_scores():
             if assessment_id and class_id:
                 cursor.execute(
                     """
-                    SELECT s.id, s.student_id, s.assessment_id, s.score
-                    FROM scores s
-                    JOIN assessments a ON s.assessment_id = a.id
-                    WHERE s.assessment_id = %s AND a.class_id = %s
+                    SELECT ss.id, ss.student_id, ss.assessment_id, ss.score
+                    FROM student_scores ss
+                    JOIN grade_assessments ga ON ss.assessment_id = ga.id
+                    JOIN grade_subcategories gsc ON ga.subcategory_id = gsc.id
+                    JOIN grade_categories gc ON gsc.category_id = gc.id
+                    JOIN grade_structures gs ON gc.structure_id = gs.id
+                    WHERE ss.assessment_id = %s AND gs.class_id = %s
                     """,
                     (assessment_id, class_id),
                 )
             elif assessment_id:
                 cursor.execute(
-                    "SELECT id, student_id, assessment_id, score FROM scores WHERE assessment_id = %s",
+                    "SELECT id, student_id, assessment_id, score FROM student_scores WHERE assessment_id = %s",
                     (assessment_id,),
                 )
             else:
                 cursor.execute(
                     """
-                    SELECT s.id, s.student_id, s.assessment_id, s.score
-                    FROM scores s
-                    JOIN assessments a ON s.assessment_id = a.id
-                    WHERE a.class_id = %s
+                    SELECT ss.id, ss.student_id, ss.assessment_id, ss.score
+                    FROM student_scores ss
+                    JOIN grade_assessments ga ON ss.assessment_id = ga.id
+                    JOIN grade_subcategories gsc ON ga.subcategory_id = gsc.id
+                    JOIN grade_categories gc ON gsc.category_id = gc.id
+                    JOIN grade_structures gs ON gc.structure_id = gs.id
+                    WHERE gs.class_id = %s
                     """,
                     (class_id,),
                 )

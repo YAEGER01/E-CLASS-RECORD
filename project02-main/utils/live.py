@@ -48,6 +48,21 @@ def register_socketio_handlers(socketio: SocketIO):
             return
         leave_room(f"class-{class_id}")
 
+    # Live grade edit broadcast: clients emit 'grade_edit' with { class_id, student_id, assessment_id, score }
+    @socketio.on("grade_edit")
+    def _on_grade_edit(data):
+        try:
+            payload = data or {}
+            class_id = int(payload.get("class_id"))
+        except Exception:
+            emit("error", {"message": "invalid grade_edit payload"})
+            return
+        # Broadcast to other clients in the same class room (do not echo back to sender)
+        try:
+            emit("grade_update", payload, room=f"class-{class_id}", include_self=False)
+        except Exception as e:
+            _logger.error(f"Failed to broadcast grade_edit for class {class_id}: {e}")
+
 
 def emit_live_version_update(class_id: int):
     """Emit the latest live version for a class to its room."""

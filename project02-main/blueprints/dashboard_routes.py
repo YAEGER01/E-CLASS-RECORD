@@ -30,7 +30,9 @@ def student_dashboard():
 
             # Get student profile data
             cursor.execute(
-                """SELECT s.*, pi.first_name, pi.last_name, pi.middle_name, pi.email
+                """SELECT s.*, pi.first_name, pi.last_name, pi.middle_name, pi.email,
+                pi.phone, pi.address, pi.birth_date, pi.gender, pi.emergency_contact_name,
+                pi.emergency_contact_phone
                 FROM students s
                 LEFT JOIN personal_info pi ON s.personal_info_id = pi.id
                 WHERE s.user_id = %s""",
@@ -69,6 +71,17 @@ def student_dashboard():
                                             self.last_name = data.get("last_name")
                                             self.middle_name = data.get("middle_name")
                                             self.email = data.get("email")
+                                            # additional normalized fields
+                                            self.phone = data.get("phone")
+                                            self.address = data.get("address")
+                                            self.birth_date = data.get("birth_date")
+                                            self.gender = data.get("gender")
+                                            self.emergency_contact_name = data.get(
+                                                "emergency_contact_name"
+                                            )
+                                            self.emergency_contact_phone = data.get(
+                                                "emergency_contact_phone"
+                                            )
                                             self.full_name = self.get_full_name()
 
                                         def get_full_name(self):
@@ -76,6 +89,7 @@ def student_dashboard():
                                                 return f"{self.first_name} {self.middle_name} {self.last_name}"
                                             return f"{self.first_name} {self.last_name}"
 
+                                    # instantiate PersonalInfo inside the if-block where it's defined
                                     self.personal_info = PersonalInfo(data)
 
                             def get_full_name(self):
@@ -84,6 +98,10 @@ def student_dashboard():
                                 return f"Student {self.id}"
 
                         self.student_profile = StudentProfile(student_data)
+                        # expose personal_info at the top-level user object for templates that expect
+                        # `user.personal_info` (some templates reference this directly)
+                        if hasattr(self.student_profile, "personal_info"):
+                            self.personal_info = self.student_profile.personal_info
                     else:
                         self.student_profile = None
 

@@ -174,12 +174,19 @@
 
                                 <div style="margin-top: 10px;">
                                     <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #374151;">Password *</label>
-                                    <input type="password" id="password" placeholder="Enter password" style="width: 100%; padding: 10px; border: 1px solid #d1d5db; border-radius: 5px; font-size: 14px; box-sizing: border-box;">
+                                    <div style="display: flex; gap: 8px; align-items: center;">
+                                        <input type="password" id="password" placeholder="Enter password" style="flex: 1; padding: 10px; border: 1px solid #d1d5db; border-radius: 5px; font-size: 14px; box-sizing: border-box;">
+                                        <button type="button" id="togglePassword" style="padding: 8px 10px; border: 1px solid #d1d5db; background: white; border-radius: 5px; cursor: pointer;">Show</button>
+                                    </div>
                                 </div>
 
                                 <div style="margin-top: 10px;">
                                     <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #374151;">Confirm Password *</label>
-                                    <input type="password" id="confirmPassword" placeholder="Confirm password" style="width: 100%; padding: 10px; border: 1px solid #d1d5db; border-radius: 5px; font-size: 14px; box-sizing: border-box;">
+                                    <div style="display: flex; gap: 8px; align-items: center;">
+                                        <input type="password" id="confirmPassword" placeholder="Confirm password" style="flex: 1; padding: 10px; border: 1px solid #d1d5db; border-radius: 5px; font-size: 14px; box-sizing: border-box;">
+                                        <button type="button" id="toggleConfirmPassword" style="padding: 8px 10px; border: 1px solid #d1d5db; background: white; border-radius: 5px; cursor: pointer;">Show</button>
+                                    </div>
+                                    <div id="passwordMatchMessage" style="margin-top:6px; font-size:13px; color: #6b7280;"></div>
                                 </div>
                             </div>
 
@@ -218,6 +225,99 @@
                 width: 450,
                 padding: '20px',
                 background: '#ffffff',
+                didOpen: () => {
+                    // Get elements
+                    const pw = document.getElementById('password');
+                    const cpw = document.getElementById('confirmPassword');
+                    const firstName = document.getElementById('firstName');
+                    const lastName = document.getElementById('lastName');
+                    const email = document.getElementById('email');
+                    const schoolId = document.getElementById('schoolId');
+                    const department = document.getElementById('department');
+                    const togglePw = document.getElementById('togglePassword');
+                    const toggleCpw = document.getElementById('toggleConfirmPassword');
+                    const matchMsg = document.getElementById('passwordMatchMessage');
+                    const confirmBtn = Swal.getConfirmButton();
+
+                    // Helper to update match message and return whether password is valid
+                    function updateMatchMessage() {
+                        if (!pw || !cpw || !matchMsg) return false;
+                        const p = pw.value || '';
+                        const cp = cpw.value || '';
+
+                        if (!p && !cp) {
+                            matchMsg.textContent = '';
+                            return false;
+                        }
+
+                        if (p !== cp) {
+                            matchMsg.style.color = '#dc2626';
+                            matchMsg.textContent = 'Passwords do not match';
+                            return false;
+                        }
+
+                        if (p.length < 6) {
+                            matchMsg.style.color = '#dc2626';
+                            matchMsg.textContent = 'Password must be at least 6 characters';
+                            return false;
+                        }
+
+                        matchMsg.style.color = '#059669';
+                        matchMsg.textContent = 'Passwords match';
+                        return true;
+                    }
+
+                    // Validate important fields and password rules
+                    function validateForm() {
+                        const requiredFilled = firstName && lastName && email && schoolId && department && pw
+                            && firstName.value.trim() !== '' && lastName.value.trim() !== '' && email.value.trim() !== ''
+                            && schoolId.value.trim() !== '' && department.value.trim() !== '' && pw.value !== '';
+
+                        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                        const emailOk = email && emailRegex.test(email.value.trim());
+
+                        const pwOk = updateMatchMessage();
+
+                        const valid = requiredFilled && emailOk && pwOk;
+
+                        if (confirmBtn) {
+                            confirmBtn.disabled = !valid;
+                            confirmBtn.style.opacity = valid ? '1' : '0.6';
+                        }
+                    }
+
+                    // Attach listeners
+                    [pw, cpw].forEach(el => {
+                        if (!el) return;
+                        el.addEventListener('input', () => {
+                            updateMatchMessage();
+                            validateForm();
+                        });
+                    });
+
+                    [firstName, lastName, email, schoolId, department].forEach(el => {
+                        if (!el) return;
+                        el.addEventListener('input', validateForm);
+                        el.addEventListener('change', validateForm);
+                    });
+
+                    // Toggle show/hide password
+                    if (togglePw && pw) {
+                        togglePw.addEventListener('click', () => {
+                            pw.type = pw.type === 'password' ? 'text' : 'password';
+                            togglePw.textContent = pw.type === 'password' ? 'Show' : 'Hide';
+                        });
+                    }
+                    if (toggleCpw && cpw) {
+                        toggleCpw.addEventListener('click', () => {
+                            cpw.type = cpw.type === 'password' ? 'text' : 'password';
+                            toggleCpw.textContent = cpw.type === 'password' ? 'Show' : 'Hide';
+                        });
+                    }
+
+                    // Initial validation state
+                    setTimeout(validateForm, 50);
+                },
                 preConfirm: () => {
                     // Personal Information
                     const firstName = document.getElementById('firstName').value.trim();

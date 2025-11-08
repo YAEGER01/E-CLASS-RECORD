@@ -954,12 +954,36 @@ document.addEventListener('DOMContentLoaded', () => {
         body: JSON.stringify({ class_id: classId, structure_name: name, structure_json: JSON.stringify(structure) })
       });
       const out = await res.json();
-      if (res.ok) { showToast('success', isEdit ? 'Updated' : 'Saved');
+      if (res.ok) {
+        showToast('success', isEdit ? 'Updated' : 'Saved');
+        // Keep the editor in-sync with the saved/updated record so
+        // subsequent clicks continue to update the same resource
+        // instead of creating a new one.
+        try {
+          // Try to infer the returned id from server response
+          const returnedId = out && (out.id || out.ID || out.insertId) ? (out.id || out.ID || out.insertId) : null;
+          if (isEdit) {
+            // editingStructureId already points to the updated record; keep it
+            // refresh lastLoadedSnapshot so Cancel/Edit restoration reflects latest
+            lastLoadedSnapshot = {
+              id: editingStructureId,
+              class_id: classId,
+              structure_name: name,
+              structure_json: JSON.stringify(structure)
+            };
+          } else if (returnedId) {
+            // for newly created record, switch into edit mode for that id
+            editingStructureId = String(returnedId);
+            lastLoadedSnapshot = {
+              id: returnedId,
+              class_id: classId,
+              structure_name: name,
+              structure_json: JSON.stringify(structure)
+            };
+          }
+        } catch (e) { /* non-fatal */ }
         // reload structures list
         await loadData();
-        if (isEdit) {
-          editingStructureId = null; // exit edit mode after successful update
-        }
       } else { showToast('error', out.error || out.message || 'Save failed'); }
     } catch (e) {
       showToast('error', 'Network error');

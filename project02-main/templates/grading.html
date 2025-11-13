@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Academic Grading Structure</title>
+    <!-- SweetAlert2 CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11.12.3/dist/sweetalert2.min.css">
+    <style>
+        /*
+        * ----------------------------------------
+        * Global & Layout Styles
+        * ----------------------------------------
+        */
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+            background-color: #f4f7f9;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: 100vh;
+        }
+
+        .table-wrapper {
+            max-width: 100%;
+            /* Ensure wrapper fits screen width */
+            width: 100%;
+            overflow-x: auto;
+            /* CRITICAL for wide table responsiveness */
+            background-color: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+        }
+
+        /*
+        * ----------------------------------------
+        * Table Styles
+        * ----------------------------------------
+        */
+        .grading-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        /* Base table cell styling */
+        .grading-table th,
+        .grading-table td {
+            padding: 12px 16px;
+            text-align: center;
+            border: 1px solid #e1e4e6;
+            transition: background-color 0.2s;
+        }
+
+        /*
+        * ----------------------------------------
+        * Header Styling (The two-level structure)
+        * ----------------------------------------
+        */
+        .grading-table thead {
+            background-color: #f8f9fa;
+        }
+
+        /* Level 1 Grouping Header - Base styles */
+        .header-group th {
+            font-size: 1.0rem;
+            font-weight: 700;
+            padding: 8px 16px;
+            border-bottom: 2px solid #ced4da;
+        }
+
+        /* ------------------ CUSTOM COLORS ------------------ */
+        .lecture-header {
+            background-color: #ff8c00;
+            /* Orange */
+            color: white;
+        }
+
+        .laboratory-header {
+            background-color: #007bff;
+            /* Blue */
+            color: white;
+        }
+
+        /* --------------------------------------------------- */
+
+        /* * STICKY COLUMN STYLES (CRITICAL FOR RESPONSIVENESS)
+        */
+        .student-header {
+            text-align: left;
+            padding-left: 20px;
+            min-width: 200px;
+            background-color: #f8f9fa;
+            color: #343a40;
+
+            /* Sticky properties */
+            position: sticky;
+            left: 0;
+            z-index: 10;
+            box-shadow: 2px 0 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .sticky-column {
+            text-align: left;
+            position: sticky;
+            left: 0;
+            z-index: 5;
+            background-color: #ffffff;
+            /* Ensure opaque background */
+            box-shadow: 2px 0 3px rgba(0, 0, 0, 0.05);
+        }
+
+        /* Override student data row first child to ensure stickiness */
+        .student-data-row td:first-child {
+            position: sticky;
+            left: 0;
+            z-index: 5;
+            background-color: #ffffff;
+            font-weight: 500;
+            font-size: 0.95rem;
+        }
+
+        /* Level 2 Assessment Header */
+        .header-assessment th {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: #495057;
+            text-transform: uppercase;
+        }
+
+        /* * ----------------------------------------
+        * Content Rows & Buttons
+        * ----------------------------------------
+        */
+
+        /* Button row styling */
+        .action-row td {
+            background-color: white;
+            padding: 16px 8px;
+        }
+
+        /* The Add Button */
+        .add-btn {
+            background-color: white;
+            color: #007bff;
+            border: 1px solid #ced4da;
+            padding: 8px 15px;
+            border-radius: 8px;
+            font-size: 0.8rem;
+            cursor: pointer;
+            outline: none;
+            transition: all 0.2s;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+            font-weight: 600;
+            white-space: nowrap;
+            /* Prevent button text from wrapping */
+        }
+
+        .add-btn:hover {
+            background-color: #f1f7fe;
+            border-color: #007bff;
+        }
+
+        .add-btn:active {
+            box-shadow: none;
+            transform: translateY(1px);
+        }
+
+        /* Score/Data cells */
+        .grading-table .data-placeholder {
+            font-size: 1.2rem;
+            color: #6c757d;
+            font-weight: 300;
+        }
+
+        /* Highlight specific cells */
+        .grading-table .data-score {
+            font-weight: 600;
+            color: #212529;
+        }
+
+        /* ----------------------------------------
+        * SweetAlert Custom Form Responsiveness
+        * ----------------------------------------
+        */
+        /* Ensure the custom HTML content fills the available space within the modal */
+        .swal-form-content {
+            width: 100%;
+        }
+
+        .swal2-container .swal2-html-container {
+            text-align: left;
+        }
+
+        .swal2-container label {
+            display: block;
+            margin-top: 10px;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #343a40;
+        }
+
+        /* This is the key responsive element for the inputs */
+        .swal2-container input {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ced4da;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+
+        /* ----------------------------------------
+        * Mobile Optimizations
+        * ----------------------------------------
+        */
+        @media (max-width: 600px) {
+            body {
+                padding: 10px;
+            }
+
+            .grading-table th,
+            .grading-table td {
+                padding: 8px 10px;
+                /* Reduced padding */
+            }
+
+            .header-group th {
+                font-size: 0.9rem;
+            }
+
+            .header-assessment th {
+                font-size: 0.75rem;
+            }
+
+            .student-header {
+                min-width: 150px;
+                padding-left: 10px;
+            }
+
+            .add-btn {
+                padding: 6px 10px;
+                font-size: 0.7rem;
+            }
+
+            /* --- SWEETALERT SPECIFIC OVERRIDES --- */
+            .swal2-popup {
+                width: 95% !important;
+                /* Force a high percentage width on small screens */
+                margin: 10px auto !important;
+                /* Ensure it is centered and has minimal vertical margin */
+            }
+
+            /* --- END SWEETALERT OVERRIDES --- */
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="table-wrapper">
+        <table class="grading-table">
+            <thead>
+                <!-- Level 1: Grouping Header Row -->
+                <tr class="header-group">
+                    <!-- Student column spans both header rows -->
+                    <th class="student-header" rowspan="2">STUDENT</th>
+
+                    <!-- LECTURE Grouping (spans 5 columns: Attendance, Homework, Quiz, Prelim, Final) -->
+                    <th colspan="5" class="lecture-header">LECTURE</th>
+
+                    <!-- LABORATORY Grouping (spans 1 column: Lab Participation) -->
+                    <th colspan="1" class="laboratory-header">LABORATORY</th>
+                </tr>
+
+                <!-- Level 2: Assessment Details Header Row (Order adjusted to match LECTURE/LABORATORY grouping) -->
+                <tr class="header-assessment">
+                    <!-- 5 LECTURE Columns -->
+                    <th>ATTENDANCE — 50.00%</th>
+                    <th>HOMEWORK — 25.00%</th>
+                    <th>QUIZ — 25.00%</th>
+                    <th>PRELIM EXAM — 25.00%</th>
+                    <th>FINAL EXAM — 25.00%</th>
+
+                    <!-- 1 LABORATORY Column -->
+                    <th>LAB PARTICIPATION — 25.00%</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- Action/Add Button Row (Order adjusted) -->
+                <tr class="action-row">
+                    <!-- Empty cell for Student column (needs sticky-column class) -->
+                    <td class="sticky-column"></td>
+                    <!-- 5 LECTURE Add Buttons -->
+                    <td><button class="add-btn" data-assessment="Attendance">+ Add</button></td>
+                    <td><button class="add-btn" data-assessment="Homework">+ Add</button></td>
+                    <td><button class="add-btn" data-assessment="Quiz">+ Add</button></td>
+                    <td><button class="add-btn" data-assessment="Prelim Exam">+ Add</button></td>
+                    <td><button class="add-btn" data-assessment="Final Exam">+ Add</button></td>
+                    <!-- 1 LABORATORY Add Button -->
+                    <td><button class="add-btn" data-assessment="Lab Participation">+ Add</button></td>
+                </tr>
+
+                <!-- Student Data Row (Scores are now placeholders) -->
+                <tr class="student-data-row">
+                    <td>FHE0000000002. MAdnononoxo</td>
+                    <!-- LECTURE SCORES (Placeholder) -->
+                    <td class="data-placeholder">—</td>
+                    <td class="data-placeholder">—</td>
+                    <td class="data-placeholder">—</td>
+                    <td class="data-placeholder">—</td>
+                    <td class="data-placeholder">—</td>
+                    <!-- LABORATORY SCORE (Placeholder) -->
+                    <td class="data-placeholder">—</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- SweetAlert2 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.12.3/dist/sweetalert2.all.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const addButtons = document.querySelectorAll('.add-btn');
+
+            addButtons.forEach(button => {
+                button.addEventListener('click', async (event) => {
+                    const assessmentType = event.target.getAttribute('data-assessment');
+
+                    const { value: formValues } = await Swal.fire({
+                        title: `Add New Assessment for ${assessmentType}`,
+                        // Wrapped HTML content in a div for better control on small screens
+                        html:
+                            '<div class="swal-form-content">' +
+                            '<label for="swal-name">Assessment Name</label>' +
+                            `<input id="swal-name" class="swal2-input" value="${assessmentType}">` +
+                            '<label for="swal-max">Maximum Possible Score</label>' +
+                            '<input id="swal-max" class="swal2-input" type="number" min="1" placeholder="e.g., 100" value="100">' +
+                            '<label for="swal-total">Total Class Weight (%)</label>' +
+                            '<input id="swal-total" class="swal2-input" type="number" min="1" max="100" placeholder="e.g., 25" value="25">' +
+                            '</div>', // Close wrapper
+
+                        focusConfirm: false,
+                        showCancelButton: true,
+                        confirmButtonText: 'Save Assessment',
+                        preConfirm: () => {
+                            // Gather values and perform basic validation
+                            const name = document.getElementById('swal-name').value;
+                            const maxScore = document.getElementById('swal-max').value;
+                            const totalWeight = document.getElementById('swal-total').value;
+
+                            if (!name || !maxScore || !totalWeight) {
+                                Swal.showValidationMessage('All fields are required.');
+                                return false;
+                            }
+                            if (isNaN(maxScore) || maxScore <= 0) {
+                                Swal.showValidationMessage('Max Score must be a positive number.');
+                                return false;
+                            }
+                            if (isNaN(totalWeight) || totalWeight < 1 || totalWeight > 100) {
+                                Swal.showValidationMessage('Total Weight must be between 1 and 100.');
+                                return false;
+                            }
+
+                            return {
+                                name: name,
+                                maxScore: parseFloat(maxScore),
+                                totalWeight: parseFloat(totalWeight)
+                            };
+                        }
+                    });
+
+                    if (formValues) {
+                        // Log the collected data (in a real app, you would send this to the server/database)
+                        console.log('New Assessment Created:', formValues);
+
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Assessment Saved!',
+                            html: `Assessment <strong>${formValues.name}</strong> has been added with a maximum score of <strong>${formValues.maxScore}</strong> and class weight of <strong>${formValues.totalWeight}%</strong>.`,
+                            confirmButtonText: 'OK'
+                        });
+                    }
+                });
+            });
+        });
+
+        // Custom alert function to replace the browser's native alert (kept for reference, though Swal is used now)
+        function alert(message) {
+            const existingAlert = document.getElementById('custom-alert');
+            if (existingAlert) existingAlert.remove();
+
+            const alertBox = document.createElement('div');
+            alertBox.id = 'custom-alert';
+            alertBox.style.cssText = `
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            padding: 20px;
+            background: #007bff; 
+            color: white;
+            border-radius: 8px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+            z-index: 1000;
+            font-size: 1.1rem;
+            text-align: center;
+        `;
+            alertBox.textContent = message;
+            document.body.appendChild(alertBox);
+
+            setTimeout(() => {
+                alertBox.remove();
+            }, 3000);
+        }
+    </script>
+</body>
+
+</html>

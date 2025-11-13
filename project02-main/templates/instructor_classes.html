@@ -10,127 +10,181 @@
 </head>
 
 <body>
-    <div class="container">
-    <a href="{{ url_for('dashboard.instructor_dashboard') }}" class="back-link">← Back to Dashboard</a>
-
-        <div class="card">
-            <h1>E-Class Record - Class Management</h1>
-
-            <form id="class-form" onsubmit="event.preventDefault(); handleFormSubmit();">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-                <input type="hidden" id="class-id">
-                <div id="step1" class="form-step">
-                    <div class="form-grid">
-                        <div class="form-group">
-                            <label for="classType">Class Type</label>
-                            <select id="classType" required>
-                                <option value="" disabled selected>Select Type</option>
-                                <option value="MINOR">MINOR</option>
-                                <option value="MAJOR">MAJOR</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label for="year">Year</label>
-                            <select id="year" required>
-                                <option value="" disabled selected>Select Year</option>
-                                <option value="2024">2024</option>
-                                <option value="2025">2025</option>
-                                <option value="2026">2026</option>
-                                <option value="addNewOption">Add New Year...</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label for="semester">Semester</label>
-                            <select id="semester" required>
-                                <option value="" disabled selected>Select Semester</option>
-                                <option value="1st sem">1st Semester</option>
-                                <option value="2nd sem">2nd Semester</option>
-                                <option value="addNewOption">Add New Semester...</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div class="button-group">
-                        <button type="button" id="next-btn" class="btn-primary">Next</button>
-                        <button type="button" id="clear-btn" class="btn-secondary">Clear Form</button>
+    <!-- Header -->
+    <header class="main-header">
+        <div class="header-container">
+            <div class="header-brand">
+                <h1>E-Class Record</h1>
+                <div class="header-subtitle">Class Management</div>
+            </div>
+            <nav class="header-nav">
+                <div class="main-nav">
+                    <a href="{{ url_for('dashboard.instructor_dashboard') }}" class="nav-link">Dashboard</a>
+                    <a href="{{ url_for('instructor.instructor_classes') }}" class="nav-link active">Classes</a>
+                    <a href="{{ url_for('instructor.gradebuilder_v2') }}" class="nav-link">Grade Builder</a>
+                    <a href="#" class="nav-link">Reports</a>
+                </div>
+            </nav>
+            <div class="header-user">
+                <div class="user-info">
+                    <div class="user-avatar">IC</div>
+                    <div class="user-details">
+                        <div class="user-name">Instructor Classes</div>
+                        <div class="user-role">Management</div>
                     </div>
                 </div>
-                <div id="step2" class="form-step" style="display: none;">
-                    <div class="form-grid">
-                        <div class="form-group">
-                            <label for="course">Course</label>
-                            <select id="course" required>
-                                <option value="" disabled selected>Select Course</option>
-                                <option value="BSIT">BS Information Technology</option>
-                                <option value="BSCS">BS Computer Science</option>
-                                <option value="BSIS">BS Information Systems</option>
-                                <option value="BSCpE">BS Computer Engineering</option>
-                                <option value="BSEMC">BS Entertainment & Multimedia Computing</option>
-                                <option value="addNewOption">Add New Course...</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label for="track">Track</label>
-                            <select id="track" required>
-                                <option value="" disabled selected>Select Track</option>
-                                <option value="Programming">WMAD</option>
-                                <option value="Networking">NETWORKING SECURITY</option>
-                                <option value="Database">BPO</option>
-                                <option value="Web Development">BA</option>
-
-                                <option value="addNewOption">Add New Track...</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label for="sectionNumber">Section</label>
-                            <div class="section-group">
-                                <select id="sectionNumber" required aria-label="Section Number">
-                                    <option value="" disabled selected>Num</option>
-                                    <option value="1">1</option>
-                                    <option value="2">2</option>
-                                    <option value="3">3</option>
-                                    <option value="4">4</option>
-                                    <option value="5">5</option>
-                                </select>
-                                <select id="sectionLetter" required aria-label="Section Letter">
-                                    <option value="" disabled selected>Letter</option>
-                                    <option value="A">A</option>
-                                    <option value="B">B</option>
-                                    <option value="C">C</option>
-                                    <option value="D">D</option>
-                                </select>
-                            </div>
-                        </div>
-                        <div class="form-group">
-                            <label for="schedule">Schedule</label>
-                            <select id="schedule" required>
-                                <option value="" disabled selected>Select Schedule</option>
-                                <option value="M-W-F 8-10AM">M-W-F 8-10AM</option>
-                                <option value="T-Th 10-12PM">T-Th 10-12PM</option>
-                                <option value="M-W-F 1-3PM">M-W-F 1-3PM</option>
-                                <option value="T-Th 3-5PM">T-Th 3-5PM</option>
-                                <option value="addNewOption">Add New Schedule...</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div class="button-group">
-                        <button type="button" id="back-btn" class="btn-secondary">Back</button>
-                        <button type="submit" id="submit-btn" class="btn-primary">
-                            <span id="submit-text">Add Class</span>
-                            <span id="submit-loading" class="loading" style="display: none;"></span>
-                        </button>
-                    </div>
-                </div>
-            </form>
-        </div>
-
-        <div class="card">
-            <h2>Your Classes</h2>
-            <div id="alert-container"></div>
-            <div id="classes-container" class="record-list">
-                <p class="empty-state">Loading classes...</p>
+                <a href="{{ url_for('dashboard.instructor_dashboard') }}" class="back-btn">← Back to Dashboard</a>
             </div>
         </div>
-    </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <div class="content-container">
+            <!-- Left Sidebar - 40% -->
+            <aside class="sidebar" id="left-sidebar">
+                <section class="sidebar-section">
+                    <h2 class="section-title">Add New Class</h2>
+                    
+                    <form id="class-form" onsubmit="event.preventDefault(); handleFormSubmit();">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                        <input type="hidden" id="class-id">
+                        
+                        <div id="step1" class="form-step">
+                            <div class="form-grid">
+                                <div class="form-group">
+                                    <label for="classType">Class Type</label>
+                                    <select id="classType" required>
+                                        <option value="" disabled selected>Select Type</option>
+                                        <option value="MINOR">MINOR</option>
+                                        <option value="MAJOR">MAJOR</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="year">Year</label>
+                                    <select id="year" required>
+                                        <option value="" disabled selected>Select Year</option>
+                                        <option value="2024">2024</option>
+                                        <option value="2025">2025</option>
+                                        <option value="2026">2026</option>
+                                        <option value="addNewOption">Add New Year...</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="semester">Semester</label>
+                                    <select id="semester" required>
+                                        <option value="" disabled selected>Select Semester</option>
+                                        <option value="1st sem">1st Semester</option>
+                                        <option value="2nd sem">2nd Semester</option>
+                                        <option value="addNewOption">Add New Semester...</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="form-actions">
+                                <button type="button" id="next-btn" class="btn btn-primary">Next</button>
+                                <button type="button" id="clear-btn" class="btn btn-secondary">Clear Form</button>
+                            </div>
+                        </div>
+                        
+                        <div id="step2" class="form-step" style="display: none;">
+                            <div class="form-grid">
+                                <div class="form-group">
+                                    <label for="course">Course</label>
+                                    <select id="course" required>
+                                        <option value="" disabled selected>Select Course</option>
+                                        <option value="BSIT">BS Information Technology</option>
+                                        <option value="BSCS">BS Computer Science</option>
+                                        <option value="BSIS">BS Information Systems</option>
+                                        <option value="BSCpE">BS Computer Engineering</option>
+                                        <option value="BSEMC">BS Entertainment & Multimedia Computing</option>
+                                        <option value="addNewOption">Add New Course...</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="track">Track</label>
+                                    <select id="track" required>
+                                        <option value="" disabled selected>Select Track</option>
+                                        <option value="Programming">WMAD</option>
+                                        <option value="Networking">NETWORKING SECURITY</option>
+                                        <option value="Database">BPO</option>
+                                        <option value="Web Development">BA</option>
+                                        <option value="addNewOption">Add New Track...</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="sectionNumber">Section</label>
+                                    <div class="section-group">
+                                        <select id="sectionNumber" required aria-label="Section Number">
+                                            <option value="" disabled selected>Num</option>
+                                            <option value="1">1</option>
+                                            <option value="2">2</option>
+                                            <option value="3">3</option>
+                                            <option value="4">4</option>
+                                            <option value="5">5</option>
+                                        </select>
+                                        <select id="sectionLetter" required aria-label="Section Letter">
+                                            <option value="" disabled selected>Letter</option>
+                                            <option value="A">A</option>
+                                            <option value="B">B</option>
+                                            <option value="C">C</option>
+                                            <option value="D">D</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <label for="schedule">Schedule</label>
+                                    <select id="schedule" required>
+                                        <option value="" disabled selected>Select Schedule</option>
+                                        <option value="M-W-F 8-10AM">M-W-F 8-10AM</option>
+                                        <option value="T-Th 10-12PM">T-Th 10-12PM</option>
+                                        <option value="M-W-F 1-3PM">M-W-F 1-3PM</option>
+                                        <option value="T-Th 3-5PM">T-Th 3-5PM</option>
+                                        <option value="addNewOption">Add New Schedule...</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="form-actions">
+                                <button type="button" id="back-btn" class="btn btn-secondary">Back</button>
+                                <button type="submit" id="submit-btn" class="btn btn-primary">
+                                    <span id="submit-text">Add Class</span>
+                                    <span id="submit-loading" class="loading" style="display: none;"></span>
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </section>
+
+                <section class="sidebar-section">
+                    <h3 class="section-title">Quick Tips</h3>
+                    <ul class="tips-list">
+                        <li>Fill in all required fields to add a new class</li>
+                        <li>Use "Add New..." to customize dropdown options</li>
+                        <li>Classes are automatically assigned join codes</li>
+                        <li>Edit existing classes using the action buttons</li>
+                    </ul>
+                </section>
+            </aside>
+
+            <!-- Right Main Content - 60% -->
+            <section class="main-section">
+                <div class="editor-section">
+                    <div class="editor-header">
+                        <h2>Your Classes</h2>
+                        <div class="editor-actions">
+                            <button class="btn btn-secondary" id="refresh-btn" onclick="loadClasses()">Refresh</button>
+                        </div>
+                    </div>
+                    
+                    <div class="editor-body">
+                        <div class="alert-container" id="alert-container"></div>
+                        <div id="classes-container" class="record-list">
+                            <p class="empty-state">Loading classes...</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </main>
 
     <!-- Modal for adding new options -->
     <div id="add-option-modal" class="modal-overlay">
@@ -138,9 +192,9 @@
             <h3>Add New Option</h3>
             <p id="modal-label"></p>
             <input type="text" id="modal-input" placeholder="Enter new value..." autofocus>
-            <div class="button-group">
-                <button id="modal-save" class="btn-primary">Save</button>
-                <button id="modal-cancel" class="btn-secondary">Cancel</button>
+            <div class="form-actions">
+                <button id="modal-save" class="btn btn-primary">Save</button>
+                <button id="modal-cancel" class="btn btn-secondary">Cancel</button>
             </div>
         </div>
     </div>
@@ -153,9 +207,9 @@
             <div id="preview-details" class="preview-details">
                 <!-- Preview content will be inserted here -->
             </div>
-            <div class="button-group">
-                <button id="preview-confirm" class="btn-primary">ADD CLASS</button>
-                <button id="preview-cancel" class="btn-secondary">Cancel</button>
+            <div class="form-actions">
+                <button id="preview-confirm" class="btn btn-primary">ADD CLASS</button>
+                <button id="preview-cancel" class="btn btn-secondary">Cancel</button>
             </div>
         </div>
     </div>

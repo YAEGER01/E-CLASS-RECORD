@@ -3,85 +3,10 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/instructor-grades-unified.css') }}">
   <title>Unified — Grade Entry</title>
   <style>
-    /* Calasans font for header cells */
-    @font-face {
-      font-family: 'Calasans';
-      src: url("{{ url_for('static', filename='font/calasans/Calasans 04 Solid Demo.otf') }}") format('opentype');
-      font-weight: 700;
-      font-style: normal;
-      font-display: swap;
-    }
-    :root {
-      --header-bg: #f8fafc;
-      --border: #e2e8f0;
-      --row-hover: #f1f5f9;
-      --sticky-bg: #ffffff;
-      --focus: #0ea5e9;
-    }
-    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji", "Segoe UI Emoji"; margin:0; }
-    .page { padding: 12px; }
-    .toolbar { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:10px; }
-    .matrix-wrapper { overflow:auto; border:1px solid var(--border); border-radius:10px; }
-    table.matrix { border-collapse: separate; border-spacing:0; min-width: 960px; width:100%; }
-  table.matrix th, table.matrix td { border-bottom:1px solid var(--border); border-right:1px solid var(--border); padding:8px; }
-    table.matrix th { background: var(--header-bg); position: sticky; top: 0; z-index: 2; }
-  /* Apply Calasans to header text */
-  table.matrix th { font-family: 'Calasans', system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji", "Segoe UI Emoji"; }
-    table.matrix th.sticky-left, table.matrix td.sticky-left { position: sticky; left: 0; background: var(--sticky-bg); z-index: 3; }
-    table.matrix td.sticky-left { font-weight: 600; }
-    thead tr:nth-child(1) th { text-transform: uppercase; font-size:.85rem; letter-spacing:.03em; }
-    thead tr:nth-child(2) th { font-size:.85rem; }
-    thead tr:nth-child(3) th { font-size:.8rem; white-space:nowrap; }
-    tbody tr { background:#fff; }
-  /* Section band styles for clear separation */
-  th.section-cell { background:#e2e8f0; text-transform: uppercase; letter-spacing:.06em; font-size: 0.95rem; border-top:2px solid #cbd5e1; border-bottom:2px solid #cbd5e1; }
-  th.section-subtitle { background:#f1f5f9; font-weight:700; font-size:0.9rem; border-bottom:1px solid #cbd5e1; }
-  /* Visual separator between the two sections */
-  th.section-cell + th.section-cell, th.section-subtitle + th.section-subtitle { border-left: 3px solid #94a3b8; }
-    tbody tr.highlight { background: #fff7ed; }
-  /* Subcategory header coloring: stronger to match grading.html (lecture=orange, laboratory=blue) */
-  th.subcat-head[data-category="lecture"] {
-    background-color: #ff8c00; /* bold orange */
-    color: #ffffff;
-    border-bottom: 2px solid rgba(0,0,0,0.06);
-    box-shadow: inset 0 -4px 8px rgba(0,0,0,0.04);
-  }
-  th.subcat-head[data-category="laboratory"] {
-    background-color: #007bff; /* bold blue */
-    color: #ffffff;
-    border-bottom: 2px solid rgba(0,0,0,0.06);
-    box-shadow: inset 0 -4px 8px rgba(0,0,0,0.04);
-  }
-  /* Structure actions category badges to visually separate Lecture vs Laboratory */
-  .structure-cat { display:inline-block; padding:6px 10px; border-radius:8px; font-weight:700; color:#ffffff; }
-  .structure-cat[data-category="lecture"] { background-color: #ff8c00; }
-  .structure-cat[data-category="laboratory"] { background-color: #007bff; }
-    input.score { width: 72px; padding: 6px 8px; font-size: 1rem; border:1px solid var(--border); border-radius:6px; text-align:right; }
-    input.score:focus { outline: 2px solid var(--focus); outline-offset: 1px; background:#fff; }
-  input.score.score-invalid { border-color: #ef4444; box-shadow: 0 0 0 3px rgba(239,68,68,0.12); }
-    .max { color:#64748b; font-size:.75rem; }
-    .category-cell { text-align:center; font-weight:700; }
-    .subcell { text-align:center; }
-    .assess-head { text-align:center; }
-    .btn { padding:8px 12px; border:1px solid var(--border); background:#fff; border-radius:8px; cursor:pointer; }
-    .btn-primary { background:#0ea5e9; color:#fff; border-color:#0ea5e9; }
-    .status { color:#64748b; }
-    .hidden-by-filter { display: none !important; }
-    .btn-row { display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
-    /* Computed columns styling */
-    th.computed-head.total-col, td.computed.total-col { background: #e0f2fe; }
-    th.computed-head.equiv-col, td.computed.equiv-col { background: #e0f2fe; }
-    th.computed-head.reqpct-col, td.computed.reqpct-col { background: #f5f5dc; }
-    th.computed-head { font-weight:700; text-align:center; }
-    td.computed { text-align:right; font-weight:600; }
-  /* Ratings column styling (green) */
-  th.computed-head.rating-col, td.computed.rating-col { background: #dcfce7; color: #065f46; }
-  th.computed-head.rating-col { font-weight:800; }
-  /* Slightly stronger green for Lecture/Laboratory specific headers if needed */
-  th.computed-head.rating-col[data-category="LECTURE"], th.computed-head.rating-col[data-category="lecture"] { background: #bbf7d0; }
-  th.computed-head.rating-col[data-category="LABORATORY"], th.computed-head.rating-col[data-category="laboratory"] { background: #bbf7d0; }
+    
   </style>
   <script src="{{ url_for('static', filename='js/swal.js') }}"></script>
   <!-- Load Socket.IO client from local static copy for offline support -->
@@ -90,60 +15,55 @@
 <body>
   <div class="page">
   <div id="page-data" data-class-id="{{ class_id }}" data-structure-id="{{ structure_id }}" data-csrf-token="{{ csrf_token }}" style="display:none"></div>
-    <div class="toolbar" style="outline: 5px solid black; border-radius: 10px;padding: 5px;">
+    <div class="toolbar" >
       <div>
         <a class="btn" href="{{ url_for('dashboard.instructor_dashboard') }}">← Back</a>
       </div>
       <div class="status" id="save-status"></div>
       <div class="btn-row">
-  <!-- New function buttons -->
-  <button class="btn-primary btn" id="btn-save-grading">Save Grading</button>
-  <button class="btn" id="btn-recalc-modal" title="Recalculate view">Recalculate</button>
-  <button class="btn" id="btn-sort">Sort</button>
-  <button class="btn" id="btn-filter">Filter</button>
-  <button class="btn" id="btn-lock">Lock/Unlock Inputs</button>
-  <button class="btn" id="btn-submit-release">Submit/Release</button>
-
 
   {# Computation Management button removed: endpoint no longer exists #}
 
   <!-- Legacy quick actions preserved -->
-  <button class="btn" id="recalc-btn" title="Quick reload">⟳</button>
-  <button class="btn" id="save-btn" title="Quick save">💾</button>
-      <!-- Persistent save and live sync controls -->
-      <label style="margin-left:8px;display:flex;gap:6px;align-items:center">Keep edits for
-        <input id="persist-minutes" type="number" min="1" max="1440" value="3" style="width:64px;margin-left:6px;padding:6px;border-radius:6px;border:1px solid var(--border)"> minutes
-        <button class="btn" id="btn-enable-persist" style="margin-left:8px">Enable</button>
-        <button class="btn" id="btn-clear-persist" title="Clear persisted edits" style="margin-left:6px">Clear</button>
-      </label>
-      <!-- Live sync is enabled automatically on page load; toggle removed -->
+ 
       </div>
     </div>
 <br>
     <!-- Structure summary and quick add (dropdown per category) -->
-    <div id="structure-actions" style="margin: 8px 0 12px 0;">
-      <h1>Add Assessments</h1>
-      <hr>
-      {% if structure %}
-        {% for cat in ['LECTURE','LABORATORY'] %}
+    <div class="collapsable-drawer-container">
+      <button class="drawer-toggle collapsed" aria-expanded="false" aria-controls="drawerContent">
+        <h1>Add Assessments <span class="arrow-icon">▼</span></h1>
+      </button>
+    
+      <div class="drawer-content" id="drawerContent" aria-hidden="true">
+        <div id="structure-actions" style="margin: 8px 0 12px 0;">
+          <hr>
+          {% if structure %}
+          {% for cat in ['LECTURE','LABORATORY'] %}
           {% set sublist = structure.get(cat) or [] %}
           {% if sublist %}
-            <div class="structure-cat" data-category="{{ cat|lower }}" style="margin:6px 0; font-weight:700;">{{ cat }}</div>
-            <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
-              <select id="select-{{ cat|lower }}" data-category="{{ cat }}" class="btn" style="min-width: 260px;">
-                {% for sub in sublist %}
-                  {% set sid = (sub_id_map.get(cat, {}) or {}).get(sub.name) %}
-                  <option value="{{ sub.name }}" data-subcategory-id="{{ sid }}">{{ sub.name }} — {{ '%.2f' % (sub.weight|float) }}%</option>
-                {% endfor %}
-              </select>
-              <button class="btn" data-action="add-assessment-select" data-select-id="select-{{ cat|lower }}">+ Add assessment</button>
-            </div>
+          <div class="structure-cat" data-category="{{ cat|lower }}" style="margin:6px 0; font-weight:700;">{{ cat }}</div>
+          <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
+            <select id="select-{{ cat|lower }}" data-category="{{ cat }}" class="btn" style="min-width: 260px;">
+              {% for sub in sublist %}
+              {% set sid = (sub_id_map.get(cat, {}) or {}).get(sub.name) %}
+              <option value="{{ sub.name }}" data-subcategory-id="{{ sid }}">{{ sub.name }} — {{ '%.2f' % (sub.weight|float)
+                }}%
+              </option>
+              {% endfor %}
+            </select>
+            <button class="btn" data-action="add-assessment-select" data-select-id="select-{{ cat|lower }}">+ Add
+              assessment</button>
+          </div>
           {% endif %}
-        {% endfor %}
-      {% else %}
-        <div class="status">No active grading structure found.</div>
-      {% endif %}
-    </div>
+          {% endfor %}
+          {% else %}
+          <div class="status">No active grading structure found.</div>
+          {% endif %}
+        </div>
+      </div>
+      </div>
+<br>
 
     <div class="matrix-wrapper">
       <table class="matrix">
@@ -1239,7 +1159,36 @@
       // (handlers already attached above)
     })();
   </script>
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+      const toggleButton = document.querySelector('.drawer-toggle');
+      const content = document.querySelector('.drawer-content');
 
+      // Check if both elements exist
+      if (!toggleButton || !content) {
+        console.error("Drawer elements not found in the DOM.");
+        return;
+      }
+
+      toggleButton.addEventListener('click', () => {
+        // 1. Toggle the 'open' class on the content
+        content.classList.toggle('open');
+
+        // 2. Toggle the 'collapsed' class on the button
+        toggleButton.classList.toggle('collapsed');
+
+        // 3. Update accessibility attributes (ARIA)
+        const isExpanded = content.classList.contains('open');
+        toggleButton.setAttribute('aria-expanded', isExpanded);
+        content.setAttribute('aria-hidden', !isExpanded);
+
+        // OPTIONAL: If using the 'max-height' trick, a small delay 
+        // before removing/adding a class that contains padding/margin 
+        // can sometimes improve the appearance of the transition, 
+        // but toggling 'open' on the content is usually enough.
+      });
+    });
+</script>
   <script id="ga-json" type="application/json">{{ grouped_assessments | tojson }}</script>
   <script src="{{ url_for('static', filename='js/instructor_grades_unified.js') }}"></script>
 </body>

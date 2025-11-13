@@ -121,9 +121,8 @@ def api_grade_entry_compute():
                     "total": round(total, 2),
                     "eq_pct": round(eq_pct, 2),
                     "reqpct": reqpct,
-                    # Provide a display-friendly value for legacy UI where the required display is scaled (e.g. 5.00 instead of 50.00)
-                    # reqpct_display divides the percent value by 10 for the requested format (adjust if your display rule differs)
-                    "reqpct_display": round(reqpct / 10.0, 2),
+                    # Provide a display-friendly value that matches the computed reqpct (no extra scaling)
+                    "reqpct_display": round(reqpct, 2),
                 }
 
             results[str(sid)] = stud_res

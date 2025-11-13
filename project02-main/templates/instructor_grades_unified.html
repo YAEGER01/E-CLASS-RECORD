@@ -76,6 +76,12 @@
     th.computed-head.reqpct-col, td.computed.reqpct-col { background: #f5f5dc; }
     th.computed-head { font-weight:700; text-align:center; }
     td.computed { text-align:right; font-weight:600; }
+  /* Ratings column styling (green) */
+  th.computed-head.rating-col, td.computed.rating-col { background: #dcfce7; color: #065f46; }
+  th.computed-head.rating-col { font-weight:800; }
+  /* Slightly stronger green for Lecture/Laboratory specific headers if needed */
+  th.computed-head.rating-col[data-category="LECTURE"], th.computed-head.rating-col[data-category="lecture"] { background: #bbf7d0; }
+  th.computed-head.rating-col[data-category="LABORATORY"], th.computed-head.rating-col[data-category="laboratory"] { background: #bbf7d0; }
   </style>
   <script src="{{ url_for('static', filename='js/swal.js') }}"></script>
   <!-- Load Socket.IO client from local static copy for offline support -->
@@ -156,7 +162,7 @@
                 {% set col_span = col_span + (arr_len + 3 if arr_len > 0 else 1) %}
               {% endfor %}
               {% if col_span > 0 %}
-                <th class="section-cell" colspan="{{ col_span }}">{{ cat }}</th>
+                <th class="section-cell" colspan="{{ col_span + 1 }}">{{ cat }}</th>
               {% endif %}
             {% endfor %}
           </tr>
@@ -172,7 +178,7 @@
                 {% set col_span = col_span + (arr_len + 3 if arr_len > 0 else 1) %}
               {% endfor %}
               {% if col_span > 0 %}
-                <th class="section-subtitle" colspan="{{ col_span }}">{% if cat == 'LECTURE' %}Lecture Categories{% else %}Laboratory Categories{% endif %}</th>
+                <th class="section-subtitle" colspan="{{ col_span + 1 }}">{% if cat == 'LECTURE' %}Lecture Categories{% else %}Laboratory Categories{% endif %}</th>
               {% endif %}
             {% endfor %}
           </tr>
@@ -188,6 +194,8 @@
                 {# Add a data-category attribute and class so we can target only the subcategory header cells #}
                 <th class="subcell subcat-head" data-category="{{ cat|lower }}" colspan="{{ spanv }}">{{ sub }}{% if w is not none %} — {{ '%.2f' % (w|float) }}%{% endif %}</th>
               {% endfor %}
+              {# Add the rating column for this category at the end #}
+              <th class="subcell subcat-head" data-category="{{ cat|lower }}">{% if cat == 'LECTURE' %}LECTURE RATINGS{% else %}LABORATORY RATINGS{% endif %}</th>
             {% endfor %}
           </tr>
           <tr>
@@ -216,6 +224,8 @@
                   <th class="assess-head computed-head reqpct-col" data-category="{{ cat }}" data-subcategory="{{ sub }}" data-subweight="{{ (w|float) if w is not none else 0 }}">% of REQUIREMENT</th>
                 {% endif %}
               {% endfor %}
+              {# Add the rating column header for this category #}
+              <th class="assess-head computed-head rating-col" data-category="{{ cat }}">RATING</th>
             {% endfor %}
           </tr>
         </thead>
@@ -241,6 +251,8 @@
                     <td class="computed reqpct-col" data-category="{{ cat }}" data-subcategory="{{ sub }}" data-subweight="{{ (subdef.weight|float) if subdef.weight is not none else 0 }}"></td>
                   {% endif %}
                 {% endfor %}
+                {# Add the rating cell for this category #}
+                <td class="computed rating-col" data-category="{{ cat }}"></td>
               {% endfor %}
             </tr>
           {% endfor %}
@@ -1132,10 +1144,13 @@
                 if (vals.reqpct_display !== undefined) {
                   reqpctCell.textContent = Number(vals.reqpct_display).toFixed(2);
                 } else if (vals.reqpct !== undefined) {
-                  reqpctCell.textContent = (Number(vals.reqpct) / 10.0).toFixed(2);
+                  // Display the server-provided reqpct directly (no /10 scaling)
+                  reqpctCell.textContent = Number(vals.reqpct).toFixed(2);
                 }
               }
             });
+          // After applying server results, recompute category rating sums so RATING columns reflect server values
+          getStudentRows().forEach(tr => recomputeCategoryRatings(tr));
           });
         } catch (err) {
           // silent fallback
@@ -1165,12 +1180,34 @@
         const reqpctCell = tr.querySelector(`td.computed.reqpct-col[data-category="${group.category}"][data-subcategory="${group.subcategory}"]`);
         if (totalCell) totalCell.textContent = fmt(total, 2);
   if (equivCell) equivCell.textContent = fmt(eq, 2);
-        // Display the scaled 'percent of requirement' as a numeric value (e.g. 5.00) instead of percent (e.g. 50.00%)
-        if (reqpctCell) reqpctCell.textContent = fmt(reqpct / 10.0, 2);
+        // Display the 'percent of requirement' as a numeric value matching the authoritative compute
+        // (no extra /10 scaling). Show the raw reqpct rounded to 2 decimals.
+        if (reqpctCell) reqpctCell.textContent = fmt(reqpct, 2);
       };
+      // Recompute rating (sum of % of REQUIREMENT cells) for all categories in a row
+      const recomputeCategoryRatings = (tr) => {
+        if (!tr) return;
+        // derive categories from SUB_GROUPS
+        const cats = Array.from(new Set(Object.values(SUB_GROUPS).map(g => g.category)));
+        cats.forEach(cat => {
+          let sum = 0;
+          let any = false;
+          tr.querySelectorAll(`td.computed.reqpct-col[data-category="${cat}"]`).forEach(td => {
+            const txt = (td.textContent || '').trim();
+            if (txt === '') return;
+            const n = parseFloat(txt);
+            if (!isNaN(n)) { sum += n; any = true; }
+          });
+          const ratingCell = tr.querySelector(`td.computed.rating-col[data-category="${cat}"]`);
+          if (ratingCell) ratingCell.textContent = any ? fmt(sum, 2) : '';
+        });
+      };
+
       const recomputeRow = (tr) => {
         if (!tr) return;
         Object.values(SUB_GROUPS).forEach(g => recomputeRowForSub(tr, g));
+        // after computing subcategory values, compute category ratings
+        recomputeCategoryRatings(tr);
       };
       const recomputeAll = () => {
         getStudentRows().forEach(tr => recomputeRow(tr));

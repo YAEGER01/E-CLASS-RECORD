@@ -41,6 +41,23 @@
   /* Visual separator between the two sections */
   th.section-cell + th.section-cell, th.section-subtitle + th.section-subtitle { border-left: 3px solid #94a3b8; }
     tbody tr.highlight { background: #fff7ed; }
+  /* Subcategory header coloring: stronger to match grading.html (lecture=orange, laboratory=blue) */
+  th.subcat-head[data-category="lecture"] {
+    background-color: #ff8c00; /* bold orange */
+    color: #ffffff;
+    border-bottom: 2px solid rgba(0,0,0,0.06);
+    box-shadow: inset 0 -4px 8px rgba(0,0,0,0.04);
+  }
+  th.subcat-head[data-category="laboratory"] {
+    background-color: #007bff; /* bold blue */
+    color: #ffffff;
+    border-bottom: 2px solid rgba(0,0,0,0.06);
+    box-shadow: inset 0 -4px 8px rgba(0,0,0,0.04);
+  }
+  /* Structure actions category badges to visually separate Lecture vs Laboratory */
+  .structure-cat { display:inline-block; padding:6px 10px; border-radius:8px; font-weight:700; color:#ffffff; }
+  .structure-cat[data-category="lecture"] { background-color: #ff8c00; }
+  .structure-cat[data-category="laboratory"] { background-color: #007bff; }
     input.score { width: 72px; padding: 6px 8px; font-size: 1rem; border:1px solid var(--border); border-radius:6px; text-align:right; }
     input.score:focus { outline: 2px solid var(--focus); outline-offset: 1px; background:#fff; }
   input.score.score-invalid { border-color: #ef4444; box-shadow: 0 0 0 3px rgba(239,68,68,0.12); }
@@ -105,7 +122,7 @@
         {% for cat in ['LECTURE','LABORATORY'] %}
           {% set sublist = structure.get(cat) or [] %}
           {% if sublist %}
-            <div style="margin:6px 0; font-weight:700;">{{ cat }}</div>
+            <div class="structure-cat" data-category="{{ cat|lower }}" style="margin:6px 0; font-weight:700;">{{ cat }}</div>
             <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
               <select id="select-{{ cat|lower }}" data-category="{{ cat }}" class="btn" style="min-width: 260px;">
                 {% for sub in sublist %}
@@ -168,7 +185,8 @@
                 {% set arr_len = arr|length %}
                 {% set spanv = (arr_len + 3 if arr_len > 0 else 1) %}
                 {% set w = subdef.weight %}
-                <th class="subcell" colspan="{{ spanv }}">{{ sub }}{% if w is not none %} — {{ '%.2f' % (w|float) }}%{% endif %}</th>
+                {# Add a data-category attribute and class so we can target only the subcategory header cells #}
+                <th class="subcell subcat-head" data-category="{{ cat|lower }}" colspan="{{ spanv }}">{{ sub }}{% if w is not none %} — {{ '%.2f' % (w|float) }}%{% endif %}</th>
               {% endfor %}
             {% endfor %}
           </tr>

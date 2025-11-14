@@ -338,6 +338,7 @@ def get_instructor_classes():
                         "year": cls["year"],
                         "semester": cls["semester"],
                         "course": cls["course"],
+                        "subject": cls.get("subject") if isinstance(cls, dict) else cls["subject"],
                         "track": cls["track"],
                         "section": cls["section"],
                         "schedule": cls["schedule"],
@@ -386,6 +387,7 @@ def create_class():
                 "year",
                 "semester",
                 "course",
+                "subject",
                 "track",
                 "section",
                 "schedule",
@@ -421,14 +423,15 @@ def create_class():
 
             cursor.execute(
                 """INSERT INTO classes
-                (instructor_id, class_type, year, semester, course, track, section, schedule, class_code, join_code)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)""",
+                (instructor_id, class_type, year, semester, course, subject, track, section, schedule, class_code, join_code)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)""",
                 (
                     instructor["id"],
                     data["classType"],
                     data["year"],
                     data["semester"],
                     data["course"],
+                    data.get("subject"),
                     data["track"],
                     section,
                     data["schedule"],
@@ -453,6 +456,7 @@ def create_class():
                         "year": data["year"],
                         "semester": data["semester"],
                         "course": data["course"],
+                        "subject": data.get("subject"),
                         "track": data["track"],
                         "section": section,
                         "schedule": data["schedule"],
@@ -468,6 +472,115 @@ def create_class():
             f"Failed to create class for instructor {session.get('school_id')}: {str(e)}"
         )
         return jsonify({"error": "Failed to create class"}), 500
+
+
+@instructor_bp.route(
+    "/api/instructor/classes/<int:class_id>", methods=["PUT"], endpoint="update_class"
+)
+@login_required
+def update_class(class_id):
+    if session.get("role") != "instructor":
+        return jsonify({"error": "Access denied"}), 403
+
+    try:
+        with get_db_connection().cursor() as cursor:
+            cursor.execute(
+                "SELECT id FROM instructors WHERE user_id = %s", (session["user_id"],)
+            )
+            instructor = cursor.fetchone()
+            if not instructor:
+                return jsonify({"error": "Instructor profile not found"}), 404
+
+            cursor.execute(
+                "SELECT * FROM classes WHERE id = %s AND instructor_id = %s",
+                (class_id, instructor["id"]),
+            )
+            cls = cursor.fetchone()
+            if not cls:
+                return jsonify({"error": "Class not found or access denied"}), 404
+
+            data = request.get_json() or {}
+            required_fields = [
+                "year",
+                "semester",
+                "course",
+                "subject",
+                "track",
+                "section",
+                "schedule",
+            ]
+            for field in required_fields:
+                if not data.get(field):
+                    return jsonify({"error": f"{field} is required"}), 400
+
+            section = data["section"]
+            if not (len(section) == 2 and section[0].isdigit() and section[1].isalpha()):
+                return (
+                    jsonify(
+                        {"error": 'Section must be in format like "1A", "2B", etc.'}
+                    ),
+                    400,
+                )
+
+            cursor.execute(
+                """UPDATE classes SET class_type=%s, year=%s, semester=%s,
+                course=%s, subject=%s, track=%s, section=%s, schedule=%s, updated_at=NOW()
+                WHERE id = %s""",
+                (
+                    data.get("classType") or cls.get("class_type"),
+                    data["year"],
+                    data["semester"],
+                    data["course"],
+                    data["subject"],
+                    data["track"],
+                    section,
+                    data["schedule"],
+                    class_id,
+                ),
+            )
+            try:
+                get_db_connection().commit()
+            except Exception:
+                pass
+
+            # Build returned class object
+            formatted_year = data["year"][-2:] if data["year"] else "XX"
+            formatted_semester = (
+                "1"
+                if data["semester"] and "1st" in data["semester"].lower()
+                else (
+                    "2"
+                    if data["semester"] and "2nd" in data["semester"].lower()
+                    else "1"
+                )
+            )
+            computed_class_id = f"{formatted_year}-{formatted_semester} {data['course']} {section}"
+
+        logger.info(f"Instructor {session.get('school_id')} updated class {class_id}")
+        return jsonify(
+            {
+                "success": True,
+                "message": "Class updated successfully",
+                "class": {
+                    "id": class_id,
+                    "classType": data.get("classType") or cls.get("class_type"),
+                    "year": data["year"],
+                    "semester": data["semester"],
+                    "course": data["course"],
+                    "subject": data["subject"],
+                    "track": data["track"],
+                    "section": section,
+                    "schedule": data["schedule"],
+                    "class_id": computed_class_id,
+                    "class_code": cls.get("class_code"),
+                    "join_code": cls.get("join_code"),
+                },
+            }
+        )
+    except Exception as e:
+        get_db_connection().rollback()
+        logger.error(f"Failed to update class {class_id} for instructor {session.get('school_id')}: {str(e)}")
+        return jsonify({"error": "Failed to update class"}), 500
 
 
 @instructor_bp.route(
@@ -560,10 +673,22 @@ def get_class_members(class_id):
         logger.info(
             f"Instructor {session.get('school_id')} viewed {len(members)} members of class {class_obj['class_id']}"
         )
+        # Include basic class info (subject, course, track, section, year)
+        class_info = {
+            "id": class_obj["id"],
+            "course": class_obj.get("course"),
+            "subject": class_obj.get("subject"),
+            "track": class_obj.get("track"),
+            "section": class_obj.get("section"),
+            "year": class_obj.get("year"),
+            "class_id": class_obj["class_id"],
+        }
+
         return jsonify(
             {
                 "class_id": class_obj["class_id"],
                 "class_name": f"{class_obj['course']} {class_obj['section']}",
+                "class_info": class_info,
                 "members": members,
                 "total_members": len(members),
             }
@@ -628,6 +753,7 @@ def get_class_details(class_id):
                 "year": class_obj["year"],
                 "semester": class_obj["semester"],
                 "course": class_obj["course"],
+                    "subject": class_obj.get("subject") if isinstance(class_obj, dict) else class_obj["subject"],
                 "track": class_obj["track"],
                 "section": class_obj["section"],
                 "schedule": class_obj["schedule"],
@@ -910,7 +1036,8 @@ def instructor_class_grades(class_id: int):
         with get_db_connection().cursor() as cursor:
             cursor.execute(
                 """
-                SELECT gs.*, c.course, c.track, c.section, c.class_type
+                SELECT gs.*, c.course, c.track, c.section, c.class_type,
+                       c.subject, c.year, c.semester, c.schedule, c.class_code, c.join_code
                 FROM grade_structures gs
                 JOIN classes c ON gs.class_id = c.id
                 WHERE gs.class_id = %s AND gs.is_active = 1
@@ -1104,6 +1231,19 @@ def instructor_class_grades(class_id: int):
             except Exception:
                 sub_id_map = {}
 
+            # Build class_info for template display
+            class_info = {
+                "course": grade_structure.get("course"),
+                "subject": grade_structure.get("subject"),
+                "year": grade_structure.get("year"),
+                "semester": grade_structure.get("semester"),
+                "track": grade_structure.get("track"),
+                "section": grade_structure.get("section"),
+                "schedule": grade_structure.get("schedule"),
+                "class_code": grade_structure.get("class_code"),
+                "join_code": grade_structure.get("join_code"),
+            }
+
             return render_template(
                 "instructor_grades_unified.html",
                 class_id=class_id,
@@ -1116,6 +1256,7 @@ def instructor_class_grades(class_id: int):
                 grouped_assessments=by_cat,
                 sub_id_map=sub_id_map,
                 csrf_token=generate_csrf(),
+                class_info=class_info,
             )
     except Exception as e:
         import traceback

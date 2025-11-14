@@ -308,7 +308,7 @@
                               
                             </div>
                             <div class="class-details">
-                                ${cls.course} • ${cls.track} • ${schedule}
+                                ${cls.course} • ${cls.subject || '—'} • ${cls.track} • ${schedule}
                             </div>
                             <div class="class-meta">
                                 <span class="join-code" title="Join code">Join Code: <code>${joinCode}</code></span>
@@ -357,14 +357,15 @@
             const container = document.getElementById('detail-view-container');
             container.innerHTML = '<div class="loading"><div class="spinner"></div>Loading members...</div>';
 
-            try {
-                const response = await fetch(`/api/instructor/classes/${currentClassId}/members`);
-                if (response.ok) {
-                    const data = await response.json();
-                    renderMembers(data.members || []);
-                } else {
-                    container.innerHTML = '<div class="no-members">Failed to load members</div>';
-                }
+                try {
+                    const response = await fetch(`/api/instructor/classes/${currentClassId}/members`);
+                    if (response.ok) {
+                        const data = await response.json();
+                        // pass class_info so we can display subject in members view
+                        renderMembers(data.members || [], data.class_info || {});
+                    } else {
+                        container.innerHTML = '<div class="no-members">Failed to load members</div>';
+                    }
             } catch (error) {
                 console.error('Error loading members:', error);
                 container.innerHTML = '<div class="no-members">Error loading members</div>';
@@ -422,7 +423,7 @@
             }
         }
 
-        function renderMembers(members) {
+        function renderMembers(members, classInfo = {}) {
             const container = document.getElementById('detail-view-container');
 
             if (!members || members.length === 0) {
@@ -430,9 +431,14 @@
                 return;
             }
 
+            const subjectLabel = classInfo.subject ? ` • Subject: ${classInfo.subject}` : '';
+
             let html = `
                 <div class="members-section">
                     <h3>Class Members (${members.length})</h3>
+                    <div class="class-summary" style="margin-bottom:8px; color:#6b7280;">
+                        ${classInfo.course || ''}${subjectLabel} • Track: ${classInfo.track || 'N/A'} • Year: ${classInfo.year || ''} • Section: ${classInfo.section || ''}
+                    </div>
                     <div class="search-container">
                         <input type="text" id="member-search" placeholder="Search by name or ID..." oninput="filterMembers()" aria-label="Search members by name or ID">
                     </div>
@@ -448,7 +454,7 @@
                             <div class="member-name">${fullName}</div>
                             <div class="member-details">
                                 <strong>ID:</strong> ${member.school_id || '—'}<br>
-                                <strong>Course:</strong> ${member.course || '—'} • <strong>Track:</strong> ${member.track || 'N/A'} • <strong>Year:</strong> ${member.year_level || '—'} • <strong>Section:</strong> ${member.section || '—'}
+                                <strong>Course:</strong> ${member.course || '—'} • <strong>Subject:</strong> ${classInfo.subject || '—'} • <strong>Track:</strong> ${member.track || 'N/A'} • <strong>Year:</strong> ${member.year_level || '—'} • <strong>Section:</strong> ${member.section || '—'}
                             </div>
                             <div class="joined-date">Joined: ${joinedDate}</div>
                         </div>
@@ -487,10 +493,11 @@
             let html = `
                 <div class="class-details-section">
                     <h3>Class Information</h3>
-                    <div class="details-grid">
+                        <div class="details-grid">
                         <div class="detail-item"><strong>Year:</strong> ${classInfo.year || '—'}</div>
                         <div class="detail-item"><strong>Semester:</strong> ${classInfo.semester || '—'}</div>
                         <div class="detail-item"><strong>Course:</strong> ${classInfo.course || '—'}</div>
+                        <div class="detail-item"><strong>Subject:</strong> ${classInfo.subject || '—'}</div>
                         <div class="detail-item"><strong>Track:</strong> ${classInfo.track || '—'}</div>
                         <div class="detail-item"><strong>Section:</strong> ${classInfo.section || '—'}</div>
                         <div class="detail-item"><strong>Schedule:</strong> ${classInfo.schedule || '—'}</div>

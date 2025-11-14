@@ -26,6 +26,17 @@
  
       </div>
     </div>
+  
+    <div class="class-details" style="margin:12px 0; padding:10px 12px; border:1px solid #e5e7eb; border-radius:6px; background:#fff;">
+      {% set ci = class_info or {} %}
+      <div style="display:flex; gap:16px; flex-wrap:wrap; align-items:center;">
+        <div style="font-weight:700; font-size:1.1rem;">{{ ci.course or 'Course' }} — {{ ci.subject or 'Subject' }}</div>
+        <div style="color:#6b7280">{{ ci.year or '' }} · {{ ci.semester or '' }} · Section {{ ci.section or '' }}</div>
+        <div style="color:#6b7280">Track: {{ ci.track or 'N/A' }}</div>
+        <div style="color:#6b7280">Schedule: {{ ci.schedule or 'N/A' }}</div>
+        <div style="margin-left:auto; color:#374151">Code: <strong>{{ ci.class_code or '-' }}</strong> · Join: <strong>{{ ci.join_code or '-' }}</strong></div>
+      </div>
+    </div>
 <br>
     <!-- Structure summary and quick add (dropdown per category) -->
     <div class="collapsable-drawer-container">

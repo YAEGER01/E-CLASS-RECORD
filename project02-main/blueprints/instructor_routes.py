@@ -1,5 +1,6 @@
 import logging
 import json
+from datetime import datetime
 from flask import (
     Blueprint,
     render_template,
@@ -811,6 +812,306 @@ def gradebuilder_entry():
 def gradebuilder_v2():
     if session.get("role") != "instructor":
         return render_template("unauthorized.html", message="Access denied.")
+
+@instructor_bp.route("/release-grades", endpoint="release_grades")
+@login_required
+def release_grades():
+    if session.get("role") != "instructor":
+        return render_template("unauthorized.html", message="Access denied.")
+    
+    try:
+        with get_db_connection().cursor() as cursor:
+            cursor.execute(
+                "SELECT id FROM instructors WHERE user_id = %s", (session["user_id"],)
+            )
+            instructor = cursor.fetchone()
+            if not instructor:
+                flash("Instructor profile not found.", "error")
+                return redirect(url_for("dashboard.instructor_dashboard"))
+
+            cursor.execute(
+                "SELECT * FROM classes WHERE instructor_id = %s ORDER BY created_at DESC", 
+                (instructor["id"],)
+            )
+            classes = cursor.fetchall()
+
+            instructor_classes = []
+            for cls in classes:
+                cursor.execute(
+                    "SELECT COUNT(*) as count FROM student_classes WHERE class_id = %s",
+                    (cls["id"],)
+                )
+                member_count = cursor.fetchone()["count"]
+
+                formatted_year = cls["year"][-2:] if cls["year"] else "XX"
+                formatted_semester = (
+                    "1"
+                    if cls["semester"] and "1st" in cls["semester"].lower()
+                    else (
+                        "2"
+                        if cls["semester"] and "2nd" in cls["semester"].lower()
+                        else "1"
+                    )
+                )
+                computed_class_id = f"{formatted_year}-{formatted_semester} {cls['course']} {cls['section']}"
+
+                instructor_classes.append({
+                    "id": cls["id"],
+                    "class_id": computed_class_id,
+                    "course": cls["course"],
+                    "subject": cls.get("subject"),
+                    "track": cls["track"],
+                    "section": cls["section"],
+                    "schedule": cls["schedule"],
+                    "year": cls["year"],
+                    "semester": cls["semester"],
+                    "class_code": cls["class_code"],
+                    "join_code": cls["join_code"],
+                    "member_count": member_count
+                })
+
+            # Ensure the template has access to the current user (some templates expect `user`)
+            cursor.execute("SELECT * FROM users WHERE id = %s", (session["user_id"],))
+            user = cursor.fetchone()
+            if not user:
+                session.clear()
+                flash("Session expired. Please log in again.", "error")
+                return redirect(url_for("auth.login"))
+
+            return render_template(
+                "release_grades.html",
+                instructor_classes=instructor_classes,
+                user=user,
+            )
+    except Exception as e:
+        logger.error(f"Failed to load release grades page: {str(e)}")
+        flash("Failed to load page. Please try again.", "error")
+        return redirect(url_for("dashboard.instructor_dashboard"))
+
+
+@instructor_bp.route(
+    "/api/instructor/class/<int:class_id>/release-grades",
+    methods=["GET"],
+    endpoint="api_get_release_grades"
+)
+@login_required
+def api_get_release_grades(class_id):
+    """Get grades data for release management."""
+    if session.get("role") != "instructor":
+        return jsonify({"error": "forbidden"}), 403
+    
+    if not _instructor_owns_class(class_id, session.get("user_id")):
+        return jsonify({"error": "unauthorized_class"}), 403
+    
+    try:
+        with get_db_connection().cursor() as cursor:
+            # Get students in the class
+            # Note: some deployments store only release metadata in `student_grades` (is_released, released_date)
+            # and compute final grades on demand. Avoid selecting non-existent columns like `final_grade`/`equivalent`.
+            cursor.execute("""
+                SELECT 
+                    sc.student_id,
+                    u.school_id,
+                    pi.first_name, 
+                    pi.last_name, 
+                    pi.middle_name,
+                    COALESCE(sg.is_released, 0) as is_released,
+                    sg.released_date
+                FROM student_classes sc
+                JOIN students s ON sc.student_id = s.id
+                JOIN users u ON s.user_id = u.id
+                LEFT JOIN personal_info pi ON s.personal_info_id = pi.id
+                LEFT JOIN student_grades sg ON s.id = sg.student_id AND sg.class_id = %s
+                WHERE sc.class_id = %s
+                ORDER BY pi.last_name, pi.first_name
+            """, (class_id, class_id))
+            
+            students = []
+            for row in cursor.fetchall() or []:
+                first_name = row.get("first_name", "")
+                middle_name = row.get("middle_name", "")
+                last_name = row.get("last_name", "")
+                school_id = row.get("school_id", "")
+                
+                if first_name and last_name:
+                    student_name = (
+                        f"{last_name}, {first_name} {middle_name}".strip()
+                        if middle_name
+                        else f"{last_name}, {first_name}"
+                    )
+                else:
+                    student_name = school_id or f"Student {row.get('student_id')}"
+                
+                # final_grade/equivalent may not be stored in the DB; use safe defaults (frontend shows 'N/A')
+                students.append({
+                    "id": row["student_id"],
+                    "name": student_name,
+                    "school_id": school_id,
+                    "final_grade": None,
+                    "equivalent": 'N/A',
+                    "is_released": bool(row["is_released"]),
+                    "released_date": row["released_date"].strftime("%Y-%m-%d") if row.get("released_date") else None
+                })
+            
+            return jsonify({
+                "class_id": class_id,
+                "students": students,
+                "total_students": len(students)
+            })
+            
+    except Exception as e:
+        logger.error(f"Failed to get release grades for class {class_id}: {str(e)}")
+        return jsonify({"error": "failed_to_get_grades"}), 500
+
+
+@instructor_bp.route(
+    "/api/instructor/student/<int:student_id>/toggle-release",
+    methods=["POST"],
+    endpoint="api_toggle_student_release"
+)
+@login_required
+def api_toggle_student_release(student_id):
+    """Toggle release status for individual student."""
+    if session.get("role") != "instructor":
+        return jsonify({"error": "forbidden"}), 403
+    
+    try:
+        data = request.get_json() or {}
+        class_id = data.get("class_id")
+        release = data.get("release", False)
+        
+        if not class_id:
+            return jsonify({"error": "class_id_required"}), 400
+        
+        # Verify instructor owns this class
+        if not _instructor_owns_class(class_id, session.get("user_id")):
+            return jsonify({"error": "unauthorized_class"}), 403
+        
+        # Verify student is in the class
+        with get_db_connection().cursor() as cursor:
+            cursor.execute(
+                "SELECT 1 FROM student_classes WHERE student_id = %s AND class_id = %s",
+                (student_id, class_id)
+            )
+            if not cursor.fetchone():
+                return jsonify({"error": "student_not_in_class"}), 404
+            
+            # Update or insert grade release status
+            cursor.execute("""
+                INSERT INTO student_grades (student_id, class_id, is_released, released_date, updated_at)
+                VALUES (%s, %s, %s, %s, NOW())
+                ON DUPLICATE KEY UPDATE
+                is_released = %s,
+                released_date = %s,
+                updated_at = NOW()
+            """, (
+                student_id, 
+                class_id, 
+                release, 
+                datetime.now() if release else None,
+                release,
+                datetime.now() if release else None
+            ))
+        
+        try:
+            get_db_connection().commit()
+        except Exception:
+            pass
+        
+        return jsonify({
+            "success": True,
+            "student_id": student_id,
+            "class_id": class_id,
+            "is_released": release,
+            "released_date": datetime.now().strftime("%Y-%m-%d") if release else None
+        })
+        
+    except Exception as e:
+        logger.error(f"Failed to toggle release status for student {student_id}: {str(e)}")
+        return jsonify({"error": "failed_to_update"}), 500
+
+
+@instructor_bp.route(
+    "/api/instructor/bulk-toggle-release",
+    methods=["POST"],
+    endpoint="api_bulk_toggle_release"
+)
+@login_required
+def api_bulk_toggle_release():
+    """Bulk toggle release status for multiple students."""
+    if session.get("role") != "instructor":
+        return jsonify({"error": "forbidden"}), 403
+    
+    try:
+        data = request.get_json() or {}
+        class_id = data.get("class_id")
+        student_ids = data.get("student_ids", [])
+        release = data.get("release", False)
+        options = data.get("options", {})
+        
+        if not class_id or not student_ids:
+            return jsonify({"error": "class_id_and_student_ids_required"}), 400
+        
+        # Verify instructor owns this class
+        if not _instructor_owns_class(class_id, session.get("user_id")):
+            return jsonify({"error": "unauthorized_class"}), 403
+        
+        with get_db_connection().cursor() as cursor:
+            # Verify all students are in the class
+            placeholders = ",".join(["%s"] * len(student_ids))
+            params = student_ids + [class_id]
+            
+            cursor.execute(f"""
+                SELECT student_id FROM student_classes 
+                WHERE student_id IN ({placeholders}) AND class_id = %s
+            """, params)
+            
+            valid_students = {row["student_id"] for row in cursor.fetchall() or []}
+            invalid_students = set(student_ids) - valid_students
+            
+            if invalid_students:
+                return jsonify({
+                    "error": "some_students_not_in_class",
+                    "invalid_students": list(invalid_students)
+                }), 400
+            
+            # Bulk update release status
+            current_time = datetime.now()
+            release_date = current_time if release else None
+            
+            for student_id in student_ids:
+                cursor.execute("""
+                    INSERT INTO student_grades (student_id, class_id, is_released, released_date, updated_at)
+                    VALUES (%s, %s, %s, %s, NOW())
+                    ON DUPLICATE KEY UPDATE
+                    is_released = %s,
+                    released_date = %s,
+                    updated_at = NOW()
+                """, (
+                    student_id, 
+                    class_id, 
+                    release, 
+                    release_date,
+                    release,
+                    release_date
+                ))
+        
+        try:
+            get_db_connection().commit()
+        except Exception:
+            pass
+        
+        return jsonify({
+            "success": True,
+            "class_id": class_id,
+            "updated_count": len(student_ids),
+            "is_released": release,
+            "released_date": current_time.strftime("%Y-%m-%d %H:%M:%S") if release else None
+        })
+        
+    except Exception as e:
+        logger.error(f"Failed to bulk toggle release status: {str(e)}")
+        return jsonify({"error": "failed_to_bulk_update"}), 500
     return render_template("gradebuilder_v2.html")
 
 

@@ -767,7 +767,59 @@
       const labVal = isNaN(lab) ? 0 : lab;
       const raw = Math.round((labVal * 0.4 + lecVal * 0.6) * 100) / 100;
       if (rawCell) rawCell.textContent = raw.toFixed(2);
-      if (totalCell) totalCell.textContent = raw.toFixed(2);
+      // TOTAL GRADE formula: TOTAL = RAW * 0.625 + 37.5
+      const totalGrade = Math.round((raw * 0.625 + 37.5) * 100) / 100;
+      if (totalCell) totalCell.textContent = totalGrade.toFixed(2);
+
+      // Compute GRADE MARK from TOTAL GRADE (VL7 equivalent)
+      const gradeMarkCell = finalRow.querySelector('td.grade-mark');
+      if (gradeMarkCell) {
+        const t = totalGrade;
+        let gm = '';
+        if (t < 75) gm = '5.0';
+        else if (t < 77) gm = '3.0';
+        else if (t < 80) gm = '2.75';
+        else if (t < 83) gm = '2.5';
+        else if (t < 86) gm = '2.25';
+        else if (t < 89) gm = '2.0';
+        else if (t < 92) gm = '1.75';
+        else if (t < 95) gm = '1.5';
+        else gm = '1.25';
+        gradeMarkCell.textContent = gm;
+      }
+
+      // Compute REMARKS: check for missing Project, Exam, or Lab Exam inputs.
+      // Heuristic: group assessments by keywords in their header names. If any matching
+      // assessment exists for this student row and its input is empty, mark as missing.
+      const remarksCell = finalRow.querySelector('td.remarks');
+      if (remarksCell) {
+        const heads = Array.from(document.querySelectorAll('th.assess-col'));
+        const getIdsByKeywords = (keywords) => {
+          return heads.map(h => {
+            const id = h.getAttribute('data-assessment-id');
+            const name = (h.childNodes[0]?.nodeValue || h.textContent || '').toLowerCase();
+            return (id && keywords.some(k => name.includes(k))) ? id : null;
+          }).filter(Boolean);
+        };
+
+        const projectIds = getIdsByKeywords(['project', 'proj']);
+        const examIds = getIdsByKeywords(['exam', 'final', 'midterm', 'quiz']);
+        const labIds = getIdsByKeywords(['lab', 'laboratory', 'lab exam']);
+
+        const anyMissing = (ids) => {
+          if (!ids || ids.length === 0) return false; // no matching assessments -> don't flag
+          return ids.some(id => {
+            const inp = tr.querySelector(`input.score[data-assessment="${id}"]`);
+            return inp ? (String(inp.value).trim() === '') : false;
+          });
+        };
+
+        let remarks = 'PASSED';
+        if (anyMissing(projectIds)) remarks = 'NO PROJECT';
+        else if (anyMissing(examIds)) remarks = 'NO EXAM';
+        else if (anyMissing(labIds)) remarks = 'NO LAB EXAM';
+        remarksCell.textContent = remarks;
+      }
     }
 
     /**

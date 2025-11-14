@@ -1,0 +1,602 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Release Grades - E-Class Record</title>
+    <meta name="theme-color" content="#6b7280">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/release-grades.css') }}">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+</head>
+
+<body>
+    <!-- Header -->
+    <header class="main-header">
+        <div class="header-container">
+            <div class="header-brand">
+                <h1>Release Grades</h1>
+                <span class="header-subtitle">E-Class Record</span>
+            </div>
+            <div class="header-nav">
+                <nav class="main-nav">
+                    <a href="{{ url_for('dashboard.instructor_dashboard') }}" class="nav-link">Dashboard</a>
+                    <a href="{{ url_for('instructor.instructor_classes') }}" class="nav-link">Classes</a>
+                    <a href="{{ url_for('instructor.gradebuilder_v2') }}" class="nav-link">Grade Builder</a>
+                    <a href="#" class="nav-link">Reports</a>
+                </nav>
+            </div>
+            <div class="header-user">
+                <div class="user-info">
+                    <div class="user-avatar">{{ (user.school_id|string)[:2]|upper }}</div>
+                    <div class="user-details">
+                        <span class="user-name">{{ user.school_id }}</span>
+                        <span class="user-role">Instructor</span>
+                    </div>
+                </div>
+                <a href="{{ url_for('auth.logout') }}" class="logout-btn">Logout</a>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <div class="content-container">
+            <!-- Class Selection Sidebar -->
+            <aside class="sidebar">
+                <div class="sidebar-section">
+                    <h2 class="section-title">Select Class</h2>
+                    <div class="class-selector">
+                        <select id="class-select" class="class-dropdown" aria-label="Select class">
+                            <option value="">Choose a class...</option>
+                            {% for class in instructor_classes %}
+                            <option value="{{ class.id }}" 
+                                    data-class-code="{{ class.class_id }}"
+                                    data-course="{{ class.course }}"
+                                    data-subject="{{ class.subject }}">
+                                {{ class.class_id }} - {{ class.course }} {{ class.section }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                        <button id="load-grades-btn" class="btn btn-primary" disabled>
+                            Load Grades
+                        </button>
+                    </div>
+                </div>
+
+                <div class="sidebar-section">
+                    <h2 class="section-title">Release Status</h2>
+                    <div class="status-panel">
+                        <div class="status-item">
+                            <span class="status-label">Total Students:</span>
+                            <span class="status-value" id="total-students">0</span>
+                        </div>
+                        <div class="status-item">
+                            <span class="status-label">Released Grades:</span>
+                            <span class="status-value" id="released-count">0</span>
+                        </div>
+                        <div class="status-item">
+                            <span class="status-label">Pending Release:</span>
+                            <span class="status-value" id="pending-count">0</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="sidebar-section">
+                    <h2 class="section-title">Actions</h2>
+                    <div class="action-buttons">
+                        <button id="release-all-btn" class="btn btn-success" disabled>
+                            Release All Grades
+                        </button>
+                        <button id="unrelease-all-btn" class="btn btn-warning" disabled>
+                            Hide All Grades
+                        </button>
+                        <button id="export-grades-btn" class="btn btn-secondary" disabled>
+                            Export Grades
+                        </button>
+                    </div>
+                </div>
+            </aside>
+
+            <!-- Main Grade Management Section -->
+            <section class="main-section">
+                <div class="grade-header">
+                    <h2>Grade Release Management</h2>
+                    <p>Manage which grades are visible to students</p>
+                </div>
+
+                <!-- Class Info Display -->
+                <div class="class-info" id="class-info-display" style="display: none;">
+                    <div class="info-card">
+                        <div class="info-row">
+                            <strong>Class:</strong> <span id="info-class-name"></span>
+                        </div>
+                        <div class="info-row">
+                            <strong>Course:</strong> <span id="info-course"></span>
+                        </div>
+                        <div class="info-row">
+                            <strong>Subject:</strong> <span id="info-subject"></span>
+                        </div>
+                        <div class="info-row">
+                            <strong>Schedule:</strong> <span id="info-schedule"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Grades Table -->
+                <div class="grades-section" id="grades-section" style="display: none;">
+                    <div class="grades-toolbar">
+                        <div class="search-container">
+                            <input type="text" id="student-search" placeholder="Search students..." 
+                                   class="search-input" aria-label="Search students">
+                        </div>
+                        <div class="filter-controls">
+                            <select id="release-filter" class="filter-select">
+                                <option value="all">All Students</option>
+                                <option value="released">Released</option>
+                                <option value="pending">Pending Release</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="grades-table-container">
+                        <table class="grades-table" id="grades-table">
+                            <thead>
+                                <tr>
+                                    <th class="sortable" data-sort="name">
+                                        Student Name 
+                                        <span class="sort-indicator">↕</span>
+                                    </th>
+                                    <th class="sortable" data-sort="id">
+                                        Student ID 
+                                        <span class="sort-indicator">↕</span>
+                                    </th>
+                                    <th>Final Grade</th>
+                                    <th>Equivalent</th>
+                                    <th>Release Status</th>
+                                    <th>Released Date</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="grades-tbody">
+                                <!-- Populated by JavaScript -->
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="grades-footer">
+                        <div class="bulk-actions">
+                            <label class="bulk-select">
+                                <input type="checkbox" id="select-all-students">
+                                Select All
+                            </label>
+                            <button id="bulk-release-btn" class="btn btn-success" disabled>
+                                Release Selected
+                            </button>
+                            <button id="bulk-unrelease-btn" class="btn btn-warning" disabled>
+                                Hide Selected
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Empty State -->
+                <div class="empty-state" id="empty-state">
+                    <div class="empty-icon">📊</div>
+                    <h3>No Class Selected</h3>
+                    <p>Select a class from the sidebar to manage grade releases.</p>
+                </div>
+
+                <!-- Loading State -->
+                <div class="loading-state" id="loading-state" style="display: none;">
+                    <div class="loading-spinner"></div>
+                    <p>Loading grades...</p>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <!-- Release Confirmation Modal -->
+    <div id="release-modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title" aria-hidden="true">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modal-title">Confirm Release</h3>
+                <button class="close" onclick="closeReleaseModal()" aria-label="Close">×</button>
+            </div>
+            <div class="modal-body">
+                <p id="modal-message">Are you sure you want to release these grades?</p>
+                <div class="modal-options">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="notify-students" checked>
+                        Notify students via email
+                    </label>
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="include-breakdown">
+                        Include grade breakdown
+                    </label>
+                </div>
+            </div>
+            <div class="modal-actions">
+                <button class="btn" onclick="closeReleaseModal()">Cancel</button>
+                <button id="confirm-release-btn" class="btn btn-success">Release Grades</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global variables
+        let currentClassId = null;
+        let studentsData = [];
+        let sortDirection = 'asc';
+        let sortField = 'name';
+
+        // CSRF Token for AJAX requests
+        const csrfToken = "{{ csrf_token() }}";
+
+        // Initialize page
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeEventListeners();
+        });
+
+        function initializeEventListeners() {
+            // Class selection
+            document.getElementById('class-select').addEventListener('change', handleClassSelection);
+            document.getElementById('load-grades-btn').addEventListener('click', loadGrades);
+
+            // Action buttons
+            document.getElementById('release-all-btn').addEventListener('click', () => handleBulkRelease('all'));
+            document.getElementById('unrelease-all-btn').addEventListener('click', () => handleBulkUnrelease('all'));
+            document.getElementById('export-grades-btn').addEventListener('click', exportGrades);
+
+            // Search and filter
+            document.getElementById('student-search').addEventListener('input', filterStudents);
+            document.getElementById('release-filter').addEventListener('change', filterStudents);
+
+            // Bulk actions
+            document.getElementById('select-all-students').addEventListener('change', handleSelectAll);
+            document.getElementById('bulk-release-btn').addEventListener('click', () => handleBulkRelease('selected'));
+            document.getElementById('bulk-unrelease-btn').addEventListener('click', () => handleBulkUnrelease('selected'));
+
+            // Modal actions
+            document.getElementById('confirm-release-btn').addEventListener('click', confirmRelease);
+        }
+
+        function handleClassSelection(event) {
+            const classId = event.target.value;
+            const loadBtn = document.getElementById('load-grades-btn');
+            
+            if (classId) {
+                loadBtn.disabled = false;
+                showClassInfo(classId);
+            } else {
+                loadBtn.disabled = true;
+                hideClassInfo();
+            }
+        }
+
+        function showClassInfo(classId) {
+            const selectedOption = document.querySelector(`option[value="${classId}"]`);
+            if (selectedOption) {
+                document.getElementById('info-class-name').textContent = selectedOption.dataset.classCode;
+                document.getElementById('info-course').textContent = selectedOption.dataset.course;
+                document.getElementById('info-subject').textContent = selectedOption.dataset.subject;
+                document.getElementById('class-info-display').style.display = 'block';
+            }
+        }
+
+        function hideClassInfo() {
+            document.getElementById('class-info-display').style.display = 'none';
+            document.getElementById('grades-section').style.display = 'none';
+            document.getElementById('empty-state').style.display = 'block';
+        }
+
+        async function loadGrades() {
+            const classId = document.getElementById('class-select').value;
+            if (!classId) return;
+
+            currentClassId = classId;
+            
+            // Show loading state
+            document.getElementById('empty-state').style.display = 'none';
+            document.getElementById('loading-state').style.display = 'block';
+
+            try {
+                const response = await fetch(`/api/instructor/class/${classId}/release-grades`, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken
+                    }
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    studentsData = data.students || [];
+                    renderGradesTable();
+                    updateStatusCounts();
+                    enableActionButtons();
+                } else {
+                    throw new Error('Failed to load grades');
+                }
+            } catch (error) {
+                console.error('Error loading grades:', error);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'Failed to load grades. Please try again.',
+                    confirmButtonText: 'OK'
+                });
+            } finally {
+                document.getElementById('loading-state').style.display = 'none';
+            }
+        }
+
+        function renderGradesTable() {
+            const tbody = document.getElementById('grades-tbody');
+            tbody.innerHTML = '';
+
+            studentsData.forEach(student => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td class="student-name">${student.name}</td>
+                    <td class="student-id">${student.school_id}</td>
+                    <td class="final-grade">${student.final_grade || 'N/A'}</td>
+                    <td class="equivalent">${student.equivalent || 'N/A'}</td>
+                    <td class="release-status">
+                        <span class="status-badge ${student.is_released ? 'released' : 'pending'}">
+                            ${student.is_released ? 'Released' : 'Pending'}
+                        </span>
+                    </td>
+                    <td class="released-date">${student.released_date || '—'}</td>
+                    <td class="actions">
+                        <button class="btn btn-sm ${student.is_released ? 'btn-warning' : 'btn-success'}" 
+                                onclick="toggleStudentRelease('${student.id}', ${!student.is_released})">
+                            ${student.is_released ? 'Hide' : 'Release'}
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+
+            document.getElementById('grades-section').style.display = 'block';
+        }
+
+        function updateStatusCounts() {
+            const total = studentsData.length;
+            const released = studentsData.filter(s => s.is_released).length;
+            const pending = total - released;
+
+            document.getElementById('total-students').textContent = total;
+            document.getElementById('released-count').textContent = released;
+            document.getElementById('pending-count').textContent = pending;
+        }
+
+        function enableActionButtons() {
+            const hasStudents = studentsData.length > 0;
+            document.getElementById('release-all-btn').disabled = !hasStudents;
+            document.getElementById('unrelease-all-btn').disabled = !hasStudents;
+            document.getElementById('export-grades-btn').disabled = !hasStudents;
+        }
+
+        function filterStudents() {
+            const searchTerm = document.getElementById('student-search').value.toLowerCase();
+            const filterValue = document.getElementById('release-filter').value;
+            
+            const rows = document.querySelectorAll('#grades-tbody tr');
+            
+            rows.forEach(row => {
+                const name = row.querySelector('.student-name').textContent.toLowerCase();
+                const id = row.querySelector('.student-id').textContent.toLowerCase();
+                const isReleased = row.querySelector('.status-badge').classList.contains('released');
+                
+                const matchesSearch = name.includes(searchTerm) || id.includes(searchTerm);
+                const matchesFilter = filterValue === 'all' || 
+                                    (filterValue === 'released' && isReleased) ||
+                                    (filterValue === 'pending' && !isReleased);
+                
+                row.style.display = matchesSearch && matchesFilter ? '' : 'none';
+            });
+        }
+
+        async function toggleStudentRelease(studentId, shouldRelease) {
+            try {
+                const response = await fetch(`/api/instructor/student/${studentId}/toggle-release`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken
+                    },
+                    body: JSON.stringify({
+                        class_id: currentClassId,
+                        release: shouldRelease
+                    })
+                });
+
+                if (response.ok) {
+                    // Update local data
+                    const student = studentsData.find(s => s.id === studentId);
+                    if (student) {
+                        student.is_released = shouldRelease;
+                        student.released_date = shouldRelease ? new Date().toLocaleDateString() : null;
+                    }
+                    
+                    // Re-render table
+                    renderGradesTable();
+                    updateStatusCounts();
+                    
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Success',
+                        text: `Grade ${shouldRelease ? 'released' : 'hidden'} successfully`,
+                        timer: 2000,
+                        showConfirmButton: false
+                    });
+                } else {
+                    throw new Error('Failed to update release status');
+                }
+            } catch (error) {
+                console.error('Error updating release status:', error);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'Failed to update release status',
+                    confirmButtonText: 'OK'
+                });
+            }
+        }
+
+        function handleBulkRelease(type) {
+            const students = type === 'all' ? 
+                studentsData : 
+                studentsData.filter(s => document.querySelector(`input[data-student="${s.id}"]`).checked);
+            
+            if (students.length === 0) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'No Students Selected',
+                    text: 'Please select students to release grades for.',
+                    confirmButtonText: 'OK'
+                });
+                return;
+            }
+
+            document.getElementById('modal-message').textContent = 
+                `Are you sure you want to release grades for ${students.length} student${students.length > 1 ? 's' : ''}?`;
+            document.getElementById('release-modal').style.display = 'block';
+        }
+
+        function handleBulkUnrelease(type) {
+            const students = type === 'all' ? 
+                studentsData : 
+                studentsData.filter(s => document.querySelector(`input[data-student="${s.id}"]`).checked);
+            
+            if (students.length === 0) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'No Students Selected',
+                    text: 'Please select students to hide grades for.',
+                    confirmButtonText: 'OK'
+                });
+                return;
+            }
+
+            // For unreleasing, we don't need the modal - just do it directly
+            performBulkUpdate(students, false);
+        }
+
+        function handleSelectAll(event) {
+            const checkboxes = document.querySelectorAll('input[data-student]');
+            checkboxes.forEach(cb => cb.checked = event.target.checked);
+            updateBulkButtons();
+        }
+
+        function updateBulkButtons() {
+            const checkedCount = document.querySelectorAll('input[data-student]:checked').length;
+            document.getElementById('bulk-release-btn').disabled = checkedCount === 0;
+            document.getElementById('bulk-unrelease-btn').disabled = checkedCount === 0;
+        }
+
+        async function confirmRelease() {
+            const notifyStudents = document.getElementById('notify-students').checked;
+            const includeBreakdown = document.getElementById('include-breakdown').checked;
+            
+            const students = studentsData.filter(s => s.is_released === false);
+            
+            await performBulkUpdate(students, true, { notifyStudents, includeBreakdown });
+            closeReleaseModal();
+        }
+
+        async function performBulkUpdate(students, shouldRelease, options = {}) {
+            try {
+                const response = await fetch('/api/instructor/bulk-toggle-release', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken
+                    },
+                    body: JSON.stringify({
+                        class_id: currentClassId,
+                        student_ids: students.map(s => s.id),
+                        release: shouldRelease,
+                        options: options
+                    })
+                });
+
+                if (response.ok) {
+                    // Update local data
+                    students.forEach(student => {
+                        student.is_released = shouldRelease;
+                        student.released_date = shouldRelease ? new Date().toLocaleDateString() : null;
+                    });
+                    
+                    // Re-render table
+                    renderGradesTable();
+                    updateStatusCounts();
+                    
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Success',
+                        text: `${students.length} grade${students.length > 1 ? 's' : ''} ${shouldRelease ? 'released' : 'hidden'} successfully`,
+                        timer: 2000,
+                        showConfirmButton: false
+                    });
+                } else {
+                    throw new Error('Failed to update release status');
+                }
+            } catch (error) {
+                console.error('Error updating release status:', error);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'Failed to update release status',
+                    confirmButtonText: 'OK'
+                });
+            }
+        }
+
+        function closeReleaseModal() {
+            document.getElementById('release-modal').style.display = 'none';
+        }
+
+        function exportGrades() {
+            if (studentsData.length === 0) return;
+            
+            // Create CSV content
+            const headers = ['Student Name', 'Student ID', 'Final Grade', 'Equivalent', 'Release Status', 'Released Date'];
+            const rows = studentsData.map(student => [
+                student.name,
+                student.school_id,
+                student.final_grade || 'N/A',
+                student.equivalent || 'N/A',
+                student.is_released ? 'Released' : 'Pending',
+                student.released_date || '—'
+            ]);
+            
+            const csvContent = [headers, ...rows]
+                .map(row => row.map(field => `"${field}"`).join(','))
+                .join('\n');
+            
+            // Download file
+            const blob = new Blob([csvContent], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `grades_class_${currentClassId}_${new Date().toISOString().split('T')[0]}.csv`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(url);
+        }
+
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            const modal = document.getElementById('release-modal');
+            if (event.target === modal) {
+                closeReleaseModal();
+            }
+        }
+    </script>
+</body>
+</html>

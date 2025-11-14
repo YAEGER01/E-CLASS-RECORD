@@ -28,9 +28,10 @@
             </div>
             <div class="header-nav">
                 <nav class="main-nav">
-   
+    
                     <a href="{{ url_for('instructor.instructor_classes') }}" class="nav-link">Classes</a>
                     <a href="{{ url_for('instructor.gradebuilder_v2') }}" class="nav-link">Grade Builder</a>
+                    <a href="{{ url_for('instructor.release_grades') }}" class="nav-link">Release Grades</a>
                     <a href="#" class="nav-link">Reports</a>
                 </nav>
             </div>
@@ -67,6 +68,13 @@
                             <div class="card-content">
                                 <h3>Grade Builder</h3>
                                 <p>Set up grading structures</p>
+                            </div>
+                        </a>
+                        <a href="{{ url_for('instructor.release_grades') }}" class="action-card">
+                            <div class="card-icon">🎯</div>
+                            <div class="card-content">
+                                <h3>Release Grades</h3>
+                                <p>Manage grade release status</p>
                             </div>
                         </a>
                         <a href="#" class="action-card">

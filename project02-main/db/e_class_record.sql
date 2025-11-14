@@ -139,6 +139,7 @@ CREATE TABLE `classes` (
   `year` varchar(4) NOT NULL,
   `semester` varchar(20) NOT NULL,
   `course` varchar(10) NOT NULL,
+  `subject` varchar(100) NOT NULL,
   `track` varchar(50) NOT NULL,
   `section` varchar(10) NOT NULL,
   `schedule` varchar(50) NOT NULL,
@@ -159,7 +160,7 @@ CREATE TABLE `classes` (
   KEY `idx_classes_class_code` (`class_code`),
   KEY `idx_classes_join_code` (`join_code`),
   CONSTRAINT `classes_ibfk_1` FOREIGN KEY (`instructor_id`) REFERENCES `instructors` (`id`) ON DELETE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -169,10 +170,7 @@ CREATE TABLE `classes` (
 LOCK TABLES `classes` WRITE;
 /*!40000 ALTER TABLE `classes` DISABLE KEYS */;
 INSERT INTO `classes` VALUES
-(1,1,'MINOR','2024','1st sem','BSIT','Programming','1A','M-W-F 8-10AM','e1726fb2-2b7b-4084-94d2-3f1cd08880f9','331922',NULL,'2025-10-26 14:30:40','2025-10-26 14:30:40'),
-(2,1,'MAJOR','2024','2nd sem','BSIT','Networking','2B','M-W-F 8-10AM','13db6c7b-30c5-43cc-89b9-b5452f23206c','536608',NULL,'2025-10-26 14:31:05','2025-10-26 14:31:05'),
-(3,1,'MAJOR','2024','1st sem','BSIT','Networking','3A','M-W-F 8-10AM','4aadc054-4d66-46a0-8159-d53fe5fe6d94','879220',NULL,'2025-10-31 12:37:02','2025-10-31 12:37:02'),
-(4,1,'MAJOR','2069','1st sem','BSIT','Database','3C','T-Th 10-12PM','c8c4747f-0541-4f40-8b45-ed559d16c9e7','764509',NULL,'2025-11-01 20:04:50','2025-11-01 20:04:50');
+(1,1,'MAJOR','2024','1st sem','BSIT','Ako BUdoy 101','Networking','1A','M-W-F 8-10AM','19a3532f-1ec9-4cbe-9595-672eadc6a8ba','946205',NULL,'2025-11-07 09:57:46','2025-11-14 14:28:15');
 /*!40000 ALTER TABLE `classes` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -199,7 +197,7 @@ CREATE TABLE `grade_assessments` (
   KEY `idx_grade_assessments_position` (`position`),
   CONSTRAINT `fk_subcategory` FOREIGN KEY (`subcategory_id`) REFERENCES `grade_subcategories` (`id`) ON DELETE CASCADE,
   CONSTRAINT `grade_assessments_ibfk_1` FOREIGN KEY (`subcategory_id`) REFERENCES `grade_subcategories` (`id`) ON DELETE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=24 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=30 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -209,29 +207,29 @@ CREATE TABLE `grade_assessments` (
 LOCK TABLES `grade_assessments` WRITE;
 /*!40000 ALTER TABLE `grade_assessments` DISABLE KEYS */;
 INSERT INTO `grade_assessments` VALUES
-(1,16,'Attendance',NULL,100,NULL,1,NULL,'2025-11-01 21:15:28'),
-(2,17,'Attitude',NULL,100,NULL,1,NULL,'2025-11-01 21:15:43'),
-(3,18,'Participation',NULL,100,NULL,1,NULL,'2025-11-01 21:15:55'),
-(4,19,'Homework',NULL,100,NULL,1,NULL,'2025-11-01 21:16:03'),
-(5,20,'Excercise 1',NULL,50,NULL,1,NULL,'2025-11-01 21:16:21'),
-(6,20,'Excercise 2',NULL,100,NULL,2,NULL,'2025-11-01 21:16:30'),
-(7,16,'Attendance 2',NULL,100,NULL,2,NULL,'2025-11-01 21:27:40'),
-(8,16,'Assessment 1',NULL,100,NULL,3,NULL,'2025-11-01 21:32:03'),
-(9,18,'Participation 2',NULL,100,NULL,2,NULL,'2025-11-01 21:36:37'),
-(10,18,'Participation 3',NULL,100,NULL,3,NULL,'2025-11-01 21:36:42'),
-(11,18,'Participation 4',NULL,100,NULL,4,NULL,'2025-11-01 21:36:46'),
-(12,18,'Participation 5',NULL,100,NULL,5,NULL,'2025-11-01 21:36:51'),
-(13,18,'Participation 6',NULL,100,NULL,6,NULL,'2025-11-01 21:36:53'),
-(14,18,'Participation 7',NULL,100,NULL,7,NULL,'2025-11-01 21:36:56'),
-(15,18,'Participation 8',NULL,100,NULL,8,NULL,'2025-11-01 21:36:58'),
-(16,18,'Participation 9',NULL,100,NULL,9,NULL,'2025-11-01 21:37:00'),
-(17,18,'Participation 10',NULL,100,NULL,10,NULL,'2025-11-01 21:37:03'),
-(18,20,'Excercise 3',NULL,100,NULL,3,NULL,'2025-11-01 21:37:08'),
-(19,18,'Participation 11',NULL,100,NULL,11,NULL,'2025-11-01 21:37:10'),
-(20,18,'Participation 12',NULL,100,NULL,12,NULL,'2025-11-01 21:37:12'),
-(21,17,'Attitude',NULL,100,NULL,2,NULL,'2025-11-01 21:37:22'),
-(22,19,'Homework',NULL,100,NULL,2,NULL,'2025-11-01 21:37:28'),
-(23,20,'Excercise 4',NULL,100,NULL,4,NULL,'2025-11-01 21:37:33');
+(6,20,'Lab Participation',NULL,15,NULL,1,NULL,'2025-11-13 19:51:17'),
+(7,20,'Lab Participation 2',NULL,25,NULL,2,NULL,'2025-11-13 19:51:34'),
+(8,21,'Lab Homework',NULL,10,NULL,1,NULL,'2025-11-13 20:02:02'),
+(9,21,'Lab Homework 2',NULL,25,NULL,2,NULL,'2025-11-13 20:02:18'),
+(10,22,'Assessment 1',NULL,25,NULL,1,NULL,'2025-11-14 11:28:13'),
+(11,22,'Assessment 2',NULL,30,NULL,2,NULL,'2025-11-14 11:31:08'),
+(12,23,'Assessment 1',NULL,50,NULL,1,NULL,'2025-11-14 11:31:24'),
+(13,24,'Assessment 1',NULL,70,NULL,1,NULL,'2025-11-14 11:31:33'),
+(14,25,'Assessment 1',NULL,80,NULL,1,NULL,'2025-11-14 11:31:43'),
+(15,11,'Assessment 1',NULL,15,NULL,1,NULL,'2025-11-14 11:37:32'),
+(16,11,'Assessment 2',NULL,15,NULL,2,NULL,'2025-11-14 11:37:40'),
+(17,12,'Assessment 1',NULL,10,NULL,1,NULL,'2025-11-14 11:37:50'),
+(18,12,'Assessment 2',NULL,10,NULL,2,NULL,'2025-11-14 11:38:03'),
+(20,13,'Reci',NULL,15,NULL,1,NULL,'2025-11-14 11:38:40'),
+(21,13,'Reci 1',NULL,15,NULL,2,NULL,'2025-11-14 11:38:51'),
+(22,14,'Assessment 1',NULL,20,NULL,1,NULL,'2025-11-14 11:39:00'),
+(23,14,'Assessment 2',NULL,20,NULL,2,NULL,'2025-11-14 11:39:20'),
+(24,15,'Assessment 1',NULL,15,NULL,1,NULL,'2025-11-14 11:39:38'),
+(25,15,'Assessment 2',NULL,20,NULL,2,NULL,'2025-11-14 11:39:49'),
+(26,16,'Assessment 3',NULL,50,NULL,1,NULL,'2025-11-14 11:40:14'),
+(27,17,'Exam',NULL,60,NULL,1,NULL,'2025-11-14 11:40:30'),
+(28,18,'Exam',NULL,60,NULL,1,NULL,'2025-11-14 11:41:18'),
+(29,19,'Exam',NULL,70,NULL,1,NULL,'2025-11-14 11:42:50');
 /*!40000 ALTER TABLE `grade_assessments` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -256,7 +254,7 @@ CREATE TABLE `grade_categories` (
   KEY `idx_grade_categories_position` (`position`),
   CONSTRAINT `fk_structure` FOREIGN KEY (`structure_id`) REFERENCES `grade_structures` (`id`) ON DELETE CASCADE,
   CONSTRAINT `grade_categories_ibfk_1` FOREIGN KEY (`structure_id`) REFERENCES `grade_structures` (`id`) ON DELETE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -266,8 +264,8 @@ CREATE TABLE `grade_categories` (
 LOCK TABLES `grade_categories` WRITE;
 /*!40000 ALTER TABLE `grade_categories` DISABLE KEYS */;
 INSERT INTO `grade_categories` VALUES
-(3,7,'LECTURE',100,1,NULL,'2025-11-01 20:57:55'),
-(4,7,'LABORATORY',100,2,NULL,'2025-11-01 20:57:55');
+(4,11,'LECTURE',100,1,NULL,'2025-11-13 19:48:29'),
+(5,11,'LABORATORY',100,2,NULL,'2025-11-13 19:48:29');
 /*!40000 ALTER TABLE `grade_categories` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -292,7 +290,7 @@ CREATE TABLE `grade_structure_history` (
   KEY `idx_changed_at` (`changed_at`),
   CONSTRAINT `grade_structure_history_ibfk_1` FOREIGN KEY (`structure_id`) REFERENCES `grade_structures` (`id`) ON DELETE CASCADE,
   CONSTRAINT `grade_structure_history_ibfk_2` FOREIGN KEY (`changed_by`) REFERENCES `instructors` (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=8 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -338,8 +336,7 @@ CREATE TABLE `grade_structures` (
 LOCK TABLES `grade_structures` WRITE;
 /*!40000 ALTER TABLE `grade_structures` DISABLE KEYS */;
 INSERT INTO `grade_structures` VALUES
-(7,1,'BSIT 1a','{\"LABORATORY\": [{\"name\": \"LAB PARTICIPATION\", \"weight\": 25, \"assessments\": []}, {\"name\": \"LAB HOMEWORK\", \"weight\": 50, \"assessments\": []}, {\"name\": \"LAB EXERCISE\", \"weight\": 25, \"assessments\": []}], \"LECTURE\": [{\"name\": \"ATTENDANCE\", \"weight\": 50, \"assessments\": []}, {\"name\": \"ATTITUDE\", \"weight\": 50, \"assessments\": []}]}',1,'2025-11-01 13:11:39','2025-11-01 20:40:14',1,1),
-(11,4,'TEST','{\"LABORATORY\": [{\"name\": \"LAB PARTICIPATION\", \"weight\": 5, \"assessments\": []}, {\"name\": \"LAB HOMEWORK\", \"weight\": 10, \"assessments\": []}, {\"name\": \"LAB EXERCISE\", \"weight\": 15, \"assessments\": []}, {\"name\": \"PRELIM LAB EXAM\", \"weight\": 20, \"assessments\": []}, {\"name\": \"MIDTERM LAB EXAM\", \"weight\": 25, \"assessments\": []}, {\"name\": \"FINAL LAB EXAM\", \"weight\": 25, \"assessments\": []}], \"LECTURE\": [{\"name\": \"ATTENDANCE\", \"weight\": 25, \"assessments\": []}, {\"name\": \"ATTITUDE\", \"weight\": 25, \"assessments\": []}, {\"name\": \"ATTITUDE\", \"weight\": 50, \"assessments\": []}]}',1,'2025-11-01 20:42:02','2025-11-01 20:42:02',1,1);
+(11,1,'TEST 1','{\"LABORATORY\": [{\"name\": \"LAB PARTICIPATION\", \"weight\": 5, \"assessments\": []}, {\"name\": \"LAB HOMEWORK\", \"weight\": 10, \"assessments\": []}, {\"name\": \"LAB EXERCISE\", \"weight\": 15, \"assessments\": []}, {\"name\": \"PRELIM LAB EXAM\", \"weight\": 20, \"assessments\": []}, {\"name\": \"MIDTERM LAB EXAM\", \"weight\": 25, \"assessments\": []}, {\"name\": \"FINAL LAB EXAM\", \"weight\": 25, \"assessments\": []}], \"LECTURE\": [{\"name\": \"ATTENDANCE\", \"weight\": 2.5, \"assessments\": []}, {\"name\": \"ATTITUDE\", \"weight\": 2.5, \"assessments\": []}, {\"name\": \"RECITATION\", \"weight\": 2.5, \"assessments\": []}, {\"name\": \"HOMEWORK\", \"weight\": 2.5, \"assessments\": []}, {\"name\": \"QUIZ\", \"weight\": 15, \"assessments\": []}, {\"name\": \"PROJECT\", \"weight\": 10, \"assessments\": []}, {\"name\": \"PRELIM EXAM\", \"weight\": 15, \"assessments\": []}, {\"name\": \"MIDTERM EXAM\", \"weight\": 25, \"assessments\": []}, {\"name\": \"FINAL EXAM\", \"weight\": 25, \"assessments\": []}]}',1,'2025-11-13 19:48:19','2025-11-13 22:59:46',1,1);
 /*!40000 ALTER TABLE `grade_structures` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -366,7 +363,7 @@ CREATE TABLE `grade_subcategories` (
   KEY `idx_grade_subcategories_position` (`position`),
   CONSTRAINT `fk_category` FOREIGN KEY (`category_id`) REFERENCES `grade_categories` (`id`) ON DELETE CASCADE,
   CONSTRAINT `grade_subcategories_ibfk_1` FOREIGN KEY (`category_id`) REFERENCES `grade_categories` (`id`) ON DELETE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=21 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=26 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -376,11 +373,21 @@ CREATE TABLE `grade_subcategories` (
 LOCK TABLES `grade_subcategories` WRITE;
 /*!40000 ALTER TABLE `grade_subcategories` DISABLE KEYS */;
 INSERT INTO `grade_subcategories` VALUES
-(16,3,'ATTENDANCE',50,0,NULL,1,NULL,'2025-11-01 20:57:55'),
-(17,3,'ATTITUDE',50,0,NULL,2,NULL,'2025-11-01 20:57:55'),
-(18,4,'LAB PARTICIPATION',25,0,NULL,1,NULL,'2025-11-01 20:57:55'),
-(19,4,'LAB HOMEWORK',50,0,NULL,2,NULL,'2025-11-01 20:57:55'),
-(20,4,'LAB EXERCISE',25,0,NULL,3,NULL,'2025-11-01 20:57:55');
+(11,4,'ATTENDANCE',2.5,0,NULL,1,NULL,'2025-11-13 19:48:29'),
+(12,4,'ATTITUDE',2.5,0,NULL,2,NULL,'2025-11-13 19:48:29'),
+(13,4,'RECITATION',2.5,0,NULL,3,NULL,'2025-11-13 19:48:29'),
+(14,4,'HOMEWORK',2.5,0,NULL,4,NULL,'2025-11-13 19:48:29'),
+(15,4,'QUIZ',15,0,NULL,5,NULL,'2025-11-13 19:48:29'),
+(16,4,'PROJECT',10,0,NULL,6,NULL,'2025-11-13 19:48:29'),
+(17,4,'PRELIM EXAM',15,0,NULL,7,NULL,'2025-11-13 19:48:29'),
+(18,4,'MIDTERM EXAM',25,0,NULL,8,NULL,'2025-11-13 19:48:29'),
+(19,4,'FINAL EXAM',25,0,NULL,9,NULL,'2025-11-13 19:48:29'),
+(20,5,'LAB PARTICIPATION',5,0,NULL,1,NULL,'2025-11-13 19:48:29'),
+(21,5,'LAB HOMEWORK',10,0,NULL,2,NULL,'2025-11-13 19:48:29'),
+(22,5,'LAB EXERCISE',15,0,NULL,3,NULL,'2025-11-13 19:48:29'),
+(23,5,'PRELIM LAB EXAM',20,0,NULL,4,NULL,'2025-11-13 19:48:29'),
+(24,5,'MIDTERM LAB EXAM',25,0,NULL,5,NULL,'2025-11-13 19:48:29'),
+(25,5,'FINAL LAB EXAM',25,0,NULL,6,NULL,'2025-11-13 19:48:29');
 /*!40000 ALTER TABLE `grade_subcategories` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -475,7 +482,7 @@ CREATE TABLE `instructors` (
 LOCK TABLES `instructors` WRITE;
 /*!40000 ALTER TABLE `instructors` DISABLE KEYS */;
 INSERT INTO `instructors` VALUES
-(1,2,1,'Information Technology','NS','CL-001',NULL,'active','2025-10-26 14:29:59','2025-11-03 11:45:04');
+(1,2,1,'Information Technology','MWEHEHE','CL_001',NULL,'active','2025-11-07 09:56:56','2025-11-07 09:56:56');
 /*!40000 ALTER TABLE `instructors` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -508,7 +515,7 @@ CREATE TABLE `personal_info` (
   KEY `idx_personal_info_phone` (`phone`),
   KEY `idx_personal_info_birth_date` (`birth_date`),
   KEY `idx_personal_info_gender` (`gender`)
-) ENGINE=InnoDB AUTO_INCREMENT=24 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -518,19 +525,8 @@ CREATE TABLE `personal_info` (
 LOCK TABLES `personal_info` WRITE;
 /*!40000 ALTER TABLE `personal_info` DISABLE KEYS */;
 INSERT INTO `personal_info` VALUES
-(1,'Frederick','Madayag',NULL,'frederick.madayag_cyn@isu.edu.ph','09277102690','CYN CITY','1986-05-04','Male','Frederick Madayag','09277102690','2025-10-26 14:29:59','2025-10-26 14:29:59'),
-(2,'Juan','Garcia','Santos','juan.garcia@isu.edu.ph','09271234567','Cauayan City','2003-05-15','Male','Maria Garcia','09289876543','2025-10-30 23:58:33','2025-10-30 23:58:33'),
-(3,'Maria','Santos','Cruz','maria.santos@isu.edu.ph','09261234568','Santiago City','2003-08-22','Female','Pedro Santos','09291234567','2025-10-30 23:58:33','2025-10-30 23:58:33'),
-(4,'Miguel','Reyes','Luna','miguel.reyes@isu.edu.ph','09273456789','Cauayan City','2004-03-10','Male','Ana Reyes','09282345678','2025-10-30 23:58:33','2025-10-30 23:58:33'),
-(5,'Sofia','Cruz','Rivera','sofia.cruz@isu.edu.ph','09254567890','Santiago City','2003-11-28','Female','Manuel Cruz','09287654321','2025-10-30 23:58:33','2025-10-30 23:58:33'),
-(6,'Gabriel','Luna','Torres','gabriel.luna@isu.edu.ph','09265678901','Cauayan City','2004-01-15','Male','Isabel Luna','09283456789','2025-10-30 23:58:33','2025-10-30 23:58:33'),
-(7,'Isabella','Torres','Garcia','isabella.torres@isu.edu.ph','09276789012','Santiago City','2003-07-20','Female','Ricardo Torres','09284567890','2025-10-30 23:58:33','2025-10-30 23:58:33'),
-(8,'Lucas','Rivera','Santos','lucas.rivera@isu.edu.ph','09287890123','Cauayan City','2004-05-03','Male','Carmen Rivera','09285678901','2025-10-30 23:58:33','2025-10-30 23:58:33'),
-(9,'Emma','Martinez','Cruz','emma.martinez@isu.edu.ph','09268901234','Santiago City','2003-09-12','Female','Luis Martinez','09286789012','2025-10-30 23:58:33','2025-10-30 23:58:33'),
-(10,'Daniel','Flores','Reyes','daniel.flores@isu.edu.ph','09259012345','Cauayan City','2004-02-28','Male','Rosa Flores','09287890123','2025-10-30 23:58:33','2025-10-30 23:58:33'),
-(11,'Victoria','Ramos','Luna','victoria.ramos@isu.edu.ph','09270123456','Santiago City','2003-12-05','Female','Juan Ramos','09288901234','2025-10-30 23:58:33','2025-10-30 23:58:33'),
-(22,'Student','User',NULL,'2025-TEST-0001@student.edu',NULL,NULL,NULL,NULL,NULL,NULL,'2025-11-01 23:16:53','2025-11-01 23:16:53'),
-(23,'Student','User',NULL,'23-13333@student.edu',NULL,NULL,NULL,NULL,NULL,NULL,'2025-11-01 23:22:24','2025-11-01 23:22:24');
+(1,'Frederick','Madayag',NULL,'frederick.madayag_cyn@isu.edu.ph','09277102690','asukdguakdgaskj','1999-11-02','Male','iosdfh','09277102690','2025-11-07 09:56:56','2025-11-07 09:56:56'),
+(2,'AKOooooooo','FREDDDDDDDDDDDD','','23-13439@student.edu','','BAHAHAHHAHAHAY',NULL,'Male','','','2025-11-07 09:58:59','2025-11-07 11:16:37');
 /*!40000 ALTER TABLE `personal_info` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -553,7 +549,7 @@ CREATE TABLE `student_classes` (
   KEY `idx_student_classes_joined_at` (`joined_at`),
   CONSTRAINT `student_classes_ibfk_1` FOREIGN KEY (`student_id`) REFERENCES `students` (`id`) ON DELETE CASCADE,
   CONSTRAINT `student_classes_ibfk_2` FOREIGN KEY (`class_id`) REFERENCES `classes` (`id`) ON DELETE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=21 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -563,20 +559,7 @@ CREATE TABLE `student_classes` (
 LOCK TABLES `student_classes` WRITE;
 /*!40000 ALTER TABLE `student_classes` DISABLE KEYS */;
 INSERT INTO `student_classes` VALUES
-(1,1,1,'2025-10-30 23:58:33'),
-(2,2,1,'2025-10-30 23:58:33'),
-(3,3,2,'2025-10-30 23:58:33'),
-(4,4,1,'2025-10-30 23:58:33'),
-(5,5,2,'2025-10-30 23:58:33'),
-(6,6,1,'2025-10-30 23:58:33'),
-(7,7,2,'2025-10-30 23:58:33'),
-(8,8,1,'2025-10-30 23:58:33'),
-(9,9,2,'2025-10-30 23:58:33'),
-(10,10,1,'2025-10-30 23:58:38'),
-(11,11,1,'2025-10-30 23:58:43'),
-(12,12,1,'2025-10-30 23:58:43'),
-(13,13,2,'2025-10-30 23:58:43'),
-(14,13,1,'2025-10-30 23:58:43');
+(1,1,1,'2025-11-07 10:02:26');
 /*!40000 ALTER TABLE `student_classes` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -595,6 +578,8 @@ CREATE TABLE `student_grades` (
   `score` float DEFAULT NULL,
   `percentage` float DEFAULT NULL,
   `letter_grade` varchar(2) DEFAULT NULL,
+  `is_released` tinyint(1) DEFAULT 0,
+  `released_date` datetime DEFAULT NULL,
   `remarks` varchar(50) DEFAULT NULL,
   `graded_at` datetime DEFAULT NULL,
   `updated_at` datetime DEFAULT current_timestamp() ON UPDATE current_timestamp(),
@@ -604,6 +589,7 @@ CREATE TABLE `student_grades` (
   KEY `idx_student_grades_assessment_id` (`assessment_id`),
   KEY `idx_student_grades_letter_grade` (`letter_grade`),
   KEY `idx_student_grades_graded_at` (`graded_at`),
+  KEY `idx_student_grades_released` (`is_released`,`released_date`),
   CONSTRAINT `student_grades_ibfk_1` FOREIGN KEY (`student_id`) REFERENCES `students` (`id`) ON DELETE CASCADE,
   CONSTRAINT `student_grades_ibfk_2` FOREIGN KEY (`class_id`) REFERENCES `classes` (`id`) ON DELETE CASCADE,
   CONSTRAINT `student_grades_ibfk_3` FOREIGN KEY (`assessment_id`) REFERENCES `assessments` (`id`) ON DELETE CASCADE
@@ -638,7 +624,7 @@ CREATE TABLE `student_scores` (
   KEY `idx_student_scores_student_id` (`student_id`),
   CONSTRAINT `student_scores_ibfk_1` FOREIGN KEY (`assessment_id`) REFERENCES `assessments` (`id`) ON DELETE CASCADE,
   CONSTRAINT `student_scores_ibfk_2` FOREIGN KEY (`student_id`) REFERENCES `students` (`id`) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=9 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -678,7 +664,7 @@ CREATE TABLE `students` (
   KEY `idx_students_section` (`section`),
   CONSTRAINT `students_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE,
   CONSTRAINT `students_ibfk_2` FOREIGN KEY (`personal_info_id`) REFERENCES `personal_info` (`id`) ON DELETE SET NULL
-) ENGINE=InnoDB AUTO_INCREMENT=23 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -688,21 +674,7 @@ CREATE TABLE `students` (
 LOCK TABLES `students` WRITE;
 /*!40000 ALTER TABLE `students` DISABLE KEYS */;
 INSERT INTO `students` VALUES
-(1,3,2,'BSIT','Programming',2,'1A',NULL,NULL,NULL,'2025-10-30 23:58:33'),
-(2,4,3,'BSIT','Programming',2,'1A',NULL,NULL,NULL,'2025-10-30 23:58:33'),
-(3,5,4,'BSIT','Networking',2,'2B',NULL,NULL,NULL,'2025-10-30 23:58:33'),
-(4,6,5,'BSIT','Programming',2,'1A',NULL,NULL,NULL,'2025-10-30 23:58:33'),
-(5,7,6,'BSIT','Networking',2,'2B',NULL,NULL,NULL,'2025-10-30 23:58:33'),
-(6,8,7,'BSIT','Programming',2,'1A',NULL,NULL,NULL,'2025-10-30 23:58:33'),
-(7,9,8,'BSIT','Networking',2,'2B',NULL,NULL,NULL,'2025-10-30 23:58:33'),
-(8,10,9,'BSIT','Programming',2,'1A',NULL,NULL,NULL,'2025-10-30 23:58:33'),
-(9,11,10,'BSIT','Networking',2,'2B',NULL,NULL,NULL,'2025-10-30 23:58:33'),
-(10,12,11,'BSIT','Programming',2,'1A',NULL,NULL,NULL,'2025-10-30 23:58:33'),
-(11,10,2,'BSIT','Programming',2,'1A',NULL,NULL,NULL,'2025-10-30 23:58:43'),
-(12,11,3,'BSIT','Programming',2,'1A',NULL,NULL,NULL,'2025-10-30 23:58:43'),
-(13,12,4,'BSIT','Networking',2,'2B',NULL,NULL,NULL,'2025-10-30 23:58:43'),
-(21,23,22,'BSIT',NULL,1,'A',NULL,NULL,NULL,'2025-11-01 23:16:53'),
-(22,24,23,'BSIT','Networking',3,'A',NULL,NULL,NULL,'2025-11-01 23:22:24');
+(1,3,2,'BSIT','Networking',1,'A','uploads/88f647da23eb4facad9fa11f2b082b4f_IMG_20251103_171505.jpg','uploads/2c4d6d647058421186a0a3e44d89285f_IMG_20251103_171505.jpg','uploads/ffa99f3a5b2948d8924e94646f1ac73e_IMG_20251103_171505.jpg','2025-11-07 09:58:59');
 /*!40000 ALTER TABLE `students` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -724,7 +696,7 @@ CREATE TABLE `users` (
   KEY `idx_users_school_id` (`school_id`),
   KEY `idx_users_role` (`role`),
   KEY `idx_users_created_at` (`created_at`)
-) ENGINE=InnoDB AUTO_INCREMENT=25 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -734,20 +706,9 @@ CREATE TABLE `users` (
 LOCK TABLES `users` WRITE;
 /*!40000 ALTER TABLE `users` DISABLE KEYS */;
 INSERT INTO `users` VALUES
-(1,'admin001','scrypt:32768:8:1$w7mnsr1qlaUQtS05$c0f059d7b2827d3110f0fbdfbb725824687c68f0990dfb6d989a2430f11920e2d033c68b78bd44e99f12491e35fceb6ea0313769213ebb7323715176ecab2c59','admin','2025-10-25 21:20:33'),
-(2,'CL-001','scrypt:32768:8:1$yegeDg0HVdUPbNK1$738898057481bed649a73067c5f0505319e449477409d07679e8945ac04062a8780b3429dc860ded844461d55717d473bc6cc15cba71ba4a4fb76d5a3d671786','instructor','2025-10-26 14:29:59'),
-(3,'2023-00001','scrypt:32768:8:1$default_hash$student_password_hash','student','2025-10-30 23:58:33'),
-(4,'2023-00002','scrypt:32768:8:1$default_hash$student_password_hash','student','2025-10-30 23:58:33'),
-(5,'2023-00003','scrypt:32768:8:1$default_hash$student_password_hash','student','2025-10-30 23:58:33'),
-(6,'2023-00004','scrypt:32768:8:1$default_hash$student_password_hash','student','2025-10-30 23:58:33'),
-(7,'2023-00005','scrypt:32768:8:1$default_hash$student_password_hash','student','2025-10-30 23:58:33'),
-(8,'2023-00006','scrypt:32768:8:1$default_hash$student_password_hash','student','2025-10-30 23:58:33'),
-(9,'2023-00007','scrypt:32768:8:1$default_hash$student_password_hash','student','2025-10-30 23:58:33'),
-(10,'2023-00008','scrypt:32768:8:1$default_hash$student_password_hash','student','2025-10-30 23:58:33'),
-(11,'2023-00009','scrypt:32768:8:1$default_hash$student_password_hash','student','2025-10-30 23:58:33'),
-(12,'2023-00010','scrypt:32768:8:1$default_hash$student_password_hash','student','2025-10-30 23:58:33'),
-(23,'2025-TEST-0001','scrypt:32768:8:1$DVHtC2bNZ22oFzrT$7f3619eb0cdf82845a894c20a7184860641ee24cc83a09287203acec0842dc2b89ff5eec68686cbdcaa63ca8298fff3e7e90a542b335f01f94d1ed9ae28c264c','student','2025-11-01 23:16:53'),
-(24,'23-13333','scrypt:32768:8:1$PqGSGWpYElVqligb$d1399c7c39a48dc2f0fe2c61b7258b8dd42cfbd5a6b6ae04ff1956b4b722cbe97a2113679c47b44ecfa7216d89a9b9fae38151c63766b9f9e5bda45826f0b609','student','2025-11-01 23:22:24');
+(1,'admin001','scrypt:32768:8:1$G4jyO3RAfHGPaVjg$36f40df2e16de8a695dc891da2a8841fc0e4fe8dd7efd9797a3317951de469108eb381b5d44be14fbb7a3e8c0c264f0a647ef4bc0b18749cf3c40ec565ff7d27','admin','2025-11-07 09:46:01'),
+(2,'CL_001','scrypt:32768:8:1$iqJHjBDcDeVYjowW$d8d0cf849ef83387ed192485506ca3f77e0a07d8d7fb664a4d30b5a6c3c472d5e27953b502ee6021a75176267c9bbfc72399af51bb67fe36b73ec6c0f4c1ee16','instructor','2025-11-07 09:56:56'),
+(3,'23-13439','scrypt:32768:8:1$kksumUyiHg5tEC2O$ae430078c5b0cbb3c05c8d348d470badcc83929ad5fc66704e9406a4667948cd2722aa9a01b33bfd549d479211aab7ee63a3f3ce3782ad1f34af289fe4ada5e7','student','2025-11-07 09:58:59');
 /*!40000 ALTER TABLE `users` ENABLE KEYS */;
 UNLOCK TABLES;
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
@@ -760,4 +721,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*M!100616 SET NOTE_VERBOSITY=@OLD_NOTE_VERBOSITY */;
 
--- Dump completed on 2025-11-03 13:37:22
+-- Dump completed on 2025-11-14 15:24:15

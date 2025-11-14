@@ -812,6 +812,8 @@ def gradebuilder_entry():
 def gradebuilder_v2():
     if session.get("role") != "instructor":
         return render_template("unauthorized.html", message="Access denied.")
+    # Render the Grade Builder v2 page for instructors
+    return render_template("gradebuilder_v2.html")
 
 @instructor_bp.route("/release-grades", endpoint="release_grades")
 @login_required

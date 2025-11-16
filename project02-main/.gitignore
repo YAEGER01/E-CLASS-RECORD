@@ -1,3 +1,40 @@
+# Ignore environment files and secrets
+.env
+.env.*
+
+# Byte-compiled / caches
+__pycache__/
+*.py[cod]
+
+# Virtual environments
+venv/
+env/
+/.venv/
+
+# IDE/editor folders
+.vscode/
+.idea/
+
+# Pytest cache
+.pytest_cache/
+
+# Database files
+*.sqlite3
+*.db
+
+# Logs
+*.log
+
+# macOS
+.DS_Store
+
+# Ignore local uploads and user data
+static/uploads/
+
+# Prevent accidentally committing secrets file if present
+# (Note: .gitignore can't remove already-committed files or secrets from history)
+secrets.py
+instance/
 # Environments
 .env
 .venv

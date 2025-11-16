@@ -1,262 +1,394 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/instructor-grades-unified.css') }}">
-  <title>Unified — Grade Entry</title>
-  <style>
-    
-  </style>
-  <script src="{{ url_for('static', filename='js/swal.js') }}"></script>
-</head>
-<body>
-  <div class="page">
-  <div id="page-data" data-class-id="{{ class_id }}" data-structure-id="{{ structure_id }}" data-csrf-token="{{ csrf_token }}" style="display:none"></div>
-    <div class="toolbar" >
-      <div>
-        <a class="btn" href="{{ url_for('dashboard.instructor_dashboard') }}">← Back</a>
-      </div>
-      <div class="status" id="save-status"></div>
-      <div class="btn-row">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='css/instructor-grades-unified.css') }}"
+    />
+    <title>Unified — Grade Entry</title>
+    <style></style>
+    <script src="{{ url_for('static', filename='js/swal.js') }}"></script>
+  </head>
+  <body>
+    <div class="page">
+      <div
+        id="page-data"
+        data-class-id="{{ class_id }}"
+        data-structure-id="{{ structure_id }}"
+        data-csrf-token="{{ csrf_token }}"
+        style="display: none"
+      ></div>
+      <div class="toolbar">
+        <div>
+          <a class="btn" href="{{ url_for('dashboard.instructor_dashboard') }}"
+            >← Back</a
+          >
+        </div>
+        <div class="status" id="save-status"></div>
+        <div class="btn-row">
+          {# Computation Management button removed: endpoint no longer exists #}
 
-  {# Computation Management button removed: endpoint no longer exists #}
-
-  <!-- Legacy quick actions preserved -->
- 
-      </div>
-    </div>
-  
-    <div class="class-details" style="margin:12px 0; padding:10px 12px; border:1px solid #e5e7eb; border-radius:6px; background:#fff;">
-      {% set ci = class_info or {} %}
-      <div style="display:flex; gap:16px; flex-wrap:wrap; align-items:center;">
-        <div style="font-weight:700; font-size:1.1rem;">{{ ci.course or 'Course' }} — {{ ci.subject or 'Subject' }}</div>
-        <div style="color:#6b7280">{{ ci.year or '' }} · {{ ci.semester or '' }} · Section {{ ci.section or '' }}</div>
-        <div style="color:#6b7280">Track: {{ ci.track or 'N/A' }}</div>
-        <div style="color:#6b7280">Schedule: {{ ci.schedule or 'N/A' }}</div>
-        <div style="margin-left:auto; color:#374151">Code: <strong>{{ ci.class_code or '-' }}</strong> · Join: <strong>{{ ci.join_code or '-' }}</strong></div>
-      </div>
-    </div>
-<br>
-    <!-- Structure summary and quick add (dropdown per category) -->
-    <div class="collapsable-drawer-container">
-      <button class="drawer-toggle collapsed" aria-expanded="false" aria-controls="drawerContentStructure">
-        <h1>Add Assessments <span class="arrow-icon">▼</span></h1>
-      </button>
-    
-      <div class="drawer-content" id="drawerContentStructure" aria-hidden="true">
-        <div id="structure-actions" style="margin: 8px 0 12px 0;">
-          
-          {% if structure %}
-          {% for cat in ['LECTURE','LABORATORY'] %}
-          {% set sublist = structure.get(cat) or [] %}
-          {% if sublist %}
-          <div class="structure-cat" data-category="{{ cat|lower }}" style="margin:6px 0; font-weight:700;">{{ cat }}</div>
-          <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
-            <select id="select-{{ cat|lower }}" data-category="{{ cat }}" class="btn" style="min-width: 260px;">
-              {% for sub in sublist %}
-              {% set sid = (sub_id_map.get(cat, {}) or {}).get(sub.name) %}
-              <option value="{{ sub.name }}" data-subcategory-id="{{ sid }}">{{ sub.name }} — {{ '%.2f' % (sub.weight|float)
-                }}%
-              </option>
-              {% endfor %}
-            </select>
-            <button class="btn" data-action="add-assessment-select" data-select-id="select-{{ cat|lower }}">+ Add
-              assessment</button>
-          </div>
-          {% endif %}
-          {% endfor %}
-          {% else %}
-          <div class="status">No active grading structure found.</div>
-          {% endif %}
+          <!-- Legacy quick actions preserved -->
         </div>
       </div>
+
+      <div
+        class="class-details"
+        style="
+          margin: 12px 0;
+          padding: 10px 12px;
+          border: 1px solid #e5e7eb;
+          border-radius: 6px;
+          background: #fff;
+        "
+      >
+        {% set ci = class_info or {} %}
+        <div
+          style="display: flex; gap: 16px; flex-wrap: wrap; align-items: center"
+        >
+          <div style="font-weight: 700; font-size: 1.1rem">
+            {{ ci.course or 'Course' }} — {{ ci.subject or 'Subject' }}
+          </div>
+          <div style="color: #6b7280">
+            {{ ci.year or '' }} · {{ ci.semester or '' }} · Section {{
+            ci.section or '' }}
+          </div>
+          <div style="color: #6b7280">Track: {{ ci.track or 'N/A' }}</div>
+          <div style="color: #6b7280">Schedule: {{ ci.schedule or 'N/A' }}</div>
+          <div style="margin-left: auto; color: #374151">
+            Code: <strong>{{ ci.class_code or '-' }}</strong> · Join:
+            <strong>{{ ci.join_code or '-' }}</strong>
+          </div>
+        </div>
       </div>
-<br>
-<div class="collapsable-drawer-container">
-  <button class="drawer-toggle collapsed" aria-expanded="false" aria-controls="drawerContentMatrix">
-    <h1>Grade Input<span class="arrow-icon">▼</span></h1>
-  </button>
+      <br />
+      <!-- Structure summary and quick add (dropdown per category) -->
+      <div class="collapsable-drawer-container">
+        <button
+          class="drawer-toggle collapsed"
+          aria-expanded="false"
+          aria-controls="drawerContentStructure"
+        >
+          <h1>Add Assessments <span class="arrow-icon">▼</span></h1>
+        </button>
 
-  <div class="drawer-content" id="drawerContentMatrix" aria-hidden="true">
-    <div class="drawerContentHeader">
-      <strong>Instructions:</strong> Enter student scores in the input fields below. Computed totals, equivalent ratings,
-      and percentages will be calculated automatically. Use the "Final Grade" section below to view overall grades.
-      <div class="actions">
-        <button data-action="clear-inputs">Clear Inputs</button>
-        <button data-action="toggle-lock">Lock/Unlock Data</button>
-        <button data-action="submit-inputs">Submit</button>
+        <div
+          class="drawer-content"
+          id="drawerContentStructure"
+          aria-hidden="true"
+        >
+          <div id="structure-actions" style="margin: 8px 0 12px 0">
+            {% if structure %} {% for cat in ['LECTURE','LABORATORY'] %} {% set
+            sublist = structure.get(cat) or [] %} {% if sublist %}
+            <div
+              class="structure-cat"
+              data-category="{{ cat|lower }}"
+              style="margin: 6px 0; font-weight: 700"
+            >
+              {{ cat }}
+            </div>
+            <div
+              style="
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                margin-bottom: 8px;
+              "
+            >
+              <select
+                id="select-{{ cat|lower }}"
+                data-category="{{ cat }}"
+                class="btn"
+                style="min-width: 260px"
+              >
+                {% for sub in sublist %} {% set sid = (sub_id_map.get(cat, {})
+                or {}).get(sub.name) %}
+                <option value="{{ sub.name }}" data-subcategory-id="{{ sid }}">
+                  {{ sub.name }} — {{ '%.2f' % (sub.weight|float) }}%
+                </option>
+                {% endfor %}
+              </select>
+              <button
+                class="btn"
+                data-action="add-assessment-select"
+                data-select-id="select-{{ cat|lower }}"
+              >
+                + Add assessment
+              </button>
+            </div>
+            {% endif %} {% endfor %} {% else %}
+            <div class="status">No active grading structure found.</div>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+      <br />
+      <div class="collapsable-drawer-container">
+        <button
+          class="drawer-toggle collapsed"
+          aria-expanded="false"
+          aria-controls="drawerContentMatrix"
+        >
+          <h1>Grade Input<span class="arrow-icon">▼</span></h1>
+        </button>
+
+        <div class="drawer-content" id="drawerContentMatrix" aria-hidden="true">
+          <div class="drawerContentHeader">
+            <strong>Instructions:</strong> Enter student scores in the input
+            fields below. Computed totals, equivalent ratings, and percentages
+            will be calculated automatically. Use the "Final Grade" section
+            below to view overall grades.
+            <div class="actions">
+              <button data-action="clear-inputs">Clear Inputs</button>
+              <button data-action="toggle-lock">Lock/Unlock Data</button>
+              <button data-action="submit-inputs">Submit</button>
+            </div>
+          </div>
+          <br />
+          <div class="matrix-wrapper">
+            <table class="matrix">
+              <thead>
+                <!-- Section titles row for clear separation -->
+                <tr>
+                  <th class="sticky-left" rowspan="4">Student</th>
+                  {% set all_cats = ['LECTURE','LABORATORY'] %} {% for cat in
+                  all_cats %} {% set subs = grouped_assessments.get(cat, {}) %}
+                  {% set col_span = 0 %} {% for subdef in (structure.get(cat) or
+                  []) %} {% set subname = subdef.name %} {% set arr =
+                  subs.get(subname, []) %} {% set arr_len = arr|length %} {% set
+                  col_span = col_span + (arr_len + 3 if arr_len > 0 else 1) %}
+                  {% endfor %} {% if col_span > 0 %}
+                  <th class="section-cell" colspan="{{ col_span + 1 }}">
+                    {{ cat }}
+                  </th>
+                  {% endif %} {% endfor %}
+                </tr>
+                <!-- Section subtitles row -->
+                <tr>
+                  {% for cat in all_cats %} {% set subs =
+                  grouped_assessments.get(cat, {}) %} {% set col_span = 0 %} {%
+                  for subdef in (structure.get(cat) or []) %} {% set subname =
+                  subdef.name %} {% set arr = subs.get(subname, []) %} {% set
+                  arr_len = arr|length %} {% set col_span = col_span + (arr_len
+                  + 3 if arr_len > 0 else 1) %} {% endfor %} {% if col_span > 0
+                  %}
+                  <th class="section-subtitle" colspan="{{ col_span + 1 }}">
+                    {% if cat == 'LECTURE' %}Lecture Categories{% else
+                    %}Laboratory Categories{% endif %}
+                  </th>
+                  {% endif %} {% endfor %}
+                </tr>
+                <tr>
+                  {% for cat in all_cats %} {% set subs =
+                  grouped_assessments.get(cat, {}) %} {% for subdef in
+                  (structure.get(cat) or []) %} {% set sub = subdef.name %} {%
+                  set arr = subs.get(sub, []) %} {% set arr_len = arr|length %}
+                  {% set spanv = (arr_len + 3 if arr_len > 0 else 1) %} {% set w
+                  = subdef.weight %} {# Add a data-category attribute and class
+                  so we can target only the subcategory header cells #}
+                  <th
+                    class="subcell subcat-head"
+                    data-category="{{ cat|lower }}"
+                    colspan="{{ spanv }}"
+                  >
+                    {{ sub }}{% if w is not none %} — {{ '%.2f' % (w|float)
+                    }}%{% endif %}
+                  </th>
+                  {% endfor %} {# Add the rating column for this category at the
+                  end #}
+                  <th
+                    class="subcell subcat-head"
+                    data-category="{{ cat|lower }}"
+                  >
+                    {% if cat == 'LECTURE' %}LECTURE RATINGS{% else %}LABORATORY
+                    RATINGS{% endif %}
+                  </th>
+                  {% endfor %}
+                </tr>
+                <tr>
+                  {% for cat in all_cats %} {% set subs =
+                  grouped_assessments.get(cat, {}) %} {% for subdef in
+                  (structure.get(cat) or []) %} {% set sub = subdef.name %} {%
+                  set arr = subs.get(sub, []) %} {% set w = subdef.weight %} {%
+                  if (arr|length) == 0 %}
+                  <th class="assess-head">
+                    <button
+                      class="btn"
+                      data-action="add-assessment"
+                      data-subcategory="{{ sub }}"
+                      data-category="{{ cat }}"
+                      data-subcategory-id="{{ (sub_id_map.get(cat, {}) or {}).get(sub) }}"
+                    >
+                      + Add
+                    </button>
+                  </th>
+                  {% else %} {% for a in arr %}
+                  <th
+                    class="assess-head assess-col"
+                    title="Max {{ a.max_score }}"
+                    data-assessment-id="{{ a.id }}"
+                    data-category="{{ cat }}"
+                    data-subcategory="{{ sub }}"
+                    data-max="{{ a.max_score }}"
+                    data-subweight="{{ (w|float) if w is not none else 0 }}"
+                  >
+                    {{ a.name }}
+                    <div class="max">
+                      / {{ a.max_score }}
+                      <button
+                        class="btn"
+                        style="
+                          padding: 2px 6px;
+                          font-size: 0.85em;
+                          margin-left: 4px;
+                          vertical-align: middle;
+                        "
+                        data-action="edit-assessment"
+                        data-assessment-id="{{ a.id }}"
+                        data-category="{{ cat }}"
+                        data-subcategory="{{ sub }}"
+                        data-max="{{ a.max_score }}"
+                      >
+                        ✎ Edit
+                      </button>
+                    </div>
+                  </th>
+                  {% endfor %} {# Computed columns per subcategory #}
+                  <th
+                    class="assess-head computed-head total-col"
+                    data-category="{{ cat }}"
+                    data-subcategory="{{ sub }}"
+                    data-subweight="{{ (w|float) if w is not none else 0 }}"
+                  >
+                    TOTAL
+                  </th>
+                  <th
+                    class="assess-head computed-head equiv-col"
+                    data-category="{{ cat }}"
+                    data-subcategory="{{ sub }}"
+                    data-subweight="{{ (w|float) if w is not none else 0 }}"
+                  >
+                    EQUIVALENT RATING
+                  </th>
+                  <th
+                    class="assess-head computed-head reqpct-col"
+                    data-category="{{ cat }}"
+                    data-subcategory="{{ sub }}"
+                    data-subweight="{{ (w|float) if w is not none else 0 }}"
+                  >
+                    % of REQUIREMENT
+                  </th>
+                  {% endif %} {% endfor %} {# Add the rating column header for
+                  this category #}
+                  <th
+                    class="assess-head computed-head rating-col"
+                    data-category="{{ cat }}"
+                  >
+                    RATING
+                  </th>
+                  {% endfor %}
+                </tr>
+              </thead>
+              <tbody id="tbody">
+                {% for s in students %}
+                <tr data-student-id="{{ s.id }}">
+                  <td class="sticky-left">{{ s.name }}</td>
+                  {% for cat in all_cats %} {% set subs =
+                  grouped_assessments.get(cat, {}) %} {% for subdef in
+                  (structure.get(cat) or []) %} {% set sub = subdef.name %} {%
+                  set arr = subs.get(sub, []) %} {% if (arr|length) == 0 %}
+                  <td style="text-align: center; color: #cbd5e1">—</td>
+                  {% else %} {% for a in arr %} {% set sc =
+                  scores_map.get((s.id, a.id)) %}
+                  <td>
+                    <input
+                      class="score"
+                      type="number"
+                      min="0"
+                      max="{{ a.max_score }}"
+                      step="0.01"
+                      data-student="{{ s.id }}"
+                      data-assessment="{{ a.id }}"
+                      value="{{ sc if sc is not none else '' }}"
+                    />
+                  </td>
+                  {% endfor %} {# Computed value cells per subcategory #}
+                  <td
+                    class="computed total-col"
+                    data-category="{{ cat }}"
+                    data-subcategory="{{ sub }}"
+                    data-subweight="{{ (subdef.weight|float) if subdef.weight is not none else 0 }}"
+                  ></td>
+                  <td
+                    class="computed equiv-col"
+                    data-category="{{ cat }}"
+                    data-subcategory="{{ sub }}"
+                    data-subweight="{{ (subdef.weight|float) if subdef.weight is not none else 0 }}"
+                  ></td>
+                  <td
+                    class="computed reqpct-col"
+                    data-category="{{ cat }}"
+                    data-subcategory="{{ sub }}"
+                    data-subweight="{{ (subdef.weight|float) if subdef.weight is not none else 0 }}"
+                  ></td>
+                  {% endif %} {% endfor %} {# Add the rating cell for this
+                  category #}
+                  <td
+                    class="computed rating-col"
+                    data-category="{{ cat }}"
+                  ></td>
+                  {% endfor %}
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div class="collapsable-drawer-container">
+        <button
+          class="drawer-toggle collapsed"
+          aria-expanded="false"
+          aria-controls="drawerContentFinal"
+        >
+          <h1>FINAL GRADE<span class="arrow-icon">▼</span></h1>
+        </button>
+
+        <div class="drawer-content" id="drawerContentFinal" aria-hidden="true">
+          <br />
+          <div class="matrix-wrapper">
+            <table class="matrix final-grade-table">
+              <thead>
+                <tr>
+                  <th class="sticky-left">Student</th>
+                  <th>RAW GRADE</th>
+                  <th>TOTAL GRADE</th>
+                  <th>GRADE MARK</th>
+                  <th>REMARKS</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for s in students %}
+                <tr data-student-id="{{ s.id }}">
+                  <td class="sticky-left">{{ s.name }}</td>
+                  <td class="raw-grade" data-student="{{ s.id }}"></td>
+                  <td class="total-grade" data-student="{{ s.id }}"></td>
+                  <td class="grade-mark" data-student="{{ s.id }}"></td>
+                  <td class="remarks" data-student="{{ s.id }}"></td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
       </div>
     </div>
-    <br>
-    <div class="matrix-wrapper">
-      <table class="matrix">
-        <thead>
-          <!-- Section titles row for clear separation -->
-          <tr>
-            <th class="sticky-left" rowspan="4">Student</th>
-            {% set all_cats = ['LECTURE','LABORATORY'] %}
-            {% for cat in all_cats %}
-            {% set subs = grouped_assessments.get(cat, {}) %}
-            {% set col_span = 0 %}
-            {% for subdef in (structure.get(cat) or []) %}
-            {% set subname = subdef.name %}
-            {% set arr = subs.get(subname, []) %}
-            {% set arr_len = arr|length %}
-            {% set col_span = col_span + (arr_len + 3 if arr_len > 0 else 1) %}
-            {% endfor %}
-            {% if col_span > 0 %}
-            <th class="section-cell" colspan="{{ col_span + 1 }}">{{ cat }}</th>
-            {% endif %}
-            {% endfor %}
-          </tr>
-          <!-- Section subtitles row -->
-          <tr>
-            {% for cat in all_cats %}
-            {% set subs = grouped_assessments.get(cat, {}) %}
-            {% set col_span = 0 %}
-            {% for subdef in (structure.get(cat) or []) %}
-            {% set subname = subdef.name %}
-            {% set arr = subs.get(subname, []) %}
-            {% set arr_len = arr|length %}
-            {% set col_span = col_span + (arr_len + 3 if arr_len > 0 else 1) %}
-            {% endfor %}
-            {% if col_span > 0 %}
-            <th class="section-subtitle" colspan="{{ col_span + 1 }}">{% if cat == 'LECTURE' %}Lecture Categories{% else
-              %}Laboratory Categories{% endif %}</th>
-            {% endif %}
-            {% endfor %}
-          </tr>
-          <tr>
-            {% for cat in all_cats %}
-            {% set subs = grouped_assessments.get(cat, {}) %}
-            {% for subdef in (structure.get(cat) or []) %}
-            {% set sub = subdef.name %}
-            {% set arr = subs.get(sub, []) %}
-            {% set arr_len = arr|length %}
-            {% set spanv = (arr_len + 3 if arr_len > 0 else 1) %}
-            {% set w = subdef.weight %}
-            {# Add a data-category attribute and class so we can target only the subcategory header cells #}
-            <th class="subcell subcat-head" data-category="{{ cat|lower }}" colspan="{{ spanv }}">{{ sub }}{% if w is not
-              none %} — {{ '%.2f' % (w|float) }}%{% endif %}</th>
-            {% endfor %}
-            {# Add the rating column for this category at the end #}
-            <th class="subcell subcat-head" data-category="{{ cat|lower }}">{% if cat == 'LECTURE' %}LECTURE RATINGS{% else
-              %}LABORATORY RATINGS{% endif %}</th>
-            {% endfor %}
-          </tr>
-          <tr>
-            {% for cat in all_cats %}
-            {% set subs = grouped_assessments.get(cat, {}) %}
-            {% for subdef in (structure.get(cat) or []) %}
-            {% set sub = subdef.name %}
-            {% set arr = subs.get(sub, []) %}
-            {% set w = subdef.weight %}
-            {% if (arr|length) == 0 %}
-            <th class="assess-head">
-              <button class="btn" data-action="add-assessment" data-subcategory="{{ sub }}" data-category="{{ cat }}"
-                data-subcategory-id="{{ (sub_id_map.get(cat, {}) or {}).get(sub) }}">+ Add</button>
-            </th>
-            {% else %}
-            {% for a in arr %}
-            <th class="assess-head assess-col" title="Max {{ a.max_score }}" data-assessment-id="{{ a.id }}"
-              data-category="{{ cat }}" data-subcategory="{{ sub }}" data-max="{{ a.max_score }}"
-              data-subweight="{{ (w|float) if w is not none else 0 }}">
-              {{ a.name }}
-              <div class="max">/ {{ a.max_score }}
-                <button class="btn" style="padding:2px 6px;font-size:0.85em;margin-left:4px;vertical-align:middle"
-                  data-action="edit-assessment" data-assessment-id="{{ a.id }}" data-category="{{ cat }}"
-                  data-subcategory="{{ sub }}" data-max="{{ a.max_score }}">✎ Edit</button>
-              </div>
-            </th>
-            {% endfor %}
-            {# Computed columns per subcategory #}
-            <th class="assess-head computed-head total-col" data-category="{{ cat }}" data-subcategory="{{ sub }}"
-              data-subweight="{{ (w|float) if w is not none else 0 }}">TOTAL</th>
-            <th class="assess-head computed-head equiv-col" data-category="{{ cat }}" data-subcategory="{{ sub }}"
-              data-subweight="{{ (w|float) if w is not none else 0 }}">EQUIVALENT RATING</th>
-            <th class="assess-head computed-head reqpct-col" data-category="{{ cat }}" data-subcategory="{{ sub }}"
-              data-subweight="{{ (w|float) if w is not none else 0 }}">% of REQUIREMENT</th>
-            {% endif %}
-            {% endfor %}
-            {# Add the rating column header for this category #}
-            <th class="assess-head computed-head rating-col" data-category="{{ cat }}">RATING</th>
-            {% endfor %}
-          </tr>
-        </thead>
-        <tbody id="tbody">
-          {% for s in students %}
-          <tr data-student-id="{{ s.id }}">
-            <td class="sticky-left">{{ s.name }}</td>
-            {% for cat in all_cats %}
-            {% set subs = grouped_assessments.get(cat, {}) %}
-            {% for subdef in (structure.get(cat) or []) %}
-            {% set sub = subdef.name %}
-            {% set arr = subs.get(sub, []) %}
-            {% if (arr|length) == 0 %}
-            <td style="text-align:center; color:#cbd5e1;">—</td>
-            {% else %}
-            {% for a in arr %}
-            {% set sc = scores_map.get((s.id, a.id)) %}
-            <td><input class="score" type="number" min="0" max="{{ a.max_score }}" step="0.01" data-student="{{ s.id }}"
-                data-assessment="{{ a.id }}" value="{{ sc if sc is not none else '' }}" /></td>
-            {% endfor %}
-            {# Computed value cells per subcategory #}
-            <td class="computed total-col" data-category="{{ cat }}" data-subcategory="{{ sub }}"
-              data-subweight="{{ (subdef.weight|float) if subdef.weight is not none else 0 }}"></td>
-            <td class="computed equiv-col" data-category="{{ cat }}" data-subcategory="{{ sub }}"
-              data-subweight="{{ (subdef.weight|float) if subdef.weight is not none else 0 }}"></td>
-            <td class="computed reqpct-col" data-category="{{ cat }}" data-subcategory="{{ sub }}"
-              data-subweight="{{ (subdef.weight|float) if subdef.weight is not none else 0 }}"></td>
-            {% endif %}
-            {% endfor %}
-            {# Add the rating cell for this category #}
-            <td class="computed rating-col" data-category="{{ cat }}"></td>
-            {% endfor %}
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
-  </div>
-</div>
-
-<div class="collapsable-drawer-container">
-  <button class="drawer-toggle collapsed" aria-expanded="false" aria-controls="drawerContentFinal">
-    <h1>FINAL GRADE<span class="arrow-icon">▼</span></h1>
-  </button>
-
-  <div class="drawer-content" id="drawerContentFinal" aria-hidden="true">
-    <br>
-    <div class="matrix-wrapper">
-      <table class="matrix final-grade-table">
-        <thead>
-          <tr>
-            <th class="sticky-left">Student</th>
-            <th>RAW GRADE</th>
-            <th>TOTAL GRADE</th>
-            <th>GRADE MARK</th>
-            <th>REMARKS</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for s in students %}
-          <tr data-student-id="{{ s.id }}">
-            <td class="sticky-left">{{ s.name }}</td>
-            <td class="raw-grade" data-student="{{ s.id }}"></td>
-            <td class="total-grade" data-student="{{ s.id }}"></td>
-            <td class="grade-mark" data-student="{{ s.id }}"></td>
-            <td class="remarks" data-student="{{ s.id }}"></td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
-  </div>
-</div>
-
-  </div>
-  <script id="ga-json" type="application/json">{{ grouped_assessments | tojson }}</script>
-  <script src="{{ url_for('static', filename='js/instructor_grades_unified.js') }}"></script>
-</body>
+    <script id="ga-json" type="application/json">
+      {{ grouped_assessments | tojson }}
+    </script>
+    <script src="{{ url_for('static', filename='js/instructor_grades_unified.js') }}"></script>
+  </body>
 </html>

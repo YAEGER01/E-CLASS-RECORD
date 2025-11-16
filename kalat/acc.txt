@@ -2,7 +2,7 @@ admin001
 Admin123!
 
 CL_001
-CL_001
+Cl_001
 
 student
 23-13439

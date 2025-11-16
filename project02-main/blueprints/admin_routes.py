@@ -85,10 +85,11 @@ def create_instructor():
         # Password strength validation
         if len(password) < 6:
             errors.append("Password must be at least 6 characters long")
-        if not any(c.isupper() for c in password):
-            errors.append("Password must contain at least one uppercase letter")
-        if not any(c.islower() for c in password):
-            errors.append("Password must contain at least one lowercase letter")
+        # Removed strict uppercase/lowercase requirements per admin preference
+        # if not any(c.isupper() for c in password):
+        #     errors.append("Password must contain at least one uppercase letter")
+        # if not any(c.islower() for c in password):
+        #     errors.append("Password must contain at least one lowercase letter")
         if not any(c.isdigit() for c in password):
             errors.append("Password must contain at least one number")
 

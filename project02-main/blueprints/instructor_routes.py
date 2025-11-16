@@ -136,6 +136,85 @@ def _require_instructor():
 def _instructor_owns_class(class_id: int, user_id: int) -> bool:
     try:
         with get_db_connection().cursor() as cursor:
+            # Try to return the latest draft snapshot (normalized) if available
+            try:
+                cursor.execute(
+                    "SELECT snapshot_json, version, created_at FROM grade_snapshots "
+                    "WHERE class_id = %s AND status = 'draft' ORDER BY version DESC LIMIT 1",
+                    (class_id,),
+                )
+                sr = cursor.fetchone()
+                if sr:
+                    raw = sr.get("snapshot_json")
+                    normalized = _normalize_snapshot(raw)
+                    # fetch student metadata for display
+                    sids = [
+                        s.get("student_id")
+                        for s in normalized.get("students", [])
+                        if s.get("student_id")
+                    ]
+                    rows = {}
+                    if sids:
+                        placeholders = ",".join(["%s"] * len(sids))
+                        params = sids + [class_id]
+                        cursor.execute(
+                            f"SELECT s.id AS student_id, u.school_id, pi.first_name, pi.last_name, pi.middle_name, COALESCE(sg.is_released,0) AS is_released, sg.released_date FROM students s JOIN users u ON s.user_id = u.id LEFT JOIN personal_info pi ON s.personal_info_id = pi.id LEFT JOIN student_grades sg ON s.id = sg.student_id AND sg.class_id = %s WHERE s.id IN ({placeholders})",
+                            params,
+                        )
+                        rows = {r["student_id"]: r for r in (cursor.fetchall() or [])}
+
+                    out_students = []
+                    for s in normalized.get("students", []):
+                        sid = s.get("student_id")
+                        meta = rows.get(sid) if rows else None
+                        if meta:
+                            fn = meta.get("first_name") or ""
+                            ln = meta.get("last_name") or ""
+                            mn = meta.get("middle_name") or ""
+                            name = (
+                                f"{ln}, {fn} {mn}".strip()
+                                if fn and ln
+                                else meta.get("school_id") or f"Student {sid}"
+                            )
+                            is_released = bool(meta.get("is_released"))
+                            released_date = (
+                                meta.get("released_date").strftime("%Y-%m-%d")
+                                if meta.get("released_date")
+                                else None
+                            )
+                        else:
+                            name = None
+                            is_released = False
+                            released_date = None
+
+                        out_students.append(
+                            {
+                                "id": sid,
+                                "name": name,
+                                "school_id": meta.get("school_id") if meta else None,
+                                "final_grade": s.get("final_grade"),
+                                "equivalent": s.get("equivalent"),
+                                "is_released": is_released,
+                                "released_date": released_date,
+                                "scores": s.get("scores", []),
+                            }
+                        )
+
+                    return jsonify(
+                        {
+                            "class_id": class_id,
+                            "snapshot": {
+                                "version": sr.get("version"),
+                                "created_at": sr.get("created_at"),
+                                "assessments": normalized.get("assessments"),
+                                "students": out_students,
+                            },
+                            "total_students": len(out_students),
+                        }
+                    )
+            except Exception:
+                # If snapshot path fails, fall back to the enrolled-students path below
+                pass
             cursor.execute("SELECT id FROM instructors WHERE user_id = %s", (user_id,))
             instr = cursor.fetchone()
             if not instr:
@@ -913,6 +992,94 @@ def release_grades():
     methods=["GET"],
     endpoint="api_get_release_grades",
 )
+def _normalize_snapshot(snapshot):
+    """Normalize raw snapshot JSON into a UI-friendly structure.
+
+    Returns dict with keys: assessments (list), students (list of {student_id, scores, final_grade, equivalent}).
+    """
+    try:
+        import json as _json
+    except Exception:
+        _json = None
+
+    if not snapshot:
+        return {"assessments": [], "students": []}
+
+    # if snapshot is a string, try to parse
+    if isinstance(snapshot, str) and _json:
+        try:
+            snapshot = _json.loads(snapshot)
+        except Exception:
+            snapshot = {}
+
+    assessments = snapshot.get("assessments") or []
+    students = []
+    for s in snapshot.get("students") or []:
+        sid = s.get("student_id") or s.get("id")
+        try:
+            sid_i = int(sid)
+        except Exception:
+            sid_i = sid
+        computed = s.get("computed") or {}
+        final_grade = (
+            computed.get("final_grade")
+            or computed.get("total")
+            or computed.get("score")
+        )
+        try:
+            final_grade = None if final_grade is None else round(float(final_grade), 2)
+        except Exception:
+            final_grade = None
+        letter = (
+            computed.get("letter_grade")
+            or computed.get("equivalent")
+            or computed.get("grade_letter")
+        )
+        # normalize scores
+        scores = []
+        raw_scores = s.get("scores") or s.get("inputs") or []
+        if isinstance(raw_scores, dict):
+            for aid, val in raw_scores.items():
+                try:
+                    aid_i = int(aid)
+                except Exception:
+                    aid_i = aid
+                try:
+                    score_val = None if val is None else float(val)
+                except Exception:
+                    score_val = None
+                scores.append({"assessment_id": aid_i, "score": score_val})
+        elif isinstance(raw_scores, list):
+            for it in raw_scores:
+                if isinstance(it, dict):
+                    aid = it.get("assessment_id") or it.get("id")
+                    try:
+                        aid_i = int(aid)
+                    except Exception:
+                        aid_i = aid
+                    val = it.get("score")
+                    try:
+                        score_val = None if val is None else float(val)
+                    except Exception:
+                        score_val = None
+                    scores.append({"assessment_id": aid_i, "score": score_val})
+                else:
+                    # fallback: scalar values
+                    scores.append({"assessment_id": None, "score": it})
+
+        students.append(
+            {
+                "student_id": sid_i,
+                "scores": scores,
+                "final_grade": final_grade,
+                "equivalent": letter,
+                "computed": computed,
+            }
+        )
+
+    return {"assessments": assessments, "students": students}
+
+
 @login_required
 def api_get_release_grades(class_id):
     """Get grades data for release management."""
@@ -1369,6 +1536,344 @@ def api_list_scores():
     except Exception as e:
         logger.error(f"Failed to fetch scores: {str(e)}")
         return jsonify({"error": "failed_to_fetch_scores"}), 500
+
+
+@instructor_bp.route(
+    "/classes/<int:class_id>/save_snapshot",
+    methods=["POST"],
+    endpoint="api_save_snapshot",
+)
+@login_required
+def api_save_snapshot(class_id: int):
+    """Save posted scores, recompute grades and create a grade snapshot (draft).
+
+    Expected POST JSON: { "scores": [ { "student_id": int, "assessment_id": int, "score": number, "class_id": int }, ... ] }
+    Returns: { status: "ok", "version": next_version }
+    """
+    instructor_id, err = _require_instructor()
+    if err:
+        return err
+
+    # ensure instructor owns class
+    if not _instructor_owns_class(class_id, session.get("user_id")):
+        return jsonify({"error": "forbidden"}), 403
+
+    data = request.get_json(silent=True) or {}
+    scores = data.get("scores")
+    if not isinstance(scores, list) or not scores:
+        return jsonify({"error": "scores_required"}), 400
+
+    try:
+        conn = get_db_connection()
+        # Begin transaction
+        try:
+            conn.begin()
+        except Exception:
+            pass
+
+        with conn.cursor() as cursor:
+            # Validate assessment ids belong to this class
+            aid_set = set()
+            for s in scores:
+                try:
+                    aid_set.add(int(s.get("assessment_id")))
+                except Exception:
+                    continue
+            if not aid_set:
+                return jsonify({"error": "no_valid_assessment_ids"}), 400
+
+            placeholders = ",".join(["%s"] * len(aid_set))
+            params = list(aid_set) + [class_id]
+            cursor.execute(
+                f"SELECT ga.id FROM grade_assessments ga "
+                f"JOIN grade_subcategories gsc ON ga.subcategory_id = gsc.id "
+                f"JOIN grade_categories gc ON gsc.category_id = gc.id "
+                f"JOIN grade_structures gs ON gc.structure_id = gs.id "
+                f"WHERE ga.id IN ({placeholders}) AND gs.class_id = %s",
+                params,
+            )
+            found = {row["id"] for row in (cursor.fetchall() or [])}
+            missing = sorted(list(aid_set - found))
+            if missing:
+                return (
+                    jsonify(
+                        {
+                            "error": "assessments_not_found_or_not_belonging_to_class",
+                            "missing": missing,
+                        }
+                    ),
+                    400,
+                )
+
+            # Validate student ids belong to this class
+            sid_set = set()
+            for s in scores:
+                try:
+                    sid_set.add(int(s.get("student_id")))
+                except Exception:
+                    continue
+            if not sid_set:
+                return jsonify({"error": "no_valid_student_ids"}), 400
+            placeholders_s = ",".join(["%s"] * len(sid_set))
+            params_s = list(sid_set) + [class_id]
+            cursor.execute(
+                f"SELECT sc.student_id FROM student_classes sc WHERE sc.student_id IN ({placeholders_s}) AND sc.class_id = %s",
+                params_s,
+            )
+            found_students = {row["student_id"] for row in (cursor.fetchall() or [])}
+            missing_students = sorted(list(sid_set - found_students))
+            if missing_students:
+                return (
+                    jsonify(
+                        {
+                            "error": "students_not_enrolled_in_class",
+                            "missing": missing_students,
+                        }
+                    ),
+                    400,
+                )
+
+            # Upsert posted scores into student_scores
+            for s in scores:
+                try:
+                    sid = int(s.get("student_id"))
+                    aid = int(s.get("assessment_id"))
+                    val = s.get("score")
+                    score_val = 0 if (val is None or val == "") else float(val)
+                except Exception:
+                    continue
+
+                # Ensure a single row per (assessment_id, student_id): delete existing then insert.
+                # This is robust without requiring a DB unique constraint.
+                try:
+                    cursor.execute(
+                        "DELETE FROM student_scores WHERE assessment_id = %s AND student_id = %s",
+                        (aid, sid),
+                    )
+                except Exception:
+                    # ignore delete errors and continue to insert
+                    pass
+                cursor.execute(
+                    "INSERT INTO student_scores (assessment_id, student_id, score) VALUES (%s, %s, %s)",
+                    (aid, sid, score_val),
+                )
+
+            # commit saved scores so recompute reads latest values
+            try:
+                conn.commit()
+            except Exception:
+                pass
+
+            # Recompute groups and per-student totals
+            # Fetch assessments and their grouping info for this class
+            cursor.execute(
+                """
+                SELECT ga.id AS id, ga.name AS name, ga.max_score AS max_score,
+                       gsc.id AS subcategory_id, gsc.name AS subcategory, IFNULL(gsc.weight,0) AS sub_weight,
+                       gc.id AS category_id, gc.name AS category, IFNULL(gc.weight,0) AS category_weight
+                FROM grade_assessments ga
+                JOIN grade_subcategories gsc ON ga.subcategory_id = gsc.id
+                JOIN grade_categories gc ON gsc.category_id = gc.id
+                JOIN grade_structures gs ON gc.structure_id = gs.id
+                WHERE gs.class_id = %s AND gs.is_active = 1
+                """,
+                (class_id,),
+            )
+            assessments = cursor.fetchall() or []
+
+            # Build groups payload
+            groups = {}
+            aid_to_assess = {}
+            for a in assessments:
+                aid = a["id"]
+                aid_to_assess[aid] = {
+                    "id": aid,
+                    "name": a["name"],
+                    "max_score": float(a.get("max_score") or 0),
+                    "category": a.get("category") or "",
+                    "subcategory": a.get("subcategory") or "",
+                    "subweight": float(a.get("sub_weight") or 0),
+                }
+                key = f"{aid_to_assess[aid]['category']}::{aid_to_assess[aid]['subcategory']}"
+                g = groups.get(key) or {
+                    "ids": [],
+                    "maxes": [],
+                    "maxTotal": 0.0,
+                    "subweight": aid_to_assess[aid]["subweight"],
+                }
+                g["ids"].append(aid)
+                g["maxes"].append(float(a.get("max_score") or 0))
+                g["maxTotal"] = g.get("maxTotal", 0.0) + float(a.get("max_score") or 0)
+                groups[key] = g
+
+            # Fetch all student scores for assessments in this class
+            if aid_to_assess:
+                placeholders_all = ",".join(["%s"] * len(aid_to_assess))
+                params_all = list(aid_to_assess.keys())
+                cursor.execute(
+                    f"SELECT student_id, assessment_id, score FROM student_scores WHERE assessment_id IN ({placeholders_all})",
+                    params_all,
+                )
+                score_rows = cursor.fetchall() or []
+            else:
+                score_rows = []
+
+            # group scores by student
+            by_student = {}
+            for r in score_rows:
+                sid = r.get("student_id")
+                if sid is None:
+                    continue
+                by_student.setdefault(sid, {})[int(r.get("assessment_id"))] = float(
+                    r.get("score") or 0
+                )
+
+            snapshot_students = []
+            for sid, score_map in by_student.items():
+                # compute per-group totals
+                category_totals = {}
+                weighted_totals = {}
+                overall_pct = 0.0
+                for gkey, g in groups.items():
+                    parts = gkey.split("::")
+                    cat = parts[0] or ""
+                    sub = parts[1] or ""
+                    ids = g.get("ids", [])
+                    maxTotal = float(g.get("maxTotal") or 0)
+                    total = 0.0
+                    for aid in ids:
+                        v = score_map.get(aid)
+                        if v is None:
+                            continue
+                        total += float(v or 0)
+                    eq_pct = (
+                        (float(total) / maxTotal * 100.0)
+                        if maxTotal and maxTotal > 0
+                        else 0.0
+                    )
+                    reqpct = round((eq_pct * float(g.get("subweight") or 0)) / 100.0, 2)
+                    # store nested category_totals
+                    category_totals.setdefault(cat, {})[sub] = round(total, 2)
+                    weighted_totals.setdefault(cat, {})[sub] = round(reqpct, 2)
+
+                # compute category ratings = sum of weighted subcategories
+                cat_ratings = {}
+                for cat, subs in weighted_totals.items():
+                    cat_ratings[cat] = round(sum(subs.values()), 2)
+
+                # Derive RAW as UI: RAW = lab_rating * 0.4 + lecture_rating * 0.6
+                lecture_val = float(cat_ratings.get("LECTURE", 0) or 0)
+                lab_val = float(cat_ratings.get("LABORATORY", 0) or 0)
+                raw = round((lab_val * 0.4 + lecture_val * 0.6), 2)
+                total_grade = round((raw * 0.625 + 37.5), 2)
+
+                # compute equivalent using helper from utils.grade_calculation
+                from utils.grade_calculation import get_equivalent
+
+                snapshot_students.append(
+                    {
+                        "student_id": sid,
+                        "scores": [
+                            {"assessment_id": aid, "score": score_map.get(aid, 0)}
+                            for aid in sorted(score_map.keys())
+                        ],
+                        "computed": {
+                            "category_totals": category_totals,
+                            "weighted_totals": weighted_totals,
+                            "category_ratings": cat_ratings,
+                            "overall_percentage": raw,
+                            "final_grade": total_grade,
+                            "letter_grade": get_equivalent(total_grade),
+                            "remarks": None,
+                        },
+                    }
+                )
+
+            # Build final snapshot
+            snapshot = {
+                "meta": {
+                    "class_id": class_id,
+                    "structure_version": None,
+                    "saved_at": datetime.utcnow().isoformat() + "Z",
+                },
+                "assessments": list(aid_to_assess.values()),
+                "students": snapshot_students,
+            }
+
+            # Try to include structure version if available
+            import json as _json
+
+            try:
+                cursor.execute(
+                    "SELECT id, version FROM grade_snapshots WHERE class_id = %s AND status = 'draft' ORDER BY version DESC LIMIT 1",
+                    (class_id,),
+                )
+                existing_draft = cursor.fetchone()
+            except Exception:
+                existing_draft = None
+
+            try:
+                if existing_draft:
+                    # Update the existing draft snapshot (preserve version)
+                    snap_id = existing_draft.get("id")
+                    version = int(existing_draft.get("version") or 1)
+                    cursor.execute(
+                        "UPDATE grade_snapshots SET snapshot_json = %s, created_by = %s, created_at = NOW() WHERE id = %s",
+                        (_json.dumps(snapshot), session.get("user_id"), snap_id),
+                    )
+                else:
+                    # No draft exists: insert new snapshot with incremented version
+                    try:
+                        cursor.execute(
+                            "SELECT COALESCE(MAX(version), 0) + 1 AS nextv FROM grade_snapshots WHERE class_id = %s",
+                            (class_id,),
+                        )
+                        rowv = cursor.fetchone() or {"nextv": 1}
+                        version = int(rowv.get("nextv") or 1)
+                    except Exception:
+                        version = 1
+
+                    cursor.execute(
+                        "INSERT INTO grade_snapshots (class_id, version, status, snapshot_json, created_by) VALUES (%s, %s, %s, %s, %s)",
+                        (
+                            class_id,
+                            version,
+                            "draft",
+                            _json.dumps(snapshot),
+                            session.get("user_id"),
+                        ),
+                    )
+
+                try:
+                    conn.commit()
+                except Exception:
+                    pass
+            except Exception as e:
+                # rollback and return error
+                try:
+                    conn.rollback()
+                except Exception:
+                    pass
+                logger.exception("Failed to write snapshot")
+                return (
+                    jsonify({"error": "failed_to_write_snapshot", "message": str(e)}),
+                    500,
+                )
+
+        # Notify live update
+        try:
+            emit_live_version_update(class_id)
+        except Exception:
+            pass
+
+        return jsonify({"status": "ok", "version": version}), 200
+    except Exception as e:
+        try:
+            conn.rollback()
+        except Exception:
+            pass
+        logger.exception("Error saving snapshot")
+        return jsonify({"error": "failed_to_save_snapshot", "message": str(e)}), 500
 
 
 @instructor_bp.route(

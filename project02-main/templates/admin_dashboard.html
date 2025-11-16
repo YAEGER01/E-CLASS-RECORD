@@ -164,12 +164,18 @@
 
                                 <div>
                                     <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #374151;">School ID *</label>
-                                    <input type="text" id="schoolId" placeholder="e.g. INST001" style="width: 100%; padding: 10px; border: 1px solid #d1d5db; border-radius: 5px; font-size: 14px; box-sizing: border-box;">
+                                    <div style="display:flex; align-items:center; gap:6px;">
+                                        <span style="background:#f3f4f6; padding:8px 10px; border:1px solid #d1d5db; border-radius:5px 0 0 5px; font-weight:600;">INS-</span>
+                                        <input type="text" id="schoolIdSuffix" placeholder="001" maxlength="3" inputmode="numeric" pattern="\d{3}" style="flex:1; padding:10px; border:1px solid #d1d5db; border-radius:0 5px 5px 0; font-size:14px; box-sizing:border-box;">
+                                    </div>
                                 </div>
 
                                 <div style="margin-top: 10px;">
                                     <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #374151;">Employee ID</label>
-                                    <input type="text" id="employeeId" placeholder="e.g. EMP001" style="width: 100%; padding: 10px; border: 1px solid #d1d5db; border-radius: 5px; font-size: 14px; box-sizing: border-box;">
+                                    <div style="display:flex; align-items:center; gap:6px;">
+                                        <span style="background:#f3f4f6; padding:8px 10px; border:1px solid #d1d5db; border-radius:5px 0 0 5px; font-weight:600;">INS-</span>
+                                        <input type="text" id="employeeIdSuffix" placeholder="001" maxlength="3" inputmode="numeric" pattern="\d{3}" style="flex:1; padding:10px; border:1px solid #d1d5db; border-radius:0 5px 5px 0; font-size:14px; box-sizing:border-box;">
+                                    </div>
                                 </div>
 
                                 <div style="margin-top: 10px;">
@@ -177,6 +183,7 @@
                                     <div style="display: flex; gap: 8px; align-items: center;">
                                         <input type="password" id="password" placeholder="Enter password" style="flex: 1; padding: 10px; border: 1px solid #d1d5db; border-radius: 5px; font-size: 14px; box-sizing: border-box;">
                                         <button type="button" id="togglePassword" style="padding: 8px 10px; border: 1px solid #d1d5db; background: white; border-radius: 5px; cursor: pointer;">Show</button>
+                                        <button type="button" id="generatePasswordBtn" style="padding:8px 10px; border:1px solid #d1d5db; background:#eef2ff; border-radius:5px; cursor:pointer;">Gen 6-digit</button>
                                     </div>
                                 </div>
 
@@ -226,13 +233,14 @@
                 padding: '20px',
                 background: '#ffffff',
                 didOpen: () => {
-                    // Get elements
+                    // Get elements (we use suffix inputs and prepend 'INS-' when submitting)
                     const pw = document.getElementById('password');
                     const cpw = document.getElementById('confirmPassword');
                     const firstName = document.getElementById('firstName');
                     const lastName = document.getElementById('lastName');
                     const email = document.getElementById('email');
-                    const schoolId = document.getElementById('schoolId');
+                    const schoolIdSuffix = document.getElementById('schoolIdSuffix');
+                    const employeeIdSuffix = document.getElementById('employeeIdSuffix');
                     const department = document.getElementById('department');
                     const togglePw = document.getElementById('togglePassword');
                     const toggleCpw = document.getElementById('toggleConfirmPassword');
@@ -256,33 +264,52 @@
                             return false;
                         }
 
-                        if (p.length < 6) {
-                            matchMsg.style.color = '#dc2626';
-                            matchMsg.textContent = 'Password must be at least 6 characters';
-                            return false;
-                        }
-
+                        // No length/complexity restrictions: only require that they match.
                         matchMsg.style.color = '#059669';
                         matchMsg.textContent = 'Passwords match';
+                        console.debug('updateMatchMessage: passwords ok', { length: p.length });
                         return true;
                     }
 
                     // Validate important fields and password rules
                     function validateForm() {
-                        const requiredFilled = firstName && lastName && email && schoolId && department && pw
+                        const requiredFilled = firstName && lastName && email && schoolIdSuffix && department && pw
                             && firstName.value.trim() !== '' && lastName.value.trim() !== '' && email.value.trim() !== ''
-                            && schoolId.value.trim() !== '' && department.value.trim() !== '' && pw.value !== '';
+                            && schoolIdSuffix.value.trim() !== '' && department.value.trim() !== '' && pw.value !== '';
 
-                        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-                        const emailOk = email && emailRegex.test(email.value.trim());
+                        // For UX: only require email to be present to enable the confirm button.
+                        // Keep the stricter format check in `preConfirm` so users see validation messages on submit.
+                        const emailOk = email && email.value.trim() !== '';
 
                         const pwOk = updateMatchMessage();
 
-                        const valid = requiredFilled && emailOk && pwOk;
+                        // Also ensure schoolIdSuffix is 3 digits
+                        const schoolIdOk = /^\d{3}$/.test(schoolIdSuffix.value || '');
+
+                        const valid = requiredFilled && emailOk && pwOk && schoolIdOk;
+
+                        // Debug logging to trace why confirm stays disabled
+                        console.debug('validateForm', {
+                            firstName: firstName ? firstName.value : null,
+                            lastName: lastName ? lastName.value : null,
+                            email: email ? email.value : null,
+                            schoolIdSuffix: schoolIdSuffix ? schoolIdSuffix.value : null,
+                            employeeIdSuffix: employeeIdSuffix ? employeeIdSuffix.value : null,
+                            department: department ? department.value : null,
+                            pwSuffixPresent: pw ? (pw.value !== '') : null,
+                            emailOk,
+                            pwOk,
+                            schoolIdOk,
+                            requiredFilled,
+                            valid
+                        });
 
                         if (confirmBtn) {
                             confirmBtn.disabled = !valid;
                             confirmBtn.style.opacity = valid ? '1' : '0.6';
+                            console.debug('confirmBtn set disabled =', confirmBtn.disabled);
+                        } else {
+                            console.warn('confirmBtn not found');
                         }
                     }
 
@@ -295,7 +322,7 @@
                         });
                     });
 
-                    [firstName, lastName, email, schoolId, department].forEach(el => {
+                    [firstName, lastName, email, schoolIdSuffix, department].forEach(el => {
                         if (!el) return;
                         el.addEventListener('input', validateForm);
                         el.addEventListener('change', validateForm);
@@ -315,6 +342,18 @@
                         });
                     }
 
+                    // Generate 6-digit code for password (fills both fields)
+                    const genBtn = document.getElementById('generatePasswordBtn');
+                    if (genBtn) {
+                        genBtn.addEventListener('click', () => {
+                            const code = Math.floor(100000 + Math.random() * 900000).toString();
+                            if (pw) pw.value = code;
+                            if (cpw) cpw.value = code;
+                            updateMatchMessage();
+                            validateForm();
+                        });
+                    }
+
                     // Initial validation state
                     setTimeout(validateForm, 50);
                 },
@@ -331,11 +370,13 @@
                     const emergencyContactName = document.getElementById('emergencyContactName').value.trim();
                     const emergencyContactPhone = document.getElementById('emergencyContactPhone').value.trim();
 
-                    // Account Information
-                    const schoolId = document.getElementById('schoolId').value.trim();
+                    // Account Information (combine suffix with fixed 'INS-' prefix for IDs only)
+                    const schoolIdSuffix = document.getElementById('schoolIdSuffix').value.trim();
+                    const schoolId = schoolIdSuffix ? ('INS-' + schoolIdSuffix) : '';
                     const password = document.getElementById('password').value;
                     const confirmPassword = document.getElementById('confirmPassword').value;
-                    const employeeId = document.getElementById('employeeId').value.trim();
+                    const employeeIdSuffix = document.getElementById('employeeIdSuffix').value.trim();
+                    const employeeId = employeeIdSuffix ? ('INS-' + employeeIdSuffix) : '';
 
                     // Professional Information
                     const department = document.getElementById('department').value;
@@ -352,12 +393,14 @@
                     if (!password) errors.push('Password is required');
                     if (!department) errors.push('Department is required');
 
-                    // Password validation
+                    // Password validation: only require passwords match; no complexity/length restriction
                     if (password !== confirmPassword) {
                         errors.push('Passwords do not match');
                     }
-                    if (password.length < 6) {
-                        errors.push('Password must be at least 6 characters long');
+
+                    // Ensure the ID suffix follows 3 digits for INS-### format
+                    if (!/^\d{3}$/.test(schoolIdSuffix)) {
+                        errors.push('School ID must be in INS-### format');
                     }
 
                     // Email validation
@@ -412,40 +455,78 @@
                         }
                     });
 
-                    // Send to server
+                    // Send to server (with enhanced logging and robust response parsing)
+                    console.log('Creating instructor payload:', data);
+
                     fetch('/admin/create-instructor', {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
-                            'X-CSRFToken': csrfToken
+                            // include both header variants in case the server expects one or the other
+                            'X-CSRFToken': csrfToken,
+                            'X-CSRF-Token': csrfToken,
+                            // common header some frameworks check for AJAX
+                            'X-Requested-With': 'XMLHttpRequest'
                         },
                         body: JSON.stringify(data)
                     })
-                        .then(response => response.json())
-                        .then(data => {
-                            if (data.success) {
+                    .then(async response => {
+                        console.log('Create-instructor response status:', response.status);
+                        const text = await response.text();
+                        // Try parse JSON, but handle non-JSON gracefully
+                        try {
+                            const json = text ? JSON.parse(text) : null;
+                            return { ok: response.ok, status: response.status, json };
+                        } catch (err) {
+                            console.error('Non-JSON response from create-instructor:', text);
+                            return { ok: response.ok, status: response.status, text };
+                        }
+                    })
+                    .then(result => {
+                        if (!result) return;
+
+                        if (result.json) {
+                            const resp = result.json;
+                            console.log('Create-instructor JSON response:', resp);
+                            if (resp.success) {
                                 Swal.fire({
                                     icon: 'success',
                                     title: 'Success!',
-                                    text: 'Instructor created successfully!',
+                                    text: resp.message || 'Instructor created successfully!',
                                     timer: 2000,
                                     showConfirmButton: false
                                 });
+                                // Immediately refresh the page so the new instructor appears
+                                try { window.location.reload(); } catch (e) { console.warn('Reload failed', e); }
                             } else {
                                 Swal.fire({
                                     icon: 'error',
                                     title: 'Error!',
-                                    text: data.message || 'Failed to create instructor'
+                                    text: resp.message || resp.error || 'Failed to create instructor'
                                 });
                             }
-                        })
-                        .catch(error => {
+                            } else {
+                            // Non-JSON response — show text and log it
+                            console.warn('Create-instructor returned non-JSON result:', result);
                             Swal.fire({
-                                icon: 'error',
-                                title: 'Error!',
-                                text: 'Network error occurred'
+                                icon: result.ok ? 'success' : 'error',
+                                title: result.ok ? 'Response Received' : 'Server Error',
+                                text: result.text || ('Status: ' + result.status)
                             });
+                            // If the server returned a non-JSON but successful response, refresh as well
+                            if (result.ok) {
+                                try { window.location.reload(); } catch (e) { console.warn('Reload failed', e); }
+                            }
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Network or parsing error creating instructor:', error);
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error!',
+                            text: 'Network error occurred: ' + (error.message || error)
                         });
+                    });
                 }
             });
         }

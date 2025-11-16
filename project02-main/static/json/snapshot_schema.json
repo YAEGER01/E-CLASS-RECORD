@@ -1,0 +1,75 @@
+{
+    "meta": {
+      "class_id": 123,
+      "structure_version": 3,
+      "saved_at": "2025-11-16T08:10:00Z"
+    },
+  
+    "categories": {
+      "lecture": {
+        "weight": 60,
+        "subcategories": {
+          "quizzes": {"weight": 20},
+          "homework": {"weight": 20},
+          "exams": {"weight": 20}
+        }
+      },
+      "laboratory": {
+        "weight": 40,
+        "subcategories": {
+          "activities": {"weight": 20},
+          "performance": {"weight": 20}
+        }
+      }
+    },
+  
+    "assessments": [
+      {
+        "id": 1,
+        "name": "Quiz 1",
+        "category": "lecture",
+        "subcategory": "quizzes",
+        "max_score": 10
+      },
+      {
+        "id": 2,
+        "name": "Midterm Exam",
+        "category": "lecture",
+        "subcategory": "exams",
+        "max_score": 100
+      }
+    ],
+  
+    "students": [
+      {
+        "student_id": 14,
+  
+        "scores": [
+          {"assessment_id": 1, "score": 8},
+          {"assessment_id": 2, "score": 78}
+        ],
+  
+        "computed": {
+          "category_totals": {
+            "lecture": {
+              "quizzes": 80,
+              "homework": null,
+              "exams": 78
+            },
+            "laboratory": null
+          },
+  
+          "weighted_totals": {
+            "lecture": 47.28,
+            "laboratory": 0
+          },
+  
+          "overall_percentage": 78.8,
+          "final_grade": 1.75,
+          "letter_grade": "1.75",
+          "remarks": null
+        }
+      }
+    ]
+  }
+  

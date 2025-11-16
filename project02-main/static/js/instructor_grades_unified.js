@@ -358,8 +358,7 @@
         this.serverComputeTimer = setTimeout(() => { this.computeServerForAll(); this.serverComputeTimer = null; }, 800);
       });
 
-      // Save button
-      this.saveBtn?.addEventListener('click', () => this.saveChanges());
+      // Save button listener removed — save functionality intentionally removed
       
       // Recalculate button
       this.recalcBtn?.addEventListener('click', () => { this.recomputeAll(); });
@@ -396,11 +395,15 @@
           return;
         }
 
-        // Submit button (placeholder, triggers save)
+        // Submit button — save inputs and create snapshot
         const btnSubmit = e.target.closest('button[data-action="submit-inputs"]');
         if (btnSubmit) {
           e.preventDefault();
-          this.saveChanges();
+          try {
+            this.saveAndSnapshot();
+          } catch (err) {
+            console.error('saveAndSnapshot failed', err);
+          }
           return;
         }
         // Add assessment via dropdown
@@ -593,46 +596,67 @@
     }
 
     /**
-     * Save changes to server
+     * Save all inputs (or only changed inputs) and request server recompute + snapshot.
+     * Sends POST to `/classes/<classId>/save_snapshot` with payload { scores: [...] }
      */
-    async saveChanges() {
-      if (!this.dirty.size) { this.status.textContent = 'No changes'; return; }
-      
-      const cols = this.getAssessmentColumns();
-      const maxById = new Map(cols.map(c => [c.id, c.max]));
-      for (const entry of this.dirty.values()) {
-        const sc = entry.score;
-        if (sc != null) {
-          const max = maxById.get(entry.assessment_id);
-          if (typeof max === 'number' && isFinite(max) && sc > max) {
-            this.status.textContent = `Score for assessment ${entry.assessment_id} exceeds max ${max}`;
-            return;
-          }
-        }
+    async saveAndSnapshot() {
+      const classId = this.classId || 0;
+      if (!classId) {
+        this.status.textContent = 'Missing class id';
+        return;
       }
-      
-      const scores = Array.from(this.dirty.values()).map(o => ({ 
-        student_id: o.student_id, 
-        assessment_id: o.assessment_id, 
-        class_id: o.class_id, 
-        score: o.score ?? 0 
-      }));
-      
-      this.status.textContent = 'Saving…';
+
+      // Gather scores: prefer sending only dirty entries; fall back to all inputs
+      const scores = [];
+      if (this.dirty && this.dirty.size) {
+        // send only dirty map entries
+        for (const v of this.dirty.values()) {
+          scores.push({
+            student_id: v.student_id,
+            assessment_id: v.assessment_id,
+            class_id: v.class_id || classId,
+            score: v.score == null ? 0 : v.score,
+          });
+        }
+      } else {
+        // collect all inputs present in the DOM
+        document.querySelectorAll('input.score').forEach(inp => {
+          const sid = parseInt(inp.getAttribute('data-student') || '0', 10) || 0;
+          const aid = parseInt(inp.getAttribute('data-assessment') || '0', 10) || 0;
+          if (!sid || !aid) return;
+          const val = inp.value;
+          const sv = val === '' ? 0 : parseFloat(val);
+          scores.push({ student_id: sid, assessment_id: aid, class_id: classId, score: sv });
+        });
+      }
+
+      if (!scores.length) {
+        this.status.textContent = 'No scores to save';
+        return;
+      }
+
+      this.status.textContent = 'Saving and creating snapshot…';
       try {
         const headers = { 'Content-Type': 'application/json' };
         if (this.csrfToken) headers['X-CSRFToken'] = this.csrfToken;
-        const res = await fetch('/api/scores', { method: 'POST', headers, body: JSON.stringify({ scores }) });
-        const out = await res.json();
+        const res = await fetch(`/classes/${classId}/save_snapshot`, { method: 'POST', headers, body: JSON.stringify({ scores }) });
+        const out = await res.json().catch(() => ({}));
         if (!res.ok) {
           this.status.textContent = out.error || 'Save failed';
+          await swalAlert('error', 'Save failed', out.error || out.message || 'Unknown error');
         } else {
-          this.status.textContent = 'All changes saved';
-          this.dirty.clear();
-          this.persistClear();
+          this.status.textContent = 'All changes saved — snapshot created';
+          // clear dirty state and persisted drafts
+          try { this.dirty.clear(); } catch(_) {}
+          try { this.persistClear(); } catch(_) {}
+          await swalAlert('success', 'Saved', `Snapshot version ${out.version || ''} created.`);
+          // request fresh compute values from server to update UI
+          try { this.computeServerForAll(); } catch(_) {}
         }
-      } catch (e) {
+      } catch (err) {
+        console.error(err);
         this.status.textContent = 'Network error';
+        await swalAlert('error', 'Network error', 'Could not save snapshot.');
       }
     }
 

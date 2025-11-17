@@ -67,6 +67,12 @@
                                 <option value="">(select class)</option>
                             </select>
                         </label>
+                        <div class="import-row">
+                            <label class="detail-label">Import XLSX Template:
+                                <input id="xlsx-upload" type="file" accept=".xlsx,.xls" />
+                            </label>
+                            <button id="import-btn" class="btn btn-secondary">Import</button>
+                        </div>
                         <button id="save-btn" class="btn btn-primary">Save Structure</button>
                     
                     </div>
@@ -166,6 +172,230 @@
 
     <script src="{{ url_for('static', filename='js/swal.js') }}"></script>
     <script src="{{ url_for('static', filename='js/gradebuilder_v2.js') }}"></script>
+    <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
+
+    <script>
+    // XLSX import + parsing focused on TEMPLATE.xlsx layout (keywords)
+    (function(){
+        const KNOWN_SUBCATS = [
+            'QUIZ','ATTENDANCE','ATTITUDE','LAB PARTICIPATION','LAB HOMEWORK','LAB EXERCISE',
+            'LAB REPORT','PRELIM LAB EXAM','MIDTERM LAB EXAM','FINAL LAB EXAM','HOMEWORK','PROJECT',
+            'RECITATION','PARTICIPATION','ORAL','PRACTICAL','LABORATORY','REPORT','MIDTERM','FINAL','EXAM'
+        ];
+
+        const LAB_TOKENS = [/\bLAB\b/i, /LABORATORY/i, /LAB\s/i, /LAB-/i, /LAB PARTICIPATION/i, /LAB REPORT/i, /LAB HOMEWORK/i, /LAB EXERCISE/i, /LAB EXAM/i, /PRACTIC/i, /PRACTICAL/i];
+
+        function findNearestNumber(rawRows, r, c) {
+            // look right in same row
+            const row = rawRows[r] || [];
+            for (let j = c+1; j <= c+8 && j < row.length; j++) {
+                const v = row[j];
+                const n = parseNumberLike(v);
+                if (!isNaN(n)) return n;
+            }
+            // look down same column
+            for (let i = r+1; i <= r+8 && i < rawRows.length; i++) {
+                const row2 = rawRows[i] || [];
+                const v = row2[c];
+                const n = parseNumberLike(v);
+                if (!isNaN(n)) return n;
+            }
+            // small neighborhood search
+            for (let dr=-2; dr<=2; dr++) for (let dc=1; dc<=6; dc++) {
+                const i = r+dr; const j = c+dc;
+                if (i<0||i>=rawRows.length) continue;
+                const row3 = rawRows[i]||[];
+                const v = row3[j];
+                const n = parseNumberLike(v);
+                if (!isNaN(n)) return n;
+            }
+            return null;
+        }
+
+        function parseNumberLike(v) {
+            if (v === null || v === undefined) return NaN;
+            const s = String(v).trim();
+            if (s === '') return NaN;
+            // percent like 60%
+            const m = s.match(/^-?\d+(?:\.\d+)?\s*%$/);
+            if (m) return parseFloat(s.replace('%',''));
+            const n = parseFloat(s.replace(/[^0-9.\-]/g, ''));
+            if (isNaN(n)) return NaN;
+            // if small (<=1) treat as fraction -> percent
+            if (Math.abs(n) <= 1) return n * 100;
+            return n;
+        }
+
+        function detectWeightsRow(raw) {
+            // returns an array where index -> normalized percent (number) or NaN, or null if none found
+            let best = {idx:-1, count:0, weights:[]};
+            for (let r=0; r<raw.length; r++) {
+                const row = raw[r] || [];
+                let count = 0;
+                const weights = [];
+                for (let c=0; c<row.length; c++) {
+                    const v = row[c];
+                    const n = parseNumberLike(v);
+                    if (!isNaN(n) && n > 0 && n <= 100) {
+                        weights[c] = n;
+                        count++;
+                    } else {
+                        weights[c] = NaN;
+                    }
+                }
+                if (count > best.count && count >= 3) {
+                    best = {idx: r, count: count, weights: weights};
+                }
+            }
+            return best.idx >= 0 ? best.weights : null;
+        }
+
+        function scanSheetForKeywords(ws) {
+            const raw = XLSX.utils.sheet_to_json(ws, {header:1, defval: ''});
+            const weightsRow = detectWeightsRow(raw); // prefer this if available
+            const found = [];
+            for (let r=0; r<raw.length; r++) {
+                const row = raw[r] || [];
+                for (let c=0; c<row.length; c++) {
+                    const cell = (row[c]||'').toString().trim();
+                    if (!cell) continue;
+                    const up = cell.toUpperCase();
+                    for (const token of KNOWN_SUBCATS) {
+                        if (up.indexOf(token) !== -1) {
+                            // prefer weight from weightsRow at same column
+                            let weight = '';
+                            if (weightsRow && !isNaN(weightsRow[c])) {
+                                weight = String(Number(weightsRow[c]));
+                            } else if (weightsRow) {
+                                // try nearest columns in weightsRow
+                                for (let d=1; d<=8 && weight===''; d++) {
+                                    const left = c-d;
+                                    const right = c+d;
+                                    if (left>=0 && !isNaN(weightsRow[left])) { weight = String(Number(weightsRow[left])); break; }
+                                    if (right < weightsRow.length && !isNaN(weightsRow[right])) { weight = String(Number(weightsRow[right])); break; }
+                                }
+                            }
+                            // fallback to neighborhood search in raw sheet if no weightsRow match
+                            if (!weight) {
+                                const nearest = findNearestNumber(raw, r, c);
+                                if (nearest !== null) weight = String(Number(nearest));
+                            }
+                            found.push({name: cell, weight: weight, token});
+                            break;
+                        }
+                    }
+                }
+            }
+            // dedupe by name (keep first occurrence)
+            const seen = new Set();
+            return found.filter(it => {
+                const k = it.name.trim().toUpperCase();
+                if (seen.has(k)) return false; seen.add(k); return true;
+            });
+        }
+
+        function populateFromKeywordResults(results) {
+            const labList = document.getElementById('lab-list');
+            const lectureList = document.getElementById('lecture-list');
+            if (!labList || !lectureList) return;
+            // append items
+            const template = document.getElementById('sub-template');
+            function attachEvents(node) {
+                const removeBtn = node.querySelector('[data-action="remove"]');
+                if (removeBtn) removeBtn.addEventListener('click', e => { node.remove(); if (typeof window.updateTotalDisplay==='function') window.updateTotalDisplay(); });
+                const inputs = node.querySelectorAll('input[data-field]');
+                inputs.forEach(inp => inp.addEventListener('input', () => { if (typeof window.updateTotalDisplay==='function') window.updateTotalDisplay(); }));
+            }
+            results.forEach(it => {
+                const targetIsLab = LAB_TOKENS.some(rx => rx.test(it.name));
+                const listEl = targetIsLab ? labList : lectureList;
+                const clone = template.content.firstElementChild.cloneNode(true);
+                const nameInp = clone.querySelector('input[data-field="name"]');
+                const weightInp = clone.querySelector('input[data-field="weight"]');
+                if (nameInp) nameInp.value = it.name || '';
+                if (weightInp) weightInp.value = it.weight || '';
+                listEl.appendChild(clone);
+                attachEvents(listEl.lastElementChild);
+            });
+            setTimeout(()=>{ if (typeof window.updateTotalDisplay==='function') window.updateTotalDisplay(); if (typeof window.updateSaveEnabled==='function') window.updateSaveEnabled(); if (typeof window.renderPreview==='function') window.renderPreview(); },50);
+        }
+
+        function handleWorkbook(workbook) {
+            // prefer dedicated sheets named lab/lecture first
+            const sheetNames = workbook.SheetNames||[];
+            const labSheet = sheetNames.find(n=>/lab|laboratory/i.test(n));
+            const lectureSheet = sheetNames.find(n=>/lecture/i.test(n));
+            if (labSheet || lectureSheet) {
+                const labResults = labSheet ? scanSheetForKeywords(workbook.Sheets[labSheet]) : [];
+                const lecResults = lectureSheet ? scanSheetForKeywords(workbook.Sheets[lectureSheet]) : [];
+                if (labResults.length || lecResults.length) {
+                    // clear lists then populate
+                    const labList = document.getElementById('lab-list');
+                    const lectureList = document.getElementById('lecture-list');
+                    if (labList) labList.innerHTML='';
+                    if (lectureList) lectureList.innerHTML='';
+                    populateFromKeywordResults(labResults.concat(lecResults));
+                    return;
+                }
+            }
+
+            // otherwise scan all sheets and collect known tokens
+            let combined = [];
+            for (const name of sheetNames) {
+                try { combined = combined.concat(scanSheetForKeywords(workbook.Sheets[name])); } catch(e) { console.warn('scan fail', name, e); }
+            }
+            if (combined.length) {
+                // clear
+                const labList = document.getElementById('lab-list');
+                const lectureList = document.getElementById('lecture-list');
+                if (labList) labList.innerHTML='';
+                if (lectureList) lectureList.innerHTML='';
+                populateFromKeywordResults(combined);
+                return;
+            }
+
+            // fallback: attempt to use structured rows (first sheet)
+            if (sheetNames.length) {
+                try {
+                    const ws = workbook.Sheets[sheetNames[0]];
+                    const rows = XLSX.utils.sheet_to_json(ws, {defval: ''});
+                    // try to find name/weight columns
+                    if (rows && rows.length) {
+                        const keys = Object.keys(rows[0]);
+                        const nameKey = keys.find(k => /subcat|name|subcategory|title|label|assessment/i.test(k)) || keys[0];
+                        const weightKey = keys.find(k => /weight|percent|percentage|value|wgt|pct/i.test(k)) || keys[1] || keys[0];
+                        const parsed = rows.map(r=>({name: r[nameKey], weight: r[weightKey]})).filter(p=>p.name);
+                        // assign by name heuristics
+                        const lab = parsed.filter(p=> LAB_TOKENS.some(rx=> rx.test(p.name)));
+                        const lec = parsed.filter(p=> !LAB_TOKENS.some(rx=> rx.test(p.name)));
+                        const labListEl = document.getElementById('lab-list'); if (labListEl) labListEl.innerHTML='';
+                        const lecListEl = document.getElementById('lecture-list'); if (lecListEl) lecListEl.innerHTML='';
+                        populateFromKeywordResults(lab.concat(lec));
+                    }
+                } catch(e){ console.warn('structured fallback failed', e); }
+            }
+        }
+
+        function handleFile(file) {
+            const reader = new FileReader();
+            reader.onload = function(e){
+                try {
+                    const data = e.target.result;
+                    const wb = XLSX.read(data, {type:'array'});
+                    handleWorkbook(wb);
+                } catch(err) { console.error('XLSX parse error', err); alert('Unable to parse the Excel file.'); }
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        document.addEventListener('DOMContentLoaded', ()=>{
+            const upload = document.getElementById('xlsx-upload');
+            const importBtn = document.getElementById('import-btn');
+            if (upload) upload.addEventListener('change', e => { const f = e.target.files && e.target.files[0]; if (f) handleFile(f); });
+            if (importBtn) importBtn.addEventListener('click', e=>{ e.preventDefault(); if (upload && upload.files && upload.files[0]) handleFile(upload.files[0]); else alert('Choose an .xlsx template first.'); });
+        });
+    })();
+    </script>
     
     <script>
         // Additional script for save button highlighting based on lab/lecture totals

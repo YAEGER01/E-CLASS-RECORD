@@ -719,11 +719,12 @@
     recomputeRowForSub(tr, group) {
       if (!tr || !group) return;
       let total = 0;
+      let hasValue = false;
       group.ids.forEach(id => {
         const inp = tr.querySelector(`input.score[data-assessment="${id}"]`);
         if (!inp) return;
         const v = inp.value === '' ? NaN : parseFloat(inp.value);
-        if (!isNaN(v)) total += v;
+        if (!isNaN(v)) { total += v; hasValue = true; }
       });
       const maxTotal = group.maxTotal || 0;
       const eq = maxTotal > 0 ? (total / maxTotal) * 100 : 0;
@@ -732,9 +733,15 @@
       const totalCell = tr.querySelector(`td.computed.total-col[data-category="${group.category}"][data-subcategory="${group.subcategory}"]`);
       const equivCell = tr.querySelector(`td.computed.equiv-col[data-category="${group.category}"][data-subcategory="${group.subcategory}"]`);
       const reqpctCell = tr.querySelector(`td.computed.reqpct-col[data-category="${group.category}"][data-subcategory="${group.subcategory}"]`);
-      if (totalCell) totalCell.textContent = this.fmt(total, 2);
-      if (equivCell) equivCell.textContent = this.fmt(eq, 2);
-      if (reqpctCell) reqpctCell.textContent = this.fmt(reqpct, 2);
+      if (hasValue) {
+        if (totalCell) totalCell.textContent = this.fmt(total, 2);
+        if (equivCell) equivCell.textContent = this.fmt(eq, 2);
+        if (reqpctCell) reqpctCell.textContent = this.fmt(reqpct, 2);
+      } else {
+        if (totalCell) totalCell.textContent = '';
+        if (equivCell) equivCell.textContent = '';
+        if (reqpctCell) reqpctCell.textContent = '';
+      }
     }
 
     /**
@@ -780,13 +787,22 @@
       if (!finalRow) return;
       const rawCell = finalRow.querySelector('td.raw-grade');
       const totalCell = finalRow.querySelector('td.total-grade');
-      
-      if ((isNaN(lecture) || lecture === null) && (isNaN(lab) || lab === null)) {
+      // Only show final grade values once there is at least one entered score
+      // (empty string means untouched). This prevents showing defaults when
+      // the sheet is still blank.
+      const hasAnyInputValue = Array.from(tr.querySelectorAll('input.score')).some(i => String(i.value).trim() !== '');
+
+      const gradeMarkCell = finalRow.querySelector('td.grade-mark');
+      const remarksCell = finalRow.querySelector('td.remarks');
+
+      if (!hasAnyInputValue) {
         if (rawCell) rawCell.textContent = '';
         if (totalCell) totalCell.textContent = '';
+        if (gradeMarkCell) gradeMarkCell.textContent = '';
+        if (remarksCell) remarksCell.textContent = '';
         return;
       }
-      
+
       const lecVal = isNaN(lecture) ? 0 : lecture;
       const labVal = isNaN(lab) ? 0 : lab;
       const raw = Math.round((labVal * 0.4 + lecVal * 0.6) * 100) / 100;
@@ -796,7 +812,6 @@
       if (totalCell) totalCell.textContent = totalGrade.toFixed(2);
 
       // Compute GRADE MARK from TOTAL GRADE (VL7 equivalent)
-      const gradeMarkCell = finalRow.querySelector('td.grade-mark');
       if (gradeMarkCell) {
         const t = totalGrade;
         let gm = '';
@@ -815,7 +830,6 @@
       // Compute REMARKS: check for missing Project, Exam, or Lab Exam inputs.
       // Heuristic: group assessments by keywords in their header names. If any matching
       // assessment exists for this student row and its input is empty, mark as missing.
-      const remarksCell = finalRow.querySelector('td.remarks');
       if (remarksCell) {
         const heads = Array.from(document.querySelectorAll('th.assess-col'));
         const getIdsByKeywords = (keywords) => {

@@ -148,7 +148,8 @@
               <thead>
                 <!-- Section titles row for clear separation -->
                 <tr>
-                  <th class="sticky-left" rowspan="4">Student</th>
+                  <th class="sticky-left" rowspan="4" style="z-index: 3;">#</th>
+                  <th class="sticky-left" rowspan="4" style="z-index: 1000;">Student</th>
                   {% set all_cats = ['LECTURE','LABORATORY'] %} {% for cat in
                   all_cats %} {% set subs = grouped_assessments.get(cat, {}) %}
                   {% set col_span = 0 %} {% for subdef in (structure.get(cat) or
@@ -290,6 +291,7 @@
               <tbody id="tbody">
                 {% for s in students %}
                 <tr data-student-id="{{ s.id }}">
+                  <td class="sticky-left">{{ loop.index }}</td>
                   <td class="sticky-left">{{ s.name }}</td>
                   {% for cat in all_cats %} {% set subs =
                   grouped_assessments.get(cat, {}) %} {% for subdef in
@@ -359,6 +361,7 @@
             <table class="matrix final-grade-table">
               <thead>
                 <tr>
+                  <th class="sticky-left">#</th>
                   <th class="sticky-left">Student</th>
                   <th>RAW GRADE</th>
                   <th>TOTAL GRADE</th>
@@ -369,6 +372,7 @@
               <tbody>
                 {% for s in students %}
                 <tr data-student-id="{{ s.id }}">
+                  <td class="sticky-left">{{ loop.index }}</td>
                   <td class="sticky-left">{{ s.name }}</td>
                   <td class="raw-grade" data-student="{{ s.id }}"></td>
                   <td class="total-grade" data-student="{{ s.id }}"></td>
@@ -384,6 +388,66 @@
     </div>
     <script id="ga-json" type="application/json">
       {{ grouped_assessments | tojson }}
+    </script>
+    <script>
+      (function () {
+        function hasSubcategories(cat, ga) {
+          if (!ga || !ga[cat]) return false;
+          var sub = ga[cat];
+          for (var k in sub) {
+            if (Object.prototype.hasOwnProperty.call(sub, k)) {
+              var arr = sub[k];
+              if (Array.isArray(arr) && arr.length > 0) return true;
+            }
+          }
+          return false;
+        }
+
+        function hideRatingColumnFor(cat) {
+          // Hide header rating th (computed rating-col) for this category
+          var hdrs = document.querySelectorAll('th.rating-col[data-category]');
+          hdrs.forEach(function (h) {
+            if ((h.getAttribute('data-category') || '').toUpperCase() === cat) {
+              h.style.display = 'none';
+            }
+          });
+
+          // Hide per-student rating cells for this category
+          var cells = document.querySelectorAll('td.computed.rating-col[data-category]');
+          cells.forEach(function (c) {
+            if ((c.getAttribute('data-category') || '').toUpperCase() === cat) {
+              c.style.display = 'none';
+            }
+          });
+
+          // Hide the small subcell header that displays "LECTURE RATINGS" / "LABORATORY RATINGS"
+          var subheads = document.querySelectorAll('th.subcell.subcat-head[data-category]');
+          subheads.forEach(function (s) {
+            if ((s.getAttribute('data-category') || '').toLowerCase() === cat.toLowerCase()) {
+              var txt = (s.textContent || '').trim().toUpperCase();
+              if (txt.indexOf('RATINGS') !== -1) s.style.display = 'none';
+            }
+          });
+        }
+
+        document.addEventListener('DOMContentLoaded', function () {
+          var gaEl = document.getElementById('ga-json');
+          var ga = {};
+          if (gaEl) {
+            try {
+              ga = JSON.parse(gaEl.textContent || gaEl.innerText || '{}');
+            } catch (e) {
+              ga = {};
+            }
+          }
+
+          var cats = ['LECTURE', 'LABORATORY'];
+          cats.forEach(function (cat) {
+            var present = hasSubcategories(cat, ga);
+            if (!present) hideRatingColumnFor(cat);
+          });
+        });
+      })();
     </script>
     <script src="{{ url_for('static', filename='js/instructor_grades_unified.js') }}"></script>
   </body>

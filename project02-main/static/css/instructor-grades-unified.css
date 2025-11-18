@@ -34,6 +34,9 @@ body {
   background-color: #f8f8f8;
 } /* Lighter background */
 .page {
+  position: sticky;
+  top: 40px; /* Adjust to match assess-head height */
+  z-index: 9;
   padding: 24px;
   max-width: 1800px;
   margin: 0 auto;
@@ -41,10 +44,17 @@ body {
 .toolbar {
   display: flex;
   align-items: center;
+  position: sticky;
+  top: 40px; /* Adjust to match assess-head height */
+  z-index: 9;
   justify-content: space-between;
   gap: 12px;
   margin-bottom: 15px;
   padding: 0 4px;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: var(--header-bg);
 }
 
 /* Matrix Container (Smoothly elevated) */
@@ -96,7 +106,7 @@ table.matrix th {
   background: var(--header-bg);
   position: sticky;
   top: 0;
-  z-index: 2;
+  z-index: 10;
   border-bottom: 2px solid var(--gundam-light-grey); /* Slightly more pronounced separator */
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05); /* Subtle shadow for stickiness */
 }

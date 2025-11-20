@@ -246,7 +246,7 @@
             `;
 
             try {
-                const response = await fetch('/api/instructor/classes');
+                const response = await fetch('/api/instructor/classes', { credentials: 'same-origin' });
                 if (response.ok) {
                     const data = await response.json();
                     classes = Array.isArray(data.classes) ? data.classes : [];

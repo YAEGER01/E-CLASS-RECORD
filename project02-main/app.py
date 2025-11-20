@@ -19,6 +19,7 @@ from flask import (
 )
 from flask_socketio import SocketIO, emit, join_room, leave_room
 
+
 # Create Flask app
 app = Flask(__name__)
 
@@ -190,23 +191,6 @@ def run_startup_checks_or_exit():
         sys.exit(1)
 
 
-# Register blueprints (modular APIs)
-from blueprints.assessments_routes import assessments_bp
-from blueprints.auth_routes import auth_bp
-from blueprints.admin_routes import admin_bp
-from blueprints.compute_routes import compute_bp
-from blueprints.gradebuilder_routes import gradebuilder_bp
-
-app.register_blueprint(assessments_bp)
-app.register_blueprint(auth_bp)
-app.register_blueprint(admin_bp)
-app.register_blueprint(compute_bp)
-from blueprints.compute_routes import api_grade_entry_compute
-
-csrf.exempt(api_grade_entry_compute)
-app.register_blueprint(gradebuilder_bp)
-
-
 # Route: GET "/"
 # Used by: Direct browser navigation to the root; renders index.html
 # Purpose: Landing page (same content as /index).
@@ -234,86 +218,107 @@ def welcome():
     return jsonify({"message": "Welcome to the Flask API Service!"})
 
 
-# (login route moved to blueprints/auth_routes.py)
-
-
-# (admin-login route moved to blueprints/auth_routes.py)
-
-
-# (instructor-login route moved to blueprints/auth_routes.py)
-
-
-# (student-login route moved to blueprints/auth_routes.py)
-
-
-# (logout route moved to blueprints/auth_routes.py)
-
-
 from blueprints.dashboard_routes import dashboard_bp
 from blueprints.instructor_routes import instructor_bp
 from blueprints.student_routes import student_bp
 from blueprints.dev_routes import dev_bp
+from blueprints.assessments_routes import assessments_bp
+from blueprints.auth_routes import auth_bp
+from blueprints.admin_routes import admin_bp
+from blueprints.compute_routes import compute_bp
+from blueprints.gradebuilder_routes import gradebuilder_bp
 
 app.register_blueprint(dashboard_bp)
 app.register_blueprint(instructor_bp)
 app.register_blueprint(student_bp)
 app.register_blueprint(dev_bp)
-
-
-# (register route moved to blueprints/auth_routes.py)
-
-
-# (instructor class management routes moved to blueprints/instructor_routes.py)
-
-
-# API: GET "/api/instructor/classes"
-# Used by: instructor_dashboard.html, instructor_classes.html (fetch class list)
-# Purpose: Return all classes owned by the logged-in instructor.
-# (instructor classes API moved to blueprints/instructor_routes.py)
-
-
-# API: POST "/api/instructor/classes"
-# Used by: instructor_classes.html (create class)
-# Purpose: Create a new class for the logged-in instructor.
-# (create class API moved to blueprints/instructor_routes.py)
-
-
-# Student Class Management Routes
-# Pages using these: student_dashboard.html
-# (dev test-grade-normalizer moved to blueprints/dev_routes.py)
-
-
-# (normalize_structure moved to utils/structure_utils.py)
-
-
-# (_instructor_owns_class no longer needed here; local versions exist in blueprints)
-
-
-# (group_structure moved to utils/structure_utils.py)
+app.register_blueprint(assessments_bp)
+app.register_blueprint(auth_bp)
+app.register_blueprint(admin_bp)
+app.register_blueprint(compute_bp)
+app.register_blueprint(gradebuilder_bp)
 
 
 # Helper: get_equivalent(final_grade)
 # Used by: Reserved for grade equivalency mapping (not directly referenced by current routes)
 # Purpose: Map numeric grade to institution-style equivalent string.
-def get_equivalent(final_grade: float) -> str:
-    """Map numeric grade to equivalent string. Placeholder scale; adjust to institution policy."""
-    if final_grade >= 96:
+"""def get_equivalent(final_grade: float) -> str:
+    Map numeric grade to equivalent string. Placeholder scale; adjust to institution policy.
+    if final_grade >= 98 - 100:
         return "1.00"
-    if final_grade >= 93:
+    if final_grade >= 95 - 97:
         return "1.25"
-    if final_grade >= 90:
+    if final_grade >= 92 - 94:
         return "1.50"
-    if final_grade >= 87:
+    if final_grade >= 89 - 91:
         return "1.75"
-    if final_grade >= 84:
+    if final_grade >= 86 - 88:
         return "2.00"
-    if final_grade >= 81:
+    if final_grade >= 83 - 85:
         return "2.25"
-    if final_grade >= 78:
+    if final_grade >= 80 - 82:
         return "2.50"
-    if final_grade >= 75:
+    if final_grade >= 77 - 79:
         return "2.75"
-    return "5.00"
+    if final_grade >= 75 - 76:
+        return "3.00"
+    if final_grade >= 70 - 74:
+        return "5.00"
+    """
+
+
+def get_equivalent(final_grade) -> str:
+    """
+    Exactly replicates the Excel formula:
+    =IF(VL10<75,"5.0", IF(VL10<77,"3.0", IF(VL10<80,"2.75", ... IF(VL10<=100,"1.00","")))))))))
+
+    Robust handling of all possible real-world inputs ("what ifs"):
+
+    • Decimal/floating-point grades → fully supported (e.g., 88.7, 94.56)
+    • Grades exactly on boundaries      → correct bucket (e.g., 75.0 → "3.0", 100.0 → "1.00")
+    • Grades above 100                  → returns "" (empty string), just like Excel
+    • Negative grades                   → treated as failing → "5.0"
+    • None (empty cell)                 → returns ""
+    • Non-numeric strings ("N/A", "INC", etc.) → returns ""
+    • Invalid types (lists, objects, etc.) → returns "" (prevents crashes)
+    • Very large numbers (e.g., 9999)   → returns ""
+    • NaN or infinity from float()      → returns "" (ValueError on float("nan") is caught)
+
+    This makes the function 100% safe to use directly on raw data pulled from spreadsheets,
+    databases, or user input without any pre-cleaning required.
+    """
+    # 1. Invalid inputs → return empty string (same behavior as Excel when cell is empty/text)
+    if final_grade is None:
+        return ""
+
+    # Try to convert to float, if impossible treat as invalid
+    try:
+        grade = float(final_grade)
+    except (TypeError, ValueError):
+        return ""
+
+    # 2. Main logic – note the strict < comparisons and the final <=100
+    if grade < 75:
+        return "5.0"
+    if grade < 77:
+        return "3.0"
+    if grade < 80:
+        return "2.75"
+    if grade < 83:
+        return "2.5"
+    if grade < 86:
+        return "2.25"
+    if grade < 89:
+        return "2.0"
+    if grade < 92:
+        return "1.75"
+    if grade < 95:
+        return "1.5"
+    if grade <= 100:
+        return "1.00"
+
+    # Anything > 100
+    return ""
 
 
 # Helper: validate_structure_json(structure)
@@ -395,77 +400,10 @@ def validate_structure_json(structure: dict):
     return len(errors) == 0, errors
 
 
-# Route: GET "/grade-structures-cards"
-# Used by: Instructor dashboard card/button
-# Purpose: Renders the grade structures cards UI page
-@app.route("/grade-structures-cards")
-def grade_structures_cards():
-    return render_template("grade_structures_cards.html")
-
-
-# API: GET "/api/classes/<class_id>/normalized"
-# Used by: test/dev tools and future analytics; may be consumed by UI experiments
-# Purpose: Return flattened structure for caching/compute.
-# (compute normalized moved to blueprints/compute_routes.py)
-
-
-# API: GET "/api/classes/<class_id>/grouped"
-# Used by: test/dev tools and future analytics
-# Purpose: Return grouped strings vs numbers derived from normalized structure.
-# (compute grouped moved to blueprints/compute_routes.py)
-
-
-# API: GET "/api/classes/<class_id>/calculate"
-# Used by: internal/testing endpoints; future integration with instructor views
-# Purpose: Compute grades using the active formula and current scores.
-# (compute calculate moved to blueprints/compute_routes.py)
-
-
-# Route: GET "/instructor/class/<class_id>/grades"
-# Used by: instructor_dashboard.html ("Open Grade Entry" button)
-# Purpose: Official instructor page for unified grade entry/visualization.
-# (instructor grades page moved to blueprints/instructor_routes.py)
-
-
-# API: GET "/api/classes/<class_id>/live-version"
-# Used by: test_grade_normalizer.html and live UI to detect changes (polling)
-# Purpose: Returns a cache-busting version that updates on data changes.
-# (compute live-version moved to blueprints/compute_routes.py)
-
-
-# API: GET "/api/instructor/class/<class_id>/has-structure"
-# Used by: instructor_dashboard.html (to enable grade entry when a structure exists)
-# Purpose: Boolean indicating presence of an active grade structure.
-# (has-structure API moved to blueprints/instructor_routes.py)
-
-
-# (dev grade-test moved to blueprints/dev_routes.py)
-
-
-# (compute compute_class_grades moved to blueprints/compute_routes.py)
-
-
-# Internal test helper (not a route)
-# Used by: Inline sanity test to ensure compute endpoint returns JSON
-# Purpose: Quick smoke test via Flask test_client.
-def test_compute_endpoint_exists():
-    client = app.test_client()
-    # Call the compute endpoint for class_id 2 (MAJOR Networking)
-    resp = client.post("/api/compute/class/2")
-    # Endpoint should respond (200 or 404 if no structure) but must return JSON
-    assert resp.status_code in (200, 404, 500)
-    try:
-        data = resp.get_json()
-        assert isinstance(data, dict)
-    except Exception:
-        # If response is not JSON, fail
-        assert False, "Response is not valid JSON"
-
-
 if __name__ == "__main__":
     logger.info("Application startup initiated")
     # Run preflight checks before launching the server
     # Note: With the Werkzeug reloader, this may run twice in development.
     # If this becomes noisy, guard with WERKZEUG_RUN_MAIN env flag.
     run_startup_checks_or_exit()
-    socketio.run(app, debug=True)
+    socketio.run(app, host="0.0.0.0", port=5000, debug=True)

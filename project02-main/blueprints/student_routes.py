@@ -1,3 +1,5 @@
+from flask import render_template
+
 import logging
 import os
 import uuid
@@ -513,3 +515,180 @@ def update_profile():
             conn.close()
         except Exception:
             pass
+
+
+# Student Classes Table Page
+@student_bp.route("/student/classes", methods=["GET"], endpoint="student_classes")
+@login_required
+def student_classes():
+    if session.get("role") != "student":
+        return "Access denied", 403
+    try:
+        with get_db_connection().cursor() as cursor:
+            # Get student info
+            cursor.execute(
+                "SELECT * FROM students WHERE user_id = %s", (session.get("user_id"),)
+            )
+            student = cursor.fetchone()
+            if not student:
+                logger.error(
+                    "Student profile not found for user_id %s", session.get("user_id")
+                )
+                return "Student profile not found", 404
+
+            # Get personal info (fallback to empty dict if missing)
+            personal = {}
+            try:
+                cursor.execute(
+                    "SELECT * FROM personal_info WHERE id = %s",
+                    (student.get("personal_info_id"),),
+                )
+                personal = cursor.fetchone() or {}
+            except Exception as e:
+                logger.warning(f"Personal info fetch failed: {e}")
+
+            # Get joined classes
+            cursor.execute(
+                """
+                SELECT c.*, sc.joined_at
+                FROM classes c
+                JOIN student_classes sc ON c.id = sc.class_id
+                WHERE sc.student_id = %s
+            """,
+                (student.get("id"),),
+            )
+            enrollments = cursor.fetchall() or []
+            classes = []
+            for cls in enrollments:
+                # Get instructor info (fallback to Unknown)
+                instructor_name = "Unknown"
+                try:
+                    cursor.execute(
+                        "SELECT * FROM instructors WHERE id = %s",
+                        (cls.get("instructor_id"),),
+                    )
+                    instructor = cursor.fetchone()
+                    if instructor:
+                        cursor.execute(
+                            "SELECT * FROM personal_info WHERE id = %s",
+                            (instructor.get("personal_info_id"),),
+                        )
+                        instr_personal = cursor.fetchone()
+                        if instr_personal:
+                            instructor_name = f"{instr_personal.get('first_name','')} {instr_personal.get('last_name','')}"
+                except Exception as e:
+                    logger.warning(f"Instructor info fetch failed: {e}")
+
+                # Get released grades for this student/class
+                released_grade = None
+                grade_data = None
+                try:
+                    cursor.execute(
+                        "SELECT * FROM released_grades WHERE class_id = %s AND student_id = %s AND status = 'released'",
+                        (cls.get("id"), student.get("id")),
+                    )
+                    released_grade = cursor.fetchone()
+                    if released_grade and released_grade.get("grade_payload"):
+                        import json
+
+                        try:
+                            grade_data = json.loads(released_grade["grade_payload"])
+                        except Exception as e:
+                            logger.warning(f"Grade payload JSON decode failed: {e}")
+                            grade_data = None
+                except Exception as e:
+                    logger.warning(f"Released grades fetch failed: {e}")
+
+                # If grade_data is present, recalculate using grade_calculation
+                final_grade = None
+                equivalent = None
+                try:
+                    if grade_data and "scores" in grade_data:
+                        from utils.grade_calculation import (
+                            perform_grade_computation,
+                            get_equivalent,
+                        )
+
+                        # Normalize for computation
+                        # Fetch structure for this class
+                        cursor.execute(
+                            "SELECT * FROM grade_structures WHERE class_id = %s AND is_active = 1",
+                            (cls.get("id"),),
+                        )
+                        structure = cursor.fetchone()
+                        structure_json = None
+                        if structure and structure.get("structure_json"):
+                            import json
+
+                            try:
+                                structure_json = json.loads(structure["structure_json"])
+                            except Exception as e:
+                                logger.warning(f"Structure JSON decode failed: {e}")
+                                structure_json = None
+                        # Prepare normalized_rows for computation
+                        normalized_rows = []
+                        if structure_json:
+                            for category, subcats in structure_json.items():
+                                for subcat in subcats:
+                                    normalized_rows.append(
+                                        {
+                                            "category": category,
+                                            "name": subcat.get("name"),
+                                            "weight": subcat.get("weight"),
+                                            "assessment": None,
+                                            "max_score": None,
+                                        }
+                                    )
+                        # Prepare student_scores_named
+                        student_scores_named = []
+                        for score in grade_data.get("scores", []):
+                            # You may need to fetch assessment name from id
+                            assessment_name = None
+                            try:
+                                cursor.execute(
+                                    "SELECT name FROM grade_assessments WHERE id = %s",
+                                    (score.get("assessment_id"),),
+                                )
+                                assessment = cursor.fetchone()
+                                assessment_name = (
+                                    assessment.get("name") if assessment else None
+                                )
+                            except Exception as e:
+                                logger.warning(f"Assessment name fetch failed: {e}")
+                            student_scores_named.append(
+                                {
+                                    "student_id": student.get("id"),
+                                    "assessment_name": assessment_name,
+                                    "score": score.get("score"),
+                                }
+                            )
+                        # Use perform_grade_computation
+                        computed_grades = perform_grade_computation(
+                            structure_json or {}, normalized_rows, student_scores_named
+                        )
+                        if computed_grades:
+                            final_grade = computed_grades[0].get("final_grade")
+                            equivalent = computed_grades[0].get("equivalent")
+                except Exception as e:
+                    logger.warning(f"Grade computation failed: {e}")
+                # Fallback to released_grades values
+                if not final_grade and released_grade:
+                    final_grade = released_grade.get("final_grade")
+                    equivalent = released_grade.get("equivalent")
+
+                classes.append(
+                    {
+                        "code": cls.get("class_code") or cls.get("join_code"),
+                        "name": cls.get("course"),
+                        "subject": cls.get("subject"),
+                        "instructor": instructor_name,
+                        "final_grade": final_grade,
+                        "equivalent": equivalent,
+                    }
+                )
+        return render_template(
+            "student_classes.html", classes=classes, student=student, personal=personal
+        )
+    except Exception as e:
+        logger.error(f"Failed to load student classes page: {str(e)}", exc_info=True)
+        return "Failed to load classes", 500

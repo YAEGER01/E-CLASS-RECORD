@@ -156,9 +156,23 @@ def _instructor_owns_class(class_id: int, user_id: int) -> bool:
                     rows = {}
                     if sids:
                         placeholders = ",".join(["%s"] * len(sids))
-                        params = sids + [class_id]
+                        params = [class_id] + sids
                         cursor.execute(
-                            f"SELECT s.id AS student_id, u.school_id, pi.first_name, pi.last_name, pi.middle_name, COALESCE(sg.is_released,0) AS is_released, sg.released_date FROM students s JOIN users u ON s.user_id = u.id LEFT JOIN personal_info pi ON s.personal_info_id = pi.id LEFT JOIN student_grades sg ON s.id = sg.student_id AND sg.class_id = %s WHERE s.id IN ({placeholders})",
+                            f"""
+                            SELECT s.id AS student_id,
+                                   u.school_id,
+                                   pi.first_name,
+                                   pi.last_name,
+                                   pi.middle_name,
+                                   rg.status,
+                                   rg.released_at
+                            FROM students s
+                            JOIN users u ON s.user_id = u.id
+                            LEFT JOIN personal_info pi ON s.personal_info_id = pi.id
+                            LEFT JOIN released_grades rg
+                                ON rg.student_id = s.id AND rg.class_id = %s
+                            WHERE s.id IN ({placeholders})
+                            """,
                             params,
                         )
                         rows = {r["student_id"]: r for r in (cursor.fetchall() or [])}
@@ -176,12 +190,15 @@ def _instructor_owns_class(class_id: int, user_id: int) -> bool:
                                 if fn and ln
                                 else meta.get("school_id") or f"Student {sid}"
                             )
-                            is_released = bool(meta.get("is_released"))
-                            released_date = (
-                                meta.get("released_date").strftime("%Y-%m-%d")
-                                if meta.get("released_date")
-                                else None
-                            )
+                            status_val = (meta.get("status") or "").lower()
+                            is_released = status_val == "released"
+                            released_raw = meta.get("released_at")
+                            if is_released and isinstance(released_raw, datetime):
+                                released_date = released_raw.strftime("%Y-%m-%d")
+                            elif is_released and released_raw:
+                                released_date = str(released_raw)
+                            else:
+                                released_date = None
                         else:
                             name = None
                             is_released = False
@@ -763,7 +780,6 @@ def get_class_members(class_id):
         logger.info(
             f"Instructor {session.get('school_id')} viewed {len(members)} members of class {class_obj['class_id']}"
         )
-        # Include basic class info (subject, course, track, section, year)
         class_info = {
             "id": class_obj["id"],
             "course": class_obj.get("course"),
@@ -987,11 +1003,6 @@ def release_grades():
         return redirect(url_for("dashboard.instructor_dashboard"))
 
 
-@instructor_bp.route(
-    "/api/instructor/class/<int:class_id>/release-grades",
-    methods=["GET"],
-    endpoint="api_get_release_grades",
-)
 def _normalize_snapshot(snapshot):
     """Normalize raw snapshot JSON into a UI-friendly structure.
 
@@ -1080,9 +1091,15 @@ def _normalize_snapshot(snapshot):
     return {"assessments": assessments, "students": students}
 
 
+@instructor_bp.route(
+    "/api/instructor/class/<int:class_id>/release-grades",
+    methods=["GET"],
+    endpoint="api_get_release_grades",
+)
 @login_required
 def api_get_release_grades(class_id):
-    """Get grades data for release management."""
+    """Get grades data for release management sourced from grade snapshots."""
+
     if session.get("role") != "instructor":
         return jsonify({"error": "forbidden"}), 403
 
@@ -1091,36 +1108,113 @@ def api_get_release_grades(class_id):
 
     try:
         with get_db_connection().cursor() as cursor:
-            # Get students in the class
-            # Note: some deployments store only release metadata in `student_grades` (is_released, released_date)
-            # and compute final grades on demand. Avoid selecting non-existent columns like `final_grade`/`equivalent`.
             cursor.execute(
                 """
-                SELECT 
+                SELECT
+                    id,
+                    version,
+                    status,
+                    snapshot_json,
+                    created_at,
+                    released_at
+                FROM grade_snapshots
+                WHERE class_id = %s
+                ORDER BY
+                    CASE WHEN status = 'final' THEN 0 ELSE 1 END,
+                    version DESC,
+                    COALESCE(released_at, created_at) DESC
+                LIMIT 1
+                """,
+                (class_id,),
+            )
+
+            snapshot_row = cursor.fetchone()
+            snapshot_students = {}
+            snapshot_meta = {}
+
+            if snapshot_row:
+                if isinstance(snapshot_row, dict):
+                    snapshot_meta = {
+                        "id": snapshot_row.get("id"),
+                        "version": snapshot_row.get("version"),
+                        "status": snapshot_row.get("status"),
+                        "created_at": snapshot_row.get("created_at"),
+                        "released_at": snapshot_row.get("released_at"),
+                    }
+                    snapshot_payload = snapshot_row.get("snapshot_json")
+                else:
+                    snapshot_meta = {
+                        "id": snapshot_row[0],
+                        "version": snapshot_row[1],
+                        "status": snapshot_row[2],
+                        "created_at": snapshot_row[4],
+                        "released_at": snapshot_row[5],
+                    }
+                    snapshot_payload = snapshot_row[3]
+
+                try:
+                    normalized = _normalize_snapshot(
+                        json.loads(snapshot_payload or "{}")
+                    )
+                except Exception as exc:
+                    logger.error(
+                        f"Failed to parse snapshot_json for class {class_id}: {exc}"
+                    )
+                    return jsonify({"error": "invalid_snapshot_json"}), 500
+
+                for entry in normalized.get("students", []):
+                    sid = entry.get("student_id") or entry.get("id")
+                    if sid is None:
+                        continue
+                    try:
+                        sid_int = int(sid)
+                    except Exception:
+                        sid_int = sid
+                    snapshot_students[sid_int] = entry
+
+            cursor.execute(
+                """
+                SELECT
                     sc.student_id,
                     u.school_id,
-                    pi.first_name, 
-                    pi.last_name, 
+                    pi.first_name,
+                    pi.last_name,
                     pi.middle_name,
-                    COALESCE(sg.is_released, 0) as is_released,
-                    sg.released_date
+                    rg.status,
+                    rg.released_at
                 FROM student_classes sc
                 JOIN students s ON sc.student_id = s.id
                 JOIN users u ON s.user_id = u.id
                 LEFT JOIN personal_info pi ON s.personal_info_id = pi.id
-                LEFT JOIN student_grades sg ON s.id = sg.student_id AND sg.class_id = %s
+                LEFT JOIN released_grades rg
+                    ON s.id = rg.student_id AND rg.class_id = %s
                 WHERE sc.class_id = %s
                 ORDER BY pi.last_name, pi.first_name
-            """,
+                """,
                 (class_id, class_id),
             )
 
+            rows = cursor.fetchall() or []
             students = []
-            for row in cursor.fetchall() or []:
-                first_name = row.get("first_name", "")
-                middle_name = row.get("middle_name", "")
-                last_name = row.get("last_name", "")
-                school_id = row.get("school_id", "")
+
+            def _col(row, key, index):
+                if isinstance(row, dict):
+                    return row.get(key)
+                return row[index]
+
+            snapshot_released_at = (
+                snapshot_meta.get("released_at") if snapshot_meta else None
+            )
+
+            for row in rows:
+                student_id = _col(row, "student_id", 0)
+                school_id = (_col(row, "school_id", 1) or "").strip()
+                first_name = (_col(row, "first_name", 2) or "").strip()
+                last_name = (_col(row, "last_name", 3) or "").strip()
+                middle_name = (_col(row, "middle_name", 4) or "").strip()
+                status_value = (_col(row, "status", 5) or "").lower()
+                is_released = status_value == "released"
+                released_value = _col(row, "released_at", 6)
 
                 if first_name and last_name:
                     student_name = (
@@ -1129,36 +1223,299 @@ def api_get_release_grades(class_id):
                         else f"{last_name}, {first_name}"
                     )
                 else:
-                    student_name = school_id or f"Student {row.get('student_id')}"
+                    student_name = school_id or f"Student {student_id}"
 
-                # final_grade/equivalent may not be stored in the DB; use safe defaults (frontend shows 'N/A')
+                snapshot_entry = snapshot_students.get(student_id)
+                final_grade = None
+                equivalent = "N/A"
+                overall_percentage = None
+
+                if snapshot_entry:
+                    final_grade = snapshot_entry.get("final_grade")
+                    try:
+                        final_grade = (
+                            None
+                            if final_grade is None
+                            else round(float(final_grade), 2)
+                        )
+                    except Exception:
+                        final_grade = None
+
+                    equivalent = (
+                        snapshot_entry.get("equivalent")
+                        or (snapshot_entry.get("computed") or {}).get("letter_grade")
+                        or "N/A"
+                    )
+                    overall_percentage = (snapshot_entry.get("computed") or {}).get(
+                        "overall_percentage"
+                    )
+
+                if is_released and isinstance(released_value, datetime):
+                    released_date = released_value.strftime("%Y-%m-%d")
+                elif is_released and isinstance(released_value, str) and released_value:
+                    released_date = released_value
+                else:
+                    released_date = None
+
+                if not released_date and is_released and snapshot_released_at:
+                    if isinstance(snapshot_released_at, datetime):
+                        released_date = snapshot_released_at.strftime("%Y-%m-%d")
+                    else:
+                        released_date = str(snapshot_released_at)
+
                 students.append(
                     {
-                        "id": row["student_id"],
+                        "id": student_id,
                         "name": student_name,
                         "school_id": school_id,
-                        "final_grade": None,
-                        "equivalent": "N/A",
-                        "is_released": bool(row["is_released"]),
-                        "released_date": (
-                            row["released_date"].strftime("%Y-%m-%d")
-                            if row.get("released_date")
-                            else None
-                        ),
+                        "final_grade": final_grade,
+                        "equivalent": equivalent,
+                        "overall_percentage": overall_percentage,
+                        "is_released": is_released,
+                        "released_date": released_date,
                     }
                 )
 
-            return jsonify(
-                {
-                    "class_id": class_id,
-                    "students": students,
-                    "total_students": len(students),
+            response = {
+                "class_id": class_id,
+                "students": students,
+                "total_students": len(students),
+            }
+
+            if snapshot_meta:
+                response["snapshot"] = {
+                    "id": snapshot_meta.get("id"),
+                    "version": snapshot_meta.get("version"),
+                    "status": snapshot_meta.get("status"),
+                    "released_at": (
+                        snapshot_meta["released_at"].strftime("%Y-%m-%d %H:%M:%S")
+                        if isinstance(snapshot_meta.get("released_at"), datetime)
+                        else snapshot_meta.get("released_at")
+                    ),
+                    "captured_at": (
+                        snapshot_meta["created_at"].strftime("%Y-%m-%d %H:%M:%S")
+                        if isinstance(snapshot_meta.get("created_at"), datetime)
+                        else snapshot_meta.get("created_at")
+                    ),
                 }
-            )
+
+            return jsonify(response)
 
     except Exception as e:
         logger.error(f"Failed to get release grades for class {class_id}: {str(e)}")
         return jsonify({"error": "failed_to_get_grades"}), 500
+
+
+def _coerce_student_ids(student_ids):
+    normalised = []
+    for sid in student_ids or []:
+        if sid is None:
+            continue
+        try:
+            normalised.append(int(sid))
+        except (TypeError, ValueError):
+            continue
+    # Deduplicate while preserving deterministic order for SQL bindings
+    return sorted(set(normalised))
+
+
+def _compose_student_display_name(first_name, last_name, middle_name, fallback):
+    first = (first_name or "").strip()
+    last = (last_name or "").strip()
+    middle = (middle_name or "").strip()
+    if first and last:
+        return f"{last}, {first} {middle}".strip() if middle else f"{last}, {first}"
+    return fallback
+
+
+def _finalize_snapshot_and_store_release(cursor, class_id, student_ids, released_by):
+    ids = _coerce_student_ids(student_ids)
+    if not ids:
+        return {"success": False, "error": "no_valid_student_ids"}
+
+    # Prefer the latest draft snapshot; fall back to most recent final snapshot
+    cursor.execute(
+        """
+        SELECT id, version, status, snapshot_json, created_at, released_at
+        FROM grade_snapshots
+        WHERE class_id = %s
+        ORDER BY CASE WHEN status = 'draft' THEN 0 ELSE 1 END,
+                 version DESC,
+                 COALESCE(released_at, created_at) DESC
+        LIMIT 1
+        """,
+        (class_id,),
+    )
+    snapshot_row = cursor.fetchone()
+    if not snapshot_row:
+        return {"success": False, "error": "snapshot_not_found"}
+
+    snapshot_id = (
+        snapshot_row.get("id") if isinstance(snapshot_row, dict) else snapshot_row[0]
+    )
+    snapshot_status = (
+        snapshot_row.get("status")
+        if isinstance(snapshot_row, dict)
+        else snapshot_row[2]
+    )
+    snapshot_payload = (
+        snapshot_row.get("snapshot_json")
+        if isinstance(snapshot_row, dict)
+        else snapshot_row[3]
+    )
+    released_at_value = (
+        snapshot_row.get("released_at")
+        if isinstance(snapshot_row, dict)
+        else snapshot_row[5]
+    )
+
+    now = datetime.now()
+    if snapshot_status != "final":
+        cursor.execute(
+            "UPDATE grade_snapshots SET status = 'final', released_at = %s WHERE id = %s",
+            (now, snapshot_id),
+        )
+        released_at_value = now
+    elif not released_at_value:
+        cursor.execute(
+            "UPDATE grade_snapshots SET released_at = %s WHERE id = %s",
+            (now, snapshot_id),
+        )
+        released_at_value = now
+
+    try:
+        normalized_snapshot = _normalize_snapshot(snapshot_payload)
+    except Exception as exc:
+        logger.error(
+            f"Failed to normalize snapshot for class {class_id} (snapshot {snapshot_id}): {exc}"
+        )
+        return {"success": False, "error": "invalid_snapshot_json"}
+
+    student_entries = {}
+    for entry in normalized_snapshot.get("students", []):
+        sid = entry.get("student_id") or entry.get("id")
+        try:
+            sid_int = int(sid)
+        except Exception:
+            sid_int = sid
+        student_entries[sid_int] = entry
+
+    placeholders = ",".join(["%s"] * len(ids))
+    cursor.execute(
+        f"""
+        SELECT s.id AS student_id,
+               u.school_id,
+               pi.first_name,
+               pi.last_name,
+               pi.middle_name
+        FROM students s
+        JOIN users u ON s.user_id = u.id
+        LEFT JOIN personal_info pi ON s.personal_info_id = pi.id
+        WHERE s.id IN ({placeholders})
+        """,
+        ids,
+    )
+    profile_map = {}
+    for row in cursor.fetchall() or []:
+        sid = row.get("student_id")
+        fallback = row.get("school_id") or f"Student {sid}"
+        profile_map[sid] = {
+            "school_id": row.get("school_id"),
+            "name": _compose_student_display_name(
+                row.get("first_name"),
+                row.get("last_name"),
+                row.get("middle_name"),
+                fallback,
+            ),
+        }
+
+    for sid in ids:
+        profile = profile_map.get(sid, {})
+        entry = student_entries.get(sid) or {"student_id": sid}
+        computed = entry.get("computed") or {}
+        final_grade = entry.get("final_grade")
+        try:
+            final_grade = None if final_grade is None else round(float(final_grade), 2)
+        except Exception:
+            final_grade = None
+        overall_percentage = computed.get("overall_percentage")
+        try:
+            overall_percentage = (
+                None
+                if overall_percentage is None
+                else round(float(overall_percentage), 2)
+            )
+        except Exception:
+            overall_percentage = None
+        equivalent = entry.get("equivalent") or computed.get("letter_grade") or "N/A"
+
+        cursor.execute(
+            """
+            INSERT INTO released_grades (
+                class_id,
+                snapshot_id,
+                student_id,
+                student_school_id,
+                student_name,
+                final_grade,
+                equivalent,
+                overall_percentage,
+                status,
+                grade_payload,
+                released_by,
+                released_at
+            )
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, 'released', %s, %s, %s)
+            ON DUPLICATE KEY UPDATE
+                snapshot_id = VALUES(snapshot_id),
+                student_school_id = VALUES(student_school_id),
+                student_name = VALUES(student_name),
+                final_grade = VALUES(final_grade),
+                equivalent = VALUES(equivalent),
+                overall_percentage = VALUES(overall_percentage),
+                status = 'released',
+                grade_payload = VALUES(grade_payload),
+                released_by = VALUES(released_by),
+                released_at = VALUES(released_at),
+                updated_at = NOW()
+            """,
+            (
+                class_id,
+                snapshot_id,
+                sid,
+                profile.get("school_id"),
+                profile.get("name") or f"Student {sid}",
+                final_grade,
+                equivalent,
+                overall_percentage,
+                json.dumps(entry),
+                released_by,
+                released_at_value or now,
+            ),
+        )
+
+    return {
+        "success": True,
+        "snapshot_id": snapshot_id,
+        "released_at": released_at_value or now,
+    }
+
+
+def _update_released_grade_status(cursor, class_id, student_ids, status):
+    ids = _coerce_student_ids(student_ids)
+    if not ids:
+        return
+    placeholders = ",".join(["%s"] * len(ids))
+    cursor.execute(
+        f"""
+        UPDATE released_grades
+        SET status = %s,
+            released_at = CASE WHEN %s = 'released' THEN COALESCE(released_at, NOW()) ELSE NULL END,
+            updated_at = NOW()
+        WHERE class_id = %s AND student_id IN ({placeholders})
+        """,
+        [status, status, class_id, *ids],
+    )
 
 
 @instructor_bp.route(
@@ -1184,7 +1541,7 @@ def api_toggle_student_release(student_id):
         if not _instructor_owns_class(class_id, session.get("user_id")):
             return jsonify({"error": "unauthorized_class"}), 403
 
-        # Verify student is in the class
+        released_at_value = None
         with get_db_connection().cursor() as cursor:
             cursor.execute(
                 "SELECT 1 FROM student_classes WHERE student_id = %s AND class_id = %s",
@@ -1193,30 +1550,32 @@ def api_toggle_student_release(student_id):
             if not cursor.fetchone():
                 return jsonify({"error": "student_not_in_class"}), 404
 
-            # Update or insert grade release status
-            cursor.execute(
-                """
-                INSERT INTO student_grades (student_id, class_id, is_released, released_date, updated_at)
-                VALUES (%s, %s, %s, %s, NOW())
-                ON DUPLICATE KEY UPDATE
-                is_released = %s,
-                released_date = %s,
-                updated_at = NOW()
-            """,
-                (
-                    student_id,
-                    class_id,
-                    release,
-                    datetime.now() if release else None,
-                    release,
-                    datetime.now() if release else None,
-                ),
-            )
+            if release:
+                release_result = _finalize_snapshot_and_store_release(
+                    cursor, class_id, [student_id], session.get("user_id")
+                )
+                if not release_result.get("success"):
+                    return (
+                        jsonify(
+                            {"error": release_result.get("error", "failed_to_release")}
+                        ),
+                        400,
+                    )
+                released_at_value = release_result.get("released_at")
+            else:
+                _update_released_grade_status(cursor, class_id, [student_id], "hidden")
 
         try:
             get_db_connection().commit()
         except Exception:
             pass
+
+        released_date_value = None
+        if release and released_at_value:
+            if isinstance(released_at_value, datetime):
+                released_date_value = released_at_value.strftime("%Y-%m-%d %H:%M:%S")
+            else:
+                released_date_value = str(released_at_value)
 
         return jsonify(
             {
@@ -1224,9 +1583,7 @@ def api_toggle_student_release(student_id):
                 "student_id": student_id,
                 "class_id": class_id,
                 "is_released": release,
-                "released_date": (
-                    datetime.now().strftime("%Y-%m-%d") if release else None
-                ),
+                "released_date": released_date_value,
             }
         )
 
@@ -1289,34 +1646,29 @@ def api_bulk_toggle_release():
                     400,
                 )
 
-            # Bulk update release status
-            current_time = datetime.now()
-            release_date = current_time if release else None
-
-            for student_id in student_ids:
-                cursor.execute(
-                    """
-                    INSERT INTO student_grades (student_id, class_id, is_released, released_date, updated_at)
-                    VALUES (%s, %s, %s, %s, NOW())
-                    ON DUPLICATE KEY UPDATE
-                    is_released = %s,
-                    released_date = %s,
-                    updated_at = NOW()
-                """,
-                    (
-                        student_id,
-                        class_id,
-                        release,
-                        release_date,
-                        release,
-                        release_date,
-                    ),
+            release_result = None
+            if release:
+                release_result = _finalize_snapshot_and_store_release(
+                    cursor, class_id, student_ids, session.get("user_id")
                 )
+                if not release_result.get("success"):
+                    return (
+                        jsonify(
+                            {"error": release_result.get("error", "failed_to_release")}
+                        ),
+                        400,
+                    )
+            else:
+                _update_released_grade_status(cursor, class_id, student_ids, "hidden")
 
         try:
             get_db_connection().commit()
         except Exception:
             pass
+
+        released_at_value = None
+        if release and release_result:
+            released_at_value = release_result.get("released_at")
 
         return jsonify(
             {
@@ -1325,7 +1677,9 @@ def api_bulk_toggle_release():
                 "updated_count": len(student_ids),
                 "is_released": release,
                 "released_date": (
-                    current_time.strftime("%Y-%m-%d %H:%M:%S") if release else None
+                    released_at_value.strftime("%Y-%m-%d %H:%M:%S")
+                    if isinstance(released_at_value, datetime)
+                    else (str(released_at_value) if released_at_value else None)
                 ),
             }
         )

@@ -55,6 +55,9 @@
       this.persistTimer = null;
       this.scrollTimers = new Map();
       this.SUB_GROUPS = {};
+      this.classType = 'MAJOR';
+      this.isMinor = false;
+      this.latestSummaries = {};
 
       // Configuration
       this.INPUT_PERSISTENCE_ENABLED = true;
@@ -72,6 +75,7 @@
         this.setupEventListeners();
         this.setupScrollPersistence();
         this.buildSubGroups();
+        this.applyClassTypeDecorations();
         this.init();
       }
     }
@@ -88,6 +92,9 @@
       this.classId = parseInt(this.dataEl?.dataset?.classId || '0', 10) || 0;
       this.structureId = parseInt(this.dataEl?.dataset?.structureId || '0', 10) || 0;
       this.csrfToken = this.dataEl?.dataset?.csrfToken || null;
+      const typeAttr = this.dataEl?.dataset?.classType || 'MAJOR';
+      this.classType = String(typeAttr).toUpperCase();
+      this.isMinor = this.classType === 'MINOR';
       this.actionsBox = document.getElementById('structure-actions');
 
       // Return false if tbody is not found
@@ -300,6 +307,19 @@
         if (!groups[key].subweight && c.subweight) groups[key].subweight = c.subweight;
       });
       this.SUB_GROUPS = groups;
+    }
+
+    applyClassTypeDecorations() {
+      const rawHdr = document.querySelector('table.final-grade-table thead th.raw-grade-header');
+      const totalHdr = document.querySelector('table.final-grade-table thead th.total-grade-header');
+      if (!rawHdr || !totalHdr) return;
+      if (this.isMinor) {
+        rawHdr.textContent = 'INITIAL GRADE';
+        totalHdr.textContent = 'FINAL GRADE';
+      } else {
+        rawHdr.textContent = 'RAW GRADE';
+        totalHdr.textContent = 'TOTAL GRADE';
+      }
     }
 
     /**
@@ -672,6 +692,7 @@
       // Clear dirty state and persisted drafts
       try { this.dirty.clear(); } catch(_) {}
       try { this.persistClear(); } catch(_) {}
+      this.latestSummaries = {};
       // Recompute derived cells and final grades
       try { this.recomputeAll(); this.updateFinalGrades(); } catch(_) {}
       if (this.status) this.status.textContent = 'Cleared inputs';
@@ -805,25 +826,45 @@
 
       const lecVal = isNaN(lecture) ? 0 : lecture;
       const labVal = isNaN(lab) ? 0 : lab;
-      const raw = Math.round((labVal * 0.4 + lecVal * 0.6) * 100) / 100;
-      if (rawCell) rawCell.textContent = raw.toFixed(2);
-      // TOTAL GRADE formula: TOTAL = RAW * 0.625 + 37.5
-      const totalGrade = Math.round((raw * 0.625 + 37.5) * 100) / 100;
+      const baseRaw = Math.round((labVal * 0.4 + lecVal * 0.6) * 100) / 100;
+      const summary = (this.latestSummaries && this.latestSummaries[sid]) ? this.latestSummaries[sid] : null;
+      let rawValue = baseRaw;
+      let totalGrade;
+      if (this.isMinor) {
+        totalGrade = Math.round((baseRaw * 0.5 + 50) * 100) / 100;
+      } else {
+        totalGrade = Math.round((baseRaw * 0.625 + 37.5) * 100) / 100;
+      }
+
+      if (summary) {
+        if (typeof summary.initial_grade === 'number') {
+          rawValue = Math.round(summary.initial_grade * 100) / 100;
+        }
+        if (typeof summary.final_grade === 'number') {
+          totalGrade = Math.round(summary.final_grade * 100) / 100;
+        }
+      }
+
+      if (rawCell) rawCell.textContent = rawValue.toFixed(2);
       if (totalCell) totalCell.textContent = totalGrade.toFixed(2);
 
       // Compute GRADE MARK from TOTAL GRADE (VL7 equivalent)
       if (gradeMarkCell) {
         const t = totalGrade;
         let gm = '';
-        if (t < 75) gm = '5.0';
-        else if (t < 77) gm = '3.0';
-        else if (t < 80) gm = '2.75';
-        else if (t < 83) gm = '2.5';
-        else if (t < 86) gm = '2.25';
-        else if (t < 89) gm = '2.0';
-        else if (t < 92) gm = '1.75';
-        else if (t < 95) gm = '1.5';
-        else gm = '1.25';
+        if (summary && summary.equivalent !== undefined && summary.equivalent !== null && summary.equivalent !== '') {
+          gm = String(summary.equivalent);
+        } else if (!isNaN(t)) {
+          if (t < 75) gm = '5.0';
+          else if (t < 77) gm = '3.0';
+          else if (t < 80) gm = '2.75';
+          else if (t < 83) gm = '2.5';
+          else if (t < 86) gm = '2.25';
+          else if (t < 89) gm = '2.0';
+          else if (t < 92) gm = '1.75';
+          else if (t < 95) gm = '1.5';
+          else gm = '1.25';
+        }
         gradeMarkCell.textContent = gm;
       }
 
@@ -901,6 +942,12 @@
         if (!res.ok) return;
         const out = await res.json();
         if (!out || !out.results) return;
+
+        if (this.isMinor && out.summaries && typeof out.summaries === 'object') {
+          this.latestSummaries = out.summaries;
+        } else {
+          this.latestSummaries = {};
+        }
         
         this.getStudentRows().forEach(tr => {
           const sid = String(parseInt(tr.getAttribute('data-student-id')||'0',10)||0);

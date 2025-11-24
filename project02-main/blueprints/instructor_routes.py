@@ -2456,6 +2456,7 @@ def instructor_class_grades(class_id: int):
                 "schedule": grade_structure.get("schedule"),
                 "class_code": grade_structure.get("class_code"),
                 "join_code": grade_structure.get("join_code"),
+                "class_type": grade_structure.get("class_type"),
             }
 
             return render_template(

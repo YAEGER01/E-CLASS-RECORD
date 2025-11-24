@@ -18,6 +18,7 @@
         data-class-id="{{ class_id }}"
         data-structure-id="{{ structure_id }}"
         data-csrf-token="{{ csrf_token }}"
+        data-class-type="{{ (class_info.class_type or 'MAJOR') if class_info else 'MAJOR' }}"
         style="display: none"
       ></div>
       <div class="toolbar">
@@ -51,6 +52,7 @@
             {{ ci.year or '' }} · {{ ci.semester or '' }} · Section {{
             ci.section or '' }}
           </div>
+          <div style="color: #6b7280">Type: {{ ci.class_type or 'MAJOR' }}</div>
           <div style="color: #6b7280">Track: {{ ci.track or 'N/A' }}</div>
           <div style="color: #6b7280">Schedule: {{ ci.schedule or 'N/A' }}</div>
           <div style="margin-left: auto; color: #374151">
@@ -363,8 +365,8 @@
                 <tr>
                   <th class="sticky-left">#</th>
                   <th class="sticky-left">Student</th>
-                  <th>RAW GRADE</th>
-                  <th>TOTAL GRADE</th>
+                  <th class="raw-grade-header">RAW GRADE</th>
+                  <th class="total-grade-header">TOTAL GRADE</th>
                   <th>GRADE MARK</th>
                   <th>REMARKS</th>
                 </tr>

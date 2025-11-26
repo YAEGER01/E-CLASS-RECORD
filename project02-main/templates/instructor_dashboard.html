@@ -32,7 +32,9 @@
                     <a href="{{ url_for('instructor.instructor_classes') }}" class="nav-link">Classes</a>
                     <a href="{{ url_for('instructor.gradebuilder_v2') }}" class="nav-link">Grade Builder</a>
                     <a href="{{ url_for('instructor.release_grades') }}" class="nav-link">Release Grades</a>
-                    <a href="#" class="nav-link">Reports</a>
+                    <a href="{{ url_for('instructor.instructor_statistics') }}" class="nav-link">Statistics</a>
+                    <a href="#reports-modal" class="nav-link" onclick="openReportsModal()">Reports</a>
+                    <a href="{{ url_for('instructor.data_simulation') }}" class="nav-link">Data Simulation</a>
                 </nav>
             </div>
             <div class="header-user">
@@ -84,11 +86,18 @@
                                 <p>View and manage students</p>
                             </div>
                         </a>
-                        <a href="#" class="action-card">
+                        <a href="{{ url_for('instructor.instructor_statistics') }}" class="action-card">
                             <div class="card-icon">📊</div>
                             <div class="card-content">
-                                <h3>Reports</h3>
-                                <p>Generate class analytics</p>
+                                <h3>Statistics</h3>
+                                <p>View teaching statistics</p>
+                            </div>
+                        </a>
+                        <a href="{{ url_for('instructor.data_simulation') }}" class="action-card">
+                            <div class="card-icon">🔮</div>
+                            <div class="card-content">
+                                <h3>Data Simulation</h3>
+                                <p>Predictive analytics & modeling</p>
                             </div>
                         </a>
                     </div>
@@ -147,6 +156,28 @@
                                 <div class="skeleton-card"></div>
                                 <div class="skeleton-card"></div>
                             </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Grades Overview Section -->
+                <div class="grades-overview-section" style="margin-top: 3rem;">
+                    <div class="classes-header">
+                        <div class="classes-title">
+                            <h2>Grade Overview</h2>
+                            <p>Computed results across all your classes</p>
+                        </div>
+                        <div class="classes-actions">
+                            <button class="btn btn-secondary" onclick="loadGradesOverview()">
+                                <span class="spinner small" aria-hidden="true"></span>
+                                <span>Load Grades</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div id="grades-overview-container">
+                        <div class="no-data" style="text-align: center; color: #6b7280; font-style: italic; padding: 2rem;">
+                            Click "Load Grades" to view computed results for all students across your classes.
                         </div>
                     </div>
                 </div>
@@ -721,7 +752,378 @@
 
             loadClasses();
         });
+
+        async function loadGradesOverview() {
+            const container = document.getElementById('grades-overview-container');
+            const button = document.querySelector('button[onclick="loadGradesOverview()"]');
+            const spinner = button.querySelector('.spinner');
+            const span = button.querySelector('span:not(.spinner)');
+
+            // Show loading state
+            spinner.style.display = 'inline-block';
+            span.textContent = 'Loading...';
+            button.disabled = true;
+
+            container.innerHTML = '<div style="text-align: center; padding: 2rem;"><div class="spinner" aria-hidden="true"></div><div>Loading grade computations...</div></div>';
+
+            try {
+                const response = await fetch('/api/instructor/grades-overview');
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.error || 'Failed to load grades');
+                }
+
+                if (!data.overview || data.overview.length === 0) {
+                    container.innerHTML = '<div class="no-data" style="text-align: center; color: #6b7280; font-style: italic; padding: 2rem;">No computed grades available. Make sure your classes have active grade structures and student scores.</div>';
+                    return;
+                }
+
+                // Build the overview display
+                let html = '<div class="grades-overview-grid" style="display: grid; gap: 2rem;">';
+
+                data.overview.forEach(classData => {
+                    html += `
+                        <div class="class-grades-card" style="background: white; border-radius: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); border: 1px solid #e5e7eb; overflow: hidden;">
+                            <div class="card-header" style="padding: 1.5rem; border-bottom: 1px solid #e5e7eb; background: #f9fafb;">
+                                <h3 style="margin: 0; color: #1f2937; font-size: 1.25rem; font-weight: 600;">
+                                    ${classData.class_code} - ${classData.course}
+                                </h3>
+                                <p style="margin: 0.25rem 0 0 0; color: #6b7280; font-size: 0.875rem;">
+                                    ${classData.subject} • Section ${classData.section}
+                                </p>
+                            </div>
+                            <div class="card-body" style="padding: 1.5rem;">
+                                <div class="grades-table" style="overflow-x: auto;">
+                                    <table style="width: 100%; border-collapse: collapse;">
+                                        <thead>
+                                            <tr style="border-bottom: 2px solid #e5e7eb;">
+                                                <th style="padding: 0.75rem; text-align: left; font-weight: 600; color: #374151; font-size: 0.875rem;">Student ID</th>
+                                                <th style="padding: 0.75rem; text-align: left; font-weight: 600; color: #374151; font-size: 0.875rem;">Final Grade</th>
+                                                <th style="padding: 0.75rem; text-align: left; font-weight: 600; color: #374151; font-size: 0.875rem;">Equivalent</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                    `;
+
+                    classData.computed_grades.forEach(grade => {
+                        const gradeColor = grade.final_grade >= 75 ? '#16a34a' : grade.final_grade >= 60 ? '#ca8a04' : '#dc2626';
+                        html += `
+                            <tr style="border-bottom: 1px solid #e5e7eb;">
+                                <td style="padding: 0.75rem; color: #374151;">${grade.student_id}</td>
+                                <td style="padding: 0.75rem; color: ${gradeColor}; font-weight: 600;">${grade.final_grade.toFixed(2)}%</td>
+                                <td style="padding: 0.75rem; color: #374151;">${grade.equivalent}</td>
+                            </tr>
+                        `;
+                    });
+
+                    html += `
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+
+                html += '</div>';
+                container.innerHTML = html;
+
+            } catch (error) {
+                console.error('Failed to load grades overview:', error);
+                container.innerHTML = '<div class="no-data" style="text-align: center; color: #dc2626; font-style: italic; padding: 2rem;">Error loading grades. Please try again.</div>';
+
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Load Failed',
+                    text: error.message || 'Failed to load grade overview',
+                    background: '#fef2f2',
+                    color: '#991b1b'
+                });
+            } finally {
+                // Reset button state
+                spinner.style.display = 'none';
+                span.textContent = 'Load Grades';
+                button.disabled = false;
+            }
+        }
     </script>
+
+    <!-- Reports Modal -->
+    <div id="reports-modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="reports-title" aria-hidden="true">
+        <div class="modal-content modal-lg" role="document" tabindex="-1">
+            <div class="modal-header">
+                <h2 class="modal-title" id="reports-title">Reports & Notifications</h2>
+                <button class="close" onclick="closeReportsModal()" aria-label="Close reports modal" title="Close">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="reports-actions" role="group" aria-label="Available report actions">
+                    <div class="report-section">
+                        <h3>Email Notifications</h3>
+                        <p>Send grade release notifications to students</p>
+                        <button class="option-btn" onclick="openNotificationModal()">
+                            <span class="option-icon">📧</span>
+                            <span>Send Grade Notifications</span>
+                        </button>
+                    </div>
+
+                    <div class="report-section">
+                        <h3>PDF Reports</h3>
+                        <p>Export grade reports as PDF documents</p>
+                        <button class="option-btn" onclick="openExportModal()">
+                            <span class="option-icon">📄</span>
+                            <span>Export Grade Reports</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notification Modal -->
+    <div id="notification-modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="notification-title" aria-hidden="true">
+        <div class="modal-content" role="document" tabindex="-1">
+            <div class="modal-header">
+                <h2 class="modal-title" id="notification-title">Send Grade Notifications</h2>
+                <button class="close" onclick="closeNotificationModal()" aria-label="Close notification modal" title="Close">×</button>
+            </div>
+            <div class="modal-body">
+                <form id="notification-form">
+                    <div class="form-group">
+                        <label for="notify-class-select">Select Class:</label>
+                        <select id="notify-class-select" required>
+                            <option value="">Choose a class...</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="notify-message">Message (optional):</label>
+                        <textarea id="notify-message" rows="4" placeholder="Add a custom message to the notification..."></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label>
+                            <input type="checkbox" id="notify-all-students"> Send to all students in class
+                        </label>
+                    </div>
+
+                    <div class="form-group" id="student-selection" style="display: none;">
+                        <label for="notify-students">Select Students:</label>
+                        <select id="notify-students" multiple size="5">
+                            <!-- Students will be loaded here -->
+                        </select>
+                    </div>
+
+                    <div class="form-actions">
+                        <button type="button" class="btn btn-secondary" onclick="closeNotificationModal()">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Send Notifications</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Export Modal -->
+    <div id="export-modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="export-title" aria-hidden="true">
+        <div class="modal-content" role="document" tabindex="-1">
+            <div class="modal-header">
+                <h2 class="modal-title" id="export-title">Export Grade Reports</h2>
+                <button class="close" onclick="closeExportModal()" aria-label="Close export modal" title="Close">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="export-options">
+                    <div class="export-option">
+                        <h4>Class Grade Report</h4>
+                        <p>Export complete grade report for a specific class</p>
+                        <select id="export-class-select">
+                            <option value="">Choose a class...</option>
+                        </select>
+                        <button class="btn btn-primary" onclick="exportClassReport()">Export PDF</button>
+                    </div>
+
+                    <div class="export-option">
+                        <h4>Student Grade Report</h4>
+                        <p>Export your personal grade report across all classes</p>
+                        <button class="btn btn-primary" onclick="exportStudentReport()">Export My Grades</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Reports modal functions
+        function openReportsModal() {
+            document.getElementById('reports-modal').setAttribute('aria-hidden', 'false');
+            document.getElementById('reports-modal').style.display = 'block';
+        }
+
+        function closeReportsModal() {
+            document.getElementById('reports-modal').setAttribute('aria-hidden', 'true');
+            document.getElementById('reports-modal').style.display = 'none';
+        }
+
+        function openNotificationModal() {
+            closeReportsModal();
+            loadClassesForNotification();
+            document.getElementById('notification-modal').setAttribute('aria-hidden', 'false');
+            document.getElementById('notification-modal').style.display = 'block';
+        }
+
+        function closeNotificationModal() {
+            document.getElementById('notification-modal').setAttribute('aria-hidden', 'true');
+            document.getElementById('notification-modal').style.display = 'none';
+        }
+
+        function openExportModal() {
+            closeReportsModal();
+            loadClassesForExport();
+            document.getElementById('export-modal').setAttribute('aria-hidden', 'false');
+            document.getElementById('export-modal').style.display = 'block';
+        }
+
+        function closeExportModal() {
+            document.getElementById('export-modal').setAttribute('aria-hidden', 'true');
+            document.getElementById('export-modal').style.display = 'none';
+        }
+
+        async function loadClassesForNotification() {
+            try {
+                const response = await fetch('/api/instructor/classes');
+                const data = await response.json();
+
+                const select = document.getElementById('notify-class-select');
+                select.innerHTML = '<option value="">Choose a class...</option>';
+
+                data.classes.forEach(cls => {
+                    const option = document.createElement('option');
+                    option.value = cls.id;
+                    option.textContent = `${cls.class_code} - ${cls.course}`;
+                    select.appendChild(option);
+                });
+            } catch (error) {
+                console.error('Failed to load classes:', error);
+            }
+        }
+
+        async function loadClassesForExport() {
+            try {
+                const response = await fetch('/api/instructor/classes');
+                const data = await response.json();
+
+                const select = document.getElementById('export-class-select');
+                select.innerHTML = '<option value="">Choose a class...</option>';
+
+                data.classes.forEach(cls => {
+                    const option = document.createElement('option');
+                    option.value = cls.id;
+                    option.textContent = `${cls.class_code} - ${cls.course}`;
+                    select.appendChild(option);
+                });
+            } catch (error) {
+                console.error('Failed to load classes:', error);
+            }
+        }
+
+        document.getElementById('notify-class-select').addEventListener('change', async function() {
+            const classId = this.value;
+            const allStudentsCheckbox = document.getElementById('notify-all-students');
+            const studentSelection = document.getElementById('student-selection');
+
+            if (!classId) {
+                studentSelection.style.display = 'none';
+                return;
+            }
+
+            if (allStudentsCheckbox.checked) {
+                studentSelection.style.display = 'none';
+                return;
+            }
+
+            // Load students for the selected class
+            try {
+                const response = await fetch(`/api/instructor/classes/${classId}/members`);
+                const data = await response.json();
+
+                const select = document.getElementById('notify-students');
+                select.innerHTML = '';
+
+                data.members.forEach(member => {
+                    const option = document.createElement('option');
+                    option.value = member.id;
+                    option.textContent = `${member.student_name} (${member.school_id})`;
+                    select.appendChild(option);
+                });
+
+                studentSelection.style.display = 'block';
+            } catch (error) {
+                console.error('Failed to load students:', error);
+            }
+        });
+
+        document.getElementById('notify-all-students').addEventListener('change', function() {
+            const studentSelection = document.getElementById('student-selection');
+            studentSelection.style.display = this.checked ? 'none' : 'block';
+        });
+
+        document.getElementById('notification-form').addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            const classId = document.getElementById('notify-class-select').value;
+            const message = document.getElementById('notify-message').value;
+            const allStudents = document.getElementById('notify-all-students').checked;
+            const selectedStudents = Array.from(document.getElementById('notify-students').selectedOptions).map(opt => opt.value);
+
+            if (!classId) {
+                Swal.fire('Error', 'Please select a class', 'error');
+                return;
+            }
+
+            const payload = {
+                class_id: parseInt(classId),
+                message: message,
+                student_ids: allStudents ? [] : selectedStudents.map(id => parseInt(id))
+            };
+
+            try {
+                const response = await fetch('/api/send-grade-notification', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken
+                    },
+                    body: JSON.stringify(payload)
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    Swal.fire('Success', result.message, 'success');
+                    closeNotificationModal();
+                } else {
+                    Swal.fire('Error', result.error || 'Failed to send notifications', 'error');
+                }
+            } catch (error) {
+                console.error('Failed to send notifications:', error);
+                Swal.fire('Error', 'Failed to send notifications', 'error');
+            }
+        });
+
+        function exportClassReport() {
+            const classId = document.getElementById('export-class-select').value;
+            if (!classId) {
+                Swal.fire('Error', 'Please select a class', 'error');
+                return;
+            }
+
+            window.open(`/api/export/class-grades/${classId}`, '_blank');
+        }
+
+        function exportStudentReport() {
+            window.open('/api/export/student-grades', '_blank');
+        }
+    </script>
+    <script type="module" src="{{ url_for('static', filename='js/ngrokFetch.js') }}"></script>
 </body>
 
 </html>

@@ -35,7 +35,7 @@ def _require_instructor():
     return instructor_id, None
 
 
-@assessments_bp.route("/api/assessments", methods=["GET"])
+@assessments_bp.route("/assessments", methods=["GET"])
 def api_list_assessments():
     """List assessments. Query params: class_id or structure_id or subcategory name."""
     instructor_id, err = _require_instructor()
@@ -79,7 +79,7 @@ def api_list_assessments():
         return jsonify({"error": "failed_to_list_assessments"}), 500
 
 
-@assessments_bp.route("/api/assessments", methods=["POST"])
+@assessments_bp.route("/assessments", methods=["POST"])
 def api_create_assessment():
     instructor_id, err = _require_instructor()
     if err:
@@ -241,7 +241,7 @@ def api_create_assessment():
         return jsonify({"error": "failed_to_create_assessment"}), 500
 
 
-@assessments_bp.route("/api/assessments/<int:assessment_id>", methods=["PUT"])
+@assessments_bp.route("/assessments/<int:assessment_id>", methods=["PUT"])
 def api_update_assessment(assessment_id):
     instructor_id, err = _require_instructor()
     if err:
@@ -272,7 +272,7 @@ def api_update_assessment(assessment_id):
         return jsonify({"error": "failed_to_update"}), 500
 
 
-@assessments_bp.route("/api/assessments/<int:assessment_id>", methods=["DELETE"])
+@assessments_bp.route("/assessments/<int:assessment_id>", methods=["DELETE"])
 def api_delete_assessment(assessment_id):
     instructor_id, err = _require_instructor()
     if err:
@@ -292,7 +292,7 @@ def api_delete_assessment(assessment_id):
         return jsonify({"error": "failed_to_delete"}), 500
 
 
-@assessments_bp.route("/api/assessments/simple", methods=["POST"])
+@assessments_bp.route("/assessments/simple", methods=["POST"])
 def api_create_assessment_simple():
     """
     More permissive creator for assessments that accepts either JSON or form data.

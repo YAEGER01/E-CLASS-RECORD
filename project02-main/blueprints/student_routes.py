@@ -1,10 +1,8 @@
-from flask import render_template
-
 import logging
 import os
 import uuid
+from flask import Blueprint, jsonify, render_template, request, session, url_for
 from werkzeug.utils import secure_filename
-from flask import Blueprint, request, jsonify, session, url_for, current_app
 from utils.auth_utils import login_required
 from utils.db_conn import get_db_connection
 from utils.live import emit_live_version_update
@@ -12,114 +10,6 @@ from utils.live import emit_live_version_update
 logger = logging.getLogger(__name__)
 
 student_bp = Blueprint("student", __name__)
-
-
-@student_bp.route("/api/student/join-class", methods=["POST"], endpoint="join_class")
-@login_required
-def join_class():
-    if session.get("role") != "student":
-        return jsonify({"error": "Access denied. Student privileges required."}), 403
-
-    try:
-        with get_db_connection().cursor() as cursor:
-            cursor.execute(
-                "SELECT id FROM students WHERE user_id = %s", (session["user_id"],)
-            )
-            student = cursor.fetchone()
-            if not student:
-                return jsonify({"error": "Student profile not found"}), 404
-
-            data = request.get_json()
-            join_code = (data.get("join_code", "") or "").strip().upper()
-            if not join_code:
-                return jsonify({"error": "Join code is required"}), 400
-            if len(join_code) != 6:
-                return jsonify({"error": "Join code must be 6 characters"}), 400
-
-            cursor.execute("SELECT * FROM classes WHERE join_code = %s", (join_code,))
-            class_obj = cursor.fetchone()
-            if not class_obj:
-                return jsonify({"error": "Invalid join code. Class not found."}), 404
-
-            cursor.execute(
-                "SELECT id FROM student_classes WHERE student_id = %s AND class_id = %s",
-                (student["id"], class_obj["id"]),
-            )
-            existing = cursor.fetchone()
-            if existing:
-                formatted_year = class_obj["year"][-2:] if class_obj["year"] else "XX"
-                formatted_semester = (
-                    "1"
-                    if class_obj["semester"] and "1st" in class_obj["semester"].lower()
-                    else (
-                        "2"
-                        if class_obj["semester"]
-                        and "2nd" in class_obj["semester"].lower()
-                        else "1"
-                    )
-                )
-                computed_class_id = f"{formatted_year}-{formatted_semester} {class_obj['course']} {class_obj['section']}"
-                return (
-                    jsonify(
-                        {
-                            "error": "You are already enrolled in this class",
-                            "already_enrolled": True,
-                            "class_info": {
-                                "class_id": computed_class_id,
-                                "course": class_obj["course"],
-                                "section": class_obj["section"],
-                                "schedule": class_obj["schedule"],
-                            },
-                        }
-                    ),
-                    400,
-                )
-
-            cursor.execute(
-                "INSERT INTO student_classes (student_id, class_id) VALUES (%s, %s)",
-                (student["id"], class_obj["id"]),
-            )
-            get_db_connection().commit()
-
-            formatted_year = class_obj["year"][-2:] if class_obj["year"] else "XX"
-            formatted_semester = (
-                "1"
-                if class_obj["semester"] and "1st" in class_obj["semester"].lower()
-                else (
-                    "2"
-                    if class_obj["semester"] and "2nd" in class_obj["semester"].lower()
-                    else "1"
-                )
-            )
-            computed_class_id = f"{formatted_year}-{formatted_semester} {class_obj['course']} {class_obj['section']}"
-
-            logger.info(
-                f"Student {session.get('school_id')} joined class: {computed_class_id}"
-            )
-            try:
-                emit_live_version_update(int(class_obj["id"]))
-            except Exception as _e:
-                logger.warning(f"Emit after join class failed: {_e}")
-
-            return jsonify(
-                {
-                    "success": True,
-                    "message": f"Successfully joined class: {computed_class_id}",
-                    "class": {
-                        "id": class_obj["id"],
-                        "class_id": computed_class_id,
-                        "course": class_obj["course"],
-                        "section": class_obj["section"],
-                        "schedule": class_obj["schedule"],
-                    },
-                }
-            )
-    except Exception as e:
-        get_db_connection().rollback()
-        logger.error(
-            f"Failed to join class for student {session.get('school_id')}: {str(e)}"
-        )
-        return jsonify({"error": "Failed to join class"}), 500
 
 
 @student_bp.route(
@@ -191,6 +81,18 @@ def get_joined_classes():
     except Exception as e:
         logger.error(f"Failed to get joined classes: {str(e)}")
         return jsonify({"error": "Failed to retrieve joined classes"}), 500
+
+
+@student_bp.route(
+    "/student/classes/<int:class_id>/grades",
+    methods=["GET"],
+    endpoint="student_class_grades",
+)
+@login_required
+def student_class_grades(class_id):
+    if session.get("role") != "student":
+        return "Access denied", 403
+    return render_template("student_class_grades.html", class_id=class_id)
 
 
 @student_bp.route(
@@ -280,6 +182,151 @@ def leave_class(class_id):
             f"Failed to leave class for student {session.get('school_id')}: {str(e)}"
         )
         return jsonify({"error": "Failed to leave class"}), 500
+
+
+@student_bp.route(
+    "/api/student/classes/<int:class_id>/grades",
+    methods=["GET"],
+    endpoint="get_student_class_grades",
+)
+@login_required
+def get_student_class_grades(class_id):
+    if session.get("role") != "student":
+        return jsonify({"error": "Access denied. Student privileges required."}), 403
+    try:
+        import json
+
+        # Get student ID from database
+        with get_db_connection().cursor() as cursor:
+            cursor.execute(
+                "SELECT id FROM students WHERE user_id = %s", (session["user_id"],)
+            )
+            student = cursor.fetchone()
+            if not student:
+                return jsonify({"error": "Student profile not found"}), 404
+            student_id = student["id"]
+
+            # Fetch latest grade snapshot from DB
+            cursor.execute(
+                "SELECT snapshot_json FROM grade_snapshots WHERE class_id = %s ORDER BY id DESC LIMIT 1",
+                (class_id,),
+            )
+            snapshot_row = cursor.fetchone()
+            if not snapshot_row:
+                return (
+                    jsonify(
+                        {
+                            "message": "No Snapshots",
+                            "error": "No grade snapshots found for this class and student.",
+                        }
+                    ),
+                    404,
+                )
+            snapshot = json.loads(snapshot_row["snapshot_json"])
+
+            # Fetch class details
+            cursor.execute(
+                "SELECT course, section FROM classes WHERE id = %s", (class_id,)
+            )
+            class_row = cursor.fetchone()
+            course = class_row["course"] if class_row else "Unknown Course"
+            section = class_row["section"] if class_row else "Unknown Section"
+
+            # Fetch grade structure
+            cursor.execute(
+                "SELECT structure_json FROM grade_structures WHERE class_id = %s AND is_active = 1",
+                (class_id,),
+            )
+            structure_row = cursor.fetchone()
+            structure_json = (
+                json.loads(structure_row["structure_json"])
+                if structure_row and structure_row["structure_json"]
+                else {}
+            )
+
+        # Validate snapshot structure
+        if not snapshot.get("students") or not snapshot.get("assessments"):
+            return (
+                jsonify(
+                    {"message": "No Snapshots", "error": "Snapshot data incomplete."}
+                ),
+                404,
+            )
+
+        # Find student data
+        student_data = None
+        for s in snapshot["students"]:
+            if str(s.get("student_id")) == str(student_id):
+                student_data = s
+                break
+        if not student_data:
+            return (
+                jsonify(
+                    {"message": "No Snapshots", "error": "Student snapshot not found"}
+                ),
+                404,
+            )
+
+        # Merge assessments into structure_json for display
+        if structure_json and snapshot.get("assessments"):
+            assessments = snapshot["assessments"]
+            for category, subcats in structure_json.items():
+                for subcat in subcats:
+                    subcat["assessments"] = [
+                        {
+                            "id": a["id"],
+                            "name": a["name"],
+                            "max_score": a["max_score"],
+                            "released_score": score,
+                            "color": (
+                                "red"
+                                if score is not None and score < a["max_score"] / 3
+                                else (
+                                    "yellow"
+                                    if score is not None
+                                    and score < 2 * a["max_score"] / 3
+                                    else "green" if score is not None else "gray"
+                                )
+                            ),
+                        }
+                        for a in assessments
+                        if a["category"] == category
+                        and a["subcategory"] == subcat["name"]
+                        for score in [
+                            next(
+                                (
+                                    s["score"]
+                                    for s in student_data.get("scores", [])
+                                    if s["assessment_id"] == a["id"]
+                                ),
+                                None,
+                            )
+                        ]
+                    ]
+
+        # Get final grade and equivalent
+        computed = student_data.get("computed", {})
+        final_grade = computed.get("final_grade")
+        equivalent = computed.get("letter_grade")
+
+        # Compose details for frontend
+        details = {
+            "scores": student_data.get("scores", []),
+            "structure_json": structure_json,
+        }
+        return jsonify(
+            {
+                "class_id": snapshot.get("meta", {}).get("class_id"),
+                "course": course,
+                "section": section,
+                "final_grade": final_grade,
+                "equivalent": equivalent,
+                "details": details,
+            }
+        )
+    except Exception as e:
+        logger.error(f"Failed to get student grades: {str(e)}", exc_info=True)
+        return jsonify({"error": "Failed to retrieve grades"}), 500
 
 
 @student_bp.route("/api/student/profile", methods=["PUT"], endpoint="update_profile")
@@ -678,6 +725,7 @@ def student_classes():
 
                 classes.append(
                     {
+                        "id": cls.get("id"),
                         "code": cls.get("class_code") or cls.get("join_code"),
                         "name": cls.get("course"),
                         "subject": cls.get("subject"),

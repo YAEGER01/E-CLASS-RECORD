@@ -83,9 +83,12 @@
         </div>
 
         <div class="card">
-            <h3>📊 Grades</h3>
-            <p>View your academic performance.</p>
-            <p><em>Feature coming soon...</em></p>
+            <h3>📊 My Grades & Reports</h3>
+            <p>View your grades and export reports.</p>
+            <div style="margin-top: 15px; display: flex; gap: 10px; flex-wrap: wrap;">
+                <a href="{{ url_for('student.student_classes') }}" class="view-grades-btn" style="display:inline-block; background:#2563eb; color:#fff; padding:8px 16px; border-radius:6px; text-decoration:none; font-weight:600; font-size: 14px;">📊 View Grades</a>
+                <button onclick="exportStudentReport()" class="export-btn" style="background:#16a34a; color:#fff; border:none; padding:8px 16px; border-radius:6px; cursor:pointer; font-weight:600; font-size: 14px;">📄 Export Report</button>
+            </div>
         </div>
             <div class="card">
                 <h3>📝 My Classes Table</h3>
@@ -317,6 +320,71 @@
                     padding: 8px;
                 }
             }
+    
+            /* Responsive dashboard styles */
+            @media (max-width: 768px) {
+                body {
+                    padding: 10px;
+                }
+                .header {
+                    flex-direction: column;
+                    align-items: flex-start;
+                    gap: 10px;
+                }
+                .header h1 {
+                    font-size: 1.8rem;
+                }
+                .dashboard-grid {
+                    grid-template-columns: 1fr;
+                    gap: 15px;
+                }
+                .card {
+                    padding: 15px;
+                }
+                .card h3 {
+                    font-size: 1.1rem;
+                }
+                .card p {
+                    font-size: 0.9rem;
+                }
+                .join-btn {
+                    width: 100%;
+                    padding: 10px;
+                }
+                .nav-back a {
+                    padding: 6px 12px;
+                    font-size: 0.9rem;
+                }
+            }
+    
+            @media (max-width: 480px) {
+                .header h1 {
+                    font-size: 1.5rem;
+                }
+                .card {
+                    padding: 12px;
+                }
+                .card h3 {
+                    font-size: 1rem;
+                }
+                .class-item {
+                    padding: 8px;
+                    margin-bottom: 8px;
+                }
+                .class-item div:first-child {
+                    font-size: 0.9rem;
+                }
+                .class-item div:last-child {
+                    font-size: 0.8rem;
+                }
+                #joinCode {
+                    width: 100%;
+                    margin-bottom: 10px;
+                }
+                .join-btn {
+                    width: 100%;
+                }
+            }
         </style>
 
         <div class="swal-edit-scroll">
@@ -400,6 +468,11 @@
         .swal2-popup {
             border-radius: 12px !important;
             box-shadow: 0 10px 30px rgba(2,6,23,0.12);
+            position: fixed !important;
+            top: 50% !important;
+            left: 50% !important;
+            transform: translate(-50%, -50%) !important;
+            z-index: 9999 !important;
         }
 
         /* Ensure the confirm/cancel buttons also respect rounded corners when shown as toasts */
@@ -1081,6 +1154,64 @@
                 joinClass();
             }
         });
+
+        // Export student grades report
+        function exportStudentReport() {
+            const exportBtn = document.getElementById('exportBtn');
+            if (exportBtn) {
+                exportBtn.disabled = true;
+                exportBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating...';
+            }
+
+            fetch('/reports/export_student_grades', {
+                method: 'GET',
+                headers: {
+                    'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                }
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Failed to generate report');
+                }
+                return response.blob();
+            })
+            .then(blob => {
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.style.display = 'none';
+                a.href = url;
+                a.download = 'my_grades_report.pdf';
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Report Generated',
+                    text: 'Your grades report has been downloaded successfully.',
+                    timer: 2000,
+                    showConfirmButton: false,
+                    toast: true,
+                    position: 'top-end'
+                });
+            })
+            .catch(error => {
+                console.error('Export error:', error);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Export Failed',
+                    text: 'Failed to generate your grades report. Please try again.',
+                    confirmButtonColor: '#dc3545'
+                });
+            })
+            .finally(() => {
+                if (exportBtn) {
+                    exportBtn.disabled = false;
+                    exportBtn.innerHTML = '<i class="fas fa-download"></i> Export My Grades';
+                }
+            });
+        }
     </script>
 </body>
 

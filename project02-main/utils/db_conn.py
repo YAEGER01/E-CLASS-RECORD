@@ -62,7 +62,9 @@ class DatabaseConnection:
         app.config["SQLALCHEMY_DATABASE_URI"] = db_uri
         app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
         # Ensure SECRET_KEY is set on the app (hardcoded default)
-        app.config.setdefault("SECRET_KEY", os.getenv("SECRET_KEY", HARDCODE_SECRET_KEY))
+        app.config.setdefault(
+            "SECRET_KEY", os.getenv("SECRET_KEY", HARDCODE_SECRET_KEY)
+        )
 
         # Connection pool settings to handle connection timeouts
         app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {

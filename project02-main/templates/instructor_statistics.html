@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Instructor Statistics - E-Class Record</title>
+    <meta name="theme-color" content="#6b7280">
+    <!-- CSRF Token for JavaScript -->
+    <script>
+        const csrfToken = "{{ csrf_token() }}";
+    </script>
+
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/instructor-dashboard.css') }}">
+    <style>
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        
+        .stat-card {
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            border: 1px solid #e5e7eb;
+            text-align: center;
+        }
+        
+        .stat-value {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: #1f2937;
+            margin-bottom: 0.5rem;
+        }
+        
+        .stat-label {
+            font-size: 0.875rem;
+            color: #6b7280;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        
+        .classes-table {
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            border: 1px solid #e5e7eb;
+        }
+        
+        .classes-table table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        .classes-table th,
+        .classes-table td {
+            padding: 1rem;
+            text-align: left;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        
+        .classes-table th {
+            background: #f9fafb;
+            font-weight: 600;
+            color: #374151;
+            font-size: 0.875rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        
+        .classes-table tbody tr:hover {
+            background: #f9fafb;
+        }
+        
+        .grade-stats {
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            border: 1px solid #e5e7eb;
+            margin-top: 2rem;
+        }
+        
+        .grade-stats h3 {
+            margin-bottom: 1rem;
+            color: #1f2937;
+            font-size: 1.25rem;
+            font-weight: 600;
+        }
+        
+        .grade-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 1rem;
+        }
+        
+        .grade-stat {
+            text-align: center;
+            padding: 1rem;
+            background: #f9fafb;
+            border-radius: 8px;
+        }
+        
+        .grade-stat .value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #1f2937;
+            display: block;
+        }
+        
+        .grade-stat .label {
+            font-size: 0.75rem;
+            color: #6b7280;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-top: 0.25rem;
+        }
+        
+        .no-data {
+            text-align: center;
+            color: #6b7280;
+            font-style: italic;
+            padding: 2rem;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Header -->
+    <header class="main-header">
+        <div class="header-container">
+            <div class="header-brand">
+                <h1>E-Class Record</h1>
+                <span class="header-subtitle">Instructor Statistics</span>
+            </div>
+            <div class="header-nav">
+                <nav class="main-nav">
+                    <a href="{{ url_for('dashboard.instructor_dashboard') }}" class="nav-link">Dashboard</a>
+                    <a href="{{ url_for('instructor.instructor_classes') }}" class="nav-link">Classes</a>
+                    <a href="{{ url_for('instructor.gradebuilder_v2') }}" class="nav-link">Grade Builder</a>
+                    <a href="{{ url_for('instructor.release_grades') }}" class="nav-link">Release Grades</a>
+                    <a href="{{ url_for('instructor.instructor_statistics') }}" class="nav-link active">Statistics</a>
+                    <a href="{{ url_for('instructor.data_simulation') }}" class="nav-link">Data Simulation</a>
+                </nav>
+            </div>
+            <div class="header-user">
+                <div class="user-info">
+                    <div class="user-avatar">{{ (user.school_id|string)[:2]|upper }}</div>
+                    <div class="user-details">
+                        <span class="user-name">{{ user.school_id }}</span>
+                        <span class="user-role">Instructor</span>
+                    </div>
+                </div>
+                <a href="{{ url_for('auth.logout') }}" class="logout-btn">Logout</a>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <div class="content-container">
+            <!-- Statistics Overview -->
+            <div class="classes-header">
+                <div class="classes-title">
+                    <h2>Teaching Statistics</h2>
+                    <p>Overview of your teaching performance and class metrics</p>
+                </div>
+            </div>
+
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-value">{{ stats.total_classes }}</div>
+                    <div class="stat-label">Total Classes</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">{{ stats.total_students }}</div>
+                    <div class="stat-label">Total Students</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">{{ stats.avg_class_size }}</div>
+                    <div class="stat-label">Avg Class Size</div>
+                </div>
+                {% if stats.grade_stats %}
+                <div class="stat-card">
+                    <div class="stat-value">{{ stats.grade_stats.pass_rate }}%</div>
+                    <div class="stat-label">Pass Rate</div>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Classes Breakdown -->
+            <div class="classes-content">
+                <h3 style="margin-bottom: 1rem; color: #1f2937; font-size: 1.25rem; font-weight: 600;">Classes Overview</h3>
+                {% if stats.classes %}
+                <div class="classes-table">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Class Code</th>
+                                <th>Subject</th>
+                                <th>Course</th>
+                                <th>Section</th>
+                                <th>Students</th>
+                                <th>Assessments</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for class in stats.classes %}
+                            <tr>
+                                <td>{{ class.class_code }}</td>
+                                <td>{{ class.subject }}</td>
+                                <td>{{ class.course }}</td>
+                                <td>{{ class.section }}</td>
+                                <td>{{ class.student_count }}</td>
+                                <td>{{ class.assessment_count or 0 }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="no-data">
+                    No classes found. Start by creating your first class.
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Grade Statistics -->
+            {% if stats.grade_stats %}
+            <div class="grade-stats">
+                <h3>Assessment Performance</h3>
+                <div class="grade-grid">
+                    <div class="grade-stat">
+                        <span class="value">{{ stats.grade_stats.total_scores }}</span>
+                        <span class="label">Total Scores</span>
+                    </div>
+                    <div class="grade-stat">
+                        <span class="value">{{ stats.grade_stats.avg_score }}%</span>
+                        <span class="label">Avg Score</span>
+                    </div>
+                    <div class="grade-stat">
+                        <span class="value">{{ stats.grade_stats.students_with_scores }}</span>
+                        <span class="label">Students Assessed</span>
+                    </div>
+                    <div class="grade-stat">
+                        <span class="value">{{ stats.grade_stats.total_assessments }}</span>
+                        <span class="label">Assessments</span>
+                    </div>
+                    {% if stats.grade_stats.pass_rate is defined %}
+                    <div class="grade-stat">
+                        <span class="value">{{ stats.grade_stats.pass_rate }}%</span>
+                        <span class="label">Pass Rate (≥60%)</span>
+                    </div>
+                    {% endif %}
+                </div>
+                <div style="margin-top: 1rem; font-size: 0.875rem; color: #6b7280;">
+                    Score Range: {{ stats.grade_stats.score_range }} | 
+                    Passing: {{ stats.grade_stats.passing_count or 0 }} | 
+                    Failing: {{ stats.grade_stats.failing_count or 0 }}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </main>
+
+    <script>
+        // Add any interactive functionality here if needed
+        document.addEventListener('DOMContentLoaded', function() {
+            // Handle flashed messages
+            const flashedMessages = document.getElementById('flashed-messages');
+            if (flashedMessages) {
+                const messages = JSON.parse(flashedMessages.dataset.json);
+                messages.forEach(([category, message]) => {
+                    Swal.fire({
+                        icon: category === 'error' ? 'error' : 'success',
+                        title: category === 'error' ? 'Error' : 'Success',
+                        text: message,
+                        timer: 3000,
+                        showConfirmButton: false
+                    });
+                });
+            }
+        });
+    </script>
+</body>
+
+</html>

@@ -227,6 +227,23 @@ from blueprints.auth_routes import auth_bp
 from blueprints.admin_routes import admin_bp
 from blueprints.compute_routes import compute_bp
 from blueprints.gradebuilder_routes import gradebuilder_bp
+from blueprints.reports_routes import reports_bp
+
+# Initialize Flask-Mail
+from flask_mail import Mail
+
+mail = Mail(app)
+
+# Configure mail settings (can be overridden by environment variables)
+app.config["MAIL_SERVER"] = os.getenv("MAIL_SERVER", "smtp.gmail.com")
+app.config["MAIL_PORT"] = int(os.getenv("MAIL_PORT", 587))
+app.config["MAIL_USE_TLS"] = os.getenv("MAIL_USE_TLS", "True").lower() == "true"
+app.config["MAIL_USE_SSL"] = os.getenv("MAIL_USE_SSL", "False").lower() == "true"
+app.config["MAIL_USERNAME"] = os.getenv("MAIL_USERNAME")
+app.config["MAIL_PASSWORD"] = os.getenv("MAIL_PASSWORD")
+app.config["MAIL_DEFAULT_SENDER"] = os.getenv(
+    "MAIL_DEFAULT_SENDER", app.config["MAIL_USERNAME"]
+)
 
 app.register_blueprint(dashboard_bp)
 app.register_blueprint(instructor_bp)
@@ -237,6 +254,7 @@ app.register_blueprint(auth_bp)
 app.register_blueprint(admin_bp)
 app.register_blueprint(compute_bp)
 app.register_blueprint(gradebuilder_bp)
+app.register_blueprint(reports_bp)
 
 
 # Helper: get_equivalent(final_grade)
@@ -401,9 +419,15 @@ def validate_structure_json(structure: dict):
 
 
 if __name__ == "__main__":
+    import os
+
     logger.info("Application startup initiated")
-    # Run preflight checks before launching the server
-    # Note: With the Werkzeug reloader, this may run twice in development.
-    # If this becomes noisy, guard with WERKZEUG_RUN_MAIN env flag.
     run_startup_checks_or_exit()
-    socketio.run(app, host="0.0.0.0", port=5000, debug=True)
+
+    # Only start the reloader in development
+    use_reloader = os.environ.get("WERKZEUG_RUN_MAIN") != "true"
+
+    # Run the app
+    socketio.run(
+        app, host="127.0.0.1", port=5000, debug=True, use_reloader=use_reloader
+    )

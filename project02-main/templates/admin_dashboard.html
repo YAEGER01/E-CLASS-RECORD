@@ -29,6 +29,7 @@
             <p>Manage all users, students, and instructors.</p>
             <button onclick="createInstructor()" class="action-btn" style="margin-top: 15px;">👨‍🏫 Create
                 Instructor</button>
+            <button onclick="viewAllStudents()" class="action-btn" style="margin-top: 10px;">👨‍🎓 View All Students</button>
         </div>
 
         <div class="card" id="instructorsCard">
@@ -59,15 +60,17 @@
         </div>
 
         <div class="card">
-            <h3>⚙️ System Settings</h3>
-            <p>Configure system preferences and settings.</p>
-            <p><em>Feature coming soon...</em></p>
+            <h3>📊 Reports</h3>
+            <p>Generate reports on users, classes, and system statistics.</p>
+            <button onclick="generateUserReport()" class="action-btn" style="margin-top: 15px;">👥 User Report</button>
+            <button onclick="generateClassReport()" class="action-btn" style="margin-top: 10px;">📚 Class Report</button>
+            <button onclick="generateSystemReport()" class="action-btn" style="margin-top: 10px;">⚙️ System Report</button>
         </div>
 
         <div class="card">
             <h3>📋 Audit Logs</h3>
             <p>Monitor system activity and security logs.</p>
-            <p><em>Feature coming soon...</em></p>
+            <button onclick="viewAuditLogs()" class="action-btn" style="margin-top: 15px;">📋 View Audit Logs</button>
         </div>
 
       
@@ -1141,6 +1144,597 @@
     </div>
 
 
+    <!-- Students Modal -->
+    <div id="studentsModal" class="modal" style="display: none;">
+        <div class="modal-content" style="width: 95%; max-width: 1200px;">
+            <div class="modal-header">
+                <h3>👨‍🎓 Student Management</h3>
+                <span class="close" onclick="closeStudentsModal()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <!-- Filters -->
+                <div style="margin-bottom: 20px; display: flex; gap: 10px; flex-wrap: wrap;">
+                    <input type="text" id="searchStudentName" placeholder="Search by name..." oninput="filterStudents()" style="padding: 8px; border: 1px solid #d1d5db; border-radius: 5px; flex: 1; min-width: 200px;">
+                    <select id="filterCourse" onchange="filterStudents()" style="padding: 8px; border: 1px solid #d1d5db; border-radius: 5px;">
+                        <option value="">All Courses</option>
+                    </select>
+                    <select id="filterYearLevel" onchange="filterStudents()" style="padding: 8px; border: 1px solid #d1d5db; border-radius: 5px;">
+                        <option value="">All Year Levels</option>
+                        <option value="1">1st Year</option>
+                        <option value="2">2nd Year</option>
+                        <option value="3">3rd Year</option>
+                        <option value="4">4th Year</option>
+                    </select>
+                </div>
+
+                <!-- Students Table -->
+                <div style="overflow-x: auto;">
+                    <table id="studentsTable" style="width: 100%; border-collapse: collapse;">
+                        <thead>
+                            <tr style="background: #f9fafb; border-bottom: 2px solid #e5e7eb;">
+                                <th onclick="sortStudentsTable('id')" style="padding: 12px; text-align: left; cursor: pointer;">ID</th>
+                                <th onclick="sortStudentsTable('name')" style="padding: 12px; text-align: left; cursor: pointer;">Name</th>
+                                <th onclick="sortStudentsTable('course')" style="padding: 12px; text-align: left; cursor: pointer;">Course</th>
+                                <th onclick="sortStudentsTable('year_level')" style="padding: 12px; text-align: left; cursor: pointer;">Year</th>
+                                <th onclick="sortStudentsTable('section')" style="padding: 12px; text-align: left; cursor: pointer;">Section</th>
+                                <th style="padding: 12px; text-align: left;">Created</th>
+                                <th style="padding: 12px; text-align: center;">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="studentsTableBody">
+                            <!-- Students will be populated here -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Loading indicator -->
+                <div id="studentsLoading" style="text-align: center; padding: 20px; display: none;">
+                    <p>Loading students...</p>
+                </div>
+
+                <!-- No data message -->
+                <div id="noStudents" style="text-align: center; padding: 40px; display: none;">
+                    <p style="color: #6b7280;">No students found matching the current filters.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Audit Logs Modal -->
+    <div id="auditLogsModal" class="modal" style="display: none;">
+        <div class="modal-content" style="width: 95%; max-width: 1400px;">
+            <div class="modal-header">
+                <h3>📋 Audit Logs</h3>
+                <span class="close" onclick="closeAuditLogsModal()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <!-- Filters -->
+                <div style="margin-bottom: 20px; display: flex; gap: 10px; flex-wrap: wrap;">
+                    <select id="filterAction" onchange="filterAuditLogs()" style="padding: 8px; border: 1px solid #d1d5db; border-radius: 5px;">
+                        <option value="">All Actions</option>
+                    </select>
+                    <select id="filterResourceType" onchange="filterAuditLogs()" style="padding: 8px; border: 1px solid #d1d5db; border-radius: 5px;">
+                        <option value="">All Resource Types</option>
+                    </select>
+                    <input type="date" id="filterDateFrom" onchange="filterAuditLogs()" style="padding: 8px; border: 1px solid #d1d5db; border-radius: 5px;">
+                    <input type="date" id="filterDateTo" onchange="filterAuditLogs()" style="padding: 8px; border: 1px solid #d1d5db; border-radius: 5px;">
+                    <button onclick="exportAuditLogs()" class="action-btn" style="padding: 8px 16px;">📄 Export</button>
+                </div>
+
+                <!-- Audit Logs Table -->
+                <div style="overflow-x: auto;">
+                    <table id="auditLogsTable" style="width: 100%; border-collapse: collapse;">
+                        <thead>
+                            <tr style="background: #f9fafb; border-bottom: 2px solid #e5e7eb;">
+                                <th onclick="sortAuditLogsTable('timestamp')" style="padding: 12px; text-align: left; cursor: pointer;">Timestamp</th>
+                                <th onclick="sortAuditLogsTable('admin_school_id')" style="padding: 12px; text-align: left; cursor: pointer;">Admin</th>
+                                <th onclick="sortAuditLogsTable('action')" style="padding: 12px; text-align: left; cursor: pointer;">Action</th>
+                                <th onclick="sortAuditLogsTable('resource_type')" style="padding: 12px; text-align: left; cursor: pointer;">Resource</th>
+                                <th style="padding: 12px; text-align: left;">Details</th>
+                                <th style="padding: 12px; text-align: left;">IP Address</th>
+                            </tr>
+                        </thead>
+                        <tbody id="auditLogsTableBody">
+                            <!-- Audit logs will be populated here -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Loading indicator -->
+                <div id="auditLogsLoading" style="text-align: center; padding: 20px; display: none;">
+                    <p>Loading audit logs...</p>
+                </div>
+
+                <!-- No data message -->
+                <div id="noAuditLogs" style="text-align: center; padding: 40px; display: none;">
+                    <p style="color: #6b7280;">No audit logs found matching the current filters.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Reports Modal -->
+    <div id="reportsModal" class="modal" style="display: none;">
+        <div class="modal-content" style="width: 95%; max-width: 1000px;">
+            <div class="modal-header">
+                <h3 id="reportsModalTitle">📊 Reports</h3>
+                <span class="close" onclick="closeReportsModal()">&times;</span>
+            </div>
+            <div class="modal-body" id="reportsContent">
+                <!-- Report content will be populated here -->
+                <div style="text-align: center; padding: 20px;">
+                    <p>Loading report...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ==========================================
+        // STUDENT MANAGEMENT SYSTEM
+        // ==========================================
+
+        let studentsData = [];
+
+        function viewAllStudents() {
+            document.getElementById('studentsModal').style.display = 'block';
+            loadStudents();
+        }
+
+        function closeStudentsModal() {
+            document.getElementById('studentsModal').style.display = 'none';
+            document.getElementById('searchStudentName').value = '';
+            document.getElementById('filterCourse').value = '';
+            document.getElementById('filterYearLevel').value = '';
+        }
+
+        function loadStudents() {
+            document.getElementById('studentsLoading').style.display = 'block';
+            document.getElementById('noStudents').style.display = 'none';
+
+            fetch('/api/admin/students')
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('studentsLoading').style.display = 'none';
+                    if (data.success) {
+                        studentsData = data.students;
+                        populateCourseFilter(data.students);
+                        displayStudentsTable(data.students);
+                    } else {
+                        showNotification('Failed to load students: ' + data.error, 'error');
+                    }
+                })
+                .catch(error => {
+                    document.getElementById('studentsLoading').style.display = 'none';
+                    showNotification('Error loading students: ' + error.message, 'error');
+                });
+        }
+
+        function populateCourseFilter(students) {
+            const courseFilter = document.getElementById('filterCourse');
+            const courses = [...new Set(students.map(s => s.course).filter(c => c))];
+            courseFilter.innerHTML = '<option value="">All Courses</option>' +
+                courses.map(course => `<option value="${course}">${course}</option>`).join('');
+        }
+
+        function displayStudentsTable(students) {
+            const tbody = document.getElementById('studentsTableBody');
+
+            if (students.length === 0) {
+                document.getElementById('noStudents').style.display = 'block';
+                tbody.innerHTML = '';
+                return;
+            }
+
+            document.getElementById('noStudents').style.display = 'none';
+
+            tbody.innerHTML = students.map(student => `
+                <tr>
+                    <td>${student.id}</td>
+                    <td>
+                        <div>
+                            <strong>${student.name}</strong><br>
+                            <small style="color: #6b7280;">${student.school_id}</small>
+                        </div>
+                    </td>
+                    <td>${student.course}</td>
+                    <td>${student.year_level} Year</td>
+                    <td>${student.section}</td>
+                    <td>${student.created_at ? new Date(student.created_at).toLocaleDateString() : 'N/A'}</td>
+                    <td style="text-align: center;">
+                        <button onclick="viewStudentDetails(${student.id})" class="action-btn-small btn-view" title="View Details">👁️</button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function filterStudents() {
+            const searchName = document.getElementById('searchStudentName').value.toLowerCase();
+            const filterCourse = document.getElementById('filterCourse').value;
+            const filterYearLevel = document.getElementById('filterYearLevel').value;
+
+            const filteredStudents = studentsData.filter(student => {
+                const matchesName = student.name.toLowerCase().includes(searchName);
+                const matchesCourse = !filterCourse || student.course === filterCourse;
+                const matchesYearLevel = !filterYearLevel || student.year_level.toString() === filterYearLevel;
+
+                return matchesName && matchesCourse && matchesYearLevel;
+            });
+
+            displayStudentsTable(filteredStudents);
+        }
+
+        function sortStudentsTable(column) {
+            studentsData.sort((a, b) => {
+                if (a[column] < b[column]) return -1;
+                if (a[column] > b[column]) return 1;
+                return 0;
+            });
+            displayStudentsTable(studentsData);
+        }
+
+        function viewStudentDetails(studentId) {
+            closeStudentsModal();
+            // Implementation for viewing student details
+            showNotification('Student details view coming soon', 'info');
+        }
+
+        // ==========================================
+        // AUDIT LOGS SYSTEM
+        // ==========================================
+
+        let auditLogsData = [];
+
+        function viewAuditLogs() {
+            document.getElementById('auditLogsModal').style.display = 'block';
+            loadAuditLogs();
+        }
+
+        function closeAuditLogsModal() {
+            document.getElementById('auditLogsModal').style.display = 'none';
+            document.getElementById('filterAction').value = '';
+            document.getElementById('filterResourceType').value = '';
+            document.getElementById('filterDateFrom').value = '';
+            document.getElementById('filterDateTo').value = '';
+        }
+
+        function loadAuditLogs() {
+            document.getElementById('auditLogsLoading').style.display = 'block';
+            document.getElementById('noAuditLogs').style.display = 'none';
+
+            fetch('/api/admin/audit-logs')
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('auditLogsLoading').style.display = 'none';
+                    if (data.success && data.audit_logs) {
+                        auditLogsData = data.audit_logs;
+                        populateAuditFilters(data.audit_logs);
+                        displayAuditLogsTable(data.audit_logs);
+                    } else {
+                        showNotification('Failed to load audit logs: ' + (data.error || 'No audit logs data received'), 'error');
+                    }
+                })
+                .catch(error => {
+                    document.getElementById('auditLogsLoading').style.display = 'none';
+                    showNotification('Error loading audit logs: ' + error.message, 'error');
+                });
+        }
+
+        function populateAuditFilters(auditLogs) {
+            const actionFilter = document.getElementById('filterAction');
+            const resourceTypeFilter = document.getElementById('filterResourceType');
+
+            if (!auditLogs || !Array.isArray(auditLogs)) {
+                actionFilter.innerHTML = '<option value="">All Actions</option>';
+                resourceTypeFilter.innerHTML = '<option value="">All Resource Types</option>';
+                return;
+            }
+
+            const actions = [...new Set(auditLogs.map(log => log.action))];
+            const resourceTypes = [...new Set(auditLogs.map(log => log.resource_type))];
+
+            actionFilter.innerHTML = '<option value="">All Actions</option>' +
+                actions.map(action => `<option value="${action}">${action}</option>`).join('');
+            resourceTypeFilter.innerHTML = '<option value="">All Resource Types</option>' +
+                resourceTypes.map(type => `<option value="${type}">${type}</option>`).join('');
+        }
+
+        function displayAuditLogsTable(auditLogs) {
+            const tbody = document.getElementById('auditLogsTableBody');
+
+            if (!auditLogs || !Array.isArray(auditLogs)) {
+                document.getElementById('noAuditLogs').style.display = 'block';
+                tbody.innerHTML = '';
+                return;
+            }
+
+            if (auditLogs.length === 0) {
+                document.getElementById('noAuditLogs').style.display = 'block';
+                tbody.innerHTML = '';
+                return;
+            }
+
+            document.getElementById('noAuditLogs').style.display = 'none';
+
+            tbody.innerHTML = auditLogs.map(log => `
+                <tr>
+                    <td>${new Date(log.timestamp).toLocaleString()}</td>
+                    <td>${log.admin_school_id}</td>
+                    <td>${log.action}</td>
+                    <td>${log.resource_type}</td>
+                    <td>${log.details || 'N/A'}</td>
+                    <td>${log.ip_address || 'N/A'}</td>
+                </tr>
+            `).join('');
+        }
+
+        function filterAuditLogs() {
+            const filterAction = document.getElementById('filterAction').value;
+            const filterResourceType = document.getElementById('filterResourceType').value;
+            const filterDateFrom = document.getElementById('filterDateFrom').value;
+            const filterDateTo = document.getElementById('filterDateTo').value;
+
+            const filteredLogs = auditLogsData.filter(log => {
+                const matchesAction = !filterAction || log.action === filterAction;
+                const matchesResourceType = !filterResourceType || log.resource_type === filterResourceType;
+                const logDate = new Date(log.timestamp).toISOString().split('T')[0];
+                const matchesDateFrom = !filterDateFrom || logDate >= filterDateFrom;
+                const matchesDateTo = !filterDateTo || logDate <= filterDateTo;
+
+                return matchesAction && matchesResourceType && matchesDateFrom && matchesDateTo;
+            });
+
+            displayAuditLogsTable(filteredLogs);
+        }
+
+        function sortAuditLogsTable(column) {
+            auditLogsData.sort((a, b) => {
+                if (a[column] < b[column]) return -1;
+                if (a[column] > b[column]) return 1;
+                return 0;
+            });
+            displayAuditLogsTable(auditLogsData);
+        }
+
+        function exportAuditLogs() {
+            // Simple CSV export
+            const headers = ['Timestamp', 'Admin', 'Action', 'Resource Type', 'Details', 'IP Address'];
+            const csvContent = [
+                headers.join(','),
+                ...auditLogsData.map(log => [
+                    new Date(log.timestamp).toLocaleString(),
+                    log.admin_school_id,
+                    log.action,
+                    log.resource_type,
+                    log.details || '',
+                    log.ip_address || ''
+                ].map(field => `"${field}"`).join(','))
+            ].join('\n');
+
+            const blob = new Blob([csvContent], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'audit_logs.csv';
+            a.click();
+            window.URL.revokeObjectURL(url);
+        }
+
+        // ==========================================
+        // REPORTS SYSTEM
+        // ==========================================
+
+        function generateUserReport() {
+            document.getElementById('reportsModal').style.display = 'block';
+            document.getElementById('reportsModalTitle').textContent = '👥 User Report';
+            document.getElementById('reportsContent').innerHTML = '<div style="text-align: center; padding: 20px;"><p>Loading user report...</p></div>';
+
+            fetch('/api/admin/reports/users')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        displayUserReport(data.report);
+                    } else {
+                        document.getElementById('reportsContent').innerHTML = '<div style="text-align: center; padding: 20px;"><p style="color: #dc2626;">Failed to generate report: ' + data.error + '</p></div>';
+                    }
+                })
+                .catch(error => {
+                    document.getElementById('reportsContent').innerHTML = '<div style="text-align: center; padding: 20px;"><p style="color: #dc2626;">Error generating report: ' + error.message + '</p></div>';
+                });
+        }
+
+        function generateClassReport() {
+            document.getElementById('reportsModal').style.display = 'block';
+            document.getElementById('reportsModalTitle').textContent = '📚 Class Report';
+            document.getElementById('reportsContent').innerHTML = '<div style="text-align: center; padding: 20px;"><p>Loading class report...</p></div>';
+
+            fetch('/api/admin/reports/classes')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        displayClassReport(data.report);
+                    } else {
+                        document.getElementById('reportsContent').innerHTML = '<div style="text-align: center; padding: 20px;"><p style="color: #dc2626;">Failed to generate report: ' + data.error + '</p></div>';
+                    }
+                })
+                .catch(error => {
+                    document.getElementById('reportsContent').innerHTML = '<div style="text-align: center; padding: 20px;"><p style="color: #dc2626;">Error generating report: ' + error.message + '</p></div>';
+                });
+        }
+
+        function generateSystemReport() {
+            document.getElementById('reportsModal').style.display = 'block';
+            document.getElementById('reportsModalTitle').textContent = '⚙️ System Report';
+            document.getElementById('reportsContent').innerHTML = '<div style="text-align: center; padding: 20px;"><p>Loading system report...</p></div>';
+
+            fetch('/api/admin/reports/system')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        displaySystemReport(data.report);
+                    } else {
+                        document.getElementById('reportsContent').innerHTML = '<div style="text-align: center; padding: 20px;"><p style="color: #dc2626;">Failed to generate report: ' + data.error + '</p></div>';
+                    }
+                })
+                .catch(error => {
+                    document.getElementById('reportsContent').innerHTML = '<div style="text-align: center; padding: 20px;"><p style="color: #dc2626;">Error generating report: ' + error.message + '</p></div>';
+                });
+        }
+
+        function displayUserReport(report) {
+            document.getElementById('reportsContent').innerHTML = `
+                <div style="margin-bottom: 20px;">
+                    <h4>User Statistics</h4>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px;">
+                        ${report.user_counts.map(count => `
+                            <div style="background: #f8fafc; padding: 15px; border-radius: 8px; border: 1px solid #e5e7eb;">
+                                <div style="font-size: 24px; font-weight: bold; color: #1f2937;">${count.count}</div>
+                                <div style="color: #6b7280;">${count.role.charAt(0).toUpperCase() + count.role.slice(1)}s</div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+
+                <div style="margin-bottom: 20px;">
+                    <h4>Department Distribution</h4>
+                    <div style="background: #f8fafc; padding: 15px; border-radius: 8px;">
+                        ${report.department_counts.map(dept => `
+                            <div style="display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px solid #e5e7eb;">
+                                <span>${dept.department}</span>
+                                <span style="font-weight: bold;">${dept.count}</span>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+
+                <div style="margin-bottom: 20px;">
+                    <h4>Course Distribution</h4>
+                    <div style="background: #f8fafc; padding: 15px; border-radius: 8px;">
+                        ${report.course_counts.map(course => `
+                            <div style="display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px solid #e5e7eb;">
+                                <span>${course.course}</span>
+                                <span style="font-weight: bold;">${course.count}</span>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+
+                <div style="text-align: right; margin-top: 20px;">
+                    <small style="color: #6b7280;">Generated on: ${new Date(report.generated_at).toLocaleString()}</small>
+                </div>
+            `;
+        }
+
+        function displayClassReport(report) {
+            document.getElementById('reportsContent').innerHTML = `
+                <div style="margin-bottom: 20px;">
+                    <h4>Class Distribution by Year/Semester</h4>
+                    <div style="background: #f8fafc; padding: 15px; border-radius: 8px;">
+                        ${report.class_counts.map(count => `
+                            <div style="display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px solid #e5e7eb;">
+                                <span>${count.year} - ${count.semester} Semester</span>
+                                <span style="font-weight: bold;">${count.count} classes</span>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+
+                <div style="margin-bottom: 20px;">
+                    <h4>Instructor Workload</h4>
+                    <div style="background: #f8fafc; padding: 15px; border-radius: 8px;">
+                        ${report.instructor_loads.map(instructor => `
+                            <div style="display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px solid #e5e7eb;">
+                                <span>${instructor.name}</span>
+                                <span style="font-weight: bold;">${instructor.class_count} classes</span>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+
+                <div style="text-align: right; margin-top: 20px;">
+                    <small style="color: #6b7280;">Generated on: ${new Date(report.generated_at).toLocaleString()}</small>
+                </div>
+            `;
+        }
+
+        function displaySystemReport(report) {
+            document.getElementById('reportsContent').innerHTML = `
+                <div style="margin-bottom: 20px;">
+                    <h4>Database Statistics</h4>
+                    <div style="background: #f8fafc; padding: 15px; border-radius: 8px;">
+                        ${report.database_stats.note ? `<div style="background: #fef3c7; color: #92400e; padding: 10px; border-radius: 5px; margin-bottom: 15px; font-size: 14px;"><strong>Note:</strong> ${report.database_stats.note}</div>` : ''}
+                        <table style="width: 100%; border-collapse: collapse;">
+                            <thead>
+                                <tr style="border-bottom: 2px solid #e5e7eb;">
+                                    <th style="text-align: left; padding: 8px;">Table</th>
+                                    <th style="text-align: right; padding: 8px;">Rows</th>
+                                    <th style="text-align: right; padding: 8px;">Data Size (KB)</th>
+                                    <th style="text-align: right; padding: 8px;">Index Size (KB)</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${report.database_stats.table_sizes.map(table => `
+                                    <tr style="border-bottom: 1px solid #e5e7eb;">
+                                        <td style="padding: 8px;">${table.table}</td>
+                                        <td style="text-align: right; padding: 8px;">${table.rows}</td>
+                                        <td style="text-align: right; padding: 8px;">${table.data_size_kb}</td>
+                                        <td style="text-align: right; padding: 8px;">${table.index_size_kb}</td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div style="margin-bottom: 20px;">
+                    <h4>Audit Log Statistics</h4>
+                    ${report.audit_stats.note ? `<div style="background: #fef3c7; color: #92400e; padding: 10px; border-radius: 5px; margin-bottom: 15px; font-size: 14px;"><strong>Note:</strong> ${report.audit_stats.note}</div>` : ''}
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+                        <div style="background: #f8fafc; padding: 15px; border-radius: 8px; border: 1px solid #e5e7eb;">
+                            <div style="font-size: 24px; font-weight: bold; color: #1f2937;">${report.audit_stats.total_logs}</div>
+                            <div style="color: #6b7280;">Total Log Entries</div>
+                        </div>
+                        <div style="background: #f8fafc; padding: 15px; border-radius: 8px; border: 1px solid #e5e7eb;">
+                            <div style="font-size: 24px; font-weight: bold; color: #1f2937;">${report.audit_stats.unique_admins}</div>
+                            <div style="color: #6b7280;">Active Admins</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="text-align: right; margin-top: 20px;">
+                    <small style="color: #6b7280;">Generated on: ${new Date(report.generated_at).toLocaleString()}</small>
+                </div>
+            `;
+        }
+
+        function closeReportsModal() {
+            document.getElementById('reportsModal').style.display = 'none';
+        }
+
+        // Utility function for notifications
+        function showNotification(message, type = 'info') {
+            const colors = {
+                success: '#10b981',
+                error: '#ef4444',
+                warning: '#f59e0b',
+                info: '#3b82f6'
+            };
+
+            Swal.fire({
+                icon: type,
+                title: message,
+                timer: 3000,
+                timerProgressBar: true,
+                showConfirmButton: false,
+                position: 'top-end',
+                toast: true,
+                background: '#fef2f2',
+                color: colors[type] || colors.info
+            });
+        }
+    </script>
+
 </body>
+    <script type="module" src="{{ url_for('static', filename='js/ngrokFetch.js') }}"></script>
 
 </html>

@@ -25,7 +25,8 @@
                     <a href="{{ url_for('dashboard.instructor_dashboard') }}" class="nav-link">Dashboard</a>
                     <a href="{{ url_for('instructor.instructor_classes') }}" class="nav-link">Classes</a>
                     <a href="{{ url_for('instructor.gradebuilder_v2') }}" class="nav-link active">Grade Builder</a>
-                    <a href="#" class="nav-link">Reports</a>
+                    <a href="{{ url_for('instructor.instructor_statistics') }}" class="nav-link">Statistics</a>
+                    <a href="{{ url_for('instructor.data_simulation') }}" class="nav-link">Data Simulation</a>
                 </nav>
             </div>
             <div class="header-user">
@@ -492,6 +493,7 @@
             }, 100);
         });
     </script>
+    <script type="module" src="{{ url_for('static', filename='js/ngrokFetch.js') }}"></script>
 </body>
 
 </html>

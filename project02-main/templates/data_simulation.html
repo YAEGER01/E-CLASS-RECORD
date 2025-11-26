@@ -1,0 +1,1175 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Data Simulation - E-Class Record</title>
+    <meta name="theme-color" content="#6b7280">
+    <script>
+        const csrfToken = "{{ csrf_token() }}";
+    </script>
+
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/instructor-dashboard.css') }}">
+    <style>
+        .simulation-container {
+            display: grid;
+            grid-template-columns: 1fr 2fr;
+            gap: 2rem;
+            margin-top: 2rem;
+        }
+
+        .simulation-controls {
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            border: 1px solid #e5e7eb;
+            height: fit-content;
+        }
+
+        .simulation-results {
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            border: 1px solid #e5e7eb;
+            min-height: 600px;
+            max-height: 600px;
+            overflow-y: auto;
+            overflow-x: hidden;
+        }
+
+        .control-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .control-group label {
+            display: block;
+            font-weight: 600;
+            color: #374151;
+            margin-bottom: 0.5rem;
+            font-size: 0.875rem;
+        }
+
+        .control-group select,
+        .control-group input {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid #d1d5db;
+            border-radius: 8px;
+            font-size: 0.875rem;
+        }
+
+        .control-group select:focus,
+        .control-group input:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+
+        .checkbox-group {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 0.5rem;
+            max-height: 200px;
+            overflow-y: auto;
+            border: 1px solid #d1d5db;
+            border-radius: 8px;
+            padding: 0.75rem;
+        }
+
+        .checkbox-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .checkbox-item input[type="checkbox"] {
+            width: auto;
+            margin: 0;
+        }
+
+        .btn-analyze {
+            width: 100%;
+            background: #3b82f6;
+            color: white;
+            border: none;
+            padding: 0.75rem 1rem;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .btn-analyze:hover {
+            background: #2563eb;
+        }
+
+        .btn-analyze:disabled {
+            background: #9ca3af;
+            cursor: not-allowed;
+        }
+
+        .results-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .results-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: #1f2937;
+        }
+
+        .results-meta {
+            font-size: 0.875rem;
+            color: #6b7280;
+        }
+
+        .correlation-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .correlation-item {
+            background: #f9fafb;
+            padding: 1rem;
+            border-radius: 8px;
+            border: 1px solid #e5e7eb;
+        }
+
+        .pass-fail-summary, .maintaining-summary, .failing-summary, .top-performers-summary {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin: 1rem 0;
+        }
+
+        .summary-card {
+            background: #f9fafb;
+            padding: 1.5rem;
+            border-radius: 8px;
+            border: 1px solid #e5e7eb;
+            text-align: center;
+        }
+
+        .summary-card.pass-card {
+            border-color: #10b981;
+            background: #f0fdf4;
+        }
+
+        .summary-card.fail-card {
+            border-color: #ef4444;
+            background: #fef2f2;
+        }
+
+        .summary-card h5 {
+            margin: 0 0 0.5rem 0;
+            font-size: 0.875rem;
+            color: #6b7280;
+            font-weight: 600;
+        }
+
+        .metric {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #1f2937;
+        }
+
+        .risk-badge {
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .risk-critical {
+            background: #fee2e2;
+            color: #dc2626;
+        }
+
+        .risk-high {
+            background: #fed7aa;
+            color: #ea580c;
+        }
+
+        .rank-1 {
+            background: #fef3c7;
+        }
+
+        .rank-2 {
+            background: #f3f4f6;
+        }
+
+        .rank-3 {
+            background: #ede9fe;
+        }
+
+        .trends-summary, .difficulty-summary, .consistency-summary, .peer-summary, .risk-summary {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 1rem;
+            margin: 1rem 0;
+        }
+
+        .trend-badge, .difficulty-badge, .consistency-badge, .peer-badge, .intervention-badge {
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .trend-up { background: #dcfce7; color: #166534; }
+        .trend-down { background: #fee2e2; color: #dc2626; }
+        .trend-stable { background: #f3f4f6; color: #374151; }
+
+        .diff-easy { background: #dcfce7; color: #166534; }
+        .diff-moderate { background: #fef3c7; color: #92400e; }
+        .diff-hard { background: #fed7aa; color: #ea580c; }
+        .diff-very-hard { background: #fee2e2; color: #dc2626; }
+
+        .cons-very-high { background: #dcfce7; color: #166534; }
+        .cons-high { background: #dbeafe; color: #1e40af; }
+        .cons-moderate { background: #fef3c7; color: #92400e; }
+        .cons-low { background: #fed7aa; color: #ea580c; }
+        .cons-very-low { background: #fee2e2; color: #dc2626; }
+
+        .peer-above { background: #dcfce7; color: #166534; }
+        .peer-average { background: #f3f4f6; color: #374151; }
+        .peer-below { background: #fee2e2; color: #dc2626; }
+
+        .risk-card { border-color: #dc2626; background: #fef2f2; }
+        .warning-card { border-color: #ea580c; background: #fff7ed; }
+        .safe-card { border-color: #16a34a; background: #f0fdf4; }
+
+        .correlation-pair {
+            font-weight: 600;
+            color: #1f2937;
+            margin-bottom: 0.5rem;
+        }
+
+        .correlation-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #3b82f6;
+        }
+
+        .correlation-strength {
+            font-size: 0.75rem;
+            color: #6b7280;
+            margin-top: 0.25rem;
+        }
+
+        .stats-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+        }
+
+        .stats-table th,
+        .stats-table td {
+            padding: 0.75rem;
+            text-align: left;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .stats-table th {
+            background: #f9fafb;
+            font-weight: 600;
+            color: #374151;
+            font-size: 0.875rem;
+        }
+
+        .regression-result {
+            background: #f3f4f6;
+            padding: 1.5rem;
+            border-radius: 8px;
+            margin-top: 1rem;
+        }
+
+        .regression-equation {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: #1f2937;
+            text-align: center;
+            margin-bottom: 1rem;
+            font-family: 'Courier New', monospace;
+        }
+
+        .regression-metrics {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 1rem;
+        }
+
+        .metric-item {
+            text-align: center;
+            padding: 1rem;
+            background: white;
+            border-radius: 8px;
+            border: 1px solid #e5e7eb;
+        }
+
+        .metric-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #3b82f6;
+            display: block;
+        }
+
+        .metric-label {
+            font-size: 0.75rem;
+            color: #6b7280;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .prediction-results {
+            margin-top: 1rem;
+        }
+
+        .prediction-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.75rem;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            margin-bottom: 0.5rem;
+        }
+
+        .prediction-student {
+            font-weight: 600;
+            color: #1f2937;
+        }
+
+        .prediction-score {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: #3b82f6;
+        }
+
+        .prediction-confidence {
+            font-size: 0.75rem;
+            color: #6b7280;
+        }
+
+        .loading {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 200px;
+            color: #6b7280;
+        }
+
+        .error-message {
+            background: #fef2f2;
+            color: #dc2626;
+            padding: 1rem;
+            border-radius: 8px;
+            border: 1px solid #fecaca;
+            margin-top: 1rem;
+        }
+
+        .chart-container {
+            margin-top: 2rem;
+            height: 300px;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Header -->
+    <header class="main-header">
+        <div class="header-container">
+            <div class="header-brand">
+                <h1>E-Class Record</h1>
+                <span class="header-subtitle">Data Simulation & Predictions</span>
+            </div>
+            <div class="header-nav">
+                <nav class="main-nav">
+                    <a href="{{ url_for('dashboard.instructor_dashboard') }}" class="nav-link">Dashboard</a>
+                    <a href="{{ url_for('instructor.instructor_classes') }}" class="nav-link">Classes</a>
+                    <a href="{{ url_for('instructor.gradebuilder_v2') }}" class="nav-link">Grade Builder</a>
+                    <a href="{{ url_for('instructor.release_grades') }}" class="nav-link">Release Grades</a>
+                    <a href="{{ url_for('instructor.instructor_statistics') }}" class="nav-link">Statistics</a>
+                    <a href="{{ url_for('instructor.data_simulation') }}" class="nav-link active">Data Simulation</a>
+                </nav>
+            </div>
+            <div class="header-user">
+                <div class="user-info">
+                    <div class="user-avatar">{{ (user.school_id|string)[:2]|upper }}</div>
+                    <div class="user-details">
+                        <span class="user-name">{{ user.school_id }}</span>
+                        <span class="user-role">Instructor</span>
+                    </div>
+                </div>
+                <a href="{{ url_for('auth.logout') }}" class="logout-btn">Logout</a>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <div class="content-container">
+            <!-- Page Header -->
+            <div class="classes-header">
+                <div class="classes-title">
+                    <h2>Data Simulation & Predictive Analytics</h2>
+                    <p>Analyze student performance patterns and make predictions using statistical models</p>
+                </div>
+            </div>
+
+            <div class="simulation-container">
+                <!-- Controls Panel -->
+                <div class="simulation-controls">
+                    <h3 style="margin-bottom: 1.5rem; color: #1f2937; font-size: 1.125rem; font-weight: 600;">Analysis Configuration</h3>
+
+                    <div class="control-group">
+                        <label for="analysis-type">Analysis Type</label>
+                        <select id="analysis-type">
+                            <option value="">Select Analysis Type</option>
+                            <option value="pass_fail">Pass/Fail Analysis</option>
+                            <option value="maintaining">Maintaining Students</option>
+                            <option value="failing">Consistently Failing</option>
+                            <option value="top_performers">Top 10 Performers</option>
+                            <option value="grade_trends">Grade Trends Over Time</option>
+                            <option value="assessment_difficulty">Assessment Difficulty</option>
+                            <option value="consistency">Student Consistency</option>
+                            <option value="peer_comparison">Peer Comparison</option>
+                            <option value="risk_prediction">Risk Prediction</option>
+                        </select>
+                    </div>
+
+                    <div class="control-group">
+                        <label>Select Classes</label>
+                        <div class="checkbox-group" id="class-selection">
+                            {% if available_classes %}
+                                {% for class in available_classes %}
+                                <div class="checkbox-item">
+                                    <input type="checkbox" id="class-{{ class.id }}" value="{{ class.id }}">
+                                    <label for="class-{{ class.id }}">{{ class.class_code }} - {{ class.subject }} ({{ class.student_count }} students, {{ class.score_count }} scores)</label>
+                                </div>
+                                {% endfor %}
+                            {% else %}
+                                <div class="no-classes-message" style="color: #6b7280; font-style: italic; padding: 1rem; text-align: center; border: 1px dashed #d1d5db; border-radius: 6px;">
+                                    <p>No classes available for analysis.</p>
+                                    <p>Please <a href="{{ url_for('instructor.instructor_classes') }}" style="color: #3b82f6; text-decoration: underline;">create classes</a> and add student scores first.</p>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="control-group" id="assessment-group" style="display: none;">
+                        <label>Select Assessments (Optional)</label>
+                        <div class="checkbox-group" id="assessment-selection">
+                            {% for assessment in available_assessments %}
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="assessment-{{ assessment.id }}" value="{{ assessment.id }}">
+                                <label for="assessment-{{ assessment.id }}">{{ assessment.name }} (Max: {{ assessment.max_score }})</label>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <div class="control-group" id="prediction-target-group" style="display: none;">
+                        <label for="prediction-target">Prediction Target</label>
+                        <select id="prediction-target">
+                            <option value="">Select Target</option>
+                            <option value="final_grade">Final Grade</option>
+                            <option value="next_assessment">Next Assessment Score</option>
+                            <option value="pass_fail">Pass/Fail Probability</option>
+                        </select>
+                    </div>
+
+                    <button class="btn-analyze" id="analyze-btn" disabled>Run Analysis</button>
+                </div>
+
+                <!-- Results Panel -->
+                <div class="simulation-results">
+                    <div class="results-header">
+                        <div class="results-title">Analysis Results</div>
+                        <div class="results-meta" id="results-meta">
+                            {% if not available_classes %}
+                                Create classes and add student data to begin analysis
+                            {% else %}
+                                Select analysis type and classes to begin
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div id="results-content">
+                        <div class="loading" id="loading-state" style="display: none;">
+                            <div>Running analysis...</div>
+                        </div>
+
+                        <div id="chart-container" class="chart-container" style="display: none;">
+                            <canvas id="analysis-chart"></canvas>
+                        </div>
+
+                        <div id="results-display"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        let currentChart = null;
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const analysisTypeSelect = document.getElementById('analysis-type');
+            const analyzeBtn = document.getElementById('analyze-btn');
+            const assessmentGroup = document.getElementById('assessment-group');
+            const predictionTargetGroup = document.getElementById('prediction-target-group');
+
+            // Enable/disable controls based on selection
+            function updateControls() {
+                const analysisType = analysisTypeSelect.value;
+                const selectedClasses = document.querySelectorAll('#class-selection input:checked');
+                const hasClasses = document.querySelectorAll('#class-selection input').length > 0;
+
+                // Button is enabled if analysis type is selected AND classes are available
+                // (user can select specific classes, but button is enabled once basic requirements are met)
+                const shouldEnable = analysisType && hasClasses;
+                analyzeBtn.disabled = !shouldEnable;
+
+                // If enabled, also check if at least one class should be auto-selected for better UX
+                if (shouldEnable && selectedClasses.length === 0 && hasClasses) {
+                    // Auto-select the first class for convenience
+                    const firstCheckbox = document.querySelector('#class-selection input[type="checkbox"]');
+                    if (firstCheckbox) {
+                        firstCheckbox.checked = true;
+                    }
+                }
+
+                // Show/hide assessment selection
+                if (analysisType === 'correlation' || analysisType === 'descriptive') {
+                    assessmentGroup.style.display = 'block';
+                } else {
+                    assessmentGroup.style.display = 'none';
+                }
+
+                // Show/hide prediction target
+                if (analysisType === 'prediction') {
+                    predictionTargetGroup.style.display = 'block';
+                } else {
+                    predictionTargetGroup.style.display = 'none';
+                }
+            }
+
+            analysisTypeSelect.addEventListener('change', updateControls);
+            
+            // Add event listeners for class checkboxes
+            document.querySelectorAll('#class-selection input[type="checkbox"]').forEach(checkbox => {
+                checkbox.addEventListener('change', updateControls);
+            });
+
+            // Initialize controls on page load
+            updateControls();
+
+            // Run analysis
+            analyzeBtn.addEventListener('click', async function() {
+                const analysisType = analysisTypeSelect.value;
+                const selectedClasses = Array.from(document.querySelectorAll('#class-selection input:checked')).map(cb => parseInt(cb.value));
+                const selectedAssessments = Array.from(document.querySelectorAll('#assessment-selection input:checked')).map(cb => parseInt(cb.value));
+                const predictionTarget = document.getElementById('prediction-target').value;
+
+                if (!analysisType || selectedClasses.length === 0) {
+                    Swal.fire('Error', 'Please select analysis type and at least one class', 'error');
+                    return;
+                }
+
+                // Show loading
+                document.getElementById('loading-state').style.display = 'flex';
+                document.getElementById('results-display').innerHTML = '';
+                document.getElementById('chart-container').style.display = 'none';
+                analyzeBtn.disabled = true;
+
+                try {
+                    const response = await fetch('/api/data-simulation/analyze', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': csrfToken
+                        },
+                        body: JSON.stringify({
+                            analysis_type: analysisType,
+                            class_ids: selectedClasses,
+                            assessment_ids: selectedAssessments,
+                            prediction_target: predictionTarget
+                        })
+                    });
+
+                    const result = await response.json();
+
+                    if (!response.ok) {
+                        throw new Error(result.error || 'Analysis failed');
+                    }
+
+                    displayResults(result);
+
+                } catch (error) {
+                    document.getElementById('results-display').innerHTML = 
+                        `<div class="error-message">Error: ${error.message}</div>`;
+                } finally {
+                    document.getElementById('loading-state').style.display = 'none';
+                    analyzeBtn.disabled = false;
+                }
+            });
+        });
+
+        function displayResults(result) {
+                document.getElementById('results-meta').textContent = `Analysis completed - ${new Date().toLocaleTimeString()}`;
+
+                let html = '';
+
+                if (result.error) {
+                    html = `<div class="error-message">${result.error}</div>`;
+                } else if (result.analysis_type === 'pass_fail') {
+                    html = displayPassFailResults(result);
+                } else if (result.analysis_type === 'maintaining') {
+                    html = displayMaintainingResults(result);
+                } else if (result.analysis_type === 'failing') {
+                    html = displayFailingResults(result);
+                } else if (result.analysis_type === 'top_performers') {
+                    html = displayTopPerformersResults(result);
+                } else if (result.analysis_type === 'grade_trends') {
+                    html = displayGradeTrendsResults(result);
+                } else if (result.analysis_type === 'assessment_difficulty') {
+                    html = displayAssessmentDifficultyResults(result);
+                } else if (result.analysis_type === 'consistency') {
+                    html = displayConsistencyResults(result);
+                } else if (result.analysis_type === 'peer_comparison') {
+                    html = displayPeerComparisonResults(result);
+                } else if (result.analysis_type === 'risk_prediction') {
+                    html = displayRiskPredictionResults(result);
+                }
+
+                document.getElementById('results-display').innerHTML = html;
+            }
+
+            function displayCorrelationResults(result) {
+                let html = `
+                    <h4>Correlation Analysis Results</h4>
+                    <p>Analysis of ${result.assessment_count} assessments across ${result.student_count} students</p>
+                    <div class="correlation-grid">
+                `;
+
+                for (const [pair, correlation] of Object.entries(result.correlations)) {
+                    const strength = getCorrelationStrength(correlation);
+                    html += `
+                        <div class="correlation-item">
+                            <div class="correlation-pair">${pair}</div>
+                            <div class="correlation-value">${correlation}</div>
+                            <div class="correlation-strength">${strength}</div>
+                        </div>
+                    `;
+                }
+
+                html += '</div>';
+                return html;
+            }
+
+            function displayRegressionResults(result) {
+                if (result.error) {
+                    return `<div class="error-message">${result.error}</div>`;
+                }
+
+                return `
+                    <h4>Regression Analysis Results</h4>
+                    <div class="regression-result">
+                        <div class="regression-equation">${result.equation}</div>
+                        <div class="regression-metrics">
+                            <div class="metric-item">
+                                <span class="metric-value">${result.r_squared}</span>
+                                <span class="metric-label">R² Score</span>
+                            </div>
+                            <div class="metric-item">
+                                <span class="metric-value">${result.coefficient}</span>
+                                <span class="metric-label">Coefficient</span>
+                            </div>
+                            <div class="metric-item">
+                                <span class="metric-value">${result.mse}</span>
+                                <span class="metric-label">MSE</span>
+                            </div>
+                            <div class="metric-item">
+                                <span class="metric-value">${result.data_points}</span>
+                                <span class="metric-label">Data Points</span>
+                            </div>
+                        </div>
+                    </div>
+                    <p><strong>Interpretation:</strong> ${interpretRegression(result)}</p>
+                `;
+            }
+
+            function displayDescriptiveResults(result) {
+                let html = `
+                    <h4>Descriptive Statistics</h4>
+                    <table class="stats-table">
+                        <thead>
+                            <tr>
+                                <th>Assessment</th>
+                                <th>Count</th>
+                                <th>Mean</th>
+                                <th>Median</th>
+                                <th>Std Dev</th>
+                                <th>Min</th>
+                                <th>Max</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                `;
+
+                for (const [assessment, stats] of Object.entries(result.statistics)) {
+                    html += `
+                        <tr>
+                            <td>${assessment}</td>
+                            <td>${stats.count}</td>
+                            <td>${stats.mean}%</td>
+                            <td>${stats.median}%</td>
+                            <td>${stats.std_dev}%</td>
+                            <td>${stats.min}%</td>
+                            <td>${stats.max}%</td>
+                        </tr>
+                    `;
+                }
+
+                html += '</tbody></table>';
+                return html;
+            }
+
+            function displayPredictionResults(result) {
+                let html = `
+                    <h4>Performance Predictions</h4>
+                    <p>${result.method}</p>
+                    <div class="prediction-results">
+                `;
+
+                for (const [studentId, prediction] of Object.entries(result.predictions)) {
+                    html += `
+                        <div class="prediction-item">
+                            <div>
+                                <div class="prediction-student">Student ${studentId}</div>
+                                <div class="prediction-confidence">Confidence: ${prediction.confidence}% (${prediction.assessments_used} assessments used)</div>
+                            </div>
+                            <div class="prediction-score">${prediction.predicted_score}%</div>
+                        </div>
+                    `;
+                }
+
+                html += '</div>';
+                return html;
+            }
+
+            function displayPassFailResults(result) {
+                let html = `
+                    <h4>Pass/Fail Analysis Results</h4>
+                    <p>Analysis of ${result.total_students} students across ${result.total_assessments} assessments</p>
+                    <div class="pass-fail-summary">
+                        <div class="summary-card pass-card">
+                            <h5>Likely to Pass</h5>
+                            <div class="metric">${result.pass_count} students (${result.pass_percentage}%)</div>
+                        </div>
+                        <div class="summary-card fail-card">
+                            <h5>At Risk of Failing</h5>
+                            <div class="metric">${result.fail_count} students (${result.fail_percentage}%)</div>
+                        </div>
+                    </div>
+                    <h5>Grade Distribution</h5>
+                    <table class="results-table">
+                        <thead>
+                            <tr>
+                                <th>Grade Range</th>
+                                <th>Count</th>
+                                <th>Percentage</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                `;
+
+                for (const [range, data] of Object.entries(result.grade_distribution)) {
+                    html += `
+                        <tr>
+                            <td>${range}</td>
+                            <td>${data.count}</td>
+                            <td>${data.percentage}%</td>
+                        </tr>
+                    `;
+                }
+
+                html += '</tbody></table>';
+                return html;
+            }
+
+            function displayMaintainingResults(result) {
+                let html = `
+                    <h4>Maintaining Students Analysis</h4>
+                    <p>Students maintaining good academic performance (${result.maintaining_threshold}%+ average)</p>
+                    <div class="maintaining-summary">
+                        <div class="summary-card">
+                            <h5>Maintaining Students</h5>
+                            <div class="metric">${result.maintaining_count} students (${result.maintaining_percentage}%)</div>
+                        </div>
+                    </div>
+                    <h5>Top Maintaining Students</h5>
+                    <table class="results-table">
+                        <thead>
+                            <tr>
+                                <th>Student Name</th>
+                                <th>Average Score</th>
+                                <th>Assessments Taken</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                `;
+
+                result.maintaining_students.slice(0, 10).forEach(student => {
+                    html += `
+                        <tr>
+                            <td>${student.name}</td>
+                            <td>${student.average_score}%</td>
+                            <td>${student.assessment_count}</td>
+                        </tr>
+                    `;
+                });
+
+                html += '</tbody></table>';
+                return html;
+            }
+
+            function displayFailingResults(result) {
+                let html = `
+                    <h4>Consistently Failing Students Analysis</h4>
+                    <p>Students with consistently low performance (${result.failing_threshold}% or below average)</p>
+                    <div class="failing-summary">
+                        <div class="summary-card fail-card">
+                            <h5>Consistently Failing</h5>
+                            <div class="metric">${result.failing_count} students (${result.failing_percentage}%)</div>
+                        </div>
+                    </div>
+                    <h5>Students Needing Intervention</h5>
+                    <table class="results-table">
+                        <thead>
+                            <tr>
+                                <th>Student Name</th>
+                                <th>Average Score</th>
+                                <th>Assessments Taken</th>
+                                <th>Risk Level</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                `;
+
+                result.failing_students.forEach(student => {
+                    const riskLevel = student.average_score < 50 ? 'Critical' : 'High';
+                    const riskClass = student.average_score < 50 ? 'risk-critical' : 'risk-high';
+                    html += `
+                        <tr>
+                            <td>${student.name}</td>
+                            <td>${student.average_score}%</td>
+                            <td>${student.assessment_count}</td>
+                            <td><span class="risk-badge ${riskClass}">${riskLevel}</span></td>
+                        </tr>
+                    `;
+                });
+
+                html += '</tbody></table>';
+                return html;
+            }
+
+            function displayTopPerformersResults(result) {
+                let html = `
+                    <h4>Top 10 Performers Analysis</h4>
+                    <p>Top performing students based on average scores across all assessments</p>
+                    <div class="top-performers-summary">
+                        <div class="summary-card">
+                            <h5>Average Class Performance</h5>
+                            <div class="metric">${result.class_average}%</div>
+                        </div>
+                    </div>
+                    <h5>Top 10 Students</h5>
+                    <table class="results-table">
+                        <thead>
+                            <tr>
+                                <th>Rank</th>
+                                <th>Student Name</th>
+                                <th>Average Score</th>
+                                <th>Assessments Taken</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                `;
+
+                result.top_students.forEach((student, index) => {
+                    const rank = index + 1;
+                    const medalClass = rank <= 3 ? `rank-${rank}` : '';
+                    html += `
+                        <tr class="${medalClass}">
+                            <td>${rank}</td>
+                            <td>${student.name}</td>
+                            <td>${student.average_score}%</td>
+                            <td>${student.assessment_count}</td>
+                        </tr>
+                    `;
+                });
+
+                html += '</tbody></table>';
+                return html;
+            }
+
+            function displayGradeTrendsResults(result) {
+                let html = `
+                    <h4>Grade Trends Over Time Analysis</h4>
+                    <p>Analysis of how student performance changes across assessments</p>
+                    <div class="trends-summary">
+                        <div class="summary-card">
+                            <h5>Improving Students</h5>
+                            <div class="metric">${result.improving_count} students (${result.improving_percentage}%)</div>
+                        </div>
+                        <div class="summary-card">
+                            <h5>Declining Students</h5>
+                            <div class="metric">${result.declining_count} students (${result.declining_percentage}%)</div>
+                        </div>
+                        <div class="summary-card">
+                            <h5>Stable Students</h5>
+                            <div class="metric">${result.stable_count} students (${result.stable_percentage}%)</div>
+                        </div>
+                    </div>
+                    <h5>Students with Significant Changes</h5>
+                    <table class="results-table">
+                        <thead>
+                            <tr>
+                                <th>Student Name</th>
+                                <th>Trend</th>
+                                <th>Change</th>
+                                <th>Assessments</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                `;
+
+                result.significant_changes.slice(0, 15).forEach(student => {
+                    const trendClass = student.trend === 'improving' ? 'trend-up' : student.trend === 'declining' ? 'trend-down' : 'trend-stable';
+                    html += `
+                        <tr class="${trendClass}">
+                            <td>${student.name}</td>
+                            <td><span class="trend-badge ${trendClass}">${student.trend}</span></td>
+                            <td>${student.change > 0 ? '+' : ''}${student.change}%</td>
+                            <td>${student.assessment_count}</td>
+                        </tr>
+                    `;
+                });
+
+                html += '</tbody></table>';
+                return html;
+            }
+
+            function displayAssessmentDifficultyResults(result) {
+                let html = `
+                    <h4>Assessment Difficulty Analysis</h4>
+                    <p>Analysis of which assessments are most/least challenging for students</p>
+                    <div class="difficulty-summary">
+                        <div class="summary-card">
+                            <h5>Class Average</h5>
+                            <div class="metric">${result.class_average}%</div>
+                        </div>
+                    </div>
+                    <h5>Assessment Difficulty Ranking</h5>
+                    <table class="results-table">
+                        <thead>
+                            <tr>
+                                <th>Assessment</th>
+                                <th>Average Score</th>
+                                <th>Difficulty Level</th>
+                                <th>Students Taken</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                `;
+
+                result.assessments.forEach(assessment => {
+                    const difficultyClass = assessment.difficulty === 'Very Easy' ? 'diff-easy' :
+                                          assessment.difficulty === 'Easy' ? 'diff-moderate' :
+                                          assessment.difficulty === 'Moderate' ? 'diff-moderate' :
+                                          assessment.difficulty === 'Hard' ? 'diff-hard' : 'diff-very-hard';
+                    html += `
+                        <tr>
+                            <td>${assessment.name}</td>
+                            <td>${assessment.average_score}%</td>
+                            <td><span class="difficulty-badge ${difficultyClass}">${assessment.difficulty}</span></td>
+                            <td>${assessment.student_count}</td>
+                        </tr>
+                    `;
+                });
+
+                html += '</tbody></table>';
+                return html;
+            }
+
+            function displayConsistencyResults(result) {
+                let html = `
+                    <h4>Student Consistency Analysis</h4>
+                    <p>Analysis of how consistent students are in their performance</p>
+                    <div class="consistency-summary">
+                        <div class="summary-card">
+                            <h5>Highly Consistent</h5>
+                            <div class="metric">${result.highly_consistent_count} students (${result.highly_consistent_percentage}%)</div>
+                        </div>
+                        <div class="summary-card">
+                            <h5>Variable Performance</h5>
+                            <div class="metric">${result.variable_count} students (${result.variable_percentage}%)</div>
+                        </div>
+                    </div>
+                    <h5>Consistency Rankings</h5>
+                    <table class="results-table">
+                        <thead>
+                            <tr>
+                                <th>Student Name</th>
+                                <th>Consistency Score</th>
+                                <th>Grade Range</th>
+                                <th>Assessments</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                `;
+
+                result.consistency_rankings.slice(0, 15).forEach(student => {
+                    const consistencyClass = student.consistency_level === 'Very Consistent' ? 'cons-very-high' :
+                                           student.consistency_level === 'Consistent' ? 'cons-high' :
+                                           student.consistency_level === 'Moderate' ? 'cons-moderate' :
+                                           student.consistency_level === 'Variable' ? 'cons-low' : 'cons-very-low';
+                    html += `
+                        <tr>
+                            <td>${student.name}</td>
+                            <td><span class="consistency-badge ${consistencyClass}">${student.consistency_level}</span></td>
+                            <td>${student.grade_range}%</td>
+                            <td>${student.assessment_count}</td>
+                        </tr>
+                    `;
+                });
+
+                html += '</tbody></table>';
+                return html;
+            }
+
+            function displayPeerComparisonResults(result) {
+                let html = `
+                    <h4>Peer Comparison Analysis</h4>
+                    <p>How each student compares to their classmates</p>
+                    <div class="peer-summary">
+                        <div class="summary-card">
+                            <h5>Above Average</h5>
+                            <div class="metric">${result.above_average_count} students (${result.above_average_percentage}%)</div>
+                        </div>
+                        <div class="summary-card">
+                            <h5>At Average</h5>
+                            <div class="metric">${result.at_average_count} students (${result.at_average_percentage}%)</div>
+                        </div>
+                        <div class="summary-card">
+                            <h5>Below Average</h5>
+                            <div class="metric">${result.below_average_count} students (${result.below_average_percentage}%)</div>
+                        </div>
+                    </div>
+                    <h5>Peer Rankings</h5>
+                    <table class="results-table">
+                        <thead>
+                            <tr>
+                                <th>Rank</th>
+                                <th>Student Name</th>
+                                <th>Average Score</th>
+                                <th>vs Class Average</th>
+                                <th>Percentile</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                `;
+
+                result.peer_rankings.slice(0, 20).forEach((student, index) => {
+                    const rank = index + 1;
+                    const comparisonClass = student.vs_average > 10 ? 'peer-above' :
+                                          student.vs_average < -10 ? 'peer-below' : 'peer-average';
+                    html += `
+                        <tr>
+                            <td>${rank}</td>
+                            <td>${student.name}</td>
+                            <td>${student.average_score}%</td>
+                            <td><span class="peer-badge ${comparisonClass}">${student.vs_average > 0 ? '+' : ''}${student.vs_average}%</span></td>
+                            <td>${student.percentile}%</td>
+                        </tr>
+                    `;
+                });
+
+                html += '</tbody></table>';
+                return html;
+            }
+
+            function displayRiskPredictionResults(result) {
+                let html = `
+                    <h4>Risk Prediction Analysis</h4>
+                    <p>Predicting students at risk of failing future assessments</p>
+                    <div class="risk-summary">
+                        <div class="summary-card risk-card">
+                            <h5>High Risk</h5>
+                            <div class="metric">${result.high_risk_count} students</div>
+                        </div>
+                        <div class="summary-card warning-card">
+                            <h5>Medium Risk</h5>
+                            <div class="metric">${result.medium_risk_count} students</div>
+                        </div>
+                        <div class="summary-card safe-card">
+                            <h5>Low Risk</h5>
+                            <div class="metric">${result.low_risk_count} students</div>
+                        </div>
+                    </div>
+                    <h5>Students Requiring Attention</h5>
+                    <table class="results-table">
+                        <thead>
+                            <tr>
+                                <th>Student Name</th>
+                                <th>Risk Level</th>
+                                <th>Current Average</th>
+                                <th>Predicted Final</th>
+                                <th>Intervention Needed</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                `;
+
+                result.at_risk_students.forEach(student => {
+                    const riskClass = student.risk_level === 'High' ? 'risk-critical' :
+                                    student.risk_level === 'Medium' ? 'risk-high' : 'risk-medium';
+                    const intervention = student.risk_level === 'High' ? 'Immediate' :
+                                       student.risk_level === 'Medium' ? 'Monitor' : 'Optional';
+                    html += `
+                        <tr>
+                            <td>${student.name}</td>
+                            <td><span class="risk-badge ${riskClass}">${student.risk_level}</span></td>
+                            <td>${student.current_average}%</td>
+                            <td>${student.predicted_final}%</td>
+                            <td><span class="intervention-badge">${intervention}</span></td>
+                        </tr>
+                    `;
+                });
+
+                html += '</tbody></table>';
+                return html;
+            }
+    </script>
+    <script type="module" src="{{ url_for('static', filename='js/ngrokFetch.js') }}"></script>
+</body>
+
+</html>

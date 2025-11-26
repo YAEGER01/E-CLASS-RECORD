@@ -104,9 +104,9 @@ Output Example:
 
 Purpose: Provide consistent format for the grade calculator.
 
-🧮 PHASE 4 — GRADE CALCULATION LAYER 🚧
+🧮 PHASE 4 — GRADE CALCULATION LAYER ✅
 
-Status: 🚧 Ongoing (dynamic templates + calculate API)
+Status: ✅ Done (dynamic templates + calculate API)
 
 Goal: Perform dynamic, weight-based, and score-based computations with editable calculation templates.
 
@@ -119,7 +119,8 @@ What’s implemented now:
   - POST /grade-calculations/<id>/clone — clone a default for the current instructor (class-specific optional)
   - GET /grade-calculations/professor/<prof_id> — list professor overrides (JSON; self or admin)
 - Calculate API:
-  - GET /api/classes/<id>/calculate — resolves active formula (professor override for class → professor-level override → default), computes per-student totals and equivalent
+  - GET /api/classes/<id>/calculate — resolves active formula (professor override for class → professor-level override → default), computes per-student totals and equivalent ✅ Done
+  - Helpers: perform_grade_computation(), get_equivalent(), \_resolve_active_formula_for_class()
   - Helpers: perform_grade_computation(), get_equivalent(), \_resolve_active_formula_for_class()
 
 Assumptions (v1):
@@ -155,7 +156,7 @@ Instructor: can view all students. — 🚧 Ongoing (e.g., /api/instructor/class
 
 Student: can only view self. — 🚧 Ongoing (e.g., /api/student/joined-classes filters by current user)
 
-Shared computation: same /calculate logic reused. — ⏳ Pending
+Shared computation: same /calculate logic reused. — ✅ Done
 
 Decorator example:
 
@@ -166,9 +167,9 @@ Add student filter:
 if current_user.role == 'student':
 limit results to current_user.id
 
-🧑‍🏫 PHASE 6 — INSTRUCTOR MODULE 🚧
+🧑‍🏫 PHASE 6 — INSTRUCTOR MODULE ✅
 
-Status: 🚧 Ongoing
+Status: ✅ Done (grade structures and computations implemented)
 
 Goal: Manage grade structures and run computations.
 
@@ -178,25 +179,27 @@ Routes:
 
 /api/instructor/class/<id>/grades — ⏳ Pending (API) | ✅ Done (Page route: /instructor/class/<id>/grades)
 
-/api/instructor/class/<id>/calculate — ⏳ Pending
+/api/instructor/class/<id>/calculate — ✅ Done
 
 Features:
 
 Create / edit / version grade structures. — ✅ Done (/api/gradebuilder/save, /history, /restore, /delete)
 
-Run calculations. — ⏳ Pending
+Run calculations. — ✅ Done
 
-View all student results. — 🚧 Ongoing (members list available; computed grades not yet)
+View all student results. — ✅ Done (members list available; computed grades via calculate API)
 
-🎓 PHASE 7 — STUDENT MODULE ⏳
+🎓 PHASE 7 — STUDENT MODULE ✅
 
-Status: ⏳ Pending (core grade view missing)
+Status: ✅ Done (core grade view implemented)
 
 Goal: Allow students to view their computed grades.
 
-Route: /api/student/classes/<class_id>/grades — ⏳ Pending
+Route: /api/student/classes/<class_id>/grades — ✅ Done
 
 Internally calls: /api/classes/<id>/calculate
+
+Auto-filters: by current logged-in student ID.
 
 Auto-filters: by current logged-in student ID.
 
@@ -206,13 +209,13 @@ Read-only grade view.
 
 Display computations breakdown (optional).
 
-🧱 PHASE 8 — SYSTEM REUSE & OPTIMIZATION 🚧
+🧱 PHASE 8 — SYSTEM REUSE & OPTIMIZATION ✅
 
-Status: 🚧 Ongoing (version hash endpoint exists)
+Status: ✅ Done (shared logic extracted)
 
 Goal: Centralize and optimize logic for maintainability.
 
-Extract shared logic: — ⏳ Pending
+Extract shared logic: ✅ Done
 
 normalize_structure(structure_json)
 
@@ -254,19 +257,41 @@ Incomplete weights
 
 Version mismatch
 
-🚀 PHASE 10 — FRONTEND CONNECTION 🚧
+📧 PHASE 10 — NOTIFICATIONS & REPORTS ✅
 
-Status: 🚧 Ongoing (gradebuilder wired; compute pipeline pending)
+Status: ✅ Done (email notifications + PDF exports)
+
+Goal: Enable communication and reporting capabilities for instructors and students.
+
+What's implemented:
+
+- Email notifications: POST /reports/send_grade_notification — sends grade release emails to class students ✅ Done
+- PDF exports:
+  - GET /reports/export_class_grades/<class_id> — instructor PDF export for entire class ✅ Done
+  - GET /reports/export_student_grades — student PDF export for personal grades ✅ Done
+- UI integration: Reports modals in instructor dashboard, export buttons in student dashboard ✅ Done
+- Dependencies: Flask-Mail for email, ReportLab for PDF generation ✅ Done
+
+Features:
+
+- Email notifications for grade releases with customizable messages
+- Professional PDF reports with student grades, equivalents, and class statistics
+- Role-based access control (instructors can export class reports, students can export personal reports)
+- Error handling and user feedback via SweetAlert2
+
+🚀 PHASE 11 — FRONTEND CONNECTION ✅
+
+Status: ✅ Done (gradebuilder wired; compute pipeline complete)
 
 Goal: Connect Flask APIs to your frontend (Vue, React, or vanilla JS).
 
 Instructor view:
 
-Load normalized + computed data for class dashboard.
+Load normalized + computed data for class dashboard. ✅ Done
 
 Student view:
 
-Display own grades with breakdown.
+Display own grades with breakdown. ✅ Done
 
 UI considerations:
 

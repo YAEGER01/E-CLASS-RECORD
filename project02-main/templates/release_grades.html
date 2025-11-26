@@ -25,7 +25,8 @@
                     <a href="{{ url_for('dashboard.instructor_dashboard') }}" class="nav-link">Dashboard</a>
                     <a href="{{ url_for('instructor.instructor_classes') }}" class="nav-link">Classes</a>
                     <a href="{{ url_for('instructor.gradebuilder_v2') }}" class="nav-link">Grade Builder</a>
-                    <a href="#" class="nav-link">Reports</a>
+                    <a href="{{ url_for('instructor.instructor_statistics') }}" class="nav-link">Statistics</a>
+                    <a href="{{ url_for('instructor.data_simulation') }}" class="nav-link">Data Simulation</a>
                 </nav>
             </div>
             <div class="header-user">
@@ -91,7 +92,7 @@
                             Release All Grades
                         </button>
                         <button id="unrelease-all-btn" class="btn btn-warning" disabled>
-                            Hide All Grades
+                            Unrelease All Grades
                         </button>
                         <button id="export-grades-btn" class="btn btn-secondary" disabled>
                             Export Grades
@@ -176,7 +177,7 @@
                                 Release Selected
                             </button>
                             <button id="bulk-unrelease-btn" class="btn btn-warning" disabled>
-                                Hide Selected
+                                Unrelease Selected
                             </button>
                         </div>
                     </div>
@@ -235,9 +236,17 @@
         // CSRF Token for AJAX requests
         const csrfToken = "{{ csrf_token() }}";
 
-        // Initialize page
+        // Data persistence: load last class from localStorage
         document.addEventListener('DOMContentLoaded', function() {
             initializeEventListeners();
+            const lastClassId = localStorage.getItem('releasePageLastClassId');
+            if (lastClassId) {
+                const classSelect = document.getElementById('class-select');
+                classSelect.value = lastClassId;
+                document.getElementById('load-grades-btn').disabled = false;
+                showClassInfo(lastClassId);
+                loadGrades();
+            }
         });
 
         function initializeEventListeners() {
@@ -270,9 +279,13 @@
             if (classId) {
                 loadBtn.disabled = false;
                 showClassInfo(classId);
+                // Persist selected class
+                localStorage.setItem('releasePageLastClassId', classId);
             } else {
                 loadBtn.disabled = true;
                 hideClassInfo();
+                // Remove persisted class when no class is selected
+                localStorage.removeItem('releasePageLastClassId');
             }
         }
 
@@ -297,13 +310,15 @@
             if (!classId) return;
 
             currentClassId = classId;
-            
+            // Persist loaded class
+            localStorage.setItem('releasePageLastClassId', classId);
+
             // Show loading state
             document.getElementById('empty-state').style.display = 'none';
             document.getElementById('loading-state').style.display = 'block';
 
             try {
-                const response = await fetch(`/api/instructor/class/${classId}/release-grades`, {
+                const response = await fetch(`/instructor/class/${classId}/release-grades`, {
                     method: 'GET',
                     headers: {
                         'Content-Type': 'application/json',
@@ -351,9 +366,9 @@
                     </td>
                     <td class="released-date">${student.released_date || '—'}</td>
                     <td class="actions">
-                        <button class="btn btn-sm ${student.is_released ? 'btn-warning' : 'btn-success'}" 
+                        <button class="btn btn-sm ${student.is_released ? 'btn-warning' : 'btn-success'}"
                                 onclick="toggleStudentRelease('${student.id}', ${!student.is_released})">
-                            ${student.is_released ? 'Hide' : 'Release'}
+                            ${student.is_released ? 'Unrelease' : 'Release'}
                         </button>
                     </td>
                 `;
@@ -402,7 +417,7 @@
 
         async function toggleStudentRelease(studentId, shouldRelease) {
             try {
-                const response = await fetch(`/api/instructor/student/${studentId}/toggle-release`, {
+                const response = await fetch(`/instructor/student/${studentId}/toggle-release`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -415,21 +430,12 @@
                 });
 
                 if (response.ok) {
-                    // Update local data
-                    const student = studentsData.find(s => s.id === studentId);
-                    if (student) {
-                        student.is_released = shouldRelease;
-                        student.released_date = shouldRelease ? new Date().toLocaleDateString() : null;
-                    }
-                    
-                    // Re-render table
-                    renderGradesTable();
-                    updateStatusCounts();
-                    
+                    // Auto refresh grades after release/unrelease
+                    await loadGrades();
                     Swal.fire({
                         icon: 'success',
                         title: 'Success',
-                        text: `Grade ${shouldRelease ? 'released' : 'hidden'} successfully`,
+                        text: `Grade ${shouldRelease ? 'released' : 'unreleased'} successfully`,
                         timer: 2000,
                         showConfirmButton: false
                     });
@@ -510,7 +516,7 @@
 
         async function performBulkUpdate(students, shouldRelease, options = {}) {
             try {
-                const response = await fetch('/api/instructor/bulk-toggle-release', {
+                const response = await fetch('/instructor/bulk-toggle-release', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -525,20 +531,12 @@
                 });
 
                 if (response.ok) {
-                    // Update local data
-                    students.forEach(student => {
-                        student.is_released = shouldRelease;
-                        student.released_date = shouldRelease ? new Date().toLocaleDateString() : null;
-                    });
-                    
-                    // Re-render table
-                    renderGradesTable();
-                    updateStatusCounts();
-                    
+                    // Auto refresh grades after bulk release/unrelease
+                    await loadGrades();
                     Swal.fire({
                         icon: 'success',
                         title: 'Success',
-                        text: `${students.length} grade${students.length > 1 ? 's' : ''} ${shouldRelease ? 'released' : 'hidden'} successfully`,
+                        text: `${students.length} grade${students.length > 1 ? 's' : ''} ${shouldRelease ? 'released' : 'unreleased'} successfully`,
                         timer: 2000,
                         showConfirmButton: false
                     });

@@ -1,6 +1,6 @@
 import json
 import logging
-from flask import Blueprint, render_template, request, redirect, url_for, flash
+from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify
 from utils.db_conn import get_db_connection
 
 logger = logging.getLogger(__name__)

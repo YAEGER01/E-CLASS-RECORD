@@ -617,7 +617,7 @@
 
     /**
      * Save all inputs (or only changed inputs) and request server recompute + snapshot.
-     * Sends POST to `/classes/<classId>/save_snapshot` with payload { scores: [...] }
+     * Sends POST to `/classes/<classId>/save-snapshot` with payload { scores: [...] }
      */
     async saveAndSnapshot() {
       const classId = this.classId || 0;
@@ -659,7 +659,7 @@
       try {
         const headers = { 'Content-Type': 'application/json' };
         if (this.csrfToken) headers['X-CSRFToken'] = this.csrfToken;
-        const res = await fetch(`/classes/${classId}/save_snapshot`, { method: 'POST', headers, body: JSON.stringify({ scores }) });
+        const res = await fetch(`/classes/${classId}/save-snapshot`, { method: 'POST', headers, body: JSON.stringify({ scores }) });
         const out = await res.json().catch(() => ({}));
         if (!res.ok) {
           this.status.textContent = out.error || 'Save failed';

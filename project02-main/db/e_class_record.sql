@@ -46,6 +46,50 @@ LOCK TABLES `assessments_backup` WRITE;
 UNLOCK TABLES;
 
 --
+-- Table structure for table `audit_logs`
+--
+
+DROP TABLE IF EXISTS `audit_logs`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `audit_logs` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `admin_id` int(11) NOT NULL,
+  `admin_school_id` varchar(20) NOT NULL,
+  `action` varchar(100) NOT NULL,
+  `resource_type` varchar(50) NOT NULL,
+  `resource_id` int(11) DEFAULT NULL,
+  `details` text DEFAULT NULL,
+  `ip_address` varchar(45) DEFAULT NULL,
+  `user_agent` text DEFAULT NULL,
+  `timestamp` datetime DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`),
+  KEY `idx_audit_logs_admin_id` (`admin_id`),
+  KEY `idx_audit_logs_action` (`action`),
+  KEY `idx_audit_logs_resource_type` (`resource_type`),
+  KEY `idx_audit_logs_timestamp` (`timestamp`),
+  KEY `idx_audit_logs_admin_school_id` (`admin_school_id`),
+  CONSTRAINT `audit_logs_ibfk_1` FOREIGN KEY (`admin_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB AUTO_INCREMENT=7 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `audit_logs`
+--
+
+LOCK TABLES `audit_logs` WRITE;
+/*!40000 ALTER TABLE `audit_logs` DISABLE KEYS */;
+INSERT INTO `audit_logs` VALUES
+(1,1,'admin001','SYSTEM_MIGRATION','database',NULL,'Added audit_logs table for admin action tracking',NULL,NULL,'2025-11-25 02:04:51'),
+(2,1,'admin001','GENERATE_REPORT','report',NULL,'Generated user report','127.0.0.1','Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36 Edg/142.0.0.0','2025-11-25 02:06:25'),
+(3,1,'admin001','GENERATE_REPORT','report',NULL,'Generated class report','127.0.0.1','Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36 Edg/142.0.0.0','2025-11-25 02:06:29'),
+(4,1,'admin001','GENERATE_REPORT','report',NULL,'Generated system report','127.0.0.1','Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36 Edg/142.0.0.0','2025-11-25 02:06:33'),
+(5,1,'admin001','GENERATE_REPORT','report',NULL,'Generated system report','127.0.0.1','Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36 Edg/142.0.0.0','2025-11-25 02:07:42'),
+(6,1,'admin001','GENERATE_REPORT','report',NULL,'Generated system report','127.0.0.1','Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36 Edg/142.0.0.0','2025-11-25 02:11:04');
+/*!40000 ALTER TABLE `audit_logs` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
 -- Table structure for table `class_grading_categories_backup`
 --
 
@@ -170,7 +214,7 @@ CREATE TABLE `classes` (
 LOCK TABLES `classes` WRITE;
 /*!40000 ALTER TABLE `classes` DISABLE KEYS */;
 INSERT INTO `classes` VALUES
-(1,1,'MAJOR','2024','1st sem','BSIT','Intro To Programming','Programming','1A','M-W-F 8-10AM','59fd9305-477b-4ba4-a912-4691caf62b39','008448',NULL,'2025-11-16 18:38:36','2025-11-16 18:38:36');
+(1,1,'MAJOR','2024','1st sem','BSIT','Intro To Programming desu','Programming','1A','M-W-F 8-10AM','59fd9305-477b-4ba4-a912-4691caf62b39','008448',NULL,'2025-11-16 18:38:36','2025-11-26 11:25:15');
 /*!40000 ALTER TABLE `classes` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -197,7 +241,7 @@ CREATE TABLE `grade_assessments` (
   KEY `idx_grade_assessments_position` (`position`),
   CONSTRAINT `fk_subcategory` FOREIGN KEY (`subcategory_id`) REFERENCES `grade_subcategories` (`id`) ON DELETE CASCADE,
   CONSTRAINT `grade_assessments_ibfk_1` FOREIGN KEY (`subcategory_id`) REFERENCES `grade_subcategories` (`id`) ON DELETE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=7 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -209,8 +253,36 @@ LOCK TABLES `grade_assessments` WRITE;
 INSERT INTO `grade_assessments` VALUES
 (3,1,'Participation 4',NULL,100,NULL,1,NULL,'2025-11-18 21:19:01'),
 (4,2,'Assessment 1',NULL,100,NULL,1,NULL,'2025-11-18 22:41:26'),
-(5,3,'Assessment 1',NULL,100,NULL,1,NULL,'2025-11-18 22:41:30');
+(5,3,'Assessment 1',NULL,100,NULL,1,NULL,'2025-11-18 22:41:30'),
+(6,4,'Quiz 1',NULL,67,NULL,1,NULL,'2025-11-26 19:16:54');
 /*!40000 ALTER TABLE `grade_assessments` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
+-- Table structure for table `grade_calculation_templates`
+--
+
+DROP TABLE IF EXISTS `grade_calculation_templates`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `grade_calculation_templates` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `name` varchar(100) NOT NULL,
+  `description` text DEFAULT NULL,
+  `template_json` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL CHECK (json_valid(`template_json`)),
+  `is_default` tinyint(1) DEFAULT 0,
+  `created_at` timestamp NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `grade_calculation_templates`
+--
+
+LOCK TABLES `grade_calculation_templates` WRITE;
+/*!40000 ALTER TABLE `grade_calculation_templates` DISABLE KEYS */;
+/*!40000 ALTER TABLE `grade_calculation_templates` ENABLE KEYS */;
 UNLOCK TABLES;
 
 --
@@ -234,7 +306,7 @@ CREATE TABLE `grade_categories` (
   KEY `idx_grade_categories_position` (`position`),
   CONSTRAINT `fk_structure` FOREIGN KEY (`structure_id`) REFERENCES `grade_structures` (`id`) ON DELETE CASCADE,
   CONSTRAINT `grade_categories_ibfk_1` FOREIGN KEY (`structure_id`) REFERENCES `grade_structures` (`id`) ON DELETE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -244,7 +316,8 @@ CREATE TABLE `grade_categories` (
 LOCK TABLES `grade_categories` WRITE;
 /*!40000 ALTER TABLE `grade_categories` DISABLE KEYS */;
 INSERT INTO `grade_categories` VALUES
-(1,1,'LABORATORY',100,1,NULL,'2025-11-18 20:57:01');
+(1,1,'LABORATORY',100,1,NULL,'2025-11-18 20:57:01'),
+(2,1,'LECTURE',100,1,NULL,'2025-11-26 19:16:39');
 /*!40000 ALTER TABLE `grade_categories` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -268,7 +341,7 @@ CREATE TABLE `grade_snapshots` (
   KEY `idx_class_version` (`class_id`,`version`),
   KEY `idx_class_status` (`class_id`,`status`),
   CONSTRAINT `fk_snapshots_class` FOREIGN KEY (`class_id`) REFERENCES `classes` (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -278,8 +351,7 @@ CREATE TABLE `grade_snapshots` (
 LOCK TABLES `grade_snapshots` WRITE;
 /*!40000 ALTER TABLE `grade_snapshots` DISABLE KEYS */;
 INSERT INTO `grade_snapshots` VALUES
-(1,1,1,'final','{\"meta\": {\"class_id\": 1, \"structure_version\": null, \"saved_at\": \"2025-11-18T14:47:07.468035Z\"}, \"assessments\": [{\"id\": 3, \"name\": \"Participation 4\", \"max_score\": 100.0, \"category\": \"LABORATORY\", \"subcategory\": \"LAB PARTICIPATION\", \"subweight\": 10.0}, {\"id\": 4, \"name\": \"Assessment 1\", \"max_score\": 100.0, \"category\": \"LABORATORY\", \"subcategory\": \"LAB HOMEWORK\", \"subweight\": 10.0}, {\"id\": 5, \"name\": \"Assessment 1\", \"max_score\": 100.0, \"category\": \"LABORATORY\", \"subcategory\": \"LAB EXERCISE\", \"subweight\": 80.0}], \"students\": [{\"student_id\": 2, \"scores\": [{\"assessment_id\": 3, \"score\": 100.0}], \"computed\": {\"category_totals\": {\"LABORATORY\": {\"LAB PARTICIPATION\": 100.0, \"LAB HOMEWORK\": 0.0, \"LAB EXERCISE\": 0.0}}, \"weighted_totals\": {\"LABORATORY\": {\"LAB PARTICIPATION\": 10.0, \"LAB HOMEWORK\": 0.0, \"LAB EXERCISE\": 0.0}}, \"category_ratings\": {\"LABORATORY\": 10.0}, \"overall_percentage\": 4.0, \"final_grade\": 40.0, \"letter_grade\": \"5.00\", \"remarks\": null}}, {\"student_id\": 11, \"scores\": [{\"assessment_id\": 3, \"score\": 5.0}], \"computed\": {\"category_totals\": {\"LABORATORY\": {\"LAB PARTICIPATION\": 5.0, \"LAB HOMEWORK\": 0.0, \"LAB EXERCISE\": 0.0}}, \"weighted_totals\": {\"LABORATORY\": {\"LAB PARTICIPATION\": 0.5, \"LAB HOMEWORK\": 0.0, \"LAB EXERCISE\": 0.0}}, \"category_ratings\": {\"LABORATORY\": 0.5}, \"overall_percentage\": 0.2, \"final_grade\": 37.62, \"letter_grade\": \"5.00\", \"remarks\": null}}, {\"student_id\": 19, \"scores\": [{\"assessment_id\": 3, \"score\": 1.0}], \"computed\": {\"category_totals\": {\"LABORATORY\": {\"LAB PARTICIPATION\": 1.0, \"LAB HOMEWORK\": 0.0, \"LAB EXERCISE\": 0.0}}, \"weighted_totals\": {\"LABORATORY\": {\"LAB PARTICIPATION\": 0.1, \"LAB HOMEWORK\": 0.0, \"LAB EXERCISE\": 0.0}}, \"category_ratings\": {\"LABORATORY\": 0.1}, \"overall_percentage\": 0.04, \"final_grade\": 37.52, \"letter_grade\": \"5.00\", \"remarks\": null}}]}',2,'2025-11-18 22:47:07','2025-11-19 00:14:30'),
-(2,1,2,'final','{\"meta\": {\"class_id\": 1, \"structure_version\": null, \"saved_at\": \"2025-11-19T14:29:28.487241Z\"}, \"assessments\": [{\"id\": 3, \"name\": \"Participation 4\", \"max_score\": 100.0, \"category\": \"LABORATORY\", \"subcategory\": \"LAB PARTICIPATION\", \"subweight\": 10.0}, {\"id\": 4, \"name\": \"Assessment 1\", \"max_score\": 100.0, \"category\": \"LABORATORY\", \"subcategory\": \"LAB HOMEWORK\", \"subweight\": 10.0}, {\"id\": 5, \"name\": \"Assessment 1\", \"max_score\": 100.0, \"category\": \"LABORATORY\", \"subcategory\": \"LAB EXERCISE\", \"subweight\": 80.0}], \"students\": [{\"student_id\": 2, \"scores\": [{\"assessment_id\": 3, \"score\": 100.0}], \"computed\": {\"category_totals\": {\"LABORATORY\": {\"LAB PARTICIPATION\": 100.0, \"LAB HOMEWORK\": 0.0, \"LAB EXERCISE\": 0.0}}, \"weighted_totals\": {\"LABORATORY\": {\"LAB PARTICIPATION\": 10.0, \"LAB HOMEWORK\": 0.0, \"LAB EXERCISE\": 0.0}}, \"category_ratings\": {\"LABORATORY\": 10.0}, \"overall_percentage\": 4.0, \"final_grade\": 40.0, \"letter_grade\": \"5.00\", \"remarks\": null}}, {\"student_id\": 11, \"scores\": [{\"assessment_id\": 3, \"score\": 5.0}], \"computed\": {\"category_totals\": {\"LABORATORY\": {\"LAB PARTICIPATION\": 5.0, \"LAB HOMEWORK\": 0.0, \"LAB EXERCISE\": 0.0}}, \"weighted_totals\": {\"LABORATORY\": {\"LAB PARTICIPATION\": 0.5, \"LAB HOMEWORK\": 0.0, \"LAB EXERCISE\": 0.0}}, \"category_ratings\": {\"LABORATORY\": 0.5}, \"overall_percentage\": 0.2, \"final_grade\": 37.62, \"letter_grade\": \"5.00\", \"remarks\": null}}, {\"student_id\": 19, \"scores\": [{\"assessment_id\": 3, \"score\": 1.0}], \"computed\": {\"category_totals\": {\"LABORATORY\": {\"LAB PARTICIPATION\": 1.0, \"LAB HOMEWORK\": 0.0, \"LAB EXERCISE\": 0.0}}, \"weighted_totals\": {\"LABORATORY\": {\"LAB PARTICIPATION\": 0.1, \"LAB HOMEWORK\": 0.0, \"LAB EXERCISE\": 0.0}}, \"category_ratings\": {\"LABORATORY\": 0.1}, \"overall_percentage\": 0.04, \"final_grade\": 37.52, \"letter_grade\": \"5.00\", \"remarks\": null}}, {\"student_id\": 41, \"scores\": [{\"assessment_id\": 3, \"score\": 100.0}, {\"assessment_id\": 4, \"score\": 100.0}, {\"assessment_id\": 5, \"score\": 100.0}], \"computed\": {\"category_totals\": {\"LABORATORY\": {\"LAB PARTICIPATION\": 100.0, \"LAB HOMEWORK\": 100.0, \"LAB EXERCISE\": 100.0}}, \"weighted_totals\": {\"LABORATORY\": {\"LAB PARTICIPATION\": 10.0, \"LAB HOMEWORK\": 10.0, \"LAB EXERCISE\": 80.0}}, \"category_ratings\": {\"LABORATORY\": 100.0}, \"overall_percentage\": 40.0, \"final_grade\": 62.5, \"letter_grade\": \"5.00\", \"remarks\": null}}, {\"student_id\": 39, \"scores\": [{\"assessment_id\": 3, \"score\": 100.0}], \"computed\": {\"category_totals\": {\"LABORATORY\": {\"LAB PARTICIPATION\": 100.0, \"LAB HOMEWORK\": 0.0, \"LAB EXERCISE\": 0.0}}, \"weighted_totals\": {\"LABORATORY\": {\"LAB PARTICIPATION\": 10.0, \"LAB HOMEWORK\": 0.0, \"LAB EXERCISE\": 0.0}}, \"category_ratings\": {\"LABORATORY\": 10.0}, \"overall_percentage\": 4.0, \"final_grade\": 40.0, \"letter_grade\": \"5.00\", \"remarks\": null}}]}',2,'2025-11-19 22:29:28','2025-11-19 22:32:55');
+(1,1,1,'draft','{\"meta\": {\"class_id\": 1, \"structure_version\": null, \"saved_at\": \"2025-11-26T03:42:57.727329Z\"}, \"assessments\": [{\"id\": 3, \"name\": \"Participation 4\", \"max_score\": 100.0, \"category\": \"LABORATORY\", \"subcategory\": \"LAB PARTICIPATION\", \"subweight\": 10.0}, {\"id\": 4, \"name\": \"Assessment 1\", \"max_score\": 100.0, \"category\": \"LABORATORY\", \"subcategory\": \"LAB HOMEWORK\", \"subweight\": 10.0}, {\"id\": 5, \"name\": \"Assessment 1\", \"max_score\": 100.0, \"category\": \"LABORATORY\", \"subcategory\": \"LAB EXERCISE\", \"subweight\": 80.0}], \"students\": [{\"student_id\": 10, \"scores\": [{\"assessment_id\": 3, \"score\": 0.0}, {\"assessment_id\": 4, \"score\": 0.0}, {\"assessment_id\": 5, \"score\": 0.0}], \"computed\": {\"category_totals\": {\"LABORATORY\": {\"LAB PARTICIPATION\": 0.0, \"LAB HOMEWORK\": 0.0, \"LAB EXERCISE\": 0.0}}, \"weighted_totals\": {\"LABORATORY\": {\"LAB PARTICIPATION\": 0.0, \"LAB HOMEWORK\": 0.0, \"LAB EXERCISE\": 0.0}}, \"category_ratings\": {\"LABORATORY\": 0.0}, \"overall_percentage\": 0.0, \"final_grade\": 37.5, \"letter_grade\": \"5.00\", \"remarks\": null}}, {\"student_id\": 30, \"scores\": [{\"assessment_id\": 3, \"score\": 0.0}, {\"assessment_id\": 4, \"score\": 0.0}, {\"assessment_id\": 5, \"score\": 0.0}], \"computed\": {\"category_totals\": {\"LABORATORY\": {\"LAB PARTICIPATION\": 0.0, \"LAB HOMEWORK\": 0.0, \"LAB EXERCISE\": 0.0}}, \"weighted_totals\": {\"LABORATORY\": {\"LAB PARTICIPATION\": 0.0, \"LAB HOMEWORK\": 0.0, \"LAB EXERCISE\": 0.0}}, \"category_ratings\": {\"LABORATORY\": 0.0}, \"overall_percentage\": 0.0, \"final_grade\": 37.5, \"letter_grade\": \"5.00\", \"remarks\": null}}, {\"student_id\": 21, \"scores\": [{\"assessment_id\": 3, \"score\": 0.0}, {\"assessment_id\": 4, \"score\": 0.0}, {\"assessment_id\": 5, \"score\": 0.0}], \"computed\": {\"category_totals\": {\"LABORATORY\": {\"LAB PARTICIPATION\": 0.0, \"LAB HOMEWORK\": 0.0, \"LAB EXERCISE\": 0.0}}, \"weighted_totals\": {\"LABORATORY\": {\"LAB PARTICIPATION\": 0.0, \"LAB HOMEWORK\": 0.0, \"LAB EXERCISE\": 0.0}}, \"category_ratings\": {\"LABORATORY\": 0.0}, \"overall_percentage\": 0.0, \"final_grade\": 37.5, \"letter_grade\": \"5.00\", \"remarks\": null}}, {\"student_id\": 1, \"scores\": [{\"assessment_id\": 3, \"score\": 0.0}, {\"assessment_id\": 4, \"score\": 0.0}, {\"assessment_id\": 5, \"score\": 0.0}], \"computed\": {\"category_totals\": {\"LABORATORY\": {\"LAB PARTICIPATION\": 0.0, \"LAB HOMEWORK\": 0.0, \"LAB EXERCISE\": 0.0}}, \"weighted_totals\": {\"LABORATORY\": {\"LAB PARTICIPATION\": 0.0, \"LAB HOMEWORK\": 0.0, \"LAB EXERCISE\": 0.0}}, \"category_ratings\": {\"LABORATORY\": 0.0}, \"overall_percentage\": 0.0, \"final_grade\": 37.5, \"letter_grade\": \"5.00\", \"remarks\": null}}, {\"student_id\": 23, \"scores\": [{\"assessment_id\": 3, \"score\": 0.0}, {\"assessment_id\": 4, \"score\": 0.0}, {\"assessment_id\": 5, \"score\": 0.0}], \"computed\": {\"category_totals\": {\"LABORATORY\": {\"LAB PARTICIPATION\": 0.0, \"LAB HOMEWORK\": 0.0, \"LAB EXERCISE\": 0.0}}, \"weighted_totals\": {\"LABORATORY\": {\"LAB PARTICIPATION\": 0.0, \"LAB HOMEWORK\": 0.0, \"LAB EXERCISE\": 0.0}}, \"category_ratings\": {\"LABORATORY\": 0.0}, \"overall_percentage\": 0.0, \"final_grade\": 37.5, \"letter_grade\": \"5.00\", \"remarks\": null}}, {\"student_id\": 2, \"scores\": [{\"assessment_id\": 3, \"score\": 0.0}, {\"assessment_id\": 4, \"score\": 0.0}, {\"assessment_id\": 5, \"score\": 0.0}], \"computed\": {\"category_totals\": {\"LABORATORY\": {\"LAB PARTICIPATION\": 0.0, \"LAB HOMEWORK\": 0.0, \"LAB EXERCISE\": 0.0}}, \"weighted_totals\": {\"LABORATORY\": {\"LAB PARTICIPATION\": 0.0, \"LAB HOMEWORK\": 0.0, \"LAB EXERCISE\": 0.0}}, \"category_ratings\": {\"LABORATORY\": 0.0}, \"overall_percentage\": 0.0, \"final_grade\": 37.5, \"letter_grade\": \"5.00\", \"remarks\": null}}, {\"student_id\": 8, \"scores\": [{\"assessment_id\": 3, \"score\": 0.0}, {\"assessment_id\": 4, \"score\": 0.0}, {\"assessment_id\": 5, \"score\": 0.0}], \"computed\": {\"category_totals\": {\"LABORATORY\": {\"LAB PARTICIPATION\": 0.0, \"LAB HOMEWORK\": 0.0, \"LAB EXERCISE\": 0.0}}, \"weighted_totals\": {\"LABORATORY\": {\"LAB PARTICIPATION\": 0.0, \"LAB HOMEWORK\": 0.0, \"LAB EXERCISE\": 0.0}}, \"category_ratings\": {\"LABORATORY\": 0.0}, \"overall_percentage\": 0.0, \"final_grade\": 37.5, \"letter_grade\": \"5.00\", \"remarks\": null}}, {\"student_id\": 28, \"scores\": [{\"assessment_id\": 3, \"score\": 0.0}, {\"assessment_id\": 4, \"score\": 0.0}, {\"assessment_id\": 5, \"score\": 0.0}], \"computed\": {\"category_totals\": {\"LABORATORY\": {\"LAB PARTICIPATION\": 0.0, \"LAB HOMEWORK\": 0.0, \"LAB EXERCISE\": 0.0}}, \"weighted_totals\": {\"LABORATORY\": {\"LAB PARTICIPATION\": 0.0, \"LAB HOMEWORK\": 0.0, \"LAB EXERCISE\": 0.0}}, \"category_ratings\": {\"LABORATORY\": 0.0}, \"overall_percentage\": 0.0, \"final_grade\": 37.5, \"letter_grade\": \"5.00\", \"remarks\": null}}, {\"student_id\": 20, \"scores\": [{\"assessment_id\": 3, \"score\": 0.0}, {\"assessment_id\": 4, \"score\": 0.0}, {\"assessment_id\": 5, \"score\": 0.0}], \"computed\": {\"category_totals\": {\"LABORATORY\": {\"LAB PARTICIPATION\": 0.0, \"LAB HOMEWORK\": 0.0, \"LAB EXERCISE\": 0.0}}, \"weighted_totals\": {\"LABORATORY\": {\"LAB PARTICIPATION\": 0.0, \"LAB HOMEWORK\": 0.0, \"LAB EXERCISE\": 0.0}}, \"category_ratings\": {\"LABORATORY\": 0.0}, \"overall_percentage\": 0.0, \"final_grade\": 37.5, \"letter_grade\": \"5.00\", \"remarks\": null}}, {\"student_id\": 40, \"scores\": [{\"assessment_id\": 3, \"score\": 0.0}, {\"assessment_id\": 4, \"score\": 0.0}, {\"assessment_id\": 5, \"score\": 0.0}], \"computed\": {\"category_totals\": {\"LABORATORY\": {\"LAB PARTICIPATION\": 0.0, \"LAB HOMEWORK\": 0.0, \"LAB EXERCISE\": 0.0}}, \"weighted_totals\": {\"LABORATORY\": {\"LAB PARTICIPATION\": 0.0, \"LAB HOMEWORK\": 0.0, \"LAB EXERCISE\": 0.0}}, \"category_ratings\": {\"LABORATORY\": 0.0}, \"overall_percentage\": 0.0, \"final_grade\": 37.5, \"letter_grade\": \"5.00\", \"remarks\": null}}, {\"student_id\": 26, \"scores\": [{\"assessment_id\": 3, \"score\": 0.0}, {\"assessment_id\": 4, \"score\": 0.0}, {\"assessment_id\": 5, \"score\": 0.0}], \"computed\": {\"category_totals\": {\"LABORATORY\": {\"LAB PARTICIPATION\": 0.0, \"LAB HOMEWORK\": 0.0, \"LAB EXERCISE\": 0.0}}, \"weighted_totals\": {\"LABORATORY\": {\"LAB PARTICIPATION\": 0.0, \"LAB HOMEWORK\": 0.0, \"LAB EXERCISE\": 0.0}}, \"category_ratings\": {\"LABORATORY\": 0.0}, \"overall_percentage\": 0.0, \"final_grade\": 37.5, \"letter_grade\": \"5.00\", \"remarks\": null}}, {\"student_id\": 7, \"scores\": [{\"assessment_id\": 3, \"score\": 0.0}, {\"assessment_id\": 4, \"score\": 0.0}, {\"assessment_id\": 5, \"score\": 0.0}], \"computed\": {\"category_totals\": {\"LABORATORY\": {\"LAB PARTICIPATION\": 0.0, \"LAB HOMEWORK\": 0.0, \"LAB EXERCISE\": 0.0}}, \"weighted_totals\": {\"LABORATORY\": {\"LAB PARTICIPATION\": 0.0, \"LAB HOMEWORK\": 0.0, \"LAB EXERCISE\": 0.0}}, \"category_ratings\": {\"LABORATORY\": 0.0}, \"overall_percentage\": 0.0, \"final_grade\": 37.5, \"letter_grade\": \"5.00\", \"remarks\": null}}, {\"student_id\": 14, \"scores\": [{\"assessment_id\": 3, \"score\": 0.0}, {\"assessment_id\": 4, \"score\": 0.0}, {\"assessment_id\": 5, \"score\": 0.0}], \"computed\": {\"category_totals\": {\"LABORATORY\": {\"LAB PARTICIPATION\": 0.0, \"LAB HOMEWORK\": 0.0, \"LAB EXERCISE\": 0.0}}, \"weighted_totals\": {\"LABORATORY\": {\"LAB PARTICIPATION\": 0.0, \"LAB HOMEWORK\": 0.0, \"LAB EXERCISE\": 0.0}}, \"category_ratings\": {\"LABORATORY\": 0.0}, \"overall_percentage\": 0.0, \"final_grade\": 37.5, \"letter_grade\": \"5.00\", \"remarks\": null}}, {\"student_id\": 34, \"scores\": [{\"assessment_id\": 3, \"score\": 0.0}, {\"assessment_id\": 4, \"score\": 0.0}, {\"assessment_id\": 5, \"score\": 0.0}], \"computed\": {\"category_totals\": {\"LABORATORY\": {\"LAB PARTICIPATION\": 0.0, \"LAB HOMEWORK\": 0.0, \"LAB EXERCISE\": 0.0}}, \"weighted_totals\": {\"LABORATORY\": {\"LAB PARTICIPATION\": 0.0, \"LAB HOMEWORK\": 0.0, \"LAB EXERCISE\": 0.0}}, \"category_ratings\": {\"LABORATORY\": 0.0}, \"overall_percentage\": 0.0, \"final_grade\": 37.5, \"letter_grade\": \"5.00\", \"remarks\": null}}, {\"student_id\": 36, \"scores\": [{\"assessment_id\": 3, \"score\": 0.0}, {\"assessment_id\": 4, \"score\": 0.0}, {\"assessment_id\": 5, \"score\": 0.0}], \"computed\": {\"category_totals\": {\"LABORATORY\": {\"LAB PARTICIPATION\": 0.0, \"LAB HOMEWORK\": 0.0, \"LAB EXERCISE\": 0.0}}, \"weighted_totals\": {\"LABORATORY\": {\"LAB PARTICIPATION\": 0.0, \"LAB HOMEWORK\": 0.0, \"LAB EXERCISE\": 0.0}}, \"category_ratings\": {\"LABORATORY\": 0.0}, \"overall_percentage\": 0.0, \"final_grade\": 37.5, \"letter_grade\": \"5.00\", \"remarks\": null}}, {\"student_id\": 16, \"scores\": [{\"assessment_id\": 3, \"score\": 0.0}, {\"assessment_id\": 4, \"score\": 0.0}, {\"assessment_id\": 5, \"score\": 0.0}], \"computed\": {\"category_totals\": {\"LABORATORY\": {\"LAB PARTICIPATION\": 0.0, \"LAB HOMEWORK\": 0.0, \"LAB EXERCISE\": 0.0}}, \"weighted_totals\": {\"LABORATORY\": {\"LAB PARTICIPATION\": 0.0, \"LAB HOMEWORK\": 0.0, \"LAB EXERCISE\": 0.0}}, \"category_ratings\": {\"LABORATORY\": 0.0}, \"overall_percentage\": 0.0, \"final_grade\": 37.5, \"letter_grade\": \"5.00\", \"remarks\": null}}, {\"student_id\": 5, \"scores\": [{\"assessment_id\": 3, \"score\": 0.0}, {\"assessment_id\": 4, \"score\": 0.0}, {\"assessment_id\": 5, \"score\": 0.0}], \"computed\": {\"category_totals\": {\"LABORATORY\": {\"LAB PARTICIPATION\": 0.0, \"LAB HOMEWORK\": 0.0, \"LAB EXERCISE\": 0.0}}, \"weighted_totals\": {\"LABORATORY\": {\"LAB PARTICIPATION\": 0.0, \"LAB HOMEWORK\": 0.0, \"LAB EXERCISE\": 0.0}}, \"category_ratings\": {\"LABORATORY\": 0.0}, \"overall_percentage\": 0.0, \"final_grade\": 37.5, \"letter_grade\": \"5.00\", \"remarks\": null}}, {\"student_id\": 27, \"scores\": [{\"assessment_id\": 3, \"score\": 0.0}, {\"assessment_id\": 4, \"score\": 0.0}, {\"assessment_id\": 5, \"score\": 0.0}], \"computed\": {\"category_totals\": {\"LABORATORY\": {\"LAB PARTICIPATION\": 0.0, \"LAB HOMEWORK\": 0.0, \"LAB EXERCISE\": 0.0}}, \"weighted_totals\": {\"LABORATORY\": {\"LAB PARTICIPATION\": 0.0, \"LAB HOMEWORK\": 0.0, \"LAB EXERCISE\": 0.0}}, \"category_ratings\": {\"LABORATORY\": 0.0}, \"overall_percentage\": 0.0, \"final_grade\": 37.5, \"letter_grade\": \"5.00\", \"remarks\": null}}, {\"student_id\": 35, \"scores\": [{\"assessment_id\": 3, \"score\": 0.0}, {\"assessment_id\": 4, \"score\": 0.0}, {\"assessment_id\": 5, \"score\": 0.0}], \"computed\": {\"category_totals\": {\"LABORATORY\": {\"LAB PARTICIPATION\": 0.0, \"LAB HOMEWORK\": 0.0, \"LAB EXERCISE\": 0.0}}, \"weighted_totals\": {\"LABORATORY\": {\"LAB PARTICIPATION\": 0.0, \"LAB HOMEWORK\": 0.0, \"LAB EXERCISE\": 0.0}}, \"category_ratings\": {\"LABORATORY\": 0.0}, \"overall_percentage\": 0.0, \"final_grade\": 37.5, \"letter_grade\": \"5.00\", \"remarks\": null}}, {\"student_id\": 15, \"scores\": [{\"assessment_id\": 3, \"score\": 0.0}, {\"assessment_id\": 4, \"score\": 0.0}, {\"assessment_id\": 5, \"score\": 0.0}], \"computed\": {\"category_totals\": {\"LABORATORY\": {\"LAB PARTICIPATION\": 0.0, \"LAB HOMEWORK\": 0.0, \"LAB EXERCISE\": 0.0}}, \"weighted_totals\": {\"LABORATORY\": {\"LAB PARTICIPATION\": 0.0, \"LAB HOMEWORK\": 0.0, \"LAB EXERCISE\": 0.0}}, \"category_ratings\": {\"LABORATORY\": 0.0}, \"overall_percentage\": 0.0, \"final_grade\": 37.5, \"letter_grade\": \"5.00\", \"remarks\": null}}, {\"student_id\": 25, \"scores\": [{\"assessment_id\": 3, \"score\": 0.0}, {\"assessment_id\": 4, \"score\": 0.0}, {\"assessment_id\": 5, \"score\": 0.0}], \"computed\": {\"category_totals\": {\"LABORATORY\": {\"LAB PARTICIPATION\": 0.0, \"LAB HOMEWORK\": 0.0, \"LAB EXERCISE\": 0.0}}, \"weighted_totals\": {\"LABORATORY\": {\"LAB PARTICIPATION\": 0.0, \"LAB HOMEWORK\": 0.0, \"LAB EXERCISE\": 0.0}}, \"category_ratings\": {\"LABORATORY\": 0.0}, \"overall_percentage\": 0.0, \"final_grade\": 37.5, \"letter_grade\": \"5.00\", \"remarks\": null}}, {\"student_id\": 6, \"scores\": [{\"assessment_id\": 3, \"score\": 0.0}, {\"assessment_id\": 4, \"score\": 0.0}, {\"assessment_id\": 5, \"score\": 0.0}], \"computed\": {\"category_totals\": {\"LABORATORY\": {\"LAB PARTICIPATION\": 0.0, \"LAB HOMEWORK\": 0.0, \"LAB EXERCISE\": 0.0}}, \"weighted_totals\": {\"LABORATORY\": {\"LAB PARTICIPATION\": 0.0, \"LAB HOMEWORK\": 0.0, \"LAB EXERCISE\": 0.0}}, \"category_ratings\": {\"LABORATORY\": 0.0}, \"overall_percentage\": 0.0, \"final_grade\": 37.5, \"letter_grade\": \"5.00\", \"remarks\": null}}, {\"student_id\": 22, \"scores\": [{\"assessment_id\": 3, \"score\": 0.0}, {\"assessment_id\": 4, \"score\": 0.0}, {\"assessment_id\": 5, \"score\": 0.0}], \"computed\": {\"category_totals\": {\"LABORATORY\": {\"LAB PARTICIPATION\": 0.0, \"LAB HOMEWORK\": 0.0, \"LAB EXERCISE\": 0.0}}, \"weighted_totals\": {\"LABORATORY\": {\"LAB PARTICIPATION\": 0.0, \"LAB HOMEWORK\": 0.0, \"LAB EXERCISE\": 0.0}}, \"category_ratings\": {\"LABORATORY\": 0.0}, \"overall_percentage\": 0.0, \"final_grade\": 37.5, \"letter_grade\": \"5.00\", \"remarks\": null}}, {\"student_id\": 13, \"scores\": [{\"assessment_id\": 3, \"score\": 0.0}, {\"assessment_id\": 4, \"score\": 0.0}, {\"assessment_id\": 5, \"score\": 0.0}], \"computed\": {\"category_totals\": {\"LABORATORY\": {\"LAB PARTICIPATION\": 0.0, \"LAB HOMEWORK\": 0.0, \"LAB EXERCISE\": 0.0}}, \"weighted_totals\": {\"LABORATORY\": {\"LAB PARTICIPATION\": 0.0, \"LAB HOMEWORK\": 0.0, \"LAB EXERCISE\": 0.0}}, \"category_ratings\": {\"LABORATORY\": 0.0}, \"overall_percentage\": 0.0, \"final_grade\": 37.5, \"letter_grade\": \"5.00\", \"remarks\": null}}, {\"student_id\": 33, \"scores\": [{\"assessment_id\": 3, \"score\": 0.0}, {\"assessment_id\": 4, \"score\": 0.0}, {\"assessment_id\": 5, \"score\": 0.0}], \"computed\": {\"category_totals\": {\"LABORATORY\": {\"LAB PARTICIPATION\": 0.0, \"LAB HOMEWORK\": 0.0, \"LAB EXERCISE\": 0.0}}, \"weighted_totals\": {\"LABORATORY\": {\"LAB PARTICIPATION\": 0.0, \"LAB HOMEWORK\": 0.0, \"LAB EXERCISE\": 0.0}}, \"category_ratings\": {\"LABORATORY\": 0.0}, \"overall_percentage\": 0.0, \"final_grade\": 37.5, \"letter_grade\": \"5.00\", \"remarks\": null}}, {\"student_id\": 17, \"scores\": [{\"assessment_id\": 3, \"score\": 0.0}, {\"assessment_id\": 4, \"score\": 0.0}, {\"assessment_id\": 5, \"score\": 0.0}], \"computed\": {\"category_totals\": {\"LABORATORY\": {\"LAB PARTICIPATION\": 0.0, \"LAB HOMEWORK\": 0.0, \"LAB EXERCISE\": 0.0}}, \"weighted_totals\": {\"LABORATORY\": {\"LAB PARTICIPATION\": 0.0, \"LAB HOMEWORK\": 0.0, \"LAB EXERCISE\": 0.0}}, \"category_ratings\": {\"LABORATORY\": 0.0}, \"overall_percentage\": 0.0, \"final_grade\": 37.5, \"letter_grade\": \"5.00\", \"remarks\": null}}, {\"student_id\": 37, \"scores\": [{\"assessment_id\": 3, \"score\": 0.0}, {\"assessment_id\": 4, \"score\": 0.0}, {\"assessment_id\": 5, \"score\": 0.0}], \"computed\": {\"category_totals\": {\"LABORATORY\": {\"LAB PARTICIPATION\": 0.0, \"LAB HOMEWORK\": 0.0, \"LAB EXERCISE\": 0.0}}, \"weighted_totals\": {\"LABORATORY\": {\"LAB PARTICIPATION\": 0.0, \"LAB HOMEWORK\": 0.0, \"LAB EXERCISE\": 0.0}}, \"category_ratings\": {\"LABORATORY\": 0.0}, \"overall_percentage\": 0.0, \"final_grade\": 37.5, \"letter_grade\": \"5.00\", \"remarks\": null}}, {\"student_id\": 3, \"scores\": [{\"assessment_id\": 3, \"score\": 0.0}, {\"assessment_id\": 4, \"score\": 0.0}, {\"assessment_id\": 5, \"score\": 0.0}], \"computed\": {\"category_totals\": {\"LABORATORY\": {\"LAB PARTICIPATION\": 0.0, \"LAB HOMEWORK\": 0.0, \"LAB EXERCISE\": 0.0}}, \"weighted_totals\": {\"LABORATORY\": {\"LAB PARTICIPATION\": 0.0, \"LAB HOMEWORK\": 0.0, \"LAB EXERCISE\": 0.0}}, \"category_ratings\": {\"LABORATORY\": 0.0}, \"overall_percentage\": 0.0, \"final_grade\": 37.5, \"letter_grade\": \"5.00\", \"remarks\": null}}, {\"student_id\": 24, \"scores\": [{\"assessment_id\": 3, \"score\": 0.0}, {\"assessment_id\": 4, \"score\": 0.0}, {\"assessment_id\": 5, \"score\": 0.0}], \"computed\": {\"category_totals\": {\"LABORATORY\": {\"LAB PARTICIPATION\": 0.0, \"LAB HOMEWORK\": 0.0, \"LAB EXERCISE\": 0.0}}, \"weighted_totals\": {\"LABORATORY\": {\"LAB PARTICIPATION\": 0.0, \"LAB HOMEWORK\": 0.0, \"LAB EXERCISE\": 0.0}}, \"category_ratings\": {\"LABORATORY\": 0.0}, \"overall_percentage\": 0.0, \"final_grade\": 37.5, \"letter_grade\": \"5.00\", \"remarks\": null}}, {\"student_id\": 4, \"scores\": [{\"assessment_id\": 3, \"score\": 0.0}, {\"assessment_id\": 4, \"score\": 0.0}, {\"assessment_id\": 5, \"score\": 0.0}], \"computed\": {\"category_totals\": {\"LABORATORY\": {\"LAB PARTICIPATION\": 0.0, \"LAB HOMEWORK\": 0.0, \"LAB EXERCISE\": 0.0}}, \"weighted_totals\": {\"LABORATORY\": {\"LAB PARTICIPATION\": 0.0, \"LAB HOMEWORK\": 0.0, \"LAB EXERCISE\": 0.0}}, \"category_ratings\": {\"LABORATORY\": 0.0}, \"overall_percentage\": 0.0, \"final_grade\": 37.5, \"letter_grade\": \"5.00\", \"remarks\": null}}, {\"student_id\": 12, \"scores\": [{\"assessment_id\": 3, \"score\": 0.0}, {\"assessment_id\": 4, \"score\": 0.0}, {\"assessment_id\": 5, \"score\": 0.0}], \"computed\": {\"category_totals\": {\"LABORATORY\": {\"LAB PARTICIPATION\": 0.0, \"LAB HOMEWORK\": 0.0, \"LAB EXERCISE\": 0.0}}, \"weighted_totals\": {\"LABORATORY\": {\"LAB PARTICIPATION\": 0.0, \"LAB HOMEWORK\": 0.0, \"LAB EXERCISE\": 0.0}}, \"category_ratings\": {\"LABORATORY\": 0.0}, \"overall_percentage\": 0.0, \"final_grade\": 37.5, \"letter_grade\": \"5.00\", \"remarks\": null}}, {\"student_id\": 32, \"scores\": [{\"assessment_id\": 3, \"score\": 0.0}, {\"assessment_id\": 4, \"score\": 0.0}, {\"assessment_id\": 5, \"score\": 0.0}], \"computed\": {\"category_totals\": {\"LABORATORY\": {\"LAB PARTICIPATION\": 0.0, \"LAB HOMEWORK\": 0.0, \"LAB EXERCISE\": 0.0}}, \"weighted_totals\": {\"LABORATORY\": {\"LAB PARTICIPATION\": 0.0, \"LAB HOMEWORK\": 0.0, \"LAB EXERCISE\": 0.0}}, \"category_ratings\": {\"LABORATORY\": 0.0}, \"overall_percentage\": 0.0, \"final_grade\": 37.5, \"letter_grade\": \"5.00\", \"remarks\": null}}, {\"student_id\": 11, \"scores\": [{\"assessment_id\": 3, \"score\": 0.0}, {\"assessment_id\": 4, \"score\": 0.0}, {\"assessment_id\": 5, \"score\": 0.0}], \"computed\": {\"category_totals\": {\"LABORATORY\": {\"LAB PARTICIPATION\": 0.0, \"LAB HOMEWORK\": 0.0, \"LAB EXERCISE\": 0.0}}, \"weighted_totals\": {\"LABORATORY\": {\"LAB PARTICIPATION\": 0.0, \"LAB HOMEWORK\": 0.0, \"LAB EXERCISE\": 0.0}}, \"category_ratings\": {\"LABORATORY\": 0.0}, \"overall_percentage\": 0.0, \"final_grade\": 37.5, \"letter_grade\": \"5.00\", \"remarks\": null}}, {\"student_id\": 31, \"scores\": [{\"assessment_id\": 3, \"score\": 0.0}, {\"assessment_id\": 4, \"score\": 0.0}, {\"assessment_id\": 5, \"score\": 0.0}], \"computed\": {\"category_totals\": {\"LABORATORY\": {\"LAB PARTICIPATION\": 0.0, \"LAB HOMEWORK\": 0.0, \"LAB EXERCISE\": 0.0}}, \"weighted_totals\": {\"LABORATORY\": {\"LAB PARTICIPATION\": 0.0, \"LAB HOMEWORK\": 0.0, \"LAB EXERCISE\": 0.0}}, \"category_ratings\": {\"LABORATORY\": 0.0}, \"overall_percentage\": 0.0, \"final_grade\": 37.5, \"letter_grade\": \"5.00\", \"remarks\": null}}, {\"student_id\": 18, \"scores\": [{\"assessment_id\": 3, \"score\": 0.0}, {\"assessment_id\": 4, \"score\": 0.0}, {\"assessment_id\": 5, \"score\": 0.0}], \"computed\": {\"category_totals\": {\"LABORATORY\": {\"LAB PARTICIPATION\": 0.0, \"LAB HOMEWORK\": 0.0, \"LAB EXERCISE\": 0.0}}, \"weighted_totals\": {\"LABORATORY\": {\"LAB PARTICIPATION\": 0.0, \"LAB HOMEWORK\": 0.0, \"LAB EXERCISE\": 0.0}}, \"category_ratings\": {\"LABORATORY\": 0.0}, \"overall_percentage\": 0.0, \"final_grade\": 37.5, \"letter_grade\": \"5.00\", \"remarks\": null}}, {\"student_id\": 38, \"scores\": [{\"assessment_id\": 3, \"score\": 0.0}, {\"assessment_id\": 4, \"score\": 0.0}, {\"assessment_id\": 5, \"score\": 0.0}], \"computed\": {\"category_totals\": {\"LABORATORY\": {\"LAB PARTICIPATION\": 0.0, \"LAB HOMEWORK\": 0.0, \"LAB EXERCISE\": 0.0}}, \"weighted_totals\": {\"LABORATORY\": {\"LAB PARTICIPATION\": 0.0, \"LAB HOMEWORK\": 0.0, \"LAB EXERCISE\": 0.0}}, \"category_ratings\": {\"LABORATORY\": 0.0}, \"overall_percentage\": 0.0, \"final_grade\": 37.5, \"letter_grade\": \"5.00\", \"remarks\": null}}, {\"student_id\": 39, \"scores\": [{\"assessment_id\": 3, \"score\": 0.0}, {\"assessment_id\": 4, \"score\": 0.0}, {\"assessment_id\": 5, \"score\": 0.0}], \"computed\": {\"category_totals\": {\"LABORATORY\": {\"LAB PARTICIPATION\": 0.0, \"LAB HOMEWORK\": 0.0, \"LAB EXERCISE\": 0.0}}, \"weighted_totals\": {\"LABORATORY\": {\"LAB PARTICIPATION\": 0.0, \"LAB HOMEWORK\": 0.0, \"LAB EXERCISE\": 0.0}}, \"category_ratings\": {\"LABORATORY\": 0.0}, \"overall_percentage\": 0.0, \"final_grade\": 37.5, \"letter_grade\": \"5.00\", \"remarks\": null}}, {\"student_id\": 19, \"scores\": [{\"assessment_id\": 3, \"score\": 0.0}, {\"assessment_id\": 4, \"score\": 0.0}, {\"assessment_id\": 5, \"score\": 0.0}], \"computed\": {\"category_totals\": {\"LABORATORY\": {\"LAB PARTICIPATION\": 0.0, \"LAB HOMEWORK\": 0.0, \"LAB EXERCISE\": 0.0}}, \"weighted_totals\": {\"LABORATORY\": {\"LAB PARTICIPATION\": 0.0, \"LAB HOMEWORK\": 0.0, \"LAB EXERCISE\": 0.0}}, \"category_ratings\": {\"LABORATORY\": 0.0}, \"overall_percentage\": 0.0, \"final_grade\": 37.5, \"letter_grade\": \"5.00\", \"remarks\": null}}, {\"student_id\": 29, \"scores\": [{\"assessment_id\": 3, \"score\": 0.0}, {\"assessment_id\": 4, \"score\": 0.0}, {\"assessment_id\": 5, \"score\": 0.0}], \"computed\": {\"category_totals\": {\"LABORATORY\": {\"LAB PARTICIPATION\": 0.0, \"LAB HOMEWORK\": 0.0, \"LAB EXERCISE\": 0.0}}, \"weighted_totals\": {\"LABORATORY\": {\"LAB PARTICIPATION\": 0.0, \"LAB HOMEWORK\": 0.0, \"LAB EXERCISE\": 0.0}}, \"category_ratings\": {\"LABORATORY\": 0.0}, \"overall_percentage\": 0.0, \"final_grade\": 37.5, \"letter_grade\": \"5.00\", \"remarks\": null}}, {\"student_id\": 9, \"scores\": [{\"assessment_id\": 3, \"score\": 0.0}, {\"assessment_id\": 4, \"score\": 0.0}, {\"assessment_id\": 5, \"score\": 0.0}], \"computed\": {\"category_totals\": {\"LABORATORY\": {\"LAB PARTICIPATION\": 0.0, \"LAB HOMEWORK\": 0.0, \"LAB EXERCISE\": 0.0}}, \"weighted_totals\": {\"LABORATORY\": {\"LAB PARTICIPATION\": 0.0, \"LAB HOMEWORK\": 0.0, \"LAB EXERCISE\": 0.0}}, \"category_ratings\": {\"LABORATORY\": 0.0}, \"overall_percentage\": 0.0, \"final_grade\": 37.5, \"letter_grade\": \"5.00\", \"remarks\": null}}, {\"student_id\": 41, \"scores\": [{\"assessment_id\": 3, \"score\": 100.0}, {\"assessment_id\": 4, \"score\": 100.0}, {\"assessment_id\": 5, \"score\": 100.0}], \"computed\": {\"category_totals\": {\"LABORATORY\": {\"LAB PARTICIPATION\": 100.0, \"LAB HOMEWORK\": 100.0, \"LAB EXERCISE\": 100.0}}, \"weighted_totals\": {\"LABORATORY\": {\"LAB PARTICIPATION\": 10.0, \"LAB HOMEWORK\": 10.0, \"LAB EXERCISE\": 80.0}}, \"category_ratings\": {\"LABORATORY\": 100.0}, \"overall_percentage\": 40.0, \"final_grade\": 62.5, \"letter_grade\": \"5.00\", \"remarks\": null}}]}',2,'2025-11-26 11:42:57',NULL);
 /*!40000 ALTER TABLE `grade_snapshots` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -350,7 +422,7 @@ CREATE TABLE `grade_structures` (
 LOCK TABLES `grade_structures` WRITE;
 /*!40000 ALTER TABLE `grade_structures` DISABLE KEYS */;
 INSERT INTO `grade_structures` VALUES
-(1,1,'TESTINGS','{\"LABORATORY\": [{\"name\": \"LAB PARTICIPATION\", \"weight\": 10, \"assessments\": []}, {\"name\": \"LAB HOMEWORK\", \"weight\": 10, \"assessments\": []}, {\"name\": \"LAB EXERCISE\", \"weight\": 80, \"assessments\": []}], \"LECTURE\": []}',1,'2025-11-18 20:48:32','2025-11-18 20:48:32',1,1);
+(1,1,'TESTINGS','{\"LABORATORY\": [{\"name\": \"LAB PARTICIPATION\", \"weight\": 10, \"assessments\": []}, {\"name\": \"LAB HOMEWORK\", \"weight\": 10, \"assessments\": []}, {\"name\": \"LAB EXERCISE\", \"weight\": 80, \"assessments\": []}], \"LECTURE\": [{\"name\": \"QUIZ\", \"weight\": 100, \"assessments\": []}]}',1,'2025-11-18 20:48:32','2025-11-26 19:16:31',1,1);
 /*!40000 ALTER TABLE `grade_structures` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -377,7 +449,7 @@ CREATE TABLE `grade_subcategories` (
   KEY `idx_grade_subcategories_position` (`position`),
   CONSTRAINT `fk_category` FOREIGN KEY (`category_id`) REFERENCES `grade_categories` (`id`) ON DELETE CASCADE,
   CONSTRAINT `grade_subcategories_ibfk_1` FOREIGN KEY (`category_id`) REFERENCES `grade_categories` (`id`) ON DELETE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -389,7 +461,8 @@ LOCK TABLES `grade_subcategories` WRITE;
 INSERT INTO `grade_subcategories` VALUES
 (1,1,'LAB PARTICIPATION',10,0,NULL,1,NULL,'2025-11-18 20:57:01'),
 (2,1,'LAB HOMEWORK',10,0,NULL,2,NULL,'2025-11-18 20:57:01'),
-(3,1,'LAB EXERCISE',80,0,NULL,3,NULL,'2025-11-18 20:57:01');
+(3,1,'LAB EXERCISE',80,0,NULL,3,NULL,'2025-11-18 20:57:01'),
+(4,2,'QUIZ',100,0,NULL,1,NULL,'2025-11-26 19:16:39');
 /*!40000 ALTER TABLE `grade_subcategories` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -570,8 +643,41 @@ INSERT INTO `personal_info` VALUES
 (40,'Oliver','Thompson','Chua','20240038@isu.edu.ph','09171234598',NULL,'2005-09-02','Male','Aria Thompson','09179876580','2025-11-18 20:58:53','2025-11-18 20:58:53'),
 (41,'Aria','White','Go','20240039@isu.edu.ph','09171234599',NULL,'2004-06-11','Female','Luca White','09179876581','2025-11-18 20:58:53','2025-11-18 20:58:53'),
 (42,'Luca','Harris','Uy','20240040@isu.edu.ph','09171234600',NULL,'2005-12-05','Male','Maya Harris','09179876582','2025-11-18 20:58:53','2025-11-18 20:58:53'),
-(43,'Student','User',NULL,'23-13439@student.edu',NULL,NULL,NULL,NULL,NULL,NULL,'2025-11-19 19:06:03','2025-11-19 19:06:03');
+(43,'Student','BISAYA','','23-13439@student.edu','','',NULL,'','','','2025-11-19 19:06:03','2025-11-25 00:30:26');
 /*!40000 ALTER TABLE `personal_info` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
+-- Table structure for table `professor_calculation_overrides`
+--
+
+DROP TABLE IF EXISTS `professor_calculation_overrides`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `professor_calculation_overrides` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `professor_id` int(11) NOT NULL,
+  `class_id` int(11) DEFAULT NULL,
+  `name` varchar(100) NOT NULL,
+  `description` text DEFAULT NULL,
+  `template_json` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL CHECK (json_valid(`template_json`)),
+  `is_active` tinyint(1) DEFAULT 0,
+  `created_at` timestamp NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`),
+  KEY `professor_id` (`professor_id`),
+  KEY `class_id` (`class_id`),
+  CONSTRAINT `professor_calculation_overrides_ibfk_1` FOREIGN KEY (`professor_id`) REFERENCES `instructors` (`id`),
+  CONSTRAINT `professor_calculation_overrides_ibfk_2` FOREIGN KEY (`class_id`) REFERENCES `classes` (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `professor_calculation_overrides`
+--
+
+LOCK TABLES `professor_calculation_overrides` WRITE;
+/*!40000 ALTER TABLE `professor_calculation_overrides` DISABLE KEYS */;
+/*!40000 ALTER TABLE `professor_calculation_overrides` ENABLE KEYS */;
 UNLOCK TABLES;
 
 --
@@ -594,7 +700,7 @@ CREATE TABLE `released_grades` (
   `status` varchar(20) NOT NULL DEFAULT 'released',
   `grade_payload` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL CHECK (json_valid(`grade_payload`)),
   `released_by` int(11) DEFAULT NULL,
-  `released_at` datetime NOT NULL DEFAULT current_timestamp(),
+  `released_at` datetime DEFAULT current_timestamp(),
   `created_at` datetime NOT NULL DEFAULT current_timestamp(),
   `updated_at` datetime NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
   PRIMARY KEY (`id`),
@@ -619,8 +725,8 @@ LOCK TABLES `released_grades` WRITE;
 /*!40000 ALTER TABLE `released_grades` DISABLE KEYS */;
 INSERT INTO `released_grades` VALUES
 (1,1,1,11,'20240011','Thomas, Noah Tan',37.62,'5.00',0.200,'released','{\"student_id\": 11, \"scores\": [{\"assessment_id\": 3, \"score\": 5.0}], \"final_grade\": 37.62, \"equivalent\": \"5.00\", \"computed\": {\"category_totals\": {\"LABORATORY\": {\"LAB PARTICIPATION\": 5.0, \"LAB HOMEWORK\": 0.0, \"LAB EXERCISE\": 0.0}}, \"weighted_totals\": {\"LABORATORY\": {\"LAB PARTICIPATION\": 0.5, \"LAB HOMEWORK\": 0.0, \"LAB EXERCISE\": 0.0}}, \"category_ratings\": {\"LABORATORY\": 0.5}, \"overall_percentage\": 0.2, \"final_grade\": 37.62, \"letter_grade\": \"5.00\", \"remarks\": null}}',2,'2025-11-19 00:14:30','2025-11-19 00:14:30','2025-11-19 00:14:30'),
-(2,1,1,10,'20240010','Anderson, Olivia Lim',NULL,'N/A',NULL,'released','{\"student_id\": 10}',2,'2025-11-19 00:14:30','2025-11-19 00:19:06','2025-11-19 00:19:06'),
-(3,1,1,30,'20240030','Anderson, Sebastian Lim',NULL,'N/A',NULL,'released','{\"student_id\": 30}',2,'2025-11-19 00:14:30','2025-11-19 00:23:06','2025-11-19 00:23:06'),
+(2,1,1,10,'20240010','Anderson, Olivia Lim',NULL,'N/A',NULL,'hidden','{\"student_id\": 10}',2,NULL,'2025-11-19 00:19:06','2025-11-26 18:59:32'),
+(3,1,1,30,'20240030','Anderson, Sebastian Lim',NULL,'N/A',NULL,'hidden','{\"student_id\": 30}',2,NULL,'2025-11-19 00:23:06','2025-11-26 19:11:44'),
 (4,1,1,21,'20240021','Davis, Elijah Tan',NULL,'N/A',NULL,'released','{\"student_id\": 21}',2,'2025-11-19 00:14:30','2025-11-19 18:53:37','2025-11-19 18:53:37'),
 (5,1,2,41,'23-13439','User, Student',62.50,'5.00',40.000,'released','{\"student_id\": 41, \"scores\": [{\"assessment_id\": 3, \"score\": 100.0}, {\"assessment_id\": 4, \"score\": 100.0}, {\"assessment_id\": 5, \"score\": 100.0}], \"final_grade\": 62.5, \"equivalent\": \"5.00\", \"computed\": {\"category_totals\": {\"LABORATORY\": {\"LAB PARTICIPATION\": 100.0, \"LAB HOMEWORK\": 100.0, \"LAB EXERCISE\": 100.0}}, \"weighted_totals\": {\"LABORATORY\": {\"LAB PARTICIPATION\": 10.0, \"LAB HOMEWORK\": 10.0, \"LAB EXERCISE\": 80.0}}, \"category_ratings\": {\"LABORATORY\": 100.0}, \"overall_percentage\": 40.0, \"final_grade\": 62.5, \"letter_grade\": \"5.00\", \"remarks\": null}}',2,'2025-11-19 22:32:55','2025-11-19 22:32:55','2025-11-19 22:32:55');
 /*!40000 ALTER TABLE `released_grades` ENABLE KEYS */;
@@ -760,7 +866,7 @@ CREATE TABLE `student_scores` (
   KEY `idx_student_scores_student_id` (`student_id`),
   CONSTRAINT `student_scores_fk_assessment_id` FOREIGN KEY (`assessment_id`) REFERENCES `grade_assessments` (`id`) ON DELETE CASCADE,
   CONSTRAINT `student_scores_ibfk_2` FOREIGN KEY (`student_id`) REFERENCES `students` (`id`) ON DELETE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=8 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=629 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -770,13 +876,129 @@ CREATE TABLE `student_scores` (
 LOCK TABLES `student_scores` WRITE;
 /*!40000 ALTER TABLE `student_scores` DISABLE KEYS */;
 INSERT INTO `student_scores` VALUES
-(1,3,2,100,'2025-11-18 22:47:07','2025-11-18 22:47:07'),
-(2,3,11,5,'2025-11-18 22:47:07','2025-11-18 22:47:07'),
-(3,3,19,1,'2025-11-18 22:47:07','2025-11-18 22:47:07'),
-(4,3,41,100,'2025-11-19 22:29:28','2025-11-19 22:29:28'),
-(5,4,41,100,'2025-11-19 22:29:28','2025-11-19 22:29:28'),
-(6,5,41,100,'2025-11-19 22:29:28','2025-11-19 22:29:28'),
-(7,3,39,100,'2025-11-19 22:29:28','2025-11-19 22:29:28');
+(503,3,10,0,'2025-11-26 11:42:43','2025-11-26 11:42:43'),
+(504,4,10,0,'2025-11-26 11:42:43','2025-11-26 11:42:43'),
+(505,5,10,0,'2025-11-26 11:42:43','2025-11-26 11:42:43'),
+(506,3,30,0,'2025-11-26 11:42:43','2025-11-26 11:42:43'),
+(507,4,30,0,'2025-11-26 11:42:43','2025-11-26 11:42:43'),
+(508,5,30,0,'2025-11-26 11:42:43','2025-11-26 11:42:43'),
+(512,3,21,0,'2025-11-26 11:42:43','2025-11-26 11:42:43'),
+(513,4,21,0,'2025-11-26 11:42:43','2025-11-26 11:42:43'),
+(514,5,21,0,'2025-11-26 11:42:43','2025-11-26 11:42:43'),
+(515,3,1,0,'2025-11-26 11:42:43','2025-11-26 11:42:43'),
+(516,4,1,0,'2025-11-26 11:42:43','2025-11-26 11:42:43'),
+(517,5,1,0,'2025-11-26 11:42:43','2025-11-26 11:42:43'),
+(518,3,23,0,'2025-11-26 11:42:43','2025-11-26 11:42:43'),
+(519,4,23,0,'2025-11-26 11:42:43','2025-11-26 11:42:43'),
+(520,5,23,0,'2025-11-26 11:42:43','2025-11-26 11:42:43'),
+(521,3,2,0,'2025-11-26 11:42:43','2025-11-26 11:42:43'),
+(522,4,2,0,'2025-11-26 11:42:43','2025-11-26 11:42:43'),
+(523,5,2,0,'2025-11-26 11:42:43','2025-11-26 11:42:43'),
+(524,3,8,0,'2025-11-26 11:42:43','2025-11-26 11:42:43'),
+(525,4,8,0,'2025-11-26 11:42:43','2025-11-26 11:42:43'),
+(526,5,8,0,'2025-11-26 11:42:43','2025-11-26 11:42:43'),
+(527,3,28,0,'2025-11-26 11:42:43','2025-11-26 11:42:43'),
+(528,4,28,0,'2025-11-26 11:42:43','2025-11-26 11:42:43'),
+(529,5,28,0,'2025-11-26 11:42:43','2025-11-26 11:42:43'),
+(530,3,20,0,'2025-11-26 11:42:43','2025-11-26 11:42:43'),
+(531,4,20,0,'2025-11-26 11:42:43','2025-11-26 11:42:43'),
+(532,5,20,0,'2025-11-26 11:42:43','2025-11-26 11:42:43'),
+(533,3,40,0,'2025-11-26 11:42:43','2025-11-26 11:42:43'),
+(534,4,40,0,'2025-11-26 11:42:43','2025-11-26 11:42:43'),
+(535,5,40,0,'2025-11-26 11:42:43','2025-11-26 11:42:43'),
+(536,3,26,0,'2025-11-26 11:42:43','2025-11-26 11:42:43'),
+(537,4,26,0,'2025-11-26 11:42:43','2025-11-26 11:42:43'),
+(538,5,26,0,'2025-11-26 11:42:43','2025-11-26 11:42:43'),
+(539,3,7,0,'2025-11-26 11:42:43','2025-11-26 11:42:43'),
+(540,4,7,0,'2025-11-26 11:42:43','2025-11-26 11:42:43'),
+(541,5,7,0,'2025-11-26 11:42:43','2025-11-26 11:42:43'),
+(542,3,14,0,'2025-11-26 11:42:43','2025-11-26 11:42:43'),
+(543,4,14,0,'2025-11-26 11:42:43','2025-11-26 11:42:43'),
+(544,5,14,0,'2025-11-26 11:42:43','2025-11-26 11:42:43'),
+(545,3,34,0,'2025-11-26 11:42:43','2025-11-26 11:42:43'),
+(546,4,34,0,'2025-11-26 11:42:43','2025-11-26 11:42:43'),
+(547,5,34,0,'2025-11-26 11:42:43','2025-11-26 11:42:43'),
+(548,3,36,0,'2025-11-26 11:42:43','2025-11-26 11:42:43'),
+(549,4,36,0,'2025-11-26 11:42:43','2025-11-26 11:42:43'),
+(550,5,36,0,'2025-11-26 11:42:43','2025-11-26 11:42:43'),
+(551,3,16,0,'2025-11-26 11:42:43','2025-11-26 11:42:43'),
+(552,4,16,0,'2025-11-26 11:42:43','2025-11-26 11:42:43'),
+(553,5,16,0,'2025-11-26 11:42:43','2025-11-26 11:42:43'),
+(554,3,5,0,'2025-11-26 11:42:43','2025-11-26 11:42:43'),
+(555,4,5,0,'2025-11-26 11:42:43','2025-11-26 11:42:43'),
+(556,5,5,0,'2025-11-26 11:42:43','2025-11-26 11:42:43'),
+(557,3,27,0,'2025-11-26 11:42:43','2025-11-26 11:42:43'),
+(558,4,27,0,'2025-11-26 11:42:43','2025-11-26 11:42:43'),
+(559,5,27,0,'2025-11-26 11:42:43','2025-11-26 11:42:43'),
+(560,3,35,0,'2025-11-26 11:42:43','2025-11-26 11:42:43'),
+(561,4,35,0,'2025-11-26 11:42:43','2025-11-26 11:42:43'),
+(562,5,35,0,'2025-11-26 11:42:43','2025-11-26 11:42:43'),
+(563,3,15,0,'2025-11-26 11:42:43','2025-11-26 11:42:43'),
+(564,4,15,0,'2025-11-26 11:42:43','2025-11-26 11:42:43'),
+(565,5,15,0,'2025-11-26 11:42:43','2025-11-26 11:42:43'),
+(566,3,25,0,'2025-11-26 11:42:43','2025-11-26 11:42:43'),
+(567,4,25,0,'2025-11-26 11:42:43','2025-11-26 11:42:43'),
+(568,5,25,0,'2025-11-26 11:42:43','2025-11-26 11:42:43'),
+(569,3,6,0,'2025-11-26 11:42:43','2025-11-26 11:42:43'),
+(570,4,6,0,'2025-11-26 11:42:43','2025-11-26 11:42:43'),
+(571,5,6,0,'2025-11-26 11:42:43','2025-11-26 11:42:43'),
+(572,3,22,0,'2025-11-26 11:42:43','2025-11-26 11:42:43'),
+(573,4,22,0,'2025-11-26 11:42:43','2025-11-26 11:42:43'),
+(574,5,22,0,'2025-11-26 11:42:43','2025-11-26 11:42:43'),
+(575,3,13,0,'2025-11-26 11:42:43','2025-11-26 11:42:43'),
+(576,4,13,0,'2025-11-26 11:42:43','2025-11-26 11:42:43'),
+(577,5,13,0,'2025-11-26 11:42:43','2025-11-26 11:42:43'),
+(578,3,33,0,'2025-11-26 11:42:43','2025-11-26 11:42:43'),
+(579,4,33,0,'2025-11-26 11:42:43','2025-11-26 11:42:43'),
+(580,5,33,0,'2025-11-26 11:42:43','2025-11-26 11:42:43'),
+(581,3,17,0,'2025-11-26 11:42:43','2025-11-26 11:42:43'),
+(582,4,17,0,'2025-11-26 11:42:43','2025-11-26 11:42:43'),
+(583,5,17,0,'2025-11-26 11:42:43','2025-11-26 11:42:43'),
+(584,3,37,0,'2025-11-26 11:42:43','2025-11-26 11:42:43'),
+(585,4,37,0,'2025-11-26 11:42:43','2025-11-26 11:42:43'),
+(586,5,37,0,'2025-11-26 11:42:43','2025-11-26 11:42:43'),
+(587,3,3,0,'2025-11-26 11:42:43','2025-11-26 11:42:43'),
+(588,4,3,0,'2025-11-26 11:42:43','2025-11-26 11:42:43'),
+(589,5,3,0,'2025-11-26 11:42:43','2025-11-26 11:42:43'),
+(590,3,24,0,'2025-11-26 11:42:43','2025-11-26 11:42:43'),
+(591,4,24,0,'2025-11-26 11:42:43','2025-11-26 11:42:43'),
+(592,5,24,0,'2025-11-26 11:42:43','2025-11-26 11:42:43'),
+(593,3,4,0,'2025-11-26 11:42:43','2025-11-26 11:42:43'),
+(594,4,4,0,'2025-11-26 11:42:43','2025-11-26 11:42:43'),
+(595,5,4,0,'2025-11-26 11:42:43','2025-11-26 11:42:43'),
+(596,3,12,0,'2025-11-26 11:42:43','2025-11-26 11:42:43'),
+(597,4,12,0,'2025-11-26 11:42:43','2025-11-26 11:42:43'),
+(598,5,12,0,'2025-11-26 11:42:43','2025-11-26 11:42:43'),
+(599,3,32,0,'2025-11-26 11:42:43','2025-11-26 11:42:43'),
+(600,4,32,0,'2025-11-26 11:42:43','2025-11-26 11:42:43'),
+(601,5,32,0,'2025-11-26 11:42:43','2025-11-26 11:42:43'),
+(602,3,11,0,'2025-11-26 11:42:43','2025-11-26 11:42:43'),
+(603,4,11,0,'2025-11-26 11:42:43','2025-11-26 11:42:43'),
+(604,5,11,0,'2025-11-26 11:42:43','2025-11-26 11:42:43'),
+(605,3,31,0,'2025-11-26 11:42:43','2025-11-26 11:42:43'),
+(606,4,31,0,'2025-11-26 11:42:43','2025-11-26 11:42:43'),
+(607,5,31,0,'2025-11-26 11:42:43','2025-11-26 11:42:43'),
+(608,3,18,0,'2025-11-26 11:42:43','2025-11-26 11:42:43'),
+(609,4,18,0,'2025-11-26 11:42:43','2025-11-26 11:42:43'),
+(610,5,18,0,'2025-11-26 11:42:43','2025-11-26 11:42:43'),
+(611,3,38,0,'2025-11-26 11:42:43','2025-11-26 11:42:43'),
+(612,4,38,0,'2025-11-26 11:42:43','2025-11-26 11:42:43'),
+(613,5,38,0,'2025-11-26 11:42:43','2025-11-26 11:42:43'),
+(614,3,39,0,'2025-11-26 11:42:43','2025-11-26 11:42:43'),
+(615,4,39,0,'2025-11-26 11:42:43','2025-11-26 11:42:43'),
+(616,5,39,0,'2025-11-26 11:42:43','2025-11-26 11:42:43'),
+(617,3,19,0,'2025-11-26 11:42:43','2025-11-26 11:42:43'),
+(618,4,19,0,'2025-11-26 11:42:43','2025-11-26 11:42:43'),
+(619,5,19,0,'2025-11-26 11:42:43','2025-11-26 11:42:43'),
+(620,3,29,0,'2025-11-26 11:42:43','2025-11-26 11:42:43'),
+(621,4,29,0,'2025-11-26 11:42:43','2025-11-26 11:42:43'),
+(622,5,29,0,'2025-11-26 11:42:43','2025-11-26 11:42:43'),
+(623,3,9,0,'2025-11-26 11:42:43','2025-11-26 11:42:43'),
+(624,4,9,0,'2025-11-26 11:42:43','2025-11-26 11:42:43'),
+(625,5,9,0,'2025-11-26 11:42:43','2025-11-26 11:42:43'),
+(626,3,41,100,'2025-11-26 11:42:57','2025-11-26 11:42:57'),
+(627,4,41,100,'2025-11-26 11:42:57','2025-11-26 11:42:57'),
+(628,5,41,100,'2025-11-26 11:42:57','2025-11-26 11:42:57');
 /*!40000 ALTER TABLE `student_scores` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -946,4 +1168,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*M!100616 SET NOTE_VERBOSITY=@OLD_NOTE_VERBOSITY */;
 
--- Dump completed on 2025-11-24 23:55:30
+-- Dump completed on 2025-11-26 20:00:49

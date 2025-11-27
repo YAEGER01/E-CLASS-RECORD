@@ -33,6 +33,7 @@ instructor_bp = Blueprint("instructor", __name__)
 @login_required
 def api_update_assessment_max_score(assessment_id):
     """Update the max_score of an assessment by ID."""
+
     instructor_id, err = _require_instructor()
     if err:
         return err
@@ -265,6 +266,7 @@ def api_create_assessment_simple():
     """Create an assessment under a given subcategory by ID.
     Expects form-urlencoded: name, subcategory_id, max_score.
     """
+
     instructor_id, err = _require_instructor()
     if err:
         return err

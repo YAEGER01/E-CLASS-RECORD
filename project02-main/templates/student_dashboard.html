@@ -12,9 +12,11 @@
 
 <body>
     <div class="header">
-        <h1>🎓 Student Dashboard</h1>
-        <p>Welcome, {{ user.school_id }}!</p>
-    <a href="{{ url_for('auth.logout') }}" class="logout-btn">Logout</a>
+        <div>
+            <h1>🎓 Student Dashboard</h1>
+            <p>Welcome, {{ user.school_id }}!</p>
+        </div>
+        <a href="{{ url_for('auth.logout') }}" class="logout-btn">Logout</a>
     </div>
 
     <div class="dashboard-grid">
@@ -24,28 +26,27 @@
                 <button onclick="editProfile()" id="editProfileBtn" style="background:#16a34a; color:white; border:none; padding:6px 12px; border-radius:6px; cursor:pointer; font-weight:600;">✏️ Edit</button>
             </div>
 
-            <div style="display:flex; align-items:center; margin-top:12px;">
-                {# Prefer stored static paths (face_photo_path), then any photo/photo_path fields, then external URL, finally default image. Use onerror to fallback to default if file missing. #}
+            <div class="profile-content">
                 {% if user.student_profile.face_photo_path %}
-                <img id="profilePhoto" src="{{ url_for('static', filename=user.student_profile.face_photo_path) }}" data-default="{{ url_for('static', filename='images/default-profile.svg') }}" alt="Profile Photo" onerror="this.onerror=null;this.src=this.dataset.default;" style="width:72px; height:72px; object-fit:cover; border-radius:8px; margin-right:12px; border:1px solid #e5e7eb;">
+                <img id="profilePhoto" src="{{ url_for('static', filename=user.student_profile.face_photo_path) }}" data-default="{{ url_for('static', filename='images/default-profile.svg') }}" alt="Profile Photo" onerror="this.onerror=null;this.src=this.dataset.default;" class="profile-img">
                 {% elif user.student_profile.photo_path %}
-                <img id="profilePhoto" src="{{ url_for('static', filename=user.student_profile.photo_path) }}" data-default="{{ url_for('static', filename='images/default-profile.svg') }}" alt="Profile Photo" onerror="this.onerror=null;this.src=this.dataset.default;" style="width:72px; height:72px; object-fit:cover; border-radius:8px; margin-right:12px; border:1px solid #e5e7eb;">
+                <img id="profilePhoto" src="{{ url_for('static', filename=user.student_profile.photo_path) }}" data-default="{{ url_for('static', filename='images/default-profile.svg') }}" alt="Profile Photo" onerror="this.onerror=null;this.src=this.dataset.default;" class="profile-img">
                 {% elif user.student_profile.photo %}
-                <img id="profilePhoto" src="{{ url_for('static', filename=user.student_profile.photo) }}" data-default="{{ url_for('static', filename='images/default-profile.svg') }}" alt="Profile Photo" onerror="this.onerror=null;this.src=this.dataset.default;" style="width:72px; height:72px; object-fit:cover; border-radius:8px; margin-right:12px; border:1px solid #e5e7eb;">
+                <img id="profilePhoto" src="{{ url_for('static', filename=user.student_profile.photo) }}" data-default="{{ url_for('static', filename='images/default-profile.svg') }}" alt="Profile Photo" onerror="this.onerror=null;this.src=this.dataset.default;" class="profile-img">
                 {% elif user.student_profile.photo_url %}
-                <img id="profilePhoto" src="{{ user.student_profile.photo_url }}" data-default="{{ url_for('static', filename='images/default-profile.svg') }}" alt="Profile Photo" onerror="this.onerror=null;this.src=this.dataset.default;" style="width:72px; height:72px; object-fit:cover; border-radius:8px; margin-right:12px; border:1px solid #e5e7eb;">
+                <img id="profilePhoto" src="{{ user.student_profile.photo_url }}" data-default="{{ url_for('static', filename='images/default-profile.svg') }}" alt="Profile Photo" onerror="this.onerror=null;this.src=this.dataset.default;" class="profile-img">
                 {% else %}
-                <img id="profilePhoto" src="{{ url_for('static', filename='images/default-profile.svg') }}" data-default="{{ url_for('static', filename='images/default-profile.svg') }}" alt="Profile Photo" style="width:72px; height:72px; object-fit:cover; border-radius:8px; margin-right:12px; border:1px solid #e5e7eb;">
+                <img id="profilePhoto" src="{{ url_for('static', filename='images/default-profile.svg') }}" data-default="{{ url_for('static', filename='images/default-profile.svg') }}" alt="Profile Photo" class="profile-img">
                 {% endif %}
-                <div>
-                    <p style="margin:0;"><strong>School ID:</strong> <span id="schoolIdSpan">{{ user.school_id }}</span></p>
-                    <p style="margin:4px 0 0 0;"><strong>Course:</strong> <span id="courseSpan">{{ user.student_profile.course }}</span></p>
-                    <p style="margin:4px 0 0 0;"><strong>Year Level:</strong> <span id="yearLevelSpan">{{ user.student_profile.year_level }}</span></p>
-                    <p style="margin:4px 0 0 0;"><strong>Section:</strong> <span id="sectionSpan">{{ user.student_profile.section }}</span></p>
+                <div class="profile-info">
+                    <p><strong>School ID:</strong> <span id="schoolIdSpan">{{ user.school_id }}</span></p>
+                    <p><strong>Course:</strong> <span id="courseSpan">{{ user.student_profile.course }}</span></p>
+                    <p><strong>Year Level:</strong> <span id="yearLevelSpan">{{ user.student_profile.year_level }}</span></p>
+                    <p><strong>Section:</strong> <span id="sectionSpan">{{ user.student_profile.section }}</span></p>
                     {% if user.student_profile.track %}
-                    <p style="margin:4px 0 0 0;"><strong>Track:</strong> <span id="trackSpan">{{ user.student_profile.track }}</span></p>
+                    <p><strong>Track:</strong> <span id="trackSpan">{{ user.student_profile.track }}</span></p>
                     {% else %}
-                    <p style="margin:4px 0 0 0; color:#6b7280; font-style:italic;"><em id="trackSpan">No track set</em></p>
+                    <p class="no-track"><em id="trackSpan">No track set</em></p>
                     {% endif %}
                 </div>
             </div>
@@ -54,30 +55,25 @@
         <div class="card">
             <h3>🚀 JOIN CLASS</h3>
             <p>Enter a class join code to enroll in a new class.</p>
-            <div style="margin-top: 15px;">
-                <input type="text" id="joinCode" placeholder="Enter 6-digit join code" maxlength="6"
-                    style="padding: 8px; width: 200px; border: 1px solid #ddd; border-radius: 4px; margin-right: 10px;">
+            <div class="join-section">
+                <input type="text" id="joinCode" placeholder="Enter 6-digit join code" maxlength="6">
                 <button onclick="joinClass()" class="join-btn">🚀 Join Class</button>
             </div>
-            <div id="joinMessage" style="margin-top: 10px; display: none;"></div>
+            <div id="joinMessage"></div>
         </div>
 
         <div class="card">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+            <div class="classes-header">
                 <div>
-                    <h3 style="margin: 0;">📚 Joined Classes</h3>
-                    <p style="margin: 5px 0 0 0; color: #666; font-size: 14px;">Your enrolled classes</p>
+                    <h3>📚 Joined Classes</h3>
+                    <p class="classes-subtitle">Your enrolled classes</p>
                 </div>
-                <div id="classCount" style="color: #16a34a; font-weight: bold; font-size: 18px;">0</div>
+                <div id="classCount" class="class-count">0</div>
             </div>
-
-            <!-- Collapsible Class List -->
-            <div id="joinedClassesList" style="margin-top: 15px;">
-                <p style="color: #666; font-style: italic;">Loading classes...</p>
+            <div id="joinedClassesList">
+                <p class="loading-text">Loading classes...</p>
             </div>
-
-            <!-- Expand/Collapse Button -->
-            <button id="toggleClassesBtn" onclick="toggleClassList()" style="display: none; margin-top: 15px; background: #f3f4f6; color: #374151; border: 1px solid #d1d5db; padding: 8px 16px; border-radius: 6px; cursor: pointer; width: 100%; font-size: 14px;">
+            <button id="toggleClassesBtn" onclick="toggleClassList()" class="toggle-btn">
                 📖 View All Classes
             </button>
         </div>
@@ -85,15 +81,15 @@
         <div class="card">
             <h3>📊 My Grades & Reports</h3>
             <p>View your grades and export reports.</p>
-            <div style="margin-top: 15px; display: flex; gap: 10px; flex-wrap: wrap;">
-                <a href="{{ url_for('student.student_classes') }}" class="view-grades-btn" style="display:inline-block; background:#2563eb; color:#fff; padding:8px 16px; border-radius:6px; text-decoration:none; font-weight:600; font-size: 14px;">📊 View Grades</a>
-                <button onclick="exportStudentReport()" class="export-btn" style="background:#16a34a; color:#fff; border:none; padding:8px 16px; border-radius:6px; cursor:pointer; font-weight:600; font-size: 14px;">📄 Export Report</button>
+            <div class="grades-actions">
+                <a href="{{ url_for('student.student_classes') }}" class="view-grades-btn">📊 View Grades</a>
+                <button onclick="exportStudentReport()" class="export-btn">📄 Export Report</button>
             </div>
         </div>
             <div class="card">
                 <h3>📝 My Classes Table</h3>
                 <p>View all your joined classes in a table format.</p>
-                <a href="{{ url_for('student.student_classes') }}" class="view-table-btn" style="display:inline-block; background:#2563eb; color:#fff; padding:10px 20px; border-radius:6px; text-decoration:none; font-weight:600; margin-top:10px;">View Classes Table</a>
+                <a href="{{ url_for('student.student_classes') }}" class="view-table-btn">View Classes Table</a>
             </div>
     </div>
 
@@ -118,6 +114,7 @@
             </div>
         </div>
     </div>
+
 
     <template id="swal_edit_profile_template" hidden>
         <style>
@@ -469,9 +466,9 @@
             border-radius: 12px !important;
             box-shadow: 0 10px 30px rgba(2,6,23,0.12);
             position: fixed !important;
-            top: 50% !important;
+            top: 20px !important;
             left: 50% !important;
-            transform: translate(-50%, -50%) !important;
+            transform: translateX(-50%) !important;
             z-index: 9999 !important;
         }
 
@@ -544,11 +541,10 @@
                     title: '🌱 Welcome to Your Dashboard!',
                     text: 'Ready to join some classes? Enter a join code above.',
                     icon: 'info',
-                    timer: 3000,
+                    timer: 1000,
                     timerProgressBar: true,
                     showConfirmButton: false,
-                    toast: true,
-                    position: 'top-end',
+                    position: 'top',
                     background: '#f0fdf4',
                     color: '#166534',
                     iconColor: '#16a34a'
@@ -646,7 +642,7 @@
                                 timerProgressBar: true,
                                 showConfirmButton: false,
                                 toast: true,
-                                position: 'top-end',
+                                position: 'top',
                                 background: '#dcfce7',
                                 color: '#166534'
                             });
@@ -684,7 +680,7 @@
                             timerProgressBar: true,
                             showConfirmButton: false,
                             toast: true,
-                            position: 'top-end',
+                            position: 'top',
                             background: '#dcfce7',
                             color: '#166534'
                         });
@@ -802,7 +798,7 @@
                             timerProgressBar: true,
                             showConfirmButton: false,
                             toast: true,
-                            position: 'top-end',
+                            position: 'top',
                             background: '#dcfce7',
                             color: '#166534'
                         });
@@ -946,7 +942,7 @@
                             timer: 2000,
                             showConfirmButton: false,
                             toast: true,
-                            position: 'top-end',
+                            position: 'top',
                             background: '#dcfce7',
                             color: '#166534'
                         });
@@ -1116,7 +1112,7 @@
                         profileImg.onload = () => URL.revokeObjectURL(localUrl);
                     }
 
-                    Swal.fire({ icon: 'success', title: 'Profile Updated', text: (res.message) ? res.message : 'Your profile has been updated', timer: 1200, showConfirmButton: false, toast: true, position: 'top-end', background: '#dcfce7', color: '#166534' });
+                    Swal.fire({ icon: 'success', title: 'Profile Updated', text: (res.message) ? res.message : 'Your profile has been updated', timer: 1200, showConfirmButton: false, toast: true, position: 'top', background: '#dcfce7', color: '#166534' });
                     // Refresh the page after a short delay so all changes (including uploaded photos)
                     // are reflected from the server and any cached blobs are cleared.
                     setTimeout(() => { try { window.location.reload(); } catch (e) { console.warn('Reload failed', e); } }, 1400);
@@ -1155,6 +1151,7 @@
             }
         });
 
+
         // Export student grades report
         function exportStudentReport() {
             const exportBtn = document.getElementById('exportBtn');
@@ -1163,10 +1160,10 @@
                 exportBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating...';
             }
 
-            fetch('/reports/export_student_grades', {
+            fetch('/api/export/student-grades', {
                 method: 'GET',
                 headers: {
-                    'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                    'X-CSRFToken': csrfToken
                 }
             })
             .then(response => {
@@ -1193,7 +1190,7 @@
                     timer: 2000,
                     showConfirmButton: false,
                     toast: true,
-                    position: 'top-end'
+                    position: 'top'
                 });
             })
             .catch(error => {

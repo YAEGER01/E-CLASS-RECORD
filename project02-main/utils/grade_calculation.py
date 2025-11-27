@@ -3,7 +3,11 @@ from utils.db_conn import get_db_connection
 
 
 def get_equivalent(final_grade: float) -> str:
-    """Map numeric grade to equivalent string. Keep in sync with app.py or centralize later."""
+    """
+    Map numeric grade to equivalent string.
+    To customize grade equivalency, modify the thresholds and returned values below.
+    Example: Change the ranges or output strings to match your institution's grading system.
+    """
     if final_grade >= 96:
         return "1.00"
     if final_grade >= 93:
@@ -26,18 +30,20 @@ def get_equivalent(final_grade: float) -> str:
 def perform_grade_computation(
     formula: dict, normalized_rows: list, student_scores_named: list[dict]
 ) -> list[dict]:
-    """Compute per-student grades.
+    """
+    Compute per-student grades.
 
-    Assumptions:
-    - normalized_rows contain repeated 'weight' per group name; we sum unique group weights per (category, name)
-    - If formula defines category parts with weights, we use the sum of those weights as the category's total weight.
-      We scale the category contribution from structure weights to match the formula total weight. If structure weight is 0,
-      we use category average percent * formula total weight.
-    - student_scores_named carries {'student_id', 'assessment_name', 'score'}; we match by assessment_name to normalized rows.
+    Developer Customization Guide:
+    - To change how group/category weights are handled, modify the logic in the category_group_weights and category_weight_structure sections.
+    - To change how category contributions are scaled, adjust the scaling logic in the 'cat_contrib' calculation.
+    - To change how final grades are computed, modify the 'total_grade' and 'final_grade' calculations.
+    - To change grade equivalency, edit the get_equivalent() function above.
+    - To add new grading rules, insert your logic in the relevant sections below.
+    Each calculation step is commented for easy modification.
     """
     # Build lookup: assessment_name -> (category, group_name, max_score, group_weight)
+    # To change how assessments are mapped, modify this section.
     assess_lookup = {}
-    # Also compute per-category group weights and assessment sets
     from collections import defaultdict
 
     category_group_weights = defaultdict(float)  # (category, group_name) -> weight
@@ -54,15 +60,19 @@ def perform_grade_computation(
             if category:
                 category_assessments[category].append(aname)
         if category and gname:
-            # Sum unique group weight: last one wins if repeated; we'll just ensure it's set (weights should be same per group's assessments)
+            # To change group weight logic, modify here.
             category_group_weights[(category, gname)] = weight
 
     # Compute category total weight from structure
+    # Calculate total weight per category from structure
+    # To change how category weights are summed, modify here.
     category_weight_structure = defaultdict(float)
     for (category, gname), w in category_group_weights.items():
         category_weight_structure[category] += float(w or 0)
 
     # Compute category total weight from formula (sum of parts)
+    # Calculate total weight per category from formula (customizable)
+    # To change how formula weights are interpreted, modify here.
     category_weight_formula = {}
     if isinstance(formula, dict):
         for category, details in formula.items():
@@ -76,6 +86,8 @@ def perform_grade_computation(
                 category_weight_formula[category] = total_w
 
     # Group scores per student
+    # Group scores per student
+    # To change how scores are grouped, modify here.
     by_student = defaultdict(list)
     for rec in student_scores_named:
         sid = rec.get("student_id")
@@ -88,6 +100,7 @@ def perform_grade_computation(
     results = []
     for student_id, pairs in by_student.items():
         # category -> { group_name -> (sum_score, sum_max) }
+        # To change how group totals are computed, modify here.
         cat_group_totals = defaultdict(lambda: defaultdict(lambda: [0.0, 0.0]))
         for aname, score in pairs:
             if aname not in assess_lookup:
@@ -101,6 +114,7 @@ def perform_grade_computation(
         total_grade = 0.0
         for category, groups in cat_group_totals.items():
             # Compute contribution by groups using structure group weights
+            # To change how group contributions affect the total, modify here.
             cat_contrib = 0.0
             for gname, (sum_score, sum_max) in groups.items():
                 if sum_max <= 0:
@@ -110,6 +124,7 @@ def perform_grade_computation(
                 cat_contrib += avg_percent * gweight
 
             # Scale category contribution if formula dictates a different total weight
+            # To change scaling logic, modify here.
             desired_w = category_weight_formula.get(category)
             struct_w = category_weight_structure.get(category) or 0.0
             if desired_w is not None:
@@ -135,6 +150,7 @@ def perform_grade_computation(
 
             total_grade += cat_contrib
 
+        # To change final grade calculation, modify here.
         final_grade = round(total_grade, 2)
         equivalent = get_equivalent(final_grade)
         results.append(
@@ -145,7 +161,7 @@ def perform_grade_computation(
             }
         )
 
-    # Include students with no scores yet (enrolled but missing in by_student)
+    # To change how missing students are handled, modify here.
     try:
         with get_db_connection().cursor() as cursor:
             cursor.execute(

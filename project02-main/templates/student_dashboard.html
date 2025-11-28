@@ -6,6 +6,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Student Dashboard - E-Class Record</title>
     <script src="{{ url_for('static', filename='js/swal.js') }}"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="{{ url_for('static', filename='js/socket.io.min.js') }}"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/student-dashboard.css') }}">
 </head>
@@ -18,6 +20,11 @@
         </div>
         <a href="{{ url_for('auth.logout') }}" class="logout-btn">Logout</a>
     </div>
+
+    <!-- Auto-refresh indicators -->
+    <div id="autoRefreshIndicator" class="auto-refresh-indicator">Auto-refresh enabled</div>
+    <div id="refreshTimestamp" class="refresh-timestamp">Last updated: Just now</div>
+    <div id="connectionStatus" class="connection-status" title="Connection status"></div>
 
     <div class="dashboard-grid">
         <div class="card">
@@ -51,8 +58,65 @@
                 </div>
             </div>
         </div>
-
         <div class="card">
+            <div class="card-header">
+                <h3>🔔 Class Updates & Notifications</h3>
+                <div id="notificationCount" class="notification-badge">0</div>
+            </div>
+            <p>Stay updated with important notifications about your classes.</p>
+            <div id="classNotificationsList" class="notifications-list">
+                <div class="notifications-loading">
+                    <div class="spinner"></div> Loading notifications...
+                </div>
+            </div>
+            <button onclick="viewAllNotifications()" class="view-all-notifications-btn">📋 View All Updates</button>
+        </div>
+
+        <!-- Mobile Carousel for Join Classes -->
+        <div class="mobile-carousel join-classes-carousel">
+            <div class="carousel-header">
+                <h3>📚 Join & Manage Classes</h3>
+                <div class="carousel-controls">
+                    <button class="carousel-arrow carousel-prev" data-carousel="join-classes">‹</button>
+                    <button class="carousel-arrow carousel-next" data-carousel="join-classes">›</button>
+                </div>
+            </div>
+            <div class="carousel-container">
+                <div class="carousel-slides">
+                    <div class="carousel-slide">
+                        <div class="card">
+                            <h3>🚀 JOIN CLASS</h3>
+                            <p>Enter a class join code to enroll in a new class.</p>
+                            <div class="join-section">
+                                <input type="text" id="joinCode" placeholder="Enter 6-digit join code" maxlength="6">
+                                <button onclick="joinClass()" class="join-btn">🚀 Join Class</button>
+                            </div>
+                            <div id="joinMessage"></div>
+                        </div>
+                    </div>
+                    <div class="carousel-slide">
+                        <div class="card" >
+                            <div class="classes-header">
+                                <div>
+                                    <h3>📚 Joined Classes</h3>
+                                    <p class="classes-subtitle">Your enrolled classes</p>
+                                </div>
+                                <div id="classCount" class="class-count">0</div>
+                            </div>
+                            <div id="joinedClassesList">
+                                <p class="loading-text">Loading classes...</p>
+                            </div>
+                            <button id="toggleClassesBtn" onclick="toggleClassList()" class="toggle-btn">
+                                📖 View All Classes
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Desktop versions of Join Class and Joined Classes cards -->
+        <div class="desktop-card join-class-card">
             <h3>🚀 JOIN CLASS</h3>
             <p>Enter a class join code to enroll in a new class.</p>
             <div class="join-section">
@@ -62,7 +126,7 @@
             <div id="joinMessage"></div>
         </div>
 
-        <div class="card">
+        <div class="desktop-card joined-classes-card">
             <div class="classes-header">
                 <div>
                     <h3>📚 Joined Classes</h3>
@@ -78,7 +142,49 @@
             </button>
         </div>
 
-        <div class="card">
+        <!-- Mobile Carousel for Grades and Assessments -->
+        <div class="mobile-carousel grades-assessments-carousel">
+            <div class="carousel-header">
+                <h3>📊 Grades & Assessments</h3>
+                <div class="carousel-controls">
+                    <button class="carousel-arrow carousel-prev" data-carousel="grades-assessments">‹</button>
+                    <button class="carousel-arrow carousel-next" data-carousel="grades-assessments">›</button>
+                </div>
+            </div>
+            <div class="carousel-container">
+                <div class="carousel-slides">
+                    <div class="carousel-slide">
+                        <div class="card">
+                            <h3>📊 My Grades & Reports</h3>
+                            <p>View your grades and export reports.</p>
+                            <div class="grades-actions">
+                                <a href="{{ url_for('student.student_classes') }}" class="view-grades-btn">📊 View Grades</a>
+                                <!--button onclick="exportStudentReport()" class="export-btn">📄 Export Report</button-->
+                            </div>
+                        </div>
+                    </div>
+                    <div class="carousel-slide">
+                        <div class="card">
+                            <div class="card-header">
+                                <h3>⚠️ Missing Assessments</h3>
+                                <button id="missingAssessmentsToggle" onclick="toggleMissingAssessmentsDrawer()" class="toggle-drawer-btn">
+                                    📋 View Details
+                                </button>
+                            </div>
+                            <p>Track assessments that need to be completed across your classes.</p>
+                            <div id="missingAssessmentsSummary" class="missing-assessments-summary">
+                                <div class="summary-loading">
+                                    <div class="spinner"></div> Loading missing assessments...
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Desktop versions of Grades and Assessments cards -->
+        <div class="desktop-card grades-card">
             <h3>📊 My Grades & Reports</h3>
             <p>View your grades and export reports.</p>
             <div class="grades-actions">
@@ -86,24 +192,63 @@
                 <button onclick="exportStudentReport()" class="export-btn">📄 Export Report</button>
             </div>
         </div>
-            <div class="card">
-                <h3>📝 My Classes Table</h3>
-                <p>View all your joined classes in a table format.</p>
-                <a href="{{ url_for('student.student_classes') }}" class="view-table-btn">View Classes Table</a>
+
+
+        <div class="desktop-card assessments-card">
+            <div class="card-header">
+                <h3>⚠️ Missing Assessments</h3>
+                <button id="missingAssessmentsToggle" onclick="toggleMissingAssessmentsDrawer()" class="toggle-drawer-btn">
+                    📋 View Details
+                </button>
             </div>
+            <p>Track assessments that need to be completed across your classes.</p>
+            <div id="missingAssessmentsSummary" class="missing-assessments-summary">
+                <div class="summary-loading">
+                    <div class="spinner"></div> Loading missing assessments...
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Missing Assessments Drawer -->
+    <div id="missingAssessmentsDrawer" class="drawer-overlay">
+        <div class="drawer-content">
+            <div class="drawer-header">
+                <h3>📋 Missing Assessments Details</h3>
+                <button onclick="toggleMissingAssessmentsDrawer()" class="drawer-close-btn">✕</button>
+            </div>
+            <div id="missingAssessmentsContent" class="drawer-body">
+                <div class="drawer-loading">
+                    <div class="spinner"></div> Loading detailed assessment information...
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notifications Modal -->
+    <div id="notificationsModal">
+        <div class="notifications-modal-content">
+            <div class="notifications-modal-header">
+                <h3>🔔 All Class Notifications</h3>
+                <button onclick="closeNotificationsModal()" class="modal-close-btn">✕</button>
+            </div>
+            <div id="notificationsModalBody" class="notifications-modal-body">
+                <div class="notifications-loading">
+                    <div class="spinner"></div> Loading all notifications...
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- Class Details Modal -->
-    <div id="classModal"
-        style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000;">
-        <div
-            style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 20px; border-radius: 10px; width: 90%; max-width: 600px; max-height: 80%; overflow-y: auto;">
+    <div id="classModal">
+        <div>
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
                 <h3 style="margin: 0;">📚 Class Details</h3>
                 <button onclick="closeModal()"
                     style="background: #dc3545; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer;">✕</button>
             </div>
-            <div id="classDetails" style="line-height: 1.6;">
+            <div id="classDetails" style="line-height: 1.6; padding:10px">
                 <!-- Class details will be populated here -->
             </div>
             <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid #e5e7eb; text-align: right;">
@@ -114,6 +259,7 @@
             </div>
         </div>
     </div>
+
 
 
     <template id="swal_edit_profile_template" hidden>
@@ -522,6 +668,7 @@
             display: inline-block;
             margin-right: 8px;
         }
+
     </style>
 
     <script>
@@ -531,26 +678,55 @@
     let isClassListExpanded = false;
     let currentClassId = null;
 
-        // Load joined classes when page loads
-        document.addEventListener('DOMContentLoaded', function () {
-            loadJoinedClasses();
+    // Carousel logic for mobile carousels
+    function initCarousel(carouselSelector) {
+        const carousel = document.querySelector(carouselSelector);
+        if (!carousel) return;
+        const slidesContainer = carousel.querySelector('.carousel-slides');
+        const slides = carousel.querySelectorAll('.carousel-slide');
+        const prevBtn = carousel.querySelector('.carousel-prev');
+        const nextBtn = carousel.querySelector('.carousel-next');
+        let currentSlide = 0;
 
-            // Welcome notification
-            setTimeout(() => {
-                Swal.fire({
-                    title: '🌱 Welcome to Your Dashboard!',
-                    text: 'Ready to join some classes? Enter a join code above.',
-                    icon: 'info',
-                    timer: 1000,
-                    timerProgressBar: true,
-                    showConfirmButton: false,
-                    position: 'top',
-                    background: '#f0fdf4',
-                    color: '#166534',
-                    iconColor: '#16a34a'
-                });
-            }, 1000);
+        function showSlide(index) {
+            currentSlide = Math.max(0, Math.min(index, slides.length - 1));
+            slidesContainer.style.transform = `translateX(-${currentSlide * 100}%)`;
+            if (prevBtn) prevBtn.disabled = currentSlide === 0;
+            if (nextBtn) nextBtn.disabled = currentSlide === slides.length - 1;
+        }
+        if (prevBtn) prevBtn.addEventListener('click', () => showSlide(currentSlide - 1));
+        if (nextBtn) nextBtn.addEventListener('click', () => showSlide(currentSlide + 1));
+        showSlide(0);
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+        // Initialize carousels
+        initCarousel('.join-classes-carousel');
+        initCarousel('.grades-assessments-carousel');
+
+        loadJoinedClasses().then(() => {
+            loadMissingAssessmentsSummary();
+            loadClassNotifications();
+            initializeAutoRefresh();
         });
+
+        // Welcome notification
+        setTimeout(() => {
+            Swal.fire({
+                title: '🌱 Welcome to Your Dashboard!',
+                text: 'Ready to join some classes? Enter a join code above.',
+                icon: 'info',
+                timer: 1000,
+                timerProgressBar: true,
+                showConfirmButton: false,
+                position: 'top',
+                width: '400px',
+                background: '#f0fdf4',
+                color: '#166534',
+                iconColor: '#16a34a'
+            });
+        }, 1000);
+    });
 
         // Function to join a class
         function joinClass() {
@@ -749,11 +925,26 @@
 
         // Function to load joined classes
         function loadJoinedClasses() {
-            const listDiv = document.getElementById('joinedClassesList');
-            const countDiv = document.getElementById('classCount');
+            // Get the correct elements based on screen size
+            const isMobile = window.innerWidth <= 768;
+            const listDiv = isMobile ?
+                document.querySelector('.join-classes-carousel #joinedClassesList') :
+                document.querySelector('.desktop-card.joined-classes-card #joinedClassesList');
+            const countDiv = isMobile ?
+                document.querySelector('.join-classes-carousel #classCount') :
+                document.querySelector('.desktop-card.joined-classes-card #classCount');
+            const toggleBtn = isMobile ?
+                document.querySelector('.join-classes-carousel #toggleClassesBtn') :
+                document.querySelector('.desktop-card.joined-classes-card #toggleClassesBtn');
+
+            if (!listDiv || !countDiv) {
+                console.error('Could not find joined classes elements');
+                return Promise.resolve();
+            }
+
             listDiv.innerHTML = '<div style="text-align: center; padding: 20px;"><div class="spinner"></div>Loading your classes...</div>';
 
-            fetch('/api/student/joined-classes', {
+            return fetch('/api/student/joined-classes', {
                 credentials: 'same-origin'
             })
                 .then(response => {
@@ -787,7 +978,9 @@
                         listDiv.innerHTML = html;
 
                         // Show toggle button
-                        document.getElementById('toggleClassesBtn').style.display = 'block';
+                        if (toggleBtn) {
+                            toggleBtn.style.display = 'block';
+                        }
 
                         // Success notification
                         Swal.fire({
@@ -805,7 +998,9 @@
                     } else {
                         countDiv.textContent = '0';
                         listDiv.innerHTML = '<div style="text-align: center; padding: 40px; color: #666;"><div style="font-size: 48px; margin-bottom: 10px;">📭</div><p style="font-style: italic;">No classes joined yet.<br>Use the join code above to enroll in classes.</p></div>';
-                        document.getElementById('toggleClassesBtn').style.display = 'none';
+                        if (toggleBtn) {
+                            toggleBtn.style.display = 'none';
+                        }
                     }
                 })
                 .catch(error => {
@@ -887,7 +1082,9 @@
                             <strong>Joined Date:</strong> ${new Date(classData.joined_at).toLocaleDateString()}
                         </div>
                     `;
-                        document.getElementById('classModal').style.display = 'block';
+                        const modal = document.getElementById('classModal');
+                        modal.style.display = 'block';
+                        setTimeout(() => modal.classList.add('active'), 10);
                     }
                 })
                 .catch(error => {
@@ -975,7 +1172,10 @@
 
         // Function to close modal
         function closeModal() {
-            document.getElementById('classModal').style.display = 'none';
+            document.getElementById('classModal').classList.remove('active');
+            setTimeout(() => {
+                document.getElementById('classModal').style.display = 'none';
+            }, 300);
         }
 
         // Function to show messages
@@ -1209,6 +1409,840 @@
                 }
             });
         }
+
+
+        // Missing Assessments Drawer Functionality
+        let missingAssessmentsData = null;
+
+
+        // Function to load missing assessments summary
+        function loadMissingAssessmentsSummary() {
+            // Get the correct element based on screen size
+            const isMobile = window.innerWidth <= 768;
+            const summaryDiv = isMobile ?
+                document.querySelector('.grades-assessments-carousel #missingAssessmentsSummary') :
+                document.querySelector('.desktop-card.assessments-card #missingAssessmentsSummary');
+
+            if (!summaryDiv) {
+                console.error('Could not find missing assessments summary element');
+                return;
+            }
+
+            summaryDiv.innerHTML = '<div class="summary-loading"><div class="spinner"></div> Loading missing assessments...</div>';
+
+            fetch('/api/student/analytics', {
+                credentials: 'same-origin'
+            })
+                .then(response => {
+                    if (response.status === 302 || response.redirected) {
+                        throw new Error('Authentication required. Please log in again.');
+                    }
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    renderMissingAssessmentsSummary(data, summaryDiv);
+                })
+                .catch(error => {
+                    console.error('Error loading missing assessments:', error);
+                    summaryDiv.innerHTML = '<div style="text-align: center; padding: 20px; color: #dc3545;"><div style="font-size: 32px; margin-bottom: 8px;">❌</div><p>Failed to load missing assessments</p></div>';
+                });
+        }
+
+        // Function to render missing assessments summary
+        function renderMissingAssessmentsSummary(data, summaryDiv) {
+            
+            if (!data.classes || data.classes.length === 0) {
+                summaryDiv.innerHTML = '<div style="text-align: center; padding: 20px; color: #666;"><div style="font-size: 32px; margin-bottom: 8px;">📚</div><p>No classes enrolled</p></div>';
+                return;
+            }
+
+            let totalMissing = 0;
+            let html = '';
+
+            data.classes.forEach(cls => {
+                const missingCount = cls.missing_assessments ? cls.missing_assessments.length : 0;
+                totalMissing += missingCount;
+                
+                let countClass = 'none';
+                if (missingCount > 0) {
+                    countClass = missingCount > 3 ? '' : 'low';
+                }
+
+                html += `
+                    <div class="assessment-summary-item">
+                        <div class="assessment-summary-header">
+                            <div class="class-name">📚 ${cls.class_name}</div>
+                            <div class="missing-count ${countClass}">${missingCount} missing</div>
+                        </div>
+                        ${missingCount > 0 ? `
+                            <div class="assessment-list">
+                                <strong>Missing:</strong>
+                                <ul>
+                                    ${cls.missing_assessments.slice(0, 3).map(assessment => `<li>${assessment}</li>`).join('')}
+                                    ${missingCount > 3 ? `<li><em>...and ${missingCount - 3} more</em></li>` : ''}
+                                </ul>
+                            </div>
+                        ` : `
+                            <div style="color: #28a745; font-weight: 500;">✅ All assessments completed</div>
+                        `}
+                    </div>
+                `;
+            });
+
+            // Add overall summary
+            html = `
+                <div style="margin-bottom: 16px; padding: 12px; background: ${totalMissing > 0 ? '#fff5f5' : '#f0fff4'}; border-radius: 8px; border: 1px solid ${totalMissing > 0 ? '#fed7d7' : '#c6f6d5'};">
+                    <strong>📊 Summary:</strong> You have ${totalMissing} missing assessment${totalMissing !== 1 ? 's' : ''} across ${data.classes.length} class${data.classes.length !== 1 ? 'es' : ''}.
+                </div>
+            ` + html;
+
+            summaryDiv.innerHTML = html;
+        }
+
+        // Function to toggle missing assessments drawer
+        function toggleMissingAssessmentsDrawer() {
+            const drawer = document.getElementById('missingAssessmentsDrawer');
+            drawer.classList.toggle('active');
+            
+            if (drawer.classList.contains('active')) {
+                loadMissingAssessmentsDetails();
+            }
+        }
+
+        // Function to load missing assessments details
+        function loadMissingAssessmentsDetails() {
+            const contentDiv = document.getElementById('missingAssessmentsContent');
+            contentDiv.innerHTML = '<div class="drawer-loading"><div class="spinner"></div> Loading detailed assessment information...</div>';
+
+            // Use cached data if available, otherwise fetch
+            if (missingAssessmentsData) {
+                renderMissingAssessmentsDetails(missingAssessmentsData);
+            } else {
+                fetch('/api/student/analytics', {
+                    credentials: 'same-origin'
+                })
+                    .then(response => {
+                        if (response.status === 302 || response.redirected) {
+                            throw new Error('Authentication required. Please log in again.');
+                        }
+                        if (!response.ok) {
+                            throw new Error(`HTTP error! status: ${response.status}`);
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        missingAssessmentsData = data;
+                        renderMissingAssessmentsDetails(data);
+                    })
+                    .catch(error => {
+                        console.error('Error loading missing assessments details:', error);
+                        contentDiv.innerHTML = '<div style="text-align: center; padding: 40px; color: #dc3545;"><div style="font-size: 48px; margin-bottom: 12px;">❌</div><p>Failed to load assessment details</p></div>';
+                    });
+            }
+        }
+
+        // Function to render missing assessments details
+        function renderMissingAssessmentsDetails(data) {
+            const contentDiv = document.getElementById('missingAssessmentsContent');
+
+            if (!data.classes || data.classes.length === 0) {
+                contentDiv.innerHTML = '<div style="text-align: center; padding: 40px; color: #666;"><div style="font-size: 48px; margin-bottom: 12px;">📚</div><p>No classes enrolled</p></div>';
+                return;
+            }
+
+            let html = '';
+
+            data.classes.forEach(cls => {
+                const missingAssessments = cls.missing_assessments || [];
+                
+                html += `
+                    <div class="class-details-card">
+                        <div class="class-header">
+                            <div class="class-title">📚 ${cls.class_name}</div>
+                            <div class="class-meta">
+                                ${missingAssessments.length > 0 ? 
+                                    `<span style="color: #dc3545; font-weight: 600;">${missingAssessments.length} missing assessment${missingAssessments.length !== 1 ? 's' : ''}</span>` :
+                                    `<span style="color: #28a745; font-weight: 600;">✅ All assessments completed</span>`
+                                }
+                            </div>
+                        </div>
+                        
+                        ${missingAssessments.length > 0 ? `
+                            <div class="missing-assessments-list">
+                                <div class="missing-assessments-title">Missing Assessments</div>
+                                ${missingAssessments.map(assessment => `
+                                    <div class="assessment-item">
+                                        <div class="assessment-name">📝 ${assessment}</div>
+                                        <div class="assessment-info">This assessment is pending completion</div>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        ` : `
+                            <div class="no-missing-assessments">
+                                <div>Great job! All assessments have been completed for this class.</div>
+                            </div>
+                        `}
+                    </div>
+                `;
+            });
+
+            contentDiv.innerHTML = html;
+        }
+
+        // Close drawer when clicking outside
+        document.getElementById('missingAssessmentsDrawer').addEventListener('click', function (e) {
+            if (e.target === this) {
+                toggleMissingAssessmentsDrawer();
+            }
+        });
+
+        // Prevent drawer content clicks from closing drawer
+        document.querySelector('.drawer-content').addEventListener('click', function (e) {
+            e.stopPropagation();
+        });
+
+        // Notifications System
+        let notificationsData = null;
+        let allNotifications = [];
+
+        // Function to load class notifications
+        function loadClassNotifications() {
+            const notificationsDiv = document.getElementById('classNotificationsList');
+            notificationsDiv.innerHTML = '<div class="notifications-loading"><div class="spinner"></div> Loading notifications...</div>';
+
+            fetch('/api/student/analytics', {
+                credentials: 'same-origin'
+            })
+                .then(response => {
+                    if (response.status === 302 || response.redirected) {
+                        throw new Error('Authentication required. Please log in again.');
+                    }
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    notificationsData = data;
+                    lastRefreshData = data; // Initialize for polling comparison
+                    renderClassNotifications(data);
+                })
+                .catch(error => {
+                    console.error('Error loading notifications:', error);
+                    notificationsDiv.innerHTML = '<div style="text-align: center; padding: 20px; color: #dc3545;"><div style="font-size: 32px; margin-bottom: 8px;">❌</div><p>Failed to load notifications</p></div>';
+                    document.getElementById('notificationCount').textContent = '0';
+                    document.getElementById('notificationCount').classList.add('zero');
+                });
+        }
+
+        // Function to render class notifications
+        function renderClassNotifications(data) {
+            const notificationsDiv = document.getElementById('classNotificationsList');
+            const notificationCount = document.getElementById('notificationCount');
+
+            if (!data.classes || data.classes.length === 0) {
+                notificationsDiv.innerHTML = '<div class="no-notifications"><div>No classes enrolled</div></div>';
+                notificationCount.textContent = '0';
+                notificationCount.classList.add('zero');
+                return;
+            }
+
+            // Generate notifications based on missing assessments and released grades
+            const notifications = [];
+            let totalNotifications = 0;
+
+            data.classes.forEach(cls => {
+                // Missing assessments notification
+                if (cls.missing_assessments && cls.missing_assessments.length > 0) {
+                    notifications.push({
+                        type: 'assessment',
+                        severity: cls.missing_assessments.length > 3 ? 'urgent' : 'warning',
+                        className: cls.class_name,
+                        message: `${cls.missing_assessments.length} missing assessment${cls.missing_assessments.length !== 1 ? 's' : ''}: ${cls.missing_assessments.slice(0, 2).join(', ')}${cls.missing_assessments.length > 2 ? '...' : ''}`,
+                        time: 'Recent'
+                    });
+                    totalNotifications++;
+                }
+
+                // Released grades notification
+                if (cls.released_grades && cls.released_grades.length > 0) {
+                    cls.released_grades.forEach(grade => {
+                        const gradeText = grade.equivalent ? `${grade.final_grade} (${grade.equivalent})` : grade.final_grade;
+                        notifications.push({
+                            type: 'grade',
+                            severity: 'success',
+                            className: cls.class_name,
+                            message: `Grade released: ${gradeText}`,
+                            time: grade.released_at ? new Date(grade.released_at).toLocaleDateString() : 'Recently'
+                        });
+                        totalNotifications++;
+                    });
+                }
+            });
+
+            // Store all notifications for the modal
+            allNotifications = notifications;
+
+            // Update notification count
+            notificationCount.textContent = totalNotifications;
+            if (totalNotifications === 0) {
+                notificationCount.classList.add('zero');
+            } else {
+                notificationCount.classList.remove('zero');
+            }
+
+            // Render notifications
+            if (notifications.length === 0) {
+                notificationsDiv.innerHTML = '<div class="no-notifications"><div>No new notifications</div><div style="font-size: 0.9rem; color: #999;">You\'re all caught up!</div></div>';
+            } else {
+                let html = '';
+                notifications.slice(0, 5).forEach(notification => { // Show max 5 in card
+                    html += `
+                        <div class="notification-item ${notification.severity}" onclick="viewNotificationDetails('${notification.className}')">
+                            <div class="notification-header">
+                                <div class="notification-class">📚 ${notification.className}</div>
+                                <div class="notification-type ${notification.type}">${notification.type}</div>
+                            </div>
+                            <div class="notification-message">${notification.message}</div>
+                            <div class="notification-time">${notification.time}</div>
+                        </div>
+                    `;
+                });
+                notificationsDiv.innerHTML = html;
+            }
+        }
+
+        // Function to view all notifications
+        function viewAllNotifications() {
+            const modal = document.getElementById('notificationsModal');
+            const modalBody = document.getElementById('notificationsModalBody');
+
+            modal.classList.add('active');
+
+            if (allNotifications.length === 0) {
+                modalBody.innerHTML = '<div class="no-notifications"><div>No notifications available</div><div style="font-size: 0.9rem; color: #999;">You\'re all caught up!</div></div>';
+            } else {
+                let html = '<div class="all-notifications-list">';
+                allNotifications.forEach(notification => {
+                    html += `
+                        <div class="notification-item ${notification.severity}" onclick="viewNotificationDetails('${notification.className}')">
+                            <div class="notification-header">
+                                <div class="notification-class">📚 ${notification.className}</div>
+                                <div class="notification-type ${notification.type}">${notification.type}</div>
+                            </div>
+                            <div class="notification-message">${notification.message}</div>
+                            <div class="notification-time">${notification.time}</div>
+                        </div>
+                    `;
+                });
+                html += '</div>';
+                modalBody.innerHTML = html;
+            }
+        }
+
+        // Function to close notifications modal
+        function closeNotificationsModal() {
+            document.getElementById('notificationsModal').classList.remove('active');
+        }
+
+        // Function to view notification details
+        function viewNotificationDetails(className) {
+            // For now, just show a toast. In a real implementation, 
+            // this could navigate to class details or show more info
+            Swal.fire({
+                icon: 'info',
+                title: `📚 ${className}`,
+                text: 'Click "View All Updates" to see complete details',
+                timer: 2000,
+                showConfirmButton: false,
+                position: 'top',
+                background: '#f0f9ff',
+                color: '#0c4a6e'
+            });
+        }
+
+        // Close notifications modal when clicking outside
+        document.getElementById('notificationsModal').addEventListener('click', function (e) {
+            if (e.target === this) {
+                closeNotificationsModal();
+            }
+        });
+
+        // Auto-refresh system
+        let socket = null;
+        let isRefreshing = false;
+        let refreshInterval = null;
+        let lastRefreshData = null;
+
+        // Initialize auto-refresh system
+        function initializeAutoRefresh() {
+            // Initialize Socket.IO connection
+            try {
+                socket = io();
+                
+                // Connection status handlers
+                socket.on('connect', () => {
+                    updateConnectionStatus('connected');
+                    showAutoRefreshIndicator('Connected', 'updated');
+                    subscribeToLiveUpdates();
+                });
+
+                socket.on('disconnect', () => {
+                    updateConnectionStatus('disconnected');
+                    showAutoRefreshIndicator('Disconnected', 'refresh');
+                });
+
+                socket.on('connect_error', () => {
+                    updateConnectionStatus('disconnected');
+                });
+
+                socket.on('reconnect', () => {
+                    updateConnectionStatus('connected');
+                    showAutoRefreshIndicator('Reconnected', 'updated');
+                    subscribeToLiveUpdates();
+                });
+
+                // Listen for live version updates (database changes)
+                socket.on('live_version', (data) => {
+                    console.log('Live version update received:', data);
+                    handleDatabaseChange(data);
+                });
+
+                // Listen for specific class updates
+                socket.on('class_updated', (data) => {
+                    console.log('Class update received:', data);
+                    handleDatabaseChange(data);
+                });
+
+                updateConnectionStatus('connecting');
+            } catch (error) {
+                console.warn('Socket.IO not available, falling back to polling:', error);
+                initializePollingRefresh();
+            }
+
+            // Initialize periodic polling as fallback
+            initializePollingRefresh();
+            
+            // Add page visibility change handler
+            document.addEventListener('visibilitychange', handleVisibilityChange);
+        }
+
+        // Subscribe to live updates for student's classes
+        function subscribeToLiveUpdates() {
+            if (socket && socket.connected) {
+                // Subscribe to class updates
+                socket.emit('subscribe_live_version', { user_type: 'student' });
+            }
+        }
+
+        // Handle database changes
+        function handleDatabaseChange(changeData) {
+            console.log('Database change detected:', changeData);
+            
+            // Determine which sections to refresh based on change type
+            const sectionsToRefresh = determineSectionsToRefresh(changeData);
+            
+            if (sectionsToRefresh.length > 0) {
+                showAutoRefreshIndicator('Updating...', 'refresh');
+                refreshAffectedSections(sectionsToRefresh);
+            }
+        }
+
+        // Determine which dashboard sections need refreshing based on database changes
+        function determineSectionsToRefresh(changeData) {
+            const sections = [];
+
+            if (changeData.type === 'grade_update' || changeData.type === 'new_assessment') {
+                sections.push('notifications', 'missing-assessments', 'joined-classes');
+            } else if (changeData.type === 'class_joined' || changeData.type === 'class_left') {
+                sections.push('joined-classes', 'notifications');
+            } else if (changeData.type === 'profile_update') {
+                sections.push('profile');
+            } else {
+                // General update - refresh everything
+                sections.push('all');
+            }
+
+            return sections;
+        }
+
+        // Refresh specific dashboard sections
+        async function refreshAffectedSections(sections) {
+            if (isRefreshing) return;
+            
+            isRefreshing = true;
+            addRefreshingClassToSections(sections);
+            
+            try {
+                const refreshPromises = [];
+                
+                if (sections.includes('all') || sections.includes('joined-classes')) {
+                    refreshPromises.push(loadJoinedClasses());
+                }
+                
+                if (sections.includes('all') || sections.includes('missing-assessments')) {
+                    refreshPromises.push(loadMissingAssessmentsSummary());
+                    refreshPromises.push(loadClassNotifications());
+                }
+                
+                if (sections.includes('all') || sections.includes('profile')) {
+                    refreshPromises.push(loadProfile());
+                }
+                
+                // Execute all refreshes concurrently
+                await Promise.all(refreshPromises);
+                
+                showAutoRefreshIndicator('Updated', 'updated');
+                updateRefreshTimestamp();
+                
+                // Show success notification
+                setTimeout(() => {
+                    Swal.fire({
+                        icon: 'success',
+                        title: '🔄 Dashboard Updated',
+                        text: 'Your dashboard has been automatically refreshed with the latest data.',
+                        timer: 2000,
+                        showConfirmButton: false,
+                        position: 'top',
+                        background: '#dcfce7',
+                        color: '#166534'
+                    });
+                }, 500);
+                
+            } catch (error) {
+                console.error('Auto-refresh error:', error);
+                showAutoRefreshIndicator('Update failed', 'refresh');
+            } finally {
+                isRefreshing = false;
+                removeRefreshingClassFromSections(sections);
+            }
+        }
+
+        // Add visual indicator when sections are refreshing
+        function addRefreshingClassToSections(sections) {
+            if (sections.includes('all')) {
+                document.querySelectorAll('.card').forEach(card => {
+                    card.classList.add('data-section-refreshing');
+                });
+            } else {
+                // Add specific section classes based on content
+                sections.forEach(section => {
+                    const sectionElements = getSectionElements(section);
+                    sectionElements.forEach(element => {
+                        element.classList.add('data-section-refreshing');
+                    });
+                });
+            }
+        }
+
+        // Remove refreshing visual indicators
+        function removeRefreshingClassFromSections(sections) {
+            if (sections.includes('all')) {
+                document.querySelectorAll('.card').forEach(card => {
+                    card.classList.remove('data-section-refreshing');
+                });
+            } else {
+                sections.forEach(section => {
+                    const sectionElements = getSectionElements(section);
+                    sectionElements.forEach(element => {
+                        element.classList.remove('data-section-refreshing');
+                    });
+                });
+            }
+        }
+
+        // Get section elements based on section type
+        function getSectionElements(section) {
+            const isMobile = window.innerWidth <= 768;
+            switch (section) {
+                case 'joined-classes':
+                    return isMobile ?
+                        [document.querySelector('.join-classes-carousel #joinedClassesList')] :
+                        [document.querySelector('.desktop-card.joined-classes-card #joinedClassesList')];
+                case 'missing-assessments':
+                    return isMobile ?
+                        [document.querySelector('.grades-assessments-carousel #missingAssessmentsSummary')] :
+                        [document.querySelector('.desktop-card.assessments-card #missingAssessmentsSummary')];
+                case 'notifications':
+                    return [document.getElementById('classNotificationsList')];
+                case 'profile':
+                    return [document.querySelector('.profile-content')];
+                default:
+                    return [];
+            }
+        }
+
+        // Initialize polling-based refresh as fallback
+        function initializePollingRefresh() {
+            // Refresh every 30 seconds when page is visible
+            refreshInterval = setInterval(() => {
+                if (!document.hidden) {
+                    performPollingRefresh();
+                }
+            }, 30000);
+        }
+
+        // Fetch analytics data for polling comparison
+        async function fetchAnalyticsData() {
+            const response = await fetch('/api/student/analytics', {
+                credentials: 'same-origin'
+            });
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return await response.json();
+        }
+
+        // Perform polling refresh
+        async function performPollingRefresh() {
+            try {
+                const currentData = await fetchAnalyticsData();
+
+                // Check if data has changed
+                if (hasDataChanged(currentData, lastRefreshData)) {
+                    console.log('Data change detected via polling');
+                    await refreshAffectedSections(['all']);
+                    lastRefreshData = currentData;
+                }
+            } catch (error) {
+                console.error('Polling refresh error:', error);
+            }
+        }
+
+
+        // Check if data has changed (simple deep comparison)
+        function hasDataChanged(newData, oldData) {
+            if (!oldData) return true;
+            
+            try {
+                return JSON.stringify(newData) !== JSON.stringify(oldData);
+            } catch (error) {
+                return true; // If comparison fails, assume data changed
+            }
+        }
+
+        // Handle page visibility changes
+        function handleVisibilityChange() {
+            if (document.hidden) {
+                // Page is hidden, reduce refresh frequency
+                if (refreshInterval) {
+                    clearInterval(refreshInterval);
+                }
+            } else {
+                // Page is visible, perform immediate refresh and resume normal frequency
+                performPollingRefresh();
+                initializePollingRefresh();
+            }
+        }
+
+        // Show auto-refresh indicator
+        function showAutoRefreshIndicator(message, type = 'refresh') {
+            const indicator = document.getElementById('autoRefreshIndicator');
+            indicator.textContent = message;
+            indicator.className = `auto-refresh-indicator show ${type}`;
+            
+            // Hide after 3 seconds
+            setTimeout(() => {
+                indicator.classList.remove('show');
+            }, 3000);
+        }
+
+        // Update connection status indicator
+        function updateConnectionStatus(status) {
+            const statusElement = document.getElementById('connectionStatus');
+            statusElement.className = `connection-status ${status}`;
+            
+            const statusText = {
+                connected: 'Connected to live updates',
+                disconnected: 'Disconnected - using polling',
+                connecting: 'Connecting...'
+            }[status] || 'Unknown status';
+            
+            statusElement.title = statusText;
+        }
+
+        // Update refresh timestamp
+        function updateRefreshTimestamp() {
+            const timestampElement = document.getElementById('refreshTimestamp');
+            const now = new Date();
+            const timeString = now.toLocaleTimeString([], { 
+                hour: '2-digit', 
+                minute: '2-digit' 
+            });
+            
+            timestampElement.textContent = `Last updated: ${timeString}`;
+            timestampElement.classList.add('show');
+            
+            // Hide timestamp after 5 seconds
+            setTimeout(() => {
+                timestampElement.classList.remove('show');
+            }, 5000);
+        }
+
+        // Load profile data (placeholder function)
+        function loadProfile() {
+            // This would refresh the profile section if needed
+            // For now, we'll just return a resolved promise
+            return Promise.resolve();
+        }
+
+        // Cleanup auto-refresh system when page unloads
+        window.addEventListener('beforeunload', function () {
+            if (refreshInterval) {
+                clearInterval(refreshInterval);
+            }
+            if (socket) {
+                socket.disconnect();
+            }
+        });
+
+        // Carousel functionality
+        function initializeCarousels() {
+            // Initialize join classes carousel
+            const joinClassesCarousel = document.querySelector('.join-classes-carousel');
+            if (joinClassesCarousel) {
+                initializeCarousel(joinClassesCarousel);
+            }
+
+            // Initialize grades assessments carousel
+            const gradesAssessmentsCarousel = document.querySelector('.grades-assessments-carousel');
+            if (gradesAssessmentsCarousel) {
+                initializeCarousel(gradesAssessmentsCarousel);
+            }
+        }
+
+        function initializeCarousel(carouselElement) {
+            let currentSlide = 0;
+            let autoAdvanceInterval;
+            let isUserInteracting = false;
+            const slides = carouselElement.querySelector('.carousel-slides');
+            const prevBtn = carouselElement.querySelector('.carousel-prev');
+            const nextBtn = carouselElement.querySelector('.carousel-next');
+            const totalSlides = carouselElement.querySelectorAll('.carousel-slide').length;
+
+            // Update button states
+            updateArrowStates(carouselElement, currentSlide, totalSlides);
+
+            // Add click handlers to arrows
+            if (prevBtn) {
+                prevBtn.addEventListener('click', () => {
+                    const prevSlide = currentSlide - 1;
+                    if (prevSlide >= 0) {
+                        goToSlide(carouselElement, prevSlide);
+                        currentSlide = prevSlide;
+                        updateArrowStates(carouselElement, currentSlide, totalSlides);
+                        resetAutoAdvance();
+                    }
+                });
+            }
+
+            if (nextBtn) {
+                nextBtn.addEventListener('click', () => {
+                    const nextSlide = currentSlide + 1;
+                    if (nextSlide < totalSlides) {
+                        goToSlide(carouselElement, nextSlide);
+                        currentSlide = nextSlide;
+                        updateArrowStates(carouselElement, currentSlide, totalSlides);
+                        resetAutoAdvance();
+                    }
+                });
+            }
+
+            // Function to start auto-advance
+            function startAutoAdvance() {
+                autoAdvanceInterval = setInterval(() => {
+                    const nextSlide = (currentSlide + 1) % totalSlides;
+                    goToSlide(carouselElement, nextSlide);
+                    currentSlide = nextSlide;
+                    updateArrowStates(carouselElement, currentSlide, totalSlides);
+                }, 5000);
+            }
+
+            // Function to stop auto-advance
+            function stopAutoAdvance() {
+                if (autoAdvanceInterval) {
+                    clearInterval(autoAdvanceInterval);
+                    autoAdvanceInterval = null;
+                }
+            }
+
+            // Function to reset auto-advance (used after manual navigation)
+            function resetAutoAdvance() {
+                stopAutoAdvance();
+                startAutoAdvance();
+            }
+
+            // Pause auto-advance when user interacts with carousel content
+            function pauseOnInteraction() {
+                console.log('Pausing carousel auto-advance');
+                stopAutoAdvance();
+            }
+
+            // Resume auto-advance when user stops interacting
+            function resumeOnInteractionEnd() {
+                console.log('Resuming carousel auto-advance');
+                resetAutoAdvance();
+            }
+
+            // Add interaction listeners to carousel slides
+            const carouselSlides = carouselElement.querySelectorAll('.carousel-slide');
+            carouselSlides.forEach(slide => {
+                // Mouse events
+                slide.addEventListener('mouseenter', pauseOnInteraction);
+                slide.addEventListener('mouseleave', resumeOnInteractionEnd);
+
+                // Touch events for mobile
+                slide.addEventListener('touchstart', pauseOnInteraction);
+                slide.addEventListener('touchend', resumeOnInteractionEnd);
+
+                // Focus events for keyboard navigation and form elements
+                const interactiveElements = slide.querySelectorAll('input, button, a, select, textarea');
+                interactiveElements.forEach(element => {
+                    element.addEventListener('focus', pauseOnInteraction);
+                    element.addEventListener('blur', resumeOnInteractionEnd);
+                });
+            });
+
+            // Start auto-advance initially
+            startAutoAdvance();
+        }
+
+        function updateArrowStates(carouselElement, currentSlide, totalSlides) {
+            const prevBtn = carouselElement.querySelector('.carousel-prev');
+            const nextBtn = carouselElement.querySelector('.carousel-next');
+
+            if (prevBtn) {
+                prevBtn.disabled = currentSlide === 0;
+            }
+            if (nextBtn) {
+                nextBtn.disabled = currentSlide === totalSlides - 1;
+            }
+        }
+
+        function goToSlide(carouselElement, slideIndex) {
+            const slides = carouselElement.querySelector('.carousel-slides');
+            const indicators = carouselElement.querySelectorAll('.indicator');
+
+            // Update slide position
+            slides.style.transform = `translateX(-${slideIndex * 100}%)`;
+
+            // Update indicators
+            indicators.forEach((indicator, index) => {
+                if (index === slideIndex) {
+                    indicator.classList.add('active');
+                } else {
+                    indicator.classList.remove('active');
+                }
+            });
+        }
+
+        // Initialize carousels when DOM is loaded
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeCarousels();
+        });
     </script>
 </body>
 

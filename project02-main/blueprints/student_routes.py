@@ -740,3 +740,137 @@ def student_classes():
     except Exception as e:
         logger.error(f"Failed to load student classes page: {str(e)}", exc_info=True)
         return "Failed to load classes", 500
+
+
+@student_bp.route(
+    "/api/student/analytics", methods=["GET"], endpoint="student_analytics"
+)
+@login_required
+def student_analytics():
+    """Get basic analytics data for student dashboard (missing assessments, notifications)."""
+    if session.get("role") != "student":
+        return jsonify({"error": "Access denied. Student privileges required."}), 403
+
+    try:
+        with get_db_connection().cursor() as cursor:
+            # Get student ID
+            cursor.execute(
+                "SELECT id FROM students WHERE user_id = %s", (session["user_id"],)
+            )
+            student = cursor.fetchone()
+            if not student:
+                return jsonify({"error": "Student profile not found"}), 404
+            student_id = student["id"]
+
+            # Get joined classes
+            cursor.execute(
+                """SELECT c.id, c.class_code, c.course, c.section, c.year, c.semester
+                FROM classes c
+                JOIN student_classes sc ON c.id = sc.class_id
+                WHERE sc.student_id = %s""",
+                (student_id,),
+            )
+            classes_data = cursor.fetchall()
+
+            classes = []
+            for cls in classes_data:
+                # Get missing assessments for this class
+                missing_assessments = []
+                try:
+                    # Get grade structure for this class
+                    cursor.execute(
+                        "SELECT structure_json FROM grade_structures WHERE class_id = %s AND is_active = 1",
+                        (cls["id"],),
+                    )
+                    structure_row = cursor.fetchone()
+
+                    if structure_row and structure_row["structure_json"]:
+                        import json
+
+                        structure = json.loads(structure_row["structure_json"])
+
+                        # Get all assessments for this class with category and subcategory info
+                        cursor.execute(
+                            """
+                            SELECT ga.id, ga.name, gc.name as category, gs.name as subcategory
+                            FROM grade_assessments ga
+                            JOIN grade_subcategories gs ON ga.subcategory_id = gs.id
+                            JOIN grade_categories gc ON gs.category_id = gc.id
+                            WHERE ga.class_id = %s
+                            """,
+                            (cls["id"],),
+                        )
+                        assessments = cursor.fetchall()
+
+                        # Check which assessments the student hasn't completed
+                        for assessment in assessments:
+                            # Check if student has a score for this assessment
+                            cursor.execute(
+                                "SELECT score FROM student_scores WHERE student_id = %s AND assessment_id = %s",
+                                (student_id, assessment["id"]),
+                            )
+                            score_row = cursor.fetchone()
+
+                            # If no score found, it's missing
+                            if not score_row or score_row["score"] is None:
+                                missing_assessments.append(assessment["name"])
+
+                except Exception as e:
+                    logger.warning(
+                        f"Failed to get missing assessments for class {cls['id']}: {e}"
+                    )
+                    missing_assessments = []
+
+                # Format class name
+                formatted_year = cls["year"][-2:] if cls["year"] else "XX"
+                formatted_semester = (
+                    "1"
+                    if cls["semester"] and "1st" in cls["semester"].lower()
+                    else (
+                        "2"
+                        if cls["semester"] and "2nd" in cls["semester"].lower()
+                        else "1"
+                    )
+                )
+                class_name = f"{formatted_year}-{formatted_semester} {cls['course']} {cls['section']}"
+
+                # Get released grades for this class
+                released_grades = []
+                try:
+                    cursor.execute(
+                        "SELECT final_grade, equivalent, released_at FROM released_grades WHERE class_id = %s AND student_id = %s AND status = 'released'",
+                        (cls["id"], student_id),
+                    )
+                    released_rows = cursor.fetchall()
+                    for row in released_rows:
+                        released_grades.append(
+                            {
+                                "final_grade": row["final_grade"],
+                                "equivalent": row["equivalent"],
+                                "released_at": (
+                                    row["released_at"].isoformat()
+                                    if row["released_at"]
+                                    else None
+                                ),
+                            }
+                        )
+                except Exception as e:
+                    logger.warning(
+                        f"Failed to get released grades for class {cls['id']}: {e}"
+                    )
+                    released_grades = []
+
+                classes.append(
+                    {
+                        "class_id": class_name,
+                        "class_name": class_name,
+                        "missing_assessments": missing_assessments,
+                        "released_grades": released_grades,
+                    }
+                )
+
+        return jsonify({"classes": classes})
+
+    except Exception as e:
+        logger.error(f"Failed to get student analytics: {str(e)}")
+        return jsonify({"error": "Failed to retrieve analytics"}), 500

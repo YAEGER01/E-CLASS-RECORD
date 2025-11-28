@@ -1,6 +1,6 @@
 import logging
 from functools import wraps
-from flask import session, flash, redirect, url_for, request
+from flask import session, flash, redirect, url_for, request, jsonify
 
 from utils.db_conn import get_db_connection
 
@@ -16,6 +16,14 @@ def login_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
         if "user_id" not in session:
+            # If this is an API request, return JSON 401 so client-side fetch can handle it
+            try:
+                if request and getattr(request, "path", "").startswith("/api/"):
+                    return (jsonify({"error": "Authentication required"}), 401)
+            except Exception:
+                # Fall back to flashing/redirect for non-API contexts
+                pass
+
             try:
                 flash("Please log in to access this page.", "error")
             except Exception:

@@ -118,6 +118,149 @@
             margin: 4px 0;
             color: #14532d;
         }
+
+        /* Grade Breakdown Columns - Mobile First */
+        .grade-breakdown-columns {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .grade-column {
+            background: #ffffff;
+            border: 1px solid #e5e7eb;
+            border-radius: 12px;
+            padding: 16px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+
+        .grade-column h5 {
+            margin: 0 0 16px 0;
+            color: #14532d;
+            font-size: 1.1rem;
+            font-weight: 600;
+            border-bottom: 2px solid #e5e7eb;
+            padding-bottom: 8px;
+        }
+
+        .laboratory-column h5 {
+            border-bottom-color: #3b82f6;
+            color: #1e40af;
+        }
+
+        .lecture-column h5 {
+            border-bottom-color: #10b981;
+            color: #047857;
+        }
+
+        .column-content {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .category-section {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 12px;
+        }
+
+        .category-section h6 {
+            margin: 0 0 8px 0;
+            color: #374151;
+            font-size: 0.95rem;
+            font-weight: 600;
+        }
+
+        .subcategory-section {
+            margin-bottom: 8px;
+        }
+
+        .subcategory-name {
+            font-weight: 600;
+            color: #4b5563;
+            font-size: 0.9rem;
+            margin-bottom: 6px;
+            padding-left: 8px;
+            border-left: 3px solid #d1d5db;
+        }
+
+        .assessment-box {
+            background: #ffffff;
+            border: 1px solid #e5e7eb;
+            border-radius: 6px;
+            padding: 8px 10px;
+            margin: 4px 0 4px 12px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            font-size: 0.85rem;
+        }
+
+        .assessment-name {
+            font-weight: 600;
+            color: #374151;
+            margin-bottom: 2px;
+        }
+
+        .assessment-score {
+            font-size: 0.9rem;
+            color: #6b7280;
+        }
+
+        /* Tablet and Desktop - Side by side columns */
+        @media (min-width: 768px) {
+            .grade-breakdown-columns {
+                flex-direction: row;
+                gap: 24px;
+            }
+
+            .grade-column {
+                flex: 1;
+                padding: 20px;
+            }
+
+            .grade-column h5 {
+                font-size: 1.2rem;
+            }
+
+            .assessment-box {
+                padding: 10px 12px;
+                margin: 6px 0 6px 16px;
+                font-size: 0.9rem;
+            }
+
+            .subcategory-name {
+                font-size: 0.95rem;
+                padding-left: 12px;
+            }
+        }
+
+        /* Large Desktop */
+        @media (min-width: 1024px) {
+            .grade-breakdown-columns {
+                gap: 32px;
+            }
+
+            .grade-column {
+                padding: 24px;
+            }
+
+            .grade-column h5 {
+                font-size: 1.3rem;
+            }
+
+            .assessment-box {
+                padding: 12px 16px;
+                margin: 8px 0 8px 20px;
+                font-size: 0.95rem;
+            }
+
+            .subcategory-name {
+                font-size: 1rem;
+                padding-left: 16px;
+            }
+        }
     </style>
 </head>
 <body>
@@ -173,33 +316,123 @@
                         html += `<h4>Grade Breakdown</h4>`;
                         const structure = data.details.structure_json;
                         const scores = data.details.scores;
-                        // Map assessment_id to score
-                        const scoreMap = {};
-                        scores.forEach(s => { scoreMap[s.assessment_id] = s.score; });
+
+                        // Separate categories into LABORATORY and LECTURE
+                        const laboratoryCategories = {};
+                        const lectureCategories = {};
+
                         for (const [category, subcats] of Object.entries(structure)) {
-                            html += `<h5>${category}</h5>`;
-                            let hasAssessments = false;
-                            subcats.forEach(subcat => {
-                                if (subcat.assessments && Array.isArray(subcat.assessments) && subcat.assessments.length > 0) {
-                                    hasAssessments = true;
-                                    subcat.assessments.forEach(assessment => {
-                                        const score = assessment.released_score !== undefined && assessment.released_score !== null ? assessment.released_score : 'N/A';
-                                        const maxScore = assessment.max_score !== undefined ? assessment.max_score : '';
-                                        const color = assessment.color || 'black';
-                                        html += `<div class="assessment-box">
-                                            <div class="assessment-name">${assessment.name}</div>
-                                            <div class="assessment-score">Score: <strong style="color: ${color}">${score}</strong> / ${maxScore}</div>
-                                        </div>`;
-                                    });
+                            if (category.toUpperCase().includes('LABORATORY') || category.toUpperCase().includes('LAB')) {
+                                laboratoryCategories[category] = subcats;
+                            } else if (category.toUpperCase().includes('LECTURE') || category.toUpperCase().includes('LEC')) {
+                                lectureCategories[category] = subcats;
+                            } else {
+                                // If not clearly LAB or LEC, check subcategories for clues
+                                const hasLabSubcat = subcats.some(subcat =>
+                                    subcat.name && (subcat.name.toUpperCase().includes('LAB') || subcat.name.toUpperCase().includes('PRACTICAL'))
+                                );
+                                const hasLecSubcat = subcats.some(subcat =>
+                                    subcat.name && (subcat.name.toUpperCase().includes('LEC') || subcat.name.toUpperCase().includes('THEORY'))
+                                );
+
+                                if (hasLabSubcat && !hasLecSubcat) {
+                                    laboratoryCategories[category] = subcats;
+                                } else {
+                                    lectureCategories[category] = subcats;
                                 }
-                            });
-                            if (!hasAssessments) {
-                                html += `<div class="assessment-box" style="background: #fef3c7; border-color: #f59e0b; color: #92400e;">
-                                    <div class="assessment-name">No Assessments</div>
-                                    <div class="assessment-score">No assessments available for ${category.toLowerCase()}.</div>
-                                </div>`;
                             }
                         }
+
+                        // Create 2-column layout
+                        html += `<div class="grade-breakdown-columns">`;
+
+                        // LABORATORY Column
+                        html += `<div class="grade-column laboratory-column">
+                            <h5>LABORATORY Breakdown</h5>
+                            <div class="column-content">`;
+
+                        if (Object.keys(laboratoryCategories).length === 0) {
+                            html += `<div class="assessment-box" style="background: #fef3c7; border-color: #f59e0b; color: #92400e;">
+                                <div class="assessment-name">No Laboratory Assessments</div>
+                                <div class="assessment-score">No laboratory assessments available.</div>
+                            </div>`;
+                        } else {
+                            for (const [category, subcats] of Object.entries(laboratoryCategories)) {
+                                html += `<div class="category-section">
+                                    <h6>${category}</h6>`;
+                                let hasAssessments = false;
+                                subcats.forEach(subcat => {
+                                    if (subcat.assessments && Array.isArray(subcat.assessments) && subcat.assessments.length > 0) {
+                                        hasAssessments = true;
+                                        html += `<div class="subcategory-section">
+                                            <div class="subcategory-name">${subcat.name}</div>`;
+                                        subcat.assessments.forEach(assessment => {
+                                            const score = assessment.released_score !== undefined && assessment.released_score !== null ? assessment.released_score : 'N/A';
+                                            const maxScore = assessment.max_score !== undefined ? assessment.max_score : '';
+                                            const color = assessment.color || 'black';
+                                            html += `<div class="assessment-box">
+                                                <div class="assessment-name">${assessment.name}</div>
+                                                <div class="assessment-score">Score: <strong style="color: ${color}">${score}</strong> / ${maxScore}</div>
+                                            </div>`;
+                                        });
+                                        html += `</div>`;
+                                    }
+                                });
+                                if (!hasAssessments) {
+                                    html += `<div class="assessment-box" style="background: #fef3c7; border-color: #f59e0b; color: #92400e;">
+                                        <div class="assessment-name">No Assessments</div>
+                                        <div class="assessment-score">No assessments available for ${category.toLowerCase()}.</div>
+                                    </div>`;
+                                }
+                                html += `</div>`;
+                            }
+                        }
+
+                        html += `</div></div>`;
+
+                        // LECTURE Column
+                        html += `<div class="grade-column lecture-column">
+                            <h5>LECTURE Breakdown</h5>
+                            <div class="column-content">`;
+
+                        if (Object.keys(lectureCategories).length === 0) {
+                            html += `<div class="assessment-box" style="background: #fef3c7; border-color: #f59e0b; color: #92400e;">
+                                <div class="assessment-name">No Lecture Assessments</div>
+                                <div class="assessment-score">No lecture assessments available.</div>
+                            </div>`;
+                        } else {
+                            for (const [category, subcats] of Object.entries(lectureCategories)) {
+                                html += `<div class="category-section">
+                                    <h6>${category}</h6>`;
+                                let hasAssessments = false;
+                                subcats.forEach(subcat => {
+                                    if (subcat.assessments && Array.isArray(subcat.assessments) && subcat.assessments.length > 0) {
+                                        hasAssessments = true;
+                                        html += `<div class="subcategory-section">
+                                            <div class="subcategory-name">${subcat.name}</div>`;
+                                        subcat.assessments.forEach(assessment => {
+                                            const score = assessment.released_score !== undefined && assessment.released_score !== null ? assessment.released_score : 'N/A';
+                                            const maxScore = assessment.max_score !== undefined ? assessment.max_score : '';
+                                            const color = assessment.color || 'black';
+                                            html += `<div class="assessment-box">
+                                                <div class="assessment-name">${assessment.name}</div>
+                                                <div class="assessment-score">Score: <strong style="color: ${color}">${score}</strong> / ${maxScore}</div>
+                                            </div>`;
+                                        });
+                                        html += `</div>`;
+                                    }
+                                });
+                                if (!hasAssessments) {
+                                    html += `<div class="assessment-box" style="background: #fef3c7; border-color: #f59e0b; color: #92400e;">
+                                        <div class="assessment-name">No Assessments</div>
+                                        <div class="assessment-score">No assessments available for ${category.toLowerCase()}.</div>
+                                    </div>`;
+                                }
+                                html += `</div>`;
+                            }
+                        }
+
+                        html += `</div></div></div>`;
                     }
                     container.innerHTML = html;
                 })

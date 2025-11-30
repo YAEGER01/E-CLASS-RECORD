@@ -7,6 +7,38 @@
     <title>E-Class Record - Instructor Class Management</title>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/instructor-classes.css') }}">
+    <style>
+        .section-box {
+            background-color: #e5e7eb;
+            border-radius: 4px;
+            padding: 2px 6px;
+            margin: 0 2px;
+            font-weight: bold;
+            display: inline-block;
+            border: 1px solid #d1d5db;
+            position: relative;
+            cursor: pointer;
+        }
+        .section-box:hover::after {
+            content: attr(data-tooltip);
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            color: white;
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-size: 12px;
+            white-space: nowrap;
+            z-index: 1000;
+            opacity: 1;
+            pointer-events: none;
+            margin-bottom: 5px;
+        }
+    </style>
 </head>
 
 <body>
@@ -385,7 +417,27 @@
             }
         }
 
-        // Function to render classes
+        // Function to format section with tooltips
+        function formatSection(section) {
+            if (!section || section.length < 2) return section;
+            
+            const number = section.charAt(0);
+            const letter = section.charAt(1);
+            
+            // Map number to ordinal year
+            const ordinalMap = {
+                '1': '1st Year',
+                '2': '2nd Year',
+                '3': '3rd Year',
+                '4': '4th Year',
+                '5': '5th Year'
+            };
+            
+            const yearText = ordinalMap[number] || `${number}th Year`;
+            const sectionText = `Section ${letter}`;
+            
+            return `Section: [ <span class="section-box" data-tooltip="${yearText}">${number}</span> ] - [ <span class="section-box" data-tooltip="${sectionText}">${letter}</span> ]`;
+        }
         function renderClasses() {
             const container = document.getElementById('classes-container');
             container.innerHTML = '';
@@ -424,7 +476,7 @@
                         <div class="detail-item"><span class="detail-label">Course:</span><span>${cls.course}</span></div>
                         <div class="detail-item"><span class="detail-label">Subject:</span><span>${cls.subject || 'N/A'}</span></div>
                         <div class="detail-item"><span class="detail-label">Track:</span><span>${cls.track}</span></div>
-                        <div class="detail-item"><span class="detail-label">Section:</span><span>${cls.section}</span></div>
+                        <div class="detail-item"><span class="detail-label">Section:</span><span>${formatSection(cls.section)}</span></div>
                         <div class="detail-item"><span class="detail-label">Schedule:</span><span>${cls.schedule}</span></div>
                     </div>
                 `;
@@ -471,7 +523,7 @@
                 <div class="preview-item"><strong>Course:</strong> ${course}</div>
                 <div class="preview-item"><strong>Subject:</strong> ${subject}</div>
                 <div class="preview-item"><strong>Track:</strong> ${track}</div>
-                <div class="preview-item"><strong>Section:</strong> ${section}</div>
+                <div class="preview-item"><strong>Section:</strong> ${formatSection(section)}</div>
                 <div class="preview-item"><strong>Schedule:</strong> ${schedule}</div>
             `;
 

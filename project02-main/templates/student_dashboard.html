@@ -196,7 +196,7 @@
 
         <div class="desktop-card assessments-card">
             <div class="card-header">
-                <h3>⚠️ Missing Assessments</h3>
+                <h3>⚠️ Missing</h3>
                 <button id="missingAssessmentsToggle" onclick="toggleMissingAssessmentsDrawer()" class="toggle-drawer-btn">
                     📋 View Details
                 </button>
@@ -214,7 +214,7 @@
     <div id="missingAssessmentsDrawer" class="drawer-overlay">
         <div class="drawer-content">
             <div class="drawer-header">
-                <h3>📋 Missing Assessments Details</h3>
+                <h3>📋 Missing Details</h3>
                 <button onclick="toggleMissingAssessmentsDrawer()" class="drawer-close-btn">✕</button>
             </div>
             <div id="missingAssessmentsContent" class="drawer-body">
@@ -730,7 +730,37 @@
 
         // Function to join a class
         function joinClass() {
-            const joinCode = document.getElementById('joinCode').value.trim().toUpperCase();
+            // There are duplicate inputs with id="joinCode" (mobile + desktop).
+            // Pick the first non-empty value, otherwise the first visible one, otherwise the first element.
+            let joinCode = '';
+            const joinInputs = document.querySelectorAll('input#joinCode');
+            if (joinInputs && joinInputs.length) {
+                // prefer non-empty
+                for (const inp of joinInputs) {
+                    const val = (inp.value || '').trim();
+                    if (val) { joinCode = val.toUpperCase(); break; }
+                }
+                // if still empty, pick first visible input
+                if (!joinCode) {
+                    for (const inp of joinInputs) {
+                        try {
+                            const style = window.getComputedStyle(inp);
+                            const visible = style.display !== 'none' && style.visibility !== 'hidden' && inp.offsetParent !== null;
+                            if (visible) { joinCode = (inp.value || '').trim().toUpperCase(); break; }
+                        } catch (e) {
+                            // fallback: pick the element anyway
+                            joinCode = (inp.value || '').trim().toUpperCase();
+                            break;
+                        }
+                    }
+                }
+                // fallback to first
+                if (!joinCode && joinInputs[0]) joinCode = (joinInputs[0].value || '').trim().toUpperCase();
+            } else {
+                const single = document.getElementById('joinCode');
+                joinCode = single ? (single.value || '').trim().toUpperCase() : '';
+            }
+
             const joinButton = document.querySelector('.join-btn');
 
             if (!joinCode) {
@@ -754,6 +784,12 @@
             const originalHTML = joinButton.innerHTML;
             joinButton.innerHTML = '<div class="spinner"></div>Joining...';
             joinButton.disabled = true;
+
+            // Log the joinCode and input sources for debugging
+            try {
+                const allInputs = Array.from(document.querySelectorAll('input#joinCode')).map(i => ({value: i.value, visible: (window.getComputedStyle(i).display !== 'none' && i.visibility !== 'hidden' && i.offsetParent !== null)}));
+                console.log('Joining class - resolved joinCode:', joinCode, 'inputs:', allInputs);
+            } catch (e) { console.warn('Join debug log failed', e); }
 
             // Show loading toast
             let loadingSwal = Swal.fire({
@@ -1344,12 +1380,22 @@
             }
         }
 
-        // Allow Enter key to join class
-        document.getElementById('joinCode').addEventListener('keypress', function (e) {
-            if (e.key === 'Enter') {
-                joinClass();
-            }
-        });
+        // Allow Enter key to join class — attach listener to all joinCode inputs (mobile + desktop)
+        (function attachEnterToJoinInputs(){
+            const joinInputs = document.querySelectorAll('input#joinCode');
+            if (!joinInputs || joinInputs.length === 0) return;
+            joinInputs.forEach(inp => {
+                try {
+                    inp.addEventListener('keypress', function (e) {
+                        if (e.key === 'Enter') {
+                            joinClass();
+                        }
+                    });
+                } catch (err) {
+                    // ignore
+                }
+            });
+        })();
 
 
         // Export student grades report

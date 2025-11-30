@@ -47,7 +47,7 @@ body {
 .main-header {
   background: #ffffff;
   border-bottom: 1px solid var(--gray-200);
-  padding: 0 24px;
+  padding: 0 16px;
   position: sticky;
   top: 0;
   z-index: 100;
@@ -55,23 +55,23 @@ body {
 }
 
 .header-container {
-  max-width: 1400px;
+  max-width: 1200px;
   margin: 0 auto;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  height: 70px;
+  height: 60px;
 }
 
 .header-brand h1 {
-  font-size: 24px;
+  font-size: 20px;
   font-weight: 700;
   color: var(--gray-900);
   margin: 0;
 }
 
 .header-subtitle {
-  font-size: 14px;
+  font-size: 12px;
   color: var(--gray-600);
   font-weight: 500;
 }
@@ -163,15 +163,15 @@ body {
 
 /* Main Content Layout */
 .main-content {
-  padding: 32px 24px;
+  padding: 24px 16px;
 }
 
 .content-container {
-  max-width: 1400px;
+  max-width: 1200px;
   margin: 0 auto;
   display: grid;
-  grid-template-columns: 40% 60%;
-  gap: 32px;
+  grid-template-columns: 35% 65%;
+  gap: 24px;
 }
 
 /* Sidebar Styles */
@@ -185,15 +185,15 @@ body {
   background: #ffffff;
   border: 1px solid var(--gray-200);
   border-radius: 12px;
-  padding: 24px;
+  padding: 16px;
   box-shadow: var(--shadow-1);
 }
 
 .section-title {
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 600;
   color: var(--gray-900);
-  margin-bottom: 16px;
+  margin-bottom: 12px;
 }
 
 /* Structure List */
@@ -348,10 +348,12 @@ body {
 
 /* Help Panel */
 .help-panel {
-  background: var(--gray-50);
-  padding: 16px;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  padding: 12px;
   border-radius: 8px;
-  border: 1px solid var(--gray-200);
 }
 
 .help-list {
@@ -361,12 +363,12 @@ body {
 }
 
 .help-list li {
-  padding: 6px 0;
-  font-size: 13px;
+  padding: 4px 0;
+  font-size: 12px;
   color: var(--gray-600);
   line-height: 1.4;
   position: relative;
-  padding-left: 16px;
+  padding-left: 12px;
 }
 
 .help-list li::before {
@@ -377,12 +379,55 @@ body {
   font-weight: bold;
 }
 
+/* Glass Tooltips */
+[data-tooltip] {
+  position: relative;
+  cursor: help;
+}
+
+[data-tooltip]:hover::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  padding: 8px 12px;
+  color: var(--gray-900);
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+  z-index: 1000;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  opacity: 1;
+  visibility: visible;
+  transition: all 0.2s ease;
+}
+
+[data-tooltip]:hover::before {
+  content: "";
+  position: absolute;
+  bottom: calc(100% - 5px);
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0;
+  height: 0;
+  border-left: 5px solid transparent;
+  border-right: 5px solid transparent;
+  border-top: 5px solid rgba(255, 255, 255, 0.2);
+  z-index: 1001;
+}
+
 /* Main Section */
 .main-section {
   background: #ffffff;
   border: 1px solid var(--gray-200);
   border-radius: 12px;
-  padding: 24px;
+  padding: 16px;
   box-shadow: var(--shadow-1);
   height: fit-content;
 }
@@ -398,12 +443,12 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding-bottom: 16px;
+  padding-bottom: 12px;
   border-bottom: 1px solid var(--gray-200);
 }
 
 .editor-header h2 {
-  font-size: 24px;
+  font-size: 20px;
   font-weight: 700;
   color: var(--gray-900);
   margin: 0;
@@ -418,7 +463,7 @@ body {
 .editor-body {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 24px;
+  gap: 16px;
 }
 
 .column {
@@ -503,13 +548,13 @@ body {
 
 .column-header {
   text-align: center;
-  padding: 16px;
+  padding: 12px;
   border-radius: 8px;
   border: 1px solid var(--gray-200);
 }
 
 .column-header h3 {
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 700;
   color: var(--gray-900);
   margin: 0 0 4px 0;
@@ -524,7 +569,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 12px;
+  padding: 10px;
   background: var(--white);
   border: 1px solid var(--gray-200);
   border-radius: 8px;
@@ -540,9 +585,9 @@ body {
 .sub-list {
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  min-height: 200px;
-  max-height: 400px;
+  gap: 10px;
+  min-height: 150px;
+  max-height: 300px;
   overflow-y: auto;
   padding: 8px;
   background: var(--gray-50);
@@ -552,9 +597,9 @@ body {
 
 .sub-item {
   display: flex;
-  gap: 12px;
+  gap: 14px;
   align-items: center;
-  padding: 12px;
+  padding: 10px;
   background: var(--white);
   border: 1px solid var(--gray-200);
   border-radius: 8px;
@@ -590,9 +635,9 @@ body {
 .sub-item input[type="number"],
 .sub-item select {
   border: 1px solid var(--gray-300);
-  padding: 8px 10px;
-  border-radius: 6px;
-  font-size: 14px;
+  padding: 6px 8px;
+  border-radius: 10px;
+  font-size: 13px;
   transition: all 0.15s ease;
   background: var(--white);
 }
@@ -608,14 +653,15 @@ body {
   -webkit-appearance: none;
   -moz-appearance: none;
   background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
-  background-position: right 8px center;
+  background-position: right 10px center;
   background-repeat: no-repeat;
-  background-size: 16px 12px;
-  padding-right: 32px;
+  background-size: 14px 10px;
+  padding: 8px 36px 8px 12px;
   cursor: pointer;
   font-weight: 500;
   border: 1px solid var(--gray-300);
   background-color: var(--white);
+  border-radius: 12px;
 }
 
 .subcategory-select:hover {
@@ -695,20 +741,28 @@ body {
 }
 
 /* Dropdown option styling */
-.subcategory-select option {
-  padding: 8px;
+.subcategory-select option,
+.class-list option {
+  padding: 10px 12px;
   background: var(--white);
   color: var(--gray-900);
+  border-radius: 6px;
+  margin: 2px 0;
 }
 
-.subcategory-select option:hover {
+.subcategory-select option:hover,
+.class-list option:hover {
   background: var(--gray-100);
+  color: var(--gray-900);
 }
 
 /* Laboratory dropdown options */
 .column.lab .subcategory-select option {
   background: var(--white);
   color: var(--gray-900);
+  padding: 10px 12px;
+  border-radius: 6px;
+  margin: 2px 0;
 }
 
 .column.lab .subcategory-select option:checked {
@@ -720,6 +774,9 @@ body {
 .column.lecture .subcategory-select option {
   background: var(--white);
   color: var(--gray-900);
+  padding: 10px 12px;
+  border-radius: 6px;
+  margin: 2px 0;
 }
 
 .column.lecture .subcategory-select option:checked {
@@ -730,21 +787,21 @@ body {
 /* Preview Section */
 .preview-section {
   border-top: 1px solid var(--gray-200);
-  padding-top: 20px;
+  padding-top: 16px;
 }
 
 .preview-section h3 {
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 600;
   color: var(--gray-900);
-  margin-bottom: 16px;
+  margin-bottom: 12px;
 }
 
 .preview-box {
-  min-height: 120px;
+  min-height: 100px;
   border: 2px dashed var(--gray-300);
   border-radius: 8px;
-  padding: 20px;
+  padding: 16px;
   background: var(--gray-50);
   color: var(--gray-600);
   text-align: center;
@@ -765,14 +822,14 @@ body {
   border: 1px solid var(--gray-300);
   background: var(--white);
   color: var(--gray-700);
-  padding: 10px 16px;
+  padding: 8px 12px;
   border-radius: 8px;
   font-weight: 600;
-  font-size: 14px;
+  font-size: 13px;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   transition: all 0.15s ease;
   text-decoration: none;
 }
@@ -914,13 +971,39 @@ body {
   padding: 0;
   border: 1px solid var(--gray-200);
   width: 90%;
-  max-width: 500px;
+  max-width: 450px;
   border-radius: 16px;
   box-shadow: var(--shadow-soft);
 }
 
+/* Icon button for remove */
+.btn-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  padding: 6px;
+  border-radius: 10px;
+  background: transparent;
+  border: 1px solid var(--gray-200);
+  color: var(--gray-700);
+}
+
+.btn-icon:hover {
+  background: var(--gray-50);
+  color: var(--gray-900);
+}
+
+/* Ensure class dropdown in detail panel gets same rounded look */
+.class-list {
+  border-radius: 12px;
+  padding: 8px 12px;
+  border: 1px solid var(--gray-300);
+}
+
 .modal-header {
-  padding: 20px 24px;
+  padding: 16px 20px;
   border-bottom: 1px solid var(--gray-200);
   display: flex;
   justify-content: space-between;
@@ -929,7 +1012,7 @@ body {
 
 .modal-header h3 {
   margin: 0;
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 600;
   color: var(--gray-900);
 }
@@ -951,7 +1034,7 @@ body {
 }
 
 .modal-body {
-  padding: 24px;
+  padding: 20px;
 }
 
 .modal-actions {

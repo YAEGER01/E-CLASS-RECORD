@@ -479,6 +479,7 @@ def create_class():
     if session.get("role") != "instructor":
         return jsonify({"error": "Access denied"}), 403
 
+    conn = None
     try:
         conn = get_db_connection()
         try:
@@ -558,8 +559,20 @@ def create_class():
             conn.rollback()
             raise
 
+            year_str = str(data["year"]) if data["year"] else ""
+            formatted_year = year_str[-2:] if year_str else "XX"
+            semester_str = str(data["semester"]) if data["semester"] else ""
+            formatted_semester = (
+                "1"
+                if semester_str and "1st" in semester_str.lower()
+                else ("2" if semester_str and "2nd" in semester_str.lower() else "1")
+            )
+            computed_class_id = (
+                f"{formatted_year}-{formatted_semester} {data['course']} {section}"
+            )
+
             logger.info(
-                f"Instructor {session.get('school_id')} created class: {data['year']}-{data['semester']} {data['course']} {section}"
+                f"Instructor {session.get('school_id')} created class: {computed_class_id}"
             )
             return jsonify(
                 {
@@ -575,14 +588,15 @@ def create_class():
                         "track": data["track"],
                         "section": section,
                         "schedule": data["schedule"],
-                        "class_id": f"{data['year'][-2:]}-{('1' if '1st' in data['semester'].lower() else '2')} {data['course']} {section}",
+                        "class_id": computed_class_id,
                         "class_code": class_code,
                         "join_code": join_code,
                     },
                 }
             )
     except Exception as e:
-        get_db_connection().rollback()
+        if conn:
+            conn.rollback()
         logger.error(
             f"Failed to create class for instructor {session.get('school_id')}: {str(e)}"
         )
@@ -597,6 +611,7 @@ def update_class(class_id):
     if session.get("role") != "instructor":
         return jsonify({"error": "Access denied"}), 403
 
+    conn = None
     try:
         conn = get_db_connection()
         try:
@@ -663,20 +678,18 @@ def update_class(class_id):
             conn.rollback()
             raise
 
-            # Build returned class object
-            formatted_year = data["year"][-2:] if data["year"] else "XX"
-            formatted_semester = (
-                "1"
-                if data["semester"] and "1st" in data["semester"].lower()
-                else (
-                    "2"
-                    if data["semester"] and "2nd" in data["semester"].lower()
-                    else "1"
-                )
-            )
-            computed_class_id = (
-                f"{formatted_year}-{formatted_semester} {data['course']} {section}"
-            )
+        # Build returned class object
+        year_str = str(data["year"]) if data["year"] else ""
+        formatted_year = year_str[-2:] if year_str else "XX"
+        semester_str = str(data["semester"]) if data["semester"] else ""
+        formatted_semester = (
+            "1"
+            if semester_str and "1st" in semester_str.lower()
+            else ("2" if semester_str and "2nd" in semester_str.lower() else "1")
+        )
+        computed_class_id = (
+            f"{formatted_year}-{formatted_semester} {data['course']} {section}"
+        )
 
         logger.info(f"Instructor {session.get('school_id')} updated class {class_id}")
         return jsonify(
@@ -700,7 +713,8 @@ def update_class(class_id):
             }
         )
     except Exception as e:
-        get_db_connection().rollback()
+        if conn:
+            conn.rollback()
         logger.error(
             f"Failed to update class {class_id} for instructor {session.get('school_id')}: {str(e)}"
         )
@@ -717,6 +731,7 @@ def delete_class(class_id):
     if session.get("role") != "instructor":
         return jsonify({"error": "Access denied"}), 403
 
+    conn = None
     try:
         conn = get_db_connection()
         try:
@@ -748,7 +763,8 @@ def delete_class(class_id):
             )
             return jsonify({"message": "Class deleted successfully"}), 200
     except Exception as e:
-        get_db_connection().rollback()
+        if conn:
+            conn.rollback()
         logger.error(
             f"Failed to delete class {class_id} for instructor {session.get('school_id')}: {str(e)}"
         )

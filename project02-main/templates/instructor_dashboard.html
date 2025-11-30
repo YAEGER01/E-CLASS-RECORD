@@ -250,11 +250,10 @@
                         Swal.fire({
                             icon,
                             title: message || 'Notice',
-                            timer: 3000,
-                            timerProgressBar: true,
+                            timer: 1200,
+                            timerProgressBar: false,
                             showConfirmButton: false,
-                            toast: true,
-                            position: 'top-end',
+                            position: 'center',
                             background: '#f9fafb',
                             color: '#374151'
                         });
@@ -285,17 +284,16 @@
 
                     if (classes.length > 0) {
                         Swal.fire({
-                            icon: 'success',
-                            title: 'Classes Loaded!',
-                            text: `Found ${classes.length} class${classes.length > 1 ? 'es' : ''}`,
-                            timer: 2000,
-                            timerProgressBar: true,
-                            showConfirmButton: false,
-                            toast: true,
-                            position: 'top-end',
-                            background: '#f3f4f6',
-                            color: '#374151'
-                        });
+                                icon: 'success',
+                                title: 'Classes Loaded!',
+                                text: `Found ${classes.length} class${classes.length > 1 ? 'es' : ''}`,
+                                timer: 1000,
+                                timerProgressBar: false,
+                                showConfirmButton: false,
+                                position: 'center',
+                                background: '#f3f4f6',
+                                color: '#374151'
+                            });
                     }
                 } else {
                     container.innerHTML = '<div class="empty-state">Failed to load classes</div>';
@@ -303,6 +301,9 @@
                         icon: 'error',
                         title: 'Loading Error',
                         text: 'Failed to load classes. Please refresh the page.',
+                        timer: 2200,
+                        showConfirmButton: false,
+                        position: 'center',
                         background: '#fef2f2',
                         color: '#991b1b'
                     });
@@ -314,6 +315,9 @@
                     icon: 'error',
                     title: 'Connection Error',
                     text: 'Error loading classes. Please check your connection.',
+                    timer: 2200,
+                    showConfirmButton: false,
+                    position: 'center',
                     background: '#fef2f2',
                     color: '#991b1b'
                 });
@@ -384,12 +388,16 @@
 
         function testModal() {
             console.log('Test modal button clicked'); // Debug log
-            Swal.fire({
-                title: 'Test Modal',
-                text: 'The test button is working. Check the browser console for more details.',
-                icon: 'info',
-                confirmButtonText: 'OK'
-            });
+                    Swal.fire({
+                        title: 'Test Modal',
+                        text: 'The test button is working. Check the browser console for more details.',
+                        icon: 'info',
+                        timer: 1000,
+                        showConfirmButton: false,
+                        position: 'center',
+                        background: '#f9fafb',
+                        color: '#374151'
+                    });
         }
 
         async function showViewMembers() {
@@ -635,24 +643,38 @@
                 title: 'Regenerate Join Code?',
                 text: 'This will create a new join code for this class. The old code will no longer work.',
                 icon: 'warning',
+                position: 'center',
                 showCancelButton: true,
                 confirmButtonColor: '#6b7280',
                 cancelButtonColor: '#9ca3af',
                 confirmButtonText: 'Yes, regenerate'
             }).then((result) => {
                 if (result.isConfirmed) {
-                    Swal.fire('Coming Soon!', 'This feature will be implemented soon.', 'info');
+                    Swal.fire({
+                        icon: 'info',
+                        title: 'Coming Soon!',
+                        text: 'This feature will be implemented soon.',
+                        timer: 1200,
+                        showConfirmButton: false,
+                        position: 'center',
+                        background: '#f9fafb',
+                        color: '#374151'
+                    });
                 }
             });
         }
 
         function editClassInfo() {
-            Swal.fire({
-                title: 'Edit Class Information',
-                text: 'This feature will allow you to edit class details.',
-                icon: 'info',
-                confirmButtonText: 'Coming Soon'
-            });
+                    Swal.fire({
+                        title: 'Edit Class Information',
+                        text: 'This feature will allow you to edit class details.',
+                        icon: 'info',
+                        timer: 1000,
+                        showConfirmButton: false,
+                        position: 'center',
+                        background: '#f9fafb',
+                        color: '#374151'
+                    });
         }
 
         function refreshClasses(button) {
@@ -664,6 +686,7 @@
             Swal.fire({
                 title: 'Refreshing...',
                 text: 'Updating class list',
+                position: 'center',
                 allowOutsideClick: false,
                 showConfirmButton: false,
                 willOpen: () => {
@@ -702,12 +725,15 @@
         function copyJoinCode(code) {
             if (!code || code === 'N/A') {
                 Swal.fire({
-                    icon: 'info',
-                    title: 'No join code',
-                    text: 'This class does not have a join code yet.',
-                    background: '#f9fafb',
-                    color: '#374151'
-                });
+                        icon: 'info',
+                        title: 'No join code',
+                        text: 'This class does not have a join code yet.',
+                        timer: 1000,
+                        showConfirmButton: false,
+                        position: 'center',
+                        background: '#f9fafb',
+                        color: '#374151'
+                    });
                 return;
             }
             navigator.clipboard.writeText(code).then(() => {
@@ -715,10 +741,9 @@
                     icon: 'success',
                     title: 'Copied!',
                     text: `Join code ${code} copied to clipboard`,
-                    timer: 1500,
+                    timer: 900,
                     showConfirmButton: false,
-                    toast: true,
-                    position: 'top-end',
+                    position: 'center',
                     background: '#f3f4f6',
                     color: '#374151'
                 });
@@ -727,6 +752,9 @@
                     icon: 'error',
                     title: 'Copy failed',
                     text: 'Unable to copy join code. Please copy it manually.',
+                    timer: 1600,
+                    showConfirmButton: false,
+                    position: 'center',
                     background: '#fef2f2',
                     color: '#991b1b'
                 });
@@ -740,15 +768,14 @@
                     title: 'Welcome back, Instructor!',
                     text: 'Your dashboard is ready. Look for the "View Details" buttons next to each class to open class management options.',
                     icon: 'info',
-                    timer: 5000,
-                    timerProgressBar: true,
+                    timer: 1400,
+                    timerProgressBar: false,
                     showConfirmButton: false,
-                    toast: true,
-                    position: 'top-end',
+                    position: 'center',
                     background: '#f9fafb',
                     color: '#374151'
                 });
-            }, 1500);
+            }, 900);
 
             loadClasses();
         });
@@ -833,13 +860,16 @@
                 console.error('Failed to load grades overview:', error);
                 container.innerHTML = '<div class="no-data" style="text-align: center; color: #dc2626; font-style: italic; padding: 2rem;">Error loading grades. Please try again.</div>';
 
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Load Failed',
-                    text: error.message || 'Failed to load grade overview',
-                    background: '#fef2f2',
-                    color: '#991b1b'
-                });
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Load Failed',
+                            text: error.message || 'Failed to load grade overview',
+                            timer: 2200,
+                            showConfirmButton: false,
+                            position: 'center',
+                            background: '#fef2f2',
+                            color: '#991b1b'
+                        });
             } finally {
                 // Reset button state
                 spinner.style.display = 'none';
@@ -1075,7 +1105,15 @@
             const selectedStudents = Array.from(document.getElementById('notify-students').selectedOptions).map(opt => opt.value);
 
             if (!classId) {
-                Swal.fire('Error', 'Please select a class', 'error');
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Please select a class',
+                    timer: 1400,
+                    showConfirmButton: false,
+                    position: 'center',
+                    background: '#fef2f2',
+                    color: '#991b1b'
+                });
                 return;
             }
 
@@ -1098,23 +1136,55 @@
                 const result = await response.json();
 
                 if (response.ok) {
-                    Swal.fire('Success', result.message, 'success');
+                    Swal.fire({
+                        icon: 'success',
+                        title: result.message || 'Sent',
+                        timer: 1400,
+                        showConfirmButton: false,
+                        position: 'center',
+                        background: '#f3f4f6',
+                        color: '#374151'
+                    });
                     closeNotificationModal();
                 } else {
-                    Swal.fire('Error', result.error || 'Failed to send notifications', 'error');
+                    Swal.fire({
+                        icon: 'error',
+                        title: result.error || 'Failed to send notifications',
+                        timer: 1600,
+                        showConfirmButton: false,
+                        position: 'center',
+                        background: '#fef2f2',
+                        color: '#991b1b'
+                    });
                 }
             } catch (error) {
                 console.error('Failed to send notifications:', error);
-                Swal.fire('Error', 'Failed to send notifications', 'error');
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Failed to send notifications',
+                    timer: 1600,
+                    showConfirmButton: false,
+                    position: 'center',
+                    background: '#fef2f2',
+                    color: '#991b1b'
+                });
             }
         });
 
         function exportClassReport() {
             const classId = document.getElementById('export-class-select').value;
             if (!classId) {
-                Swal.fire('Error', 'Please select a class', 'error');
-                return;
-            }
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Please select a class',
+                            timer: 1400,
+                            showConfirmButton: false,
+                            position: 'center',
+                            background: '#fef2f2',
+                            color: '#991b1b'
+                        });
+                        return;
+                    }
 
             window.open(`/api/export/class-grades/${classId}`, '_blank');
         }

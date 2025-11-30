@@ -32,6 +32,12 @@
     return res.isConfirmed ? (res.value ?? '') : null;
   };
 
+  // escape for safe insertion into html strings
+  const escapeHtml = (s) => {
+    if (s == null) return '';
+    return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  };
+
   /**
    * Grade Management System Class
    */
@@ -104,63 +110,141 @@
     /**
      * Get grouped assessments from JSON element
      */
-    getGrouped() {
-      if (this.GROUPED_CACHE) return this.GROUPED_CACHE;
+    async computeServerForAll() {
       try {
-        const gaEl = document.getElementById('ga-json');
-        this.GROUPED_CACHE = JSON.parse((gaEl && gaEl.textContent) || '{}') || {};
-      } catch(_) { this.GROUPED_CACHE = {}; }
-      return this.GROUPED_CACHE;
+        const groupsPayload = {};
+        Object.entries(this.SUB_GROUPS).forEach(([k, g]) => {
+          groupsPayload[k] = { 
+            ids: g.ids.slice(), 
+            maxes: g.maxes.slice(), 
+            maxTotal: g.maxTotal || 0, 
+            subweight: g.subweight || 0 
+          };
+        });
+        const studentsPayload = this.getStudentRows().map(tr => {
+          const sid = parseInt(tr.getAttribute('data-student-id')||'0',10)||0;
+          const scores = {};
+          tr.querySelectorAll('input.score').forEach(inp => {
+            const aid = parseInt(inp.getAttribute('data-assessment')||'0',10)||0;
+            const v = inp.value;
+            if (v === '') return;
+            const num = parseFloat(v);
+            if (!isNaN(num)) scores[String(aid)] = num;
+          });
+          return { student_id: sid, scores };
+        });
+
+        const payload = { class_id: this.classId, groups: groupsPayload, students: studentsPayload };
+        const headers = { 'Content-Type': 'application/json' };
+        if (this.csrfToken) headers['X-CSRFToken'] = this.csrfToken;
+        const res = await fetch('/api/grade-entry/compute', { method: 'POST', headers, body: JSON.stringify(payload) });
+        if (!res.ok) return;
+        const out = await res.json();
+        if (!out || !out.results) return;
+
+        if (this.isMinor && out.summaries && typeof out.summaries === 'object') {
+          this.latestSummaries = out.summaries;
+        } else {
+          this.latestSummaries = {};
+        }
+        
+        this.getStudentRows().forEach(tr => {
+          const sid = String(parseInt(tr.getAttribute('data-student-id')||'0',10)||0);
+          const byGroup = out.results[sid] || {};
+          Object.entries(byGroup).forEach(([gkey, vals]) => {
+            const parts = gkey.split('::');
+            const cat = parts[0] || '';
+            const sub = parts[1] || '';
+            const totalCell = tr.querySelector(`td.computed.total-col[data-category="${cat}"][data-subcategory="${sub}"]`);
+            const equivCell = tr.querySelector(`td.computed.equiv-col[data-category="${cat}"][data-subcategory="${sub}"]`);
+            const reqpctCell = tr.querySelector(`td.computed.reqpct-col[data-category="${cat}"][data-subcategory="${sub}"]`);
+            if (totalCell && vals.total !== undefined) totalCell.textContent = Number(vals.total).toFixed(2);
+            if (equivCell && vals.eq_pct !== undefined) equivCell.textContent = Number(vals.eq_pct).toFixed(2);
+            if (reqpctCell) {
+              if (vals.reqpct_display !== undefined) {
+                reqpctCell.textContent = Number(vals.reqpct_display).toFixed(2);
+              } else if (vals.reqpct !== undefined) {
+                reqpctCell.textContent = Number(vals.reqpct).toFixed(2);
+              }
+            }
+          });
+          this.recomputeCategoryRatings(tr);
+          this.updateFinalGradeForRow(tr);
+        });
+      } catch (err) {
+        // silent fallback
+      }
     }
 
     /**
-     * Get existing assessment names for a category and subcategory
+     * Suggest a next assessment name for a given category/subcategory
+     * Returns an object { suggested, base, index, lsKey }
      */
-    getExistingNames(category, sub) {
+    nextNameSuggestion(category, subcategory, subcategoryId) {
+      const baseCandidate = (subcategory && String(subcategory).trim()) || 'Assessment';
+      const lsKey = `nextName:${this.classId}:${subcategory || ''}`;
+      let maxIdx = 0;
+      let seenExact = false;
+
       try {
-        const G = this.getGrouped();
-        const arr = (((G || {})[category] || {})[sub] || []);
-        return Array.isArray(arr) ? arr.map(a => a && a.name ? String(a.name) : '').filter(Boolean) : [];
-      } catch(_) { return []; }
+        const heads = Array.from(document.querySelectorAll('th.assess-col')).map(th => th.textContent.trim()).filter(Boolean);
+        heads.forEach(h => {
+          if (!h) return;
+          if (h === baseCandidate) { seenExact = true; return; }
+          const m = h.match(new RegExp(`^${baseCandidate}\\s*(\\d+)$`, 'i'));
+          if (m && m[1]) {
+            const idx = parseInt(m[1], 10);
+            if (!isNaN(idx)) maxIdx = Math.max(maxIdx, idx);
+          }
+        });
+      } catch (_) {}
+
+      if (maxIdx > 0) return { suggested: `${baseCandidate} ${maxIdx + 1}`, base: baseCandidate, index: maxIdx + 1, lsKey };
+      if (seenExact) return { suggested: `${baseCandidate} 2`, base: baseCandidate, index: 2, lsKey };
+      return { suggested: `${baseCandidate} 1`, base: baseCandidate, index: 1, lsKey };
     }
 
     /**
-     * Parse assessment name to extract base and index
+     * Parse an assessment name and extract a base and numeric index if present.
+     * e.g. 'Assessment 2' -> { base: 'Assessment', index: 2 }
      */
     parseName(name) {
-      if (!name) return { base: '', index: null };
-      const m = String(name).trim().match(/^(.+?)\s*(\d+)$/);
-      if (!m) return { base: String(name).trim(), index: null };
-      return { base: m[1].trim(), index: parseInt(m[2], 10) };
+      const out = {};
+      if (!name) return out;
+      const s = String(name).trim();
+      // Match trailing integer with optional separator (space or hyphen)
+      const m = s.match(/^(.*?)[\s\-]*([0-9]+)$/);
+      if (m) {
+        const base = (m[1] || '').trim() || s;
+        const idx = parseInt(m[2], 10);
+        out.base = base;
+        if (!isNaN(idx)) out.index = idx;
+      } else {
+        out.base = s;
+      }
+      return out;
     }
 
     /**
-     * Generate next assessment name suggestion
+     * Return grouped assessments object parsed from the `#ga-json` script or cached value.
+     * Ensures a plain object is always returned.
      */
-    nextNameSuggestion(category, sub, subId, fallbackBase='Assessment') {
-      const lsKey = `lastName:${this.classId}:${subId}`;
-      const last = localStorage.getItem(lsKey);
-      if (last) {
-        const p = this.parseName(last);
-        if (p.base) {
-          const names = this.getExistingNames(category, sub);
-          let maxIdx = 0;
-          names.forEach(n => { const pn = this.parseName(n); if (pn.base.toLowerCase() === p.base.toLowerCase() && pn.index) maxIdx = Math.max(maxIdx, pn.index); });
-          const nextIdx = (maxIdx || p.index || 0) + 1;
-          return { suggested: `${p.base} ${nextIdx}`, base: p.base, index: nextIdx, lsKey };
+    getGrouped() {
+      try {
+        if (this.GROUPED_CACHE && typeof this.GROUPED_CACHE === 'object') return this.GROUPED_CACHE;
+        const gaEl = document.getElementById('ga-json');
+        if (!gaEl) return (this.GROUPED_CACHE = {});
+        try {
+          const parsed = JSON.parse(gaEl.textContent || gaEl.innerText || '{}') || {};
+          this.GROUPED_CACHE = parsed;
+          return parsed;
+        } catch (e) {
+          this.GROUPED_CACHE = {};
+          return {};
         }
+      } catch (_) {
+        return {};
       }
-      const names = this.getExistingNames(category, sub);
-      if (names.length) {
-        const p0 = this.parseName(names[0]);
-        const base = p0.base || fallbackBase;
-        let maxIdx = 0;
-        names.forEach(n => { const pn = this.parseName(n); if (pn.base.toLowerCase() === base.toLowerCase() && pn.index) maxIdx = Math.max(maxIdx, pn.index); });
-        const nextIdx = (maxIdx || 0) + 1;
-        if (maxIdx === 0) return { suggested: base, base, index: 1, lsKey: `lastName:${this.classId}:${subId}` };
-        return { suggested: `${base} ${nextIdx}`, base, index: nextIdx, lsKey: `lastName:${this.classId}:${subId}` };
-      }
-      return { suggested: `${fallbackBase} 1`, base: fallbackBase, index: 1, lsKey: `lastName:${this.classId}:${subId}` };
     }
 
     /**
@@ -420,7 +504,13 @@
         if (btnSubmit) {
           e.preventDefault();
           try {
-            this.saveAndSnapshot();
+            const ok = await this.saveAndSnapshot();
+            if (ok) {
+              // Lock inputs after successful submit so instructor must unlock to edit again
+              try { this.applyLockState(true); } catch(_) {}
+              // reflect state on all toggle buttons
+              document.querySelectorAll('button[data-action="toggle-lock"]').forEach(b => b.classList.toggle('locked', !!this.inputsLocked));
+            }
           } catch (err) {
             console.error('saveAndSnapshot failed', err);
           }
@@ -477,56 +567,132 @@
       const subcategoryId = parseInt(btn.getAttribute('data-subcategory-id') || '0', 10) || 0;
       const suggest = this.nextNameSuggestion(category, subcategory, subcategoryId);
       
-      let name = await swalPromptText(`New assessment for ${subcategory}`, suggest.suggested);
-      if (name == null) return;
-      name = String(name).trim();
-      if (!name) { await swalAlert('warning', 'Name required', 'Please enter an assessment name.'); return; }
-      
-      let maxStr = await swalPromptNumber('Max score (e.g., 100)', 100);
-      if (maxStr == null) return;
-      const max = parseFloat(maxStr);
-      if (!isFinite(max) || max <= 0) { await swalAlert('warning', 'Invalid max score', 'Please enter a positive number.'); return; }
+      // Single Swal modal collecting name, max score, and quantity
+      let nameFinal, maxFinal, qtyFinal;
+      if (!SwalLib) {
+        let name = await swalPromptText(`New assessment for ${subcategory}`, suggest.suggested);
+        if (name == null) return;
+        name = String(name).trim();
+        if (!name) { await swalAlert('warning', 'Name required', 'Please enter an assessment name.'); return; }
+        let maxStr = await swalPromptNumber('Max score (e.g., 100)', 100);
+        if (maxStr == null) return;
+        const max = parseFloat(maxStr);
+        if (!isFinite(max) || max <= 0) { await swalAlert('warning', 'Invalid max score', 'Please enter a positive number.'); return; }
+        let qtyStr = window.prompt('Quantity to create (e.g. 1)', '1');
+        if (qtyStr == null) return;
+        const qty = parseInt(qtyStr, 10) || 1;
+        nameFinal = name;
+        maxFinal = max;
+        qtyFinal = Math.max(1, Math.min(qty, 50));
+      } else {
+        const html = `
+          <div style="text-align:left">
+            <label style="font-weight:600;font-size:13px;margin-bottom:6px;display:block">Assessment name</label>
+            <input id="swal-name" class="swal2-input" value="${escapeHtml(suggest.suggested)}">
+
+            <label style="font-weight:600;font-size:13px;margin-top:8px;margin-bottom:6px;display:block">Max score</label>
+            <input id="swal-max" type="number" class="swal2-input" min="1" step="0.01" value="100">
+
+            <label style="font-weight:600;font-size:13px;margin-top:8px;margin-bottom:6px;display:block">Quantity</label>
+            <input id="swal-qty" type="number" class="swal2-input" min="1" step="1" value="1">
+          </div>
+        `;
+        const res = await SwalLib.fire({
+          title: `New assessment for ${escapeHtml(subcategory)}`,
+          html: html,
+          showCancelButton: true,
+          confirmButtonText: 'Create',
+          focusConfirm: false,
+          preConfirm: () => {
+            const popup = SwalLib.getPopup();
+            const n = popup.querySelector('#swal-name')?.value || '';
+            const m = popup.querySelector('#swal-max')?.value || '';
+            const q = popup.querySelector('#swal-qty')?.value || '1';
+            return { name: n, max: m, qty: q };
+          }
+        });
+        if (!res || !res.isConfirmed) return;
+        nameFinal = String((res.value && res.value.name) || '').trim();
+        maxFinal = parseFloat((res.value && res.value.max) || '');
+        qtyFinal = parseInt((res.value && res.value.qty) || '1', 10) || 1;
+        qtyFinal = Math.max(1, Math.min(qtyFinal, 50)); // safety cap
+        if (!nameFinal) { await swalAlert('warning', 'Name required', 'Please enter an assessment name.'); return; }
+        if (!isFinite(maxFinal) || maxFinal <= 0) { await swalAlert('warning', 'Invalid max score', 'Please enter a positive number.'); return; }
+      }
       if (!subcategoryId) { await swalAlert('error', 'Subcategory mapping missing', 'Please refresh this page and try again.'); return; }
 
+      // Prepare the sequence of names to create
       try {
-        const payload = {
-          name,
-          subcategory_id: subcategoryId,
-          max_score: max
-        };
-        const formBody = new URLSearchParams();
-        Object.entries(payload).forEach(([k,v]) => {
-          if (v !== undefined && v !== null && v !== '') formBody.append(k, String(v));
-        });
-        const headers2 = { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8' };
-        if (this.csrfToken) headers2['X-CSRFToken'] = this.csrfToken;
-        
-        const res = await fetch('/api/assessments/simple', {
-          method: 'POST',
-          headers: headers2,
-          body: formBody.toString()
-        });
-        let out;
-        try { out = await res.json(); } catch(_) { out = {}; }
-        
-        if (!res.ok) {
-          const msg = out && out.error ? out.error : `Failed to create assessment (HTTP ${res.status})`;
-          await swalAlert('error', 'Create failed', msg);
-          return;
+        const parsed = this.parseName(nameFinal || '');
+        const base = parsed.base || suggest.base || 'Assessment';
+        const startIdx = parsed.index || (suggest && suggest.index) || 1;
+        const toCreate = [];
+        if ((qtyFinal === 1) && !parsed.index) {
+          // preserve exact user input when quantity is 1 and user didn't include an index
+          toCreate.push(nameFinal);
+        } else {
+          for (let i = 0; i < qtyFinal; i++) {
+            const idx = startIdx + i;
+            toCreate.push(`${base} ${idx}`);
+          }
         }
 
-        try {
-          localStorage.setItem(`lastName:${this.classId}:${subcategoryId}`, name);
-          const G = this.getGrouped();
-          G[category] = G[category] || {};
-          G[category][subcategory] = G[category][subcategory] || [];
-          G[category][subcategory].push({ name, max_score: max });
-        } catch(_) {}
-        
-        await swalAlert('success', 'Assessment created', `${name} added under ${subcategory}.`);
-        window.location.reload();
-      } catch(err) {
-        await swalAlert('error', 'Network error', 'Could not create assessment.');
+        // Show loading modal while performing requests
+        if (SwalLib) {
+          // show loading modal but do not await it (we will close programmatically)
+          SwalLib.fire({ title: 'Creating assessments...', allowOutsideClick: false, didOpen: () => { SwalLib.showLoading(); } });
+        }
+
+        const headers2Base = { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8' };
+        if (this.csrfToken) headers2Base['X-CSRFToken'] = this.csrfToken;
+
+        const G = this.getGrouped();
+        G[category] = G[category] || {};
+        G[category][subcategory] = G[category][subcategory] || [];
+
+        const created = [];
+        const failed = [];
+        for (let i = 0; i < toCreate.length; i++) {
+          const cname = toCreate[i];
+          const payload = { name: cname, subcategory_id: subcategoryId, max_score: maxFinal };
+          const formBody = new URLSearchParams();
+          Object.entries(payload).forEach(([k, v]) => { if (v !== undefined && v !== null && v !== '') formBody.append(k, String(v)); });
+          try {
+            const r = await fetch('/api/assessments/simple', { method: 'POST', headers: headers2Base, body: formBody.toString() });
+            let out = {};
+            try { out = await r.json(); } catch (_) { out = {}; }
+            if (!r.ok) {
+              failed.push({ name: cname, status: r.status, error: out && out.error });
+            } else {
+              created.push(cname);
+              try { G[category][subcategory].push({ name: cname, max_score: maxFinal }); } catch(_) {}
+            }
+          } catch (err) {
+            failed.push({ name: cname, error: err && err.message });
+          }
+        }
+
+        try { localStorage.setItem(`lastName:${this.classId}:${subcategoryId}`, String(toCreate[toCreate.length - 1] || '')); } catch(_) {}
+
+        if (SwalLib) SwalLib.close();
+
+        if (created.length && !failed.length) {
+          await swalAlert('success', 'Assessments created', `${created.length} assessment(s) added under ${subcategory}.`);
+          window.location.reload();
+          return;
+        }
+        if (created.length && failed.length) {
+          await swalAlert('warning', 'Partial success', `${created.length} created, ${failed.length} failed.`);
+          window.location.reload();
+          return;
+        }
+        // none created
+        await swalAlert('error', 'Create failed', failed.length ? (failed[0].error || `Failed to create ${failed[0].name}`) : 'Unknown error');
+      } catch (err) {
+        if (SwalLib) SwalLib.close();
+        console.error('handleAdd failed', err);
+        const msg = err && err.message ? String(err.message) : 'Could not create assessment(s).';
+        await swalAlert('error', 'Network error', msg);
       }
     }
 
@@ -547,7 +713,7 @@
         try {
           const headers = { 'Content-Type': 'application/json' };
           if (this.csrfToken) headers['X-CSRFToken'] = this.csrfToken;
-          const res = await fetch(`/api/assessments/${assessmentId}/update_max`, { method: 'POST', headers, body: JSON.stringify({ max_score: newMax }) });
+          const res = await fetch(`/assessments/${assessmentId}/update_max`, { method: 'POST', headers, body: JSON.stringify({ max_score: newMax }) });
           if (!res.ok) { window.alert('Update failed'); return; }
           window.location.reload();
         } catch(_) { window.alert('Network error'); }
@@ -574,7 +740,7 @@
         try {
           const headers = { 'Content-Type': 'application/json' };
           if (this.csrfToken) headers['X-CSRFToken'] = this.csrfToken;
-          const rdel = await fetch(`/api/assessments/${assessmentId}`, { method: 'DELETE', headers });
+          const rdel = await fetch(`/assessments/${assessmentId}`, { method: 'DELETE', headers });
           let out = {};
           try { out = await rdel.json(); } catch(_) {}
           if (!rdel.ok) {
@@ -599,7 +765,7 @@
         try {
           const headers = { 'Content-Type': 'application/json' };
           if (this.csrfToken) headers['X-CSRFToken'] = this.csrfToken;
-          const r = await fetch(`/api/assessments/${assessmentId}/update_max`, { method: 'POST', headers, body: JSON.stringify({ max_score: newMax }) });
+          const r = await fetch(`/assessments/${assessmentId}/update_max`, { method: 'POST', headers, body: JSON.stringify({ max_score: newMax }) });
           let out = {};
           try { out = await r.json(); } catch(_) {}
           if (!r.ok) {
@@ -664,6 +830,7 @@
         if (!res.ok) {
           this.status.textContent = out.error || 'Save failed';
           await swalAlert('error', 'Save failed', out.error || out.message || 'Unknown error');
+          return false;
         } else {
           this.status.textContent = 'All changes saved — snapshot created';
           // clear dirty state and persisted drafts
@@ -672,11 +839,13 @@
           await swalAlert('success', 'Saved', `Snapshot version ${out.version || ''} created.`);
           // request fresh compute values from server to update UI
           try { this.computeServerForAll(); } catch(_) {}
+          return true;
         }
       } catch (err) {
         console.error(err);
         this.status.textContent = 'Network error';
         await swalAlert('error', 'Network error', 'Could not save snapshot.');
+        return false;
       }
     }
 
@@ -813,8 +982,11 @@
       // the sheet is still blank.
       const hasAnyInputValue = Array.from(tr.querySelectorAll('input.score')).some(i => String(i.value).trim() !== '');
 
-      const gradeMarkCell = finalRow.querySelector('td.grade-mark');
-      const remarksCell = finalRow.querySelector('td.remarks');
+      // Resolve final grade cells; fall back to global selectors if structure differs
+      let gradeMarkCell = finalRow.querySelector('td.grade-mark');
+      if (!gradeMarkCell) gradeMarkCell = document.querySelector(`table.final-grade-table td.grade-mark[data-student="${sid}"]`);
+      let remarksCell = finalRow.querySelector('td.remarks');
+      if (!remarksCell) remarksCell = document.querySelector(`table.final-grade-table td.remarks[data-student="${sid}"]`);
 
       if (!hasAnyInputValue) {
         if (rawCell) rawCell.textContent = '';
@@ -868,36 +1040,95 @@
         gradeMarkCell.textContent = gm;
       }
 
-      // Compute REMARKS: check for missing Project, Exam, or Lab Exam inputs.
-      // Heuristic: group assessments by keywords in their header names. If any matching
-      // assessment exists for this student row and its input is empty, mark as missing.
+      // Compute REMARKS: check for missing assessments based on existing subcategories.
+      // Check if any subcategory contains keywords, and if so, check if all assessments in that subcategory are filled.
       if (remarksCell) {
         const heads = Array.from(document.querySelectorAll('th.assess-col'));
-        const getIdsByKeywords = (keywords) => {
-          return heads.map(h => {
-            const id = h.getAttribute('data-assessment-id');
-            const name = (h.childNodes[0]?.nodeValue || h.textContent || '').toLowerCase();
-            return (id && keywords.some(k => name.includes(k))) ? id : null;
-          }).filter(Boolean);
+        const subcats = {};
+        heads.forEach(h => {
+          const sub = h.getAttribute('data-subcategory') || '';
+          if (!sub) return;
+          if (!subcats[sub]) subcats[sub] = [];
+          subcats[sub].push(h.getAttribute('data-assessment-id'));
+        });
+
+        const checkSubcategoryMissing = (keywords) => {
+          for (const [subName, ids] of Object.entries(subcats)) {
+            const subLower = subName.toLowerCase();
+            if (keywords.some(k => subLower.includes(k))) {
+              // This subcategory matches, check if any assessment in it is missing
+              const anyMissing = ids.some(id => {
+                const inp = tr.querySelector(`input.score[data-assessment="${id}"]`);
+                return inp ? (String(inp.value).trim() === '') : false;
+              });
+              if (anyMissing) return true;
+            }
+          }
+          return false;
         };
 
-        const projectIds = getIdsByKeywords(['project', 'proj']);
-        const examIds = getIdsByKeywords(['exam', 'final', 'midterm', 'quiz']);
-        const labIds = getIdsByKeywords(['lab', 'laboratory', 'lab exam']);
-
-        const anyMissing = (ids) => {
-          if (!ids || ids.length === 0) return false; // no matching assessments -> don't flag
-          return ids.some(id => {
-            const inp = tr.querySelector(`input.score[data-assessment="${id}"]`);
-            return inp ? (String(inp.value).trim() === '') : false;
-          });
-        };
-
+        // Determine remarks based on grade mark and missing assessments
         let remarks = 'PASSED';
-        if (anyMissing(projectIds)) remarks = 'NO PROJECT';
-        else if (anyMissing(examIds)) remarks = 'NO EXAM';
-        else if (anyMissing(labIds)) remarks = 'NO LAB EXAM';
+        try {
+          const gmText = (gradeMarkCell && gradeMarkCell.textContent) ? String(gradeMarkCell.textContent).trim() : '';
+          const gmNum = parseFloat(gmText);
+          if (!isNaN(gmNum)) {
+            // Passing if grade mark <= 3.00, fail otherwise
+            if (gmNum > 3.0) remarks = 'FAILED';
+          } else {
+            // Non-numeric grade mark values
+            if (gmText === 'INC') remarks = 'INCOMPLETE';
+            else if (gmText === 'DRP') remarks = 'DROPPED';
+            else if (gmText === '5.0') remarks = 'FAILED';
+          }
+        } catch(_) {}
+
+        // Check for missing assessments in any subcategory
+        if (remarks === 'PASSED' || remarks === 'FAILED') {
+          for (const [subName, ids] of Object.entries(subcats)) {
+            const anyMissing = ids.some(id => {
+              const inp = tr.querySelector(`input.score[data-assessment="${id}"]`);
+              return inp ? (String(inp.value).trim() === '') : false;
+            });
+            if (anyMissing) {
+              remarks = `NO ${subName.toUpperCase()}`;
+              break; // Show the first missing subcategory
+            }
+          }
+        }
+
+        // Apply remark text
         remarksCell.textContent = remarks;
+
+        // Color coding: failed=red, minimum(3.00)=orange, between 1.75 and 3.00=yellow, otherwise passed=green
+        try {
+          const clsList = ['text-passed','text-failed','text-minimum','text-mid'];
+          remarksCell.classList.remove(...clsList);
+          if (gradeMarkCell) gradeMarkCell.classList.remove(...clsList);
+
+          // Determine class from grade mark if available
+          const gmText = (gradeMarkCell && gradeMarkCell.textContent) ? String(gradeMarkCell.textContent).trim() : '';
+          const gmNum = parseFloat(gmText);
+
+          let clsToApply = null;
+          if (remarks === 'FAILED') {
+            clsToApply = 'text-failed';
+          } else if (!isNaN(gmNum)) {
+            if (gmNum > 3.0) clsToApply = 'text-failed';
+            else if (Math.abs(gmNum - 3.0) < 1e-9) clsToApply = 'text-minimum';
+            else if (gmNum > 1.75 && gmNum < 3.0) clsToApply = 'text-mid';
+            else clsToApply = 'text-passed';
+          } else {
+            // Non-numeric grade mark -> leave as passed unless explicitly failed
+            if (gmText === 'INC' || gmText === 'DRP' || gmText === '5.0') clsToApply = 'text-failed';
+            else clsToApply = 'text-passed';
+          }
+
+          if (clsToApply) {
+            try { remarksCell.classList.add(clsToApply); } catch(_) {}
+            try { if (gradeMarkCell) gradeMarkCell.classList.add(clsToApply); } catch(_) {}
+          }
+        } catch(_) {}
       }
     }
 
@@ -915,43 +1146,41 @@
       try {
         const groupsPayload = {};
         Object.entries(this.SUB_GROUPS).forEach(([k, g]) => {
-          groupsPayload[k] = { 
-            ids: g.ids.slice(), 
-            maxes: g.maxes.slice(), 
-            maxTotal: g.maxTotal || 0, 
-            subweight: g.subweight || 0 
+          groupsPayload[k] = {
+            ids: Array.isArray(g.ids) ? g.ids.slice() : [],
+            maxes: Array.isArray(g.maxes) ? g.maxes.slice() : [],
+            maxTotal: g.maxTotal || 0,
+            subweight: g.subweight || 0
           };
         });
+
         const studentsPayload = this.getStudentRows().map(tr => {
-          const sid = parseInt(tr.getAttribute('data-student-id')||'0',10)||0;
+          const sid = String(parseInt(tr.getAttribute('data-student-id')||'0',10)||0);
           const scores = {};
           tr.querySelectorAll('input.score').forEach(inp => {
-            const aid = parseInt(inp.getAttribute('data-assessment')||'0',10)||0;
-            const v = inp.value;
-            if (v === '') return;
-            const num = parseFloat(v);
-            if (!isNaN(num)) scores[String(aid)] = num;
+            const aid = String(parseInt(inp.getAttribute('data-assessment')||'0',10)||0);
+            scores[aid] = inp.value === '' ? null : Number(inp.value);
           });
-          return { student_id: sid, scores };
+          return { sid, scores };
         });
 
-        const payload = { class_id: this.classId, groups: groupsPayload, students: studentsPayload };
+        const payload = { groups: groupsPayload, students: studentsPayload };
         const headers = { 'Content-Type': 'application/json' };
         if (this.csrfToken) headers['X-CSRFToken'] = this.csrfToken;
+
         const res = await fetch('/api/grade-entry/compute', { method: 'POST', headers, body: JSON.stringify(payload) });
         if (!res.ok) return;
         const out = await res.json();
-        if (!out || !out.results) return;
 
         if (this.isMinor && out.summaries && typeof out.summaries === 'object') {
           this.latestSummaries = out.summaries;
         } else {
           this.latestSummaries = {};
         }
-        
+
         this.getStudentRows().forEach(tr => {
           const sid = String(parseInt(tr.getAttribute('data-student-id')||'0',10)||0);
-          const byGroup = out.results[sid] || {};
+          const byGroup = (out.results && out.results[sid]) ? out.results[sid] : {};
           Object.entries(byGroup).forEach(([gkey, vals]) => {
             const parts = gkey.split('::');
             const cat = parts[0] || '';
@@ -959,12 +1188,12 @@
             const totalCell = tr.querySelector(`td.computed.total-col[data-category="${cat}"][data-subcategory="${sub}"]`);
             const equivCell = tr.querySelector(`td.computed.equiv-col[data-category="${cat}"][data-subcategory="${sub}"]`);
             const reqpctCell = tr.querySelector(`td.computed.reqpct-col[data-category="${cat}"][data-subcategory="${sub}"]`);
-            if (totalCell && vals.total !== undefined) totalCell.textContent = Number(vals.total).toFixed(2);
-            if (equivCell && vals.eq_pct !== undefined) equivCell.textContent = Number(vals.eq_pct).toFixed(2);
+            if (totalCell && vals.total !== undefined && vals.total !== null) totalCell.textContent = Number(vals.total).toFixed(2);
+            if (equivCell && vals.eq_pct !== undefined && vals.eq_pct !== null) equivCell.textContent = Number(vals.eq_pct).toFixed(2);
             if (reqpctCell) {
-              if (vals.reqpct_display !== undefined) {
+              if (vals.reqpct_display !== undefined && vals.reqpct_display !== null) {
                 reqpctCell.textContent = Number(vals.reqpct_display).toFixed(2);
-              } else if (vals.reqpct !== undefined) {
+              } else if (vals.reqpct !== undefined && vals.reqpct !== null) {
                 reqpctCell.textContent = Number(vals.reqpct).toFixed(2);
               }
             }
@@ -1032,7 +1261,7 @@
         const lk = localStorage.getItem(this.LOCK_KEY);
         if (lk === '1' || lk === 'true') this.applyLockState(true);
         else this.applyLockState(false);
-      } catch(_) {}
+      } catch(_) {} 
       this.recomputeAll();
       this.updateFinalGrades();
       // Schedule an initial server-side compute shortly after startup to populate authoritative values

@@ -39,40 +39,62 @@ def get_joined_classes():
 
             classes_data = []
             for enrollment in enrollments:
-                formatted_year = enrollment["year"][-2:] if enrollment["year"] else "XX"
-                formatted_semester = (
-                    "1"
-                    if enrollment["semester"]
-                    and "1st" in enrollment["semester"].lower()
-                    else (
-                        "2"
-                        if enrollment["semester"]
-                        and "2nd" in enrollment["semester"].lower()
-                        else "1"
+                try:
+                    # Safely coerce year/semester to strings; handle None or unexpected types
+                    year_raw = (
+                        enrollment.get("year") if isinstance(enrollment, dict) else None
                     )
-                )
-                computed_class_id = f"{formatted_year}-{formatted_semester} {enrollment['course']} {enrollment['section']}"
+                    year_str = str(year_raw) if year_raw is not None else ""
+                    formatted_year = year_str[-2:] if year_str else "XX"
 
-                classes_data.append(
-                    {
-                        "id": enrollment["id"],
-                        "class_id": computed_class_id,
-                        "year": enrollment["year"],
-                        "semester": enrollment["semester"],
-                        "course": enrollment["course"],
-                        "track": enrollment["track"],
-                        "section": enrollment["section"],
-                        "schedule": enrollment["schedule"],
-                        "class_code": enrollment["class_code"],
-                        "join_code": enrollment["join_code"],
-                        "instructor_name": "Instructor",
-                        "joined_at": (
-                            enrollment["joined_at"].isoformat()
-                            if enrollment["joined_at"]
-                            else None
-                        ),
-                    }
-                )
+                    sem_raw = (
+                        enrollment.get("semester")
+                        if isinstance(enrollment, dict)
+                        else None
+                    )
+                    sem_str = str(sem_raw).lower() if sem_raw is not None else ""
+                    if "1st" in sem_str:
+                        formatted_semester = "1"
+                    elif "2nd" in sem_str:
+                        formatted_semester = "2"
+                    else:
+                        formatted_semester = "1"
+
+                    computed_class_id = f"{formatted_year}-{formatted_semester} {enrollment.get('course')} {enrollment.get('section')}"
+
+                    joined_at_val = enrollment.get("joined_at")
+                    joined_at_iso = None
+                    try:
+                        if joined_at_val:
+                            joined_at_iso = joined_at_val.isoformat()
+                    except Exception:
+                        try:
+                            joined_at_iso = str(joined_at_val)
+                        except Exception:
+                            joined_at_iso = None
+
+                    classes_data.append(
+                        {
+                            "id": enrollment.get("id"),
+                            "class_id": computed_class_id,
+                            "year": enrollment.get("year"),
+                            "semester": enrollment.get("semester"),
+                            "course": enrollment.get("course"),
+                            "track": enrollment.get("track"),
+                            "section": enrollment.get("section"),
+                            "schedule": enrollment.get("schedule"),
+                            "class_code": enrollment.get("class_code"),
+                            "join_code": enrollment.get("join_code"),
+                            "instructor_name": "Instructor",
+                            "joined_at": joined_at_iso,
+                        }
+                    )
+                except Exception as e:
+                    logger.warning(
+                        f"Failed to process enrollment record %s: %s", enrollment, e
+                    )
+                    # Skip problematic enrollment but continue
+                    continue
 
         logger.info(
             f"Retrieved {len(classes_data)} joined classes for student {session.get('school_id')}"
@@ -81,6 +103,101 @@ def get_joined_classes():
     except Exception as e:
         logger.error(f"Failed to get joined classes: {str(e)}")
         return jsonify({"error": "Failed to retrieve joined classes"}), 500
+
+
+@student_bp.route("/api/student/join-class", methods=["POST"], endpoint="join_class")
+@login_required
+def join_class():
+    """Join a class using join code."""
+    if session.get("role") != "student":
+        return jsonify({"error": "Access denied. Student privileges required."}), 403
+    conn = None
+    try:
+        data = request.get_json() or {}
+        join_code = (data.get("join_code") or "").strip().upper()
+
+        logger.info(
+            f"join_class called with join_code: '{join_code}' for user_id={session.get('user_id')}')"
+        )
+
+        if not join_code:
+            return jsonify({"error": "Join code is required"}), 400
+
+        conn = get_db_connection()
+        with conn.cursor() as cursor:
+            # Get student id
+            cursor.execute(
+                "SELECT id FROM students WHERE user_id = %s", (session["user_id"],)
+            )
+            student = cursor.fetchone()
+            if not student:
+                logger.warning(
+                    "join_class: student profile not found for user_id=%s",
+                    session.get("user_id"),
+                )
+                return jsonify({"error": "Student profile not found"}), 404
+
+            # Find class by join code
+            cursor.execute(
+                "SELECT * FROM classes WHERE UPPER(join_code) = %s", (join_code,)
+            )
+            class_obj = cursor.fetchone()
+            if not class_obj:
+                logger.info("join_class: no class found for join_code '%s'", join_code)
+                return jsonify({"error": "Invalid join code. Class not found."}), 404
+
+            # Check existing enrollment
+            cursor.execute(
+                "SELECT id FROM student_classes WHERE student_id = %s AND class_id = %s",
+                (student["id"], class_obj["id"]),
+            )
+            existing = cursor.fetchone()
+            if existing:
+                logger.info(
+                    "join_class: student %s already enrolled in class %s",
+                    student["id"],
+                    class_obj["id"],
+                )
+                return jsonify({"error": "You are already enrolled in this class"}), 400
+
+            # Insert enrollment
+            cursor.execute(
+                "INSERT INTO student_classes (student_id, class_id, joined_at) VALUES (%s, %s, NOW())",
+                (student["id"], class_obj["id"]),
+            )
+        conn.commit()
+
+        try:
+            emit_live_version_update(int(class_obj["id"]))
+        except Exception as _e:
+            logger.warning(f"Emit after join class failed: {_e}")
+
+        logger.info(
+            f"Student {session.get('school_id')} joined class: {class_obj.get('class_code') or class_obj.get('id')}"
+        )
+
+        return jsonify(
+            {
+                "success": True,
+                "message": f"Successfully joined class: {class_obj.get('class_code') or class_obj.get('id')}",
+                "class": {
+                    "id": class_obj.get("id"),
+                    "class_id": class_obj.get("class_code") or class_obj.get("id"),
+                    "course": class_obj.get("course"),
+                    "section": class_obj.get("section"),
+                    "schedule": class_obj.get("schedule"),
+                },
+            }
+        )
+    except Exception as e:
+        try:
+            conn.rollback()
+        except Exception:
+            pass
+        logger.error(
+            f"Failed to join class for student {session.get('school_id')}: {str(e)}"
+        )
+        return jsonify({"error": "Failed to join class"}), 500
 
 
 @student_bp.route(
@@ -790,13 +907,16 @@ def student_analytics():
                         structure = json.loads(structure_row["structure_json"])
 
                         # Get all assessments for this class with category and subcategory info
+                        # grade_assessments does not store class_id directly; we join through
+                        # grade_subcategories -> grade_categories -> grade_structures (by class_id)
                         cursor.execute(
                             """
-                            SELECT ga.id, ga.name, gc.name as category, gs.name as subcategory
+                            SELECT ga.id, ga.name, gc.name as category, gsc.name as subcategory
                             FROM grade_assessments ga
-                            JOIN grade_subcategories gs ON ga.subcategory_id = gs.id
-                            JOIN grade_categories gc ON gs.category_id = gc.id
-                            WHERE ga.class_id = %s
+                            JOIN grade_subcategories gsc ON ga.subcategory_id = gsc.id
+                            JOIN grade_categories gc ON gsc.category_id = gc.id
+                            JOIN grade_structures gs ON gc.structure_id = gs.id
+                            WHERE gs.class_id = %s AND gs.is_active = 1
                             """,
                             (cls["id"],),
                         )

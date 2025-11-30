@@ -1,5 +1,6 @@
 import os
 import logging
+import threading
 from typing import Optional
 from flask import Flask
 from dotenv import load_dotenv
@@ -74,9 +75,9 @@ class DatabaseConnection:
             "pool_pre_ping": True,  # Test connections before use
             "pool_timeout": 30,  # Connection timeout in seconds
             "connect_args": {
-                "connect_timeout": 10,  # Connection timeout for initial connection
-                "read_timeout": 10,  # Read timeout
-                "write_timeout": 10,  # Write timeout
+                "connect_timeout": 30,  # Connection timeout for initial connection
+                "read_timeout": 60,  # Read timeout
+                "write_timeout": 30,  # Write timeout
             },
         }
         logger.info(
@@ -190,29 +191,40 @@ def init_database_with_app(app: Flask) -> bool:
     return db_conn.init_database()
 
 
-# Global database connection for PyMySQL
-_connection = None
+# Use a thread-local container so each thread/request gets its own PyMySQL connection
+_local = threading.local()
+
+
+def _get_thread_conn():
+    return getattr(_local, "_connection", None)
+
+
+def _set_thread_conn(conn):
+    setattr(_local, "_connection", conn)
 
 
 def get_db_connection():
-    """Get PyMySQL database connection, create if not exists or reconnect if lost"""
-    global _connection
-    if _connection is None or not _is_connection_alive():
+    """Get PyMySQL database connection for current thread. Create if not exists or reconnect if lost.
+
+    Returns a connection object that is safe to use within the current thread. This avoids sharing
+    a single global connection across concurrent requests which can lead to "Packet sequence" errors.
+    """
+    conn = _get_thread_conn()
+    if conn is None or not _is_connection_alive(conn):
         try:
-            # Close existing connection if it exists
-            if _connection:
+            # Close existing connection if present
+            if conn:
                 try:
-                    _connection.close()
-                except:
+                    conn.close()
+                except Exception:
                     pass
-                _connection = None
+                _set_thread_conn(None)
 
             # Load environment variables
             load_dotenv()
             logger.info("Environment variables loaded from .env file")
 
             # Determine database configuration based on environment
-            # Use hardcoded ENVIRONMENT as default (overridable by actual env)
             environment = os.getenv("ENVIRONMENT", HARDCODE_ENVIRONMENT).lower()
             logger.info(f"Database environment: {environment}")
 
@@ -235,33 +247,49 @@ def get_db_connection():
                     f"Invalid ENVIRONMENT value: {environment}. Must be 'local' or 'production'/'online'"
                 )
 
-            # Import PyMySQL lazily to avoid heavy crypto imports during test collection
+            # Import PyMySQL lazily
             import pymysql
 
-            _connection = pymysql.connect(
+            conn = pymysql.connect(
                 host=db_host,
                 port=db_port,
                 user=db_user,
                 password=db_password,
                 database=db_name,
                 cursorclass=pymysql.cursors.DictCursor,
-                autocommit=False,  # Disable autocommit for transaction control
+                autocommit=False,
             )
-            logger.info(f"PyMySQL database connection established for {environment}")
+            _set_thread_conn(conn)
+            logger.info(
+                f"PyMySQL database connection established for {environment} (thread-local)"
+            )
         except Exception as e:
             logger.error(f"PyMySQL database connection failed: {str(e)}")
             raise e
-    return _connection
+    return _get_thread_conn()
 
 
-def _is_connection_alive():
-    """Check if the database connection is alive"""
-    global _connection
-    if _connection is None:
+def _is_connection_alive(conn):
+    """Check if the provided connection is alive"""
+    if conn is None:
         return False
     try:
-        # Try to ping the connection
-        _connection.ping(reconnect=False)
+        conn.ping(reconnect=False)
         return True
-    except:
+    except Exception:
         return False
+
+
+def close_db_connection():
+    """Close and remove the thread-local PyMySQL connection, if present."""
+    try:
+        conn = _get_thread_conn()
+        if conn:
+            try:
+                conn.close()
+            except Exception:
+                pass
+            _set_thread_conn(None)
+            logger.info("Thread-local DB connection closed")
+    except Exception as e:
+        logger.warning(f"Error closing thread-local DB connection: {e}")

@@ -31,7 +31,7 @@ from flask_wtf.csrf import CSRFProtect, generate_csrf
 app.jinja_env.globals.update(csrf_token=generate_csrf)
 from werkzeug.security import generate_password_hash, check_password_hash
 from functools import wraps
-from utils.db_conn import get_db_connection
+from utils.db_conn import get_db_connection, close_db_connection
 from utils.grade_calculation import perform_grade_computation
 from utils.live import (
     initialize_live,
@@ -255,6 +255,15 @@ app.register_blueprint(admin_bp)
 app.register_blueprint(compute_bp)
 app.register_blueprint(gradebuilder_bp)
 app.register_blueprint(reports_bp)
+
+
+# Close thread-local DB connection at the end of each request/app context
+@app.teardown_appcontext
+def cleanup_db(exception=None):
+    try:
+        close_db_connection()
+    except Exception:
+        pass
 
 
 # Helper: get_equivalent(final_grade)

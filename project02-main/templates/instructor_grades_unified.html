@@ -9,6 +9,52 @@
     />
     <title>Unified — Grade Entry</title>
     <style></style>
+    <style>
+      /* Rounded SweetAlert popups for this page */
+      .swal2-popup {
+        border-radius: 12px !important;
+      }
+      .swal2-container .swal2-popup {
+        box-shadow: 0 8px 30px rgba(16,24,40,0.12);
+      }
+      /* Small floating pill for assessment input progress */
+      th.assess-head.assess-col { position: relative; }
+      /* Header pill on Grade Input toggle */
+      .grade-input-toggle { position: relative; }
+      .header-pill {
+        position: absolute;
+        top: 8px;
+        right: 8px;
+        background: #2563eb;
+        color: #fff;
+        padding: 4px 10px;
+        border-radius: 999px;
+        font-size: 0.825rem;
+        line-height: 1;
+        box-shadow: 0 6px 18px rgba(16,24,40,0.12);
+        white-space: nowrap;
+        z-index: 30;
+        pointer-events: none;
+      }
+      .header-pill.empty { background: #9ca3af; }
+      .input-pill {
+        position: absolute;
+        top: 6px;
+        right: 6px;
+        background: #059669;
+        color: #fff;
+        padding: 2px 8px;
+        border-radius: 999px;
+        font-size: 0.75rem;
+        line-height: 1;
+        box-shadow: 0 4px 10px rgba(16,24,40,0.12);
+        white-space: nowrap;
+        z-index: 20;
+        pointer-events: none;
+      }
+      .input-pill.empty { background: #9ca3af; color: #fff; }
+      .input-pill[aria-hidden="true"] { display: none; }
+    </style>
     <script src="{{ url_for('static', filename='js/swal.js') }}"></script>
   </head>
   <body>
@@ -125,11 +171,13 @@
       <br />
       <div class="collapsable-drawer-container">
         <button
-          class="drawer-toggle collapsed"
+          class="drawer-toggle collapsed grade-input-toggle"
           aria-expanded="false"
           aria-controls="drawerContentMatrix"
+          style="position: relative"
         >
           <h1>Grade Input<span class="arrow-icon">▼</span></h1>
+          <span id="grade-input-pill" class="header-pill" title="Completed: 0 of {{ students|length }}">0% · 0/{{ students|length }}</span>
         </button>
 
         <div class="drawer-content" id="drawerContentMatrix" aria-hidden="true">
@@ -139,6 +187,8 @@
             will be calculated automatically. Use the "Final Grade" section
             below to view overall grades.
             <div class="actions">
+              <button id="undo-btn" data-action="undo" class="btn">Undo</button>
+              <button id="redo-btn" data-action="redo" class="btn">Redo</button>
               <button data-action="clear-inputs">Clear Inputs</button>
               <button data-action="toggle-lock">Lock/Unlock Data</button>
               <button data-action="submit-inputs">Submit</button>
@@ -340,7 +390,7 @@
                     data-category="{{ cat }}"
                   ></td>
                   {% endfor %}
-                </tr>
+                </tr> 
                 {% endfor %}
               </tbody>
             </table>
@@ -448,6 +498,177 @@
             var present = hasSubcategories(cat, ga);
             if (!present) hideRatingColumnFor(cat);
           });
+        });
+      })();
+    </script>
+    <script>
+      document.addEventListener('DOMContentLoaded', function () {
+        function updatePills() {
+          var totalStudents = document.querySelectorAll('#tbody tr[data-student-id]').length || 0;
+          document.querySelectorAll('span.input-pill[data-assessment-id]').forEach(function (pill) {
+            var aid = pill.getAttribute('data-assessment-id');
+            var inputs = document.querySelectorAll('input.score[data-assessment="' + aid + '"]');
+            var filled = 0;
+            inputs.forEach(function (inp) {
+              var v = inp.value;
+              if (v !== null && v.toString().trim() !== '') filled++;
+            });
+            var pct = totalStudents ? Math.round((filled / totalStudents) * 100) : 0;
+            pill.textContent = pct + '% · ' + filled + '/' + totalStudents;
+            if (filled === 0) pill.classList.add('empty'); else pill.classList.remove('empty');
+            pill.setAttribute('title', 'Inputs: ' + filled + ' of ' + totalStudents);
+          });
+          // compute overall student completion (student has values for all their inputs)
+          var completed = 0;
+          document.querySelectorAll('#tbody tr[data-student-id]').forEach(function (row) {
+            var inputs = row.querySelectorAll('input.score');
+            if (!inputs || inputs.length === 0) return;
+            var filledForStudent = 0;
+            inputs.forEach(function (inp) {
+              var v = inp.value;
+              if (v !== null && v.toString().trim() !== '') filledForStudent++;
+            });
+            if (filledForStudent === inputs.length) completed++;
+          });
+
+          var headerPill = document.getElementById('grade-input-pill');
+          if (headerPill) {
+            var pctAll = totalStudents ? Math.round((completed / totalStudents) * 100) : 0;
+            headerPill.textContent = pctAll + '% · ' + completed + '/' + totalStudents;
+            if (completed === 0) headerPill.classList.add('empty'); else headerPill.classList.remove('empty');
+            headerPill.setAttribute('title', 'Completed: ' + completed + ' of ' + totalStudents);
+          }
+        }
+
+        // initial update
+        updatePills();
+
+        // attach to existing inputs
+        document.querySelectorAll('input.score').forEach(function (inp) {
+          inp.addEventListener('input', updatePills);
+          inp.addEventListener('change', updatePills);
+        });
+
+        // watch for dynamic changes in the tbody (new rows/inputs or value attr changes)
+        var tbody = document.getElementById('tbody');
+        if (tbody && window.MutationObserver) {
+          var mo = new MutationObserver(function () { setTimeout(updatePills, 50); });
+          mo.observe(tbody, { childList: true, subtree: true, attributes: true, attributeFilter: ['value'] });
+        }
+      });
+    </script>
+    <script>
+      (function () {
+        var undoStack = [];
+        var redoStack = [];
+        var maxStack = 1000;
+
+        function setButtons() {
+          var u = document.getElementById('undo-btn');
+          var r = document.getElementById('redo-btn');
+          if (u) u.disabled = undoStack.length === 0;
+          if (r) r.disabled = redoStack.length === 0;
+        }
+
+        function recordChange(oldVal, newVal, student, assessment) {
+          if (oldVal === newVal) return;
+          undoStack.push({ old: oldVal, new: newVal, student: student, assessment: assessment });
+          if (undoStack.length > maxStack) undoStack.shift();
+          redoStack.length = 0;
+          setButtons();
+        }
+
+        function findInput(student, assessment) {
+          return document.querySelector('input.score[data-student="' + student + '"][data-assessment="' + assessment + '"]');
+        }
+
+        function applyValue(input, value) {
+          if (!input) return;
+          input.value = value;
+          input.dataset.prev = value;
+          // notify other scripts
+          input.dispatchEvent(new Event('input', { bubbles: true }));
+          input.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+
+        function performUndo() {
+          if (undoStack.length === 0) return;
+          var change = undoStack.pop();
+          var input = findInput(change.student, change.assessment);
+          applyValue(input, change.old);
+          redoStack.push(change);
+          setButtons();
+        }
+
+        function performRedo() {
+          if (redoStack.length === 0) return;
+          var change = redoStack.pop();
+          var input = findInput(change.student, change.assessment);
+          applyValue(input, change.new);
+          undoStack.push(change);
+          setButtons();
+        }
+
+        document.addEventListener('DOMContentLoaded', function () {
+          // Attach handlers to existing inputs
+          document.querySelectorAll('input.score').forEach(function (inp) {
+            inp.addEventListener('focus', function () {
+              inp.dataset.prev = inp.value == null ? '' : inp.value;
+            });
+
+            inp.addEventListener('change', function () {
+              var prev = inp.dataset.prev == null ? '' : inp.dataset.prev;
+              var cur = inp.value == null ? '' : inp.value;
+              recordChange(prev, cur, inp.getAttribute('data-student'), inp.getAttribute('data-assessment'));
+              inp.dataset.prev = cur;
+            });
+          });
+
+          var ub = document.getElementById('undo-btn');
+          var rb = document.getElementById('redo-btn');
+          if (ub) ub.addEventListener('click', performUndo);
+          if (rb) rb.addEventListener('click', performRedo);
+
+          // Keyboard shortcuts: Ctrl+Z / Ctrl+Y (and Ctrl+Shift+Z)
+          document.addEventListener('keydown', function (e) {
+            var key = (e.key || '').toLowerCase();
+            var isCtrl = e.ctrlKey || e.metaKey;
+            if (!isCtrl) return;
+            if (!e.shiftKey && key === 'z') {
+              e.preventDefault();
+              performUndo();
+            } else if ((key === 'y') || (e.shiftKey && key === 'z')) {
+              e.preventDefault();
+              performRedo();
+            }
+          });
+
+          setButtons();
+
+          // Observe dynamically added inputs (e.g., if rows/assessments added)
+          var tbody = document.getElementById('tbody');
+          if (tbody && window.MutationObserver) {
+            var mo = new MutationObserver(function (mutations) {
+              mutations.forEach(function (m) {
+                if (m.addedNodes && m.addedNodes.length) {
+                  m.addedNodes.forEach(function (n) {
+                    if (n.nodeType === 1) {
+                      n.querySelectorAll && n.querySelectorAll('input.score').forEach(function (inp) {
+                        inp.addEventListener('focus', function () { inp.dataset.prev = inp.value == null ? '' : inp.value; });
+                        inp.addEventListener('change', function () {
+                          var prev = inp.dataset.prev == null ? '' : inp.dataset.prev;
+                          var cur = inp.value == null ? '' : inp.value;
+                          recordChange(prev, cur, inp.getAttribute('data-student'), inp.getAttribute('data-assessment'));
+                          inp.dataset.prev = cur;
+                        });
+                      });
+                    }
+                  });
+                }
+              });
+            });
+            mo.observe(tbody, { childList: true, subtree: true });
+          }
         });
       })();
     </script>

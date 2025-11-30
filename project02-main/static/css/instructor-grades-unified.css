@@ -469,3 +469,32 @@ button[disabled],
   max-height: 2000px; /* large enough to reveal content instantly */
   padding-bottom: 15px;
 }
+
+/* Grade remarks coloring classes */
+.text-passed {
+  background-color: #10b981; /* Green-500 background */
+  color: #ffffff; /* White text for contrast */
+  font-weight: 700;
+  font-size: 1.1em;
+}
+
+.text-failed {
+  background-color: #ef4444; /* Red-500 background */
+  color: #ffffff; /* White text for contrast */
+  font-weight: 700;
+  font-size: 1.1em;
+}
+
+.text-minimum {
+  background-color: #f97316; /* Orange-500 background */
+  color: #ffffff; /* White text for contrast */
+  font-weight: 700;
+  font-size: 1.1em;
+}
+
+.text-mid {
+  background-color: #f59e0b; /* Yellow-500 background */
+  color: #000000; /* Black text for contrast on yellow */
+  font-weight: 700;
+  font-size: 1.1em;
+}

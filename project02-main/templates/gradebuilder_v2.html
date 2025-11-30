@@ -53,7 +53,7 @@
                         <!-- populated by JS as clickable items -->
                     </div>
                     <div class="sidebar-actions">
-                        <button id="new-structure-btn" class="btn btn-primary">+ New Structure</button>
+                        <button id="new-structure-btn" class="btn btn-primary" data-tooltip="Create a new grade structure">+ New Structure</button>
                     </div>
                 </div>
                 
@@ -72,9 +72,9 @@
                             <label class="detail-label">Import XLSX Template:
                                 <input id="xlsx-upload" type="file" accept=".xlsx,.xls" />
                             </label>
-                            <button id="import-btn" class="btn btn-secondary">Import</button>
+                            <button id="import-btn" class="btn btn-secondary" data-tooltip="Import subcategories from an Excel template file">Import</button>
                         </div>
-                        <button id="save-btn" class="btn btn-primary">Save Structure</button>
+                        <button id="save-btn" class="btn btn-primary" data-tooltip="Save the current grade structure to the selected class">Save Structure</button>
                     
                     </div>
                 </div>
@@ -111,7 +111,7 @@
                                 <small>(must sum to 100%)</small>
                             </div>
                             <div class="small-actions">
-                                <button id="lab-add" class="btn btn-primary">Add Subcategory</button>
+                                <button id="lab-add" class="btn btn-primary" data-tooltip="Add a new subcategory to the laboratory section">Add Subcategory</button>
                                 <span id="lab-sum" class="percent">Total: 0%</span>
                             </div>
                             <div id="lab-list" class="sub-list"></div>
@@ -123,7 +123,7 @@
                                 <small>(must sum to 100%)</small>
                             </div>
                             <div class="small-actions">
-                                <button id="lecture-add" class="btn btn-primary">Add Subcategory</button>
+                                <button id="lecture-add" class="btn btn-primary" data-tooltip="Add a new subcategory to the lecture section">Add Subcategory</button>
                                 <span id="lecture-sum" class="percent">Total: 0%</span>
                             </div>
                             <div id="lecture-list" class="sub-list"></div>
@@ -138,7 +138,7 @@
                     </div>
 
                     <div class="sticky-actions">
-                        <button id="save-btn-bottom" class="btn btn-primary">Save Structure</button>
+                        <button id="save-btn-bottom" class="btn btn-primary" data-tooltip="Save the current grade structure to the selected class">Save Structure</button>
                     </div>
                 </div>
             </section>
@@ -150,7 +150,15 @@
         <div class="sub-item">
             <input data-field="name" placeholder="Subcategory name" />
             <input data-field="weight" type="number" min="0" max="100" step="0.01" placeholder="0" />
-            <button data-action="remove" class="btn btn-ghost">Remove</button>
+            <button data-action="remove" class="btn btn-ghost btn-icon" aria-label="Remove subcategory" title="Remove subcategory">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                    <path d="M3 6h18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M10 11v6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M14 11v6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+            </button>
         </div>
     </template>
 

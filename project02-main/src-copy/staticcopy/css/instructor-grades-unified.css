@@ -1,0 +1,471 @@
+/* Calasans font for header cells (Mock URL since file path is unknown) */
+@font-face {
+  font-family: "Calasans";
+  /* Note: In a real environment, replace with a valid accessible font URL */
+  src: local("Arial Black"), sans-serif;
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* --- RX-78-2 GUNDAM COLOR PALETTE --- */
+:root {
+  --gundam-white: #ffffff;
+  --gundam-red: #e30613; /* Primary action/alert */
+  --gundam-blue: #004499; /* Primary structure/sections (Used for major table blocks) */
+  --gundam-yellow: #ffd700; /* Secondary alerts/req. data */
+  --gundam-neon: #39ff14; /* Focus/Sensor glow (Neon Green) */
+  --gundam-dark-grey: #333333; /* For subtle shadows and text */
+  --gundam-light-grey: #dddddd; /* For subtle separators */
+
+  --header-bg: var(--gundam-white);
+  --border: var(--gundam-light-grey); /* Lighter border for subtlety */
+  --row-hover: rgba(0, 68, 153, 0.05); /* Very slight blue tint on hover */
+  --sticky-bg: var(--gundam-white);
+  --focus: var(--gundam-neon); /* Neon green focus ring */
+  --subtle-shadow: rgba(0, 0, 0, 0.08); /* Light shadow for depth */
+}
+
+/* Base Style */
+body {
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue",
+    Arial, "Noto Sans", "Apple Color Emoji", "Segoe UI Emoji";
+  margin: 0;
+  background-color: #f8f8f8;
+} /* Lighter background */
+.page {
+  position: sticky;
+  top: 40px; /* Adjust to match assess-head height */
+  z-index: 9;
+  padding: 24px;
+  max-width: 1800px;
+  margin: 0 auto;
+}
+.toolbar {
+  display: flex;
+  align-items: center;
+  position: sticky;
+  top: 40px; /* Adjust to match assess-head height */
+  z-index: 9;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 15px;
+  padding: 0 4px;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: var(--header-bg);
+}
+
+/* Matrix Container (Smoothly elevated) */
+.matrix-wrapper {
+  overflow: auto;
+  border: 1px solid var(--border); /* Softer border */
+  border-radius: 12px;
+  box-shadow: 0 6px 16px var(--subtle-shadow); /* Softer, wider shadow */
+
+  /* Hide scrollbar for IE and Edge */
+  -ms-overflow-style: none;
+  /* Hide scrollbar for Firefox */
+  scrollbar-width: none;
+}
+
+/* Hide scrollbar for Chrome, Safari and Opera (Webkit) */
+.matrix-wrapper::-webkit-scrollbar {
+  display: none;
+}
+
+/* Table Structure */
+table.matrix {
+  border-collapse: separate;
+  border-spacing: 0;
+  min-width: 960px;
+  width: 100%;
+  background: var(--gundam-white);
+  /* Ensures column width is determined by the content of the longest cell in that column */
+  table-layout: auto;
+}
+
+/* Cell Separators (subtle lines) */
+table.matrix th,
+table.matrix td {
+  border-bottom: 1px solid var(--border);
+  border-right: 1px solid var(--border);
+  padding: 12px 10px;
+  text-align: center;
+}
+table.matrix td {
+  text-align: right;
+}
+table.matrix th {
+  text-align: center;
+}
+
+/* Sticky Headers and Columns */
+table.matrix th {
+  background: var(--header-bg);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  border-bottom: 2px solid var(--gundam-light-grey); /* Slightly more pronounced separator */
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05); /* Subtle shadow for stickiness */
+}
+/* Apply Calasans to header text */
+table.matrix th {
+  font-family: "Calasans", system-ui, -apple-system, Segoe UI, Roboto,
+    "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji", "Segoe UI Emoji";
+  color: var(--gundam-blue);
+}
+
+table.matrix th.sticky-left,
+table.matrix td.sticky-left {
+  position: sticky;
+  left: 0;
+  background: var(--sticky-bg);
+  z-index: 3;
+  border-right: 2px solid var(--gundam-light-grey); /* Softer separator for sticky column */
+  box-shadow: 2px 0 4px rgba(0, 0, 0, 0.05); /* Subtle shadow for stickiness */
+}
+table.matrix td.sticky-left {
+  font-weight: 700;
+  text-align: left;
+}
+
+/* Header Text Styles */
+thead tr:nth-child(1) th {
+  text-transform: uppercase;
+  font-size: 0.9rem;
+  letter-spacing: 0.06em;
+  color: var(--gundam-red);
+}
+thead tr:nth-child(2) th {
+  font-size: 0.85rem;
+}
+thead tr:nth-child(3) th {
+  font-size: 0.8rem;
+  white-space: nowrap;
+}
+
+/* Body Rows */
+tbody tr {
+  background: var(--gundam-white);
+  transition: background 0.15s ease-in-out;
+}
+tbody tr:hover {
+  background: var(--row-hover);
+}
+
+/* Section Band Styles (Structural Blue and Yellow with soft lift) */
+th.section-cell {
+  background: var(--gundam-blue);
+  color: var(--gundam-white);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-size: 1rem;
+  font-weight: 800;
+  border-top: 1px solid var(--gundam-blue); /* Integrated border color */
+  border-bottom: 1px solid var(--gundam-blue);
+  box-shadow: inset 0 1px 4px rgba(0, 0, 0, 0.1),
+    inset 0 -1px 4px rgba(0, 0, 0, 0.1); /* Subtle inner shadow */
+}
+th.section-subtitle {
+  background: var(--gundam-yellow);
+  color: var(--gundam-dark-grey); /* Darker text for readability on yellow */
+  font-weight: 700;
+  font-size: 0.9rem;
+  border-bottom: 1px solid var(--gundam-light-grey);
+  box-shadow: inset 0 -1px 2px rgba(0, 0, 0, 0.05);
+}
+/* Visual separator between the two sections (Subtle Red line) */
+th.section-cell + th.section-cell,
+th.section-subtitle + th.section-subtitle {
+  border-left: 2px solid var(--gundam-red); /* Thinner, but still distinct */
+}
+
+/* Highlight Row (Light Red Tint) */
+tbody tr.highlight {
+  background: rgba(227, 6, 19, 0.08);
+}
+
+/* Subcategory header coloring (Classic Orange and Blue for clear distinction) */
+th.subcat-head[data-category="lecture"] {
+  background-color: #ff8c00; /* Classic Bold Orange */
+  color: var(--gundam-white);
+  border-bottom: 1px solid #ff8c00;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.15);
+  border-radius: 6px 6px 0 0;
+}
+th.subcat-head[data-category="laboratory"] {
+  background-color: #007bff; /* Classic Bold Blue */
+  color: var(--gundam-white);
+  border-bottom: 1px solid #007bff;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.15);
+  border-radius: 6px 6px 0 0;
+}
+
+/* Structure actions category badges (Classic Orange and Blue) */
+.structure-cat {
+  display: inline-block;
+  padding: 4px 8px;
+  border-radius: 6px; /* Smoother */
+  font-weight: 700;
+  color: var(--gundam-white);
+  text-transform: uppercase;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1); /* Subtle lift */
+}
+.structure-cat[data-category="lecture"] {
+  background-color: #ff8c00;
+} /* Classic Bold Orange */
+.structure-cat[data-category="laboratory"] {
+  background-color: #007bff;
+} /* Classic Bold Blue */
+
+/* Input Scores (Clean, with soft focus glow) */
+input.score {
+  width: 72px;
+  padding: 6px 8px;
+  font-size: 1rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  text-align: right;
+  background: #f8f8f8;
+  transition: all 0.2s ease;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.05); /* Inner shadow for depth */
+}
+input.score:focus {
+  outline: none; /* Remove default outline */
+  border-color: var(--focus); /* Neon green border */
+  box-shadow: 0 0 0 3px rgba(57, 255, 20, 0.25),
+    inset 0 1px 2px rgba(0, 0, 0, 0.05); /* Soft outer glow + inner shadow */
+  background: var(--gundam-white);
+}
+input.score.score-invalid {
+  border-color: var(--gundam-red);
+  box-shadow: 0 0 0 3px rgba(227, 6, 19, 0.2),
+    inset 0 1px 2px rgba(0, 0, 0, 0.05); /* Red error glow */
+}
+
+/* Utility/Misc */
+.max {
+  color: var(--gundam-dark-grey);
+  font-size: 0.75rem;
+} /* Darker grey for better contrast */
+.category-cell {
+  text-align: center;
+  font-weight: 700;
+}
+.subcell {
+  text-align: center;
+}
+.assess-head {
+  text-align: center;
+}
+
+/* Buttons (Elevated and interactive) */
+.btn {
+  padding: 10px 16px;
+  border: none; /* No border for the base button */
+  background: var(--gundam-white);
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 700; /* Emphasized bold */
+  font-size: 1rem; /* Base font size */
+  transition: all 0.15s ease-out; /* QUICKER TRANSITION */
+  box-shadow: 0 2px 5px var(--subtle-shadow); /* Softer lift */
+  color: var(--gundam-blue); /* Default text color for non-primary buttons */
+}
+.btn:hover {
+  background: var(--gundam-neon); /* Button itself glows green */
+  color: var(--gundam-dark-grey); /* Text color changes for contrast */
+  /* Removed font-size increase for subtlety */
+  box-shadow: 0 0 8px 3px rgba(57, 255, 20, 0.5),
+    /* SOFTER NEON GLOW */ 0 0 0 2px rgba(0, 68, 153, 0.4); /* SUBTLER BLUE UNDERGLOW */
+  transform: translateY(-1px); /* SUBTLER LIFT */
+}
+
+.btn-primary {
+  background: var(--gundam-red);
+  color: var(--gundam-white);
+  border: none; /* No border for primary button */
+  box-shadow: 0 4px 8px rgba(227, 6, 19, 0.3);
+  transition: all 0.15s ease-out; /* QUICKER TRANSITION */
+}
+.btn-primary:hover {
+  background: var(--gundam-neon); /* Button itself glows green */
+  color: var(--gundam-dark-grey); /* Text color changes for contrast */
+  /* Removed font-size increase for subtlety */
+  box-shadow: 0 0 8px 3px rgba(57, 255, 20, 0.5),
+    /* SOFTER NEON GLOW */ 0 0 0 2px rgba(0, 68, 153, 0.4); /* SUBTLER BLUE UNDERGLOW */
+  transform: translateY(-1px); /* SUBTLER LIFT */
+}
+
+.status {
+  color: var(--gundam-blue);
+  font-weight: 600;
+}
+.hidden-by-filter {
+  display: none !important;
+}
+.btn-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+
+/* Computed Columns Styling (Softer, distinct tints) */
+th.computed-head.total-col,
+td.computed.total-col {
+  background: rgba(0, 68, 153, 0.07);
+} /* Very subtle Blue Tint */
+th.computed-head.equiv-col,
+td.computed.equiv-col {
+  background: rgba(0, 68, 153, 0.07);
+}
+th.computed-head.reqpct-col,
+td.computed.reqpct-col {
+  background: rgba(255, 215, 0, 0.1);
+} /* Slightly less intense yellow tint */
+
+th.computed-head {
+  font-weight: 800;
+  text-align: center;
+  color: var(--gundam-dark-grey);
+} /* Darker text for readability */
+td.computed {
+  text-align: right;
+  font-weight: 700;
+  color: var(--gundam-dark-grey);
+}
+
+/* Ratings column styling (Neon Green with soft effect) */
+th.computed-head.rating-col,
+td.computed.rating-col {
+  background: rgba(57, 255, 20, 0.1); /* Very subtle Neon Green Tint */
+  color: var(--gundam-dark-grey);
+  font-weight: 700;
+}
+th.computed-head.rating-col {
+  font-weight: 800;
+  color: var(--gundam-blue);
+}
+th.computed-head.rating-col[data-category="LECTURE"],
+th.computed-head.rating-col[data-category="lecture"] {
+  background: rgba(57, 255, 20, 0.12);
+}
+th.computed-head.rating-col[data-category="LABORATORY"],
+th.computed-head.rating-col[data-category="laboratory"] {
+  background: rgba(57, 255, 20, 0.12);
+}
+
+/* Drawer Styles (Kept for visual integrity based on previous context) */
+.collapsable-drawer-container {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  margin-bottom: 20px;
+}
+.drawer-toggle {
+  display: block;
+  width: 100%;
+  padding: 10px 15px;
+  background-color: var(--gundam-light-grey);
+  border: none;
+  text-align: left;
+  cursor: pointer;
+  font-size: 1em;
+  outline: none;
+  transition: background-color 0.05s linear;
+  border-radius: 8px;
+}
+.drawer-toggle h1 {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 1.2em;
+  margin: 0;
+}
+.arrow-icon {
+  font-size: 1em;
+  transition: transform 0.05s linear;
+}
+.drawer-toggle:not(.collapsed) .arrow-icon {
+  transform: rotate(180deg);
+}
+.drawer-content {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.05s linear, padding-bottom 0.05s linear;
+  padding: 0 15px;
+}
+#structure-actions {
+  margin: 0 0 12px 0 !important;
+  padding-top: 8px;
+}
+
+/* Header inside drawers: instructions and action buttons */
+.drawerContentHeader {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  background: linear-gradient(
+    180deg,
+    rgba(250, 250, 250, 0.9),
+    rgba(244, 244, 244, 0.9)
+  );
+  border: 1px solid var(--border);
+  padding: 12px 14px;
+  border-radius: 6px;
+  margin: 8px 0 12px 0;
+  color: var(--text);
+  font-size: 0.95rem;
+}
+.drawerContentHeader strong {
+  font-weight: 700;
+  margin-right: 8px;
+}
+.drawerContentHeader .actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.drawerContentHeader .actions button {
+  background: var(--gundam-blue);
+  color: #fff;
+  border: none;
+  padding: 6px 10px;
+  border-radius: 4px;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+.drawerContentHeader .actions button:nth-child(2) {
+  background: var(--gundam-light-grey);
+  color: var(--text);
+}
+.drawerContentHeader .actions button:hover {
+  opacity: 0.95;
+}
+.drawerContentHeader .actions button:active {
+  transform: translateY(1px);
+}
+
+/* Locked state visual for lock button */
+.drawerContentHeader .actions button.locked {
+  background: #6b7280; /* muted dark gray */
+  color: #fff;
+}
+
+/* (locked overlay removed) */
+
+/* Disabled buttons style (for clarity) */
+button[disabled],
+.btn[disabled] {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.drawer-content.open {
+  max-height: 2000px; /* large enough to reveal content instantly */
+  padding-bottom: 15px;
+}

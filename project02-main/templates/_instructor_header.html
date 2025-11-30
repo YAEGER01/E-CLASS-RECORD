@@ -1,0 +1,82 @@
+{% set _active = active_page|default('') %}
+{# Provide safe fallbacks when `user` may be undefined (prevents template errors) #}
+{% if user is defined and user is not none %}
+    {% set _uid_full = user.school_id|string %}
+    {% set _display_name = user.school_id %}
+{% else %}
+    {% set _uid_full = 'GU' %}
+    {% set _display_name = 'Guest' %}
+{% endif %}
+
+<header class="main-header">
+    <div class="header-container">
+        <div class="header-brand">
+            <h1>E-Class Record</h1>
+            <span class="header-subtitle">{{ header_subtitle|default('Instructor') }}</span>
+        </div>
+
+        <button class="nav-toggle" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="bar"></span>
+            <span class="bar"></span>
+            <span class="bar"></span>
+        </button>
+
+        <div class="header-nav">
+            <nav class="main-nav" id="main-nav">
+                <a href="{{ url_for('dashboard.instructor_dashboard') }}" class="nav-link {% if _active == 'dashboard' %}active{% endif %}">Dashboard</a>
+                <a href="{{ url_for('instructor.instructor_classes') }}" class="nav-link {% if _active == 'classes' %}active{% endif %}">Classes</a>
+                <a href="{{ url_for('instructor.gradebuilder_v2') }}" class="nav-link {% if _active == 'gradebuilder' %}active{% endif %}">Grade Builder</a>
+                <a href="{{ url_for('instructor.release_grades') }}" class="nav-link {% if _active == 'release_grades' %}active{% endif %}">Release Grades</a>
+                <a href="{{ url_for('instructor.instructor_statistics') }}" class="nav-link {% if _active == 'statistics' %}active{% endif %}">Statistics</a>
+                <a href="{{ url_for('instructor.data_simulation') }}" class="nav-link {% if _active == 'data_simulation' %}active{% endif %}">Data Simulation</a>
+            </nav>
+        </div>
+
+        <div class="header-user">
+            <div class="user-info">
+                <div class="user-avatar">{{ (_uid_full[:2] if _uid_full else 'GU')|upper }}</div>
+                <div class="user-details">
+                    <span class="user-name">{{ _display_name }}</span>
+                    <span class="user-role">Instructor</span>
+                </div>
+            </div>
+            <a href="{{ url_for('auth.logout') }}" class="logout-btn glass">Logout</a>
+        </div>
+    </div>
+</header>
+
+<script>
+    // Minimal toggle script for the header navigation (safe to include in every template)
+    (function(){
+        const toggle = document.querySelector('.nav-toggle');
+        const nav = document.getElementById('main-nav');
+        if (!toggle || !nav) return;
+        toggle.addEventListener('click', function(){
+            const expanded = toggle.getAttribute('aria-expanded') === 'true';
+            toggle.setAttribute('aria-expanded', String(!expanded));
+            nav.classList.toggle('open');
+        });
+    })();
+</script>
+
+<script>
+    // Ensure shared instructor stylesheet is present for pages that didn't include it.
+    (function() {
+        try {
+            var href = '{{ url_for('static', filename='css/instructor-dashboard.css') }}';
+            // If a link tag for this href already exists, do nothing.
+            var exists = Array.from(document.querySelectorAll('link[rel="stylesheet"]')).some(function(l){
+                return l.getAttribute('href') === href || (l.getAttribute('href') || '').endsWith('instructor-dashboard.css');
+            });
+            if (exists) return;
+            var link = document.createElement('link');
+            link.rel = 'stylesheet';
+            link.href = href;
+            link.onload = function(){ console.debug('Instructor stylesheet loaded via header include'); };
+            link.onerror = function(){ console.warn('Failed to load instructor stylesheet from', href); };
+            document.head.appendChild(link);
+        } catch (e) {
+            console.warn('Unable to ensure instructor stylesheet', e);
+        }
+    })();
+</script>

@@ -65,11 +65,13 @@
         data-structure-id="{{ structure_id }}"
         data-csrf-token="{{ csrf_token }}"
         data-class-type="{{ (class_info.class_type or 'MAJOR') if class_info else 'MAJOR' }}"
+        data-limited-view="{{ '1' if limited_view else '0' }}"
+        data-current-student="{{ current_student_id or '' }}"
         style="display: none"
       ></div>
       <div class="toolbar">
         <div>
-          <a class="btn" href="{{ url_for('dashboard.instructor_dashboard') }}">← Back</a>
+          <a class="btn" href="{% if limited_view %}{{ url_for('dashboard.student_dashboard') }}{% else %}{{ url_for('dashboard.instructor_dashboard') }}{% endif %}">← Back</a>
         </div>
         <div class="status" id="save-status"></div>
         <div class="btn-row">
@@ -500,6 +502,42 @@
           });
         });
       })();
+    </script>
+    <script>
+      // Client-side enforcement for limited student view
+      document.addEventListener('DOMContentLoaded', function () {
+        try {
+          var page = document.getElementById('page-data');
+          if (!page) return;
+          var limited = page.getAttribute('data-limited-view') === '1';
+          var current = page.getAttribute('data-current-student') || '';
+          if (!limited) return;
+
+          // Hide rows that are not the current student
+          document.querySelectorAll('#tbody tr[data-student-id]').forEach(function (r) {
+            var sid = (r.getAttribute('data-student-id') || '').toString();
+            if (sid !== current) r.style.display = 'none';
+          });
+
+          // Disable inputs that do not belong to the current student
+          document.querySelectorAll('input.score').forEach(function (inp) {
+            var sid = inp.getAttribute('data-student') || '';
+            if (sid !== current) inp.disabled = true;
+          });
+
+          // Hide interactive buttons / controls
+          document.querySelectorAll('[data-action]').forEach(function (el) {
+            el.style.display = 'none';
+          });
+
+          // Remove add/edit controls that may still be present
+          document.querySelectorAll('button[data-action="add-assessment"], button[data-action="edit-assessment"]').forEach(function (b) {
+            b.style.display = 'none';
+          });
+        } catch (e) {
+          console.error('Limited view guard failed', e);
+        }
+      });
     </script>
     <script>
       document.addEventListener('DOMContentLoaded', function () {

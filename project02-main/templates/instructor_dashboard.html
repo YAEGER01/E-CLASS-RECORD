@@ -12,6 +12,34 @@
     </script>
 
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script>
+        // Fallback shim for SweetAlert2 when offline or CDN fails to load.
+        // Provides minimal API used across the dashboard so code doesn't throw.
+        (function () {
+            if (typeof Swal !== 'undefined') return;
+            console.warn('SweetAlert2 not available — using minimal fallback shim.');
+            window.Swal = {
+                fire: function (opts) {
+                    try {
+                        var title = opts && (opts.title || opts.text) ? (opts.title || opts.text) : '';
+                        if (opts && opts.icon === 'error') {
+                            alert((title && title + '\n') + (opts.text || ''));
+                        } else if (opts && opts.icon === 'warning') {
+                            alert('Warning: ' + title);
+                        } else {
+                            // For success/info just use a non-blocking console message, and an alert for visibility
+                            if (title) console.info('Notice:', title);
+                        }
+                    } catch (e) {
+                        console.log('Swal fallback fire', e);
+                    }
+                    return Promise.resolve({ isConfirmed: true });
+                },
+                showLoading: function () { /* no-op fallback */ },
+                close: function () { /* no-op fallback */ }
+            };
+        })();
+    </script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -19,36 +47,9 @@
 </head>
 
 <body>
-    <!-- Header -->
-    <header class="main-header">
-        <div class="header-container">
-            <div class="header-brand">
-                <h1>E-Class Record</h1>
-                <span class="header-subtitle">Instructor Dashboard</span>
-            </div>
-            <div class="header-nav">
-                <nav class="main-nav">
-    
-                    <a href="{{ url_for('instructor.instructor_classes') }}" class="nav-link">Classes</a>
-                    <a href="{{ url_for('instructor.gradebuilder_v2') }}" class="nav-link">Grade Builder</a>
-                    <a href="{{ url_for('instructor.release_grades') }}" class="nav-link">Release Grades</a>
-                    <a href="{{ url_for('instructor.instructor_statistics') }}" class="nav-link">Statistics</a>
-                    <a href="#reports-modal" class="nav-link" onclick="openReportsModal()">Reports</a>
-                    <a href="{{ url_for('instructor.data_simulation') }}" class="nav-link">Data Simulation</a>
-                </nav>
-            </div>
-            <div class="header-user">
-                <div class="user-info">
-                    <div class="user-avatar">{{ (user.school_id|string)[:2]|upper }}</div>
-                    <div class="user-details">
-                        <span class="user-name">{{ user.school_id }}</span>
-                        <span class="user-role">Instructor</span>
-                    </div>
-                </div>
-                <a href="{{ url_for('auth.logout') }}" class="logout-btn">Logout</a>
-            </div>
-        </div>
-    </header>
+    {% set active_page = 'dashboard' %}
+    {% set header_subtitle = 'Instructor Dashboard' %}
+    {% include '_instructor_header.html' %}
 
     <!-- Main Content -->
     <main class="main-content">
@@ -133,7 +134,7 @@
                         <p>Manage your class schedules and subjects</p>
                     </div>
                     <div class="classes-actions">
-                        <a href="{{ url_for('instructor.instructor_classes') }}" class="btn btn-primary">Create New Class</a>
+                        
                         <button class="btn btn-secondary" onclick="refreshClasses(this)">
                             <span class="spinner small" aria-hidden="true"></span>
                             <span>Refresh</span>

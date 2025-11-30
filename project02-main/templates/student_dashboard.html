@@ -142,6 +142,17 @@
             </button>
         </div>
 
+        <!-- WHAT IF card: quick access to limited instructor unified view -->
+        <div class="desktop-card whatif-card" style="display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:18px;">
+            <h3 style="margin:0; font-size:1.15rem;">WHAT IF???</h3>
+            <div style="font-size:72px; line-height:1; font-weight:700; color:#111827; margin:8px 0;">?</div>
+            <p style="color:#6b7280; margin:6px 0 12px 0;">Peek at the instructor's unified grade view (limited access).</p>
+            <div style="width:100%; max-width:360px; display:flex; justify-content:center;">
+                <button id="whatifOpenBtn" class="view-grades-btn" style="background:#2563eb; color:#fff; border:none; padding:10px 16px; border-radius:10px; cursor:pointer; font-weight:700;">Open WHAT IF</button>
+            </div>
+            <small id="whatifHelp" style="display:block; margin-top:8px; color:#9ca3af;">Only shows limited student view for enrolled classes.</small>
+        </div>
+
         <!-- Mobile Carousel for Grades and Assessments -->
         <div class="mobile-carousel grades-assessments-carousel">
             <div class="carousel-header">
@@ -618,6 +629,8 @@
             z-index: 9999 !important;
         }
 
+        /* WHAT IF handler removed from style block; script attaches handler in main script below */
+
         /* Ensure the confirm/cancel buttons also respect rounded corners when shown as toasts */
         .swal2-toast .swal2-header, .swal2-toast .swal2-content {
             border-radius: 8px;
@@ -669,6 +682,13 @@
             margin-right: 8px;
         }
 
+    </style>
+
+    <style>
+        /* Make WHAT IF SweetAlert slightly rounder for clarity */
+        .swal-whatif .swal2-popup {
+            border-radius: 14px !important;
+        }
     </style>
 
     <script>
@@ -726,6 +746,88 @@
                 iconColor: '#16a34a'
             });
         }, 1000);
+
+        // WHAT IF button: fetch joined classes and open the limited instructor unified view
+        (function attachWhatIfButton() {
+            const btn = document.getElementById('whatifOpenBtn');
+            if (!btn) return;
+            btn.addEventListener('click', async function () {
+                try {
+                    const resp = await fetch('/api/student/joined-classes', { credentials: 'same-origin' });
+                    if (!resp.ok) {
+                        throw new Error('Failed to load your classes');
+                    }
+                    const data = await resp.json();
+                    const classes = (data && data.classes) || [];
+                    if (!classes || classes.length === 0) {
+                        Swal.fire({ icon: 'info', title: 'No classes', text: 'You are not enrolled in any classes.' });
+                        return;
+                    }
+                    // Always show selection modal, even if there's only one class
+                    // (user requested a confirmation/modal every time)
+
+                    // Multiple classes: present a quick select via SweetAlert
+                    const inputOptions = {};
+                    classes.forEach(c => { inputOptions[c.id] = (c.class_id || c.course || 'Class ' + c.id) + ' — ' + (c.section || ''); });
+                    const { value: selected } = await Swal.fire({
+                        title: 'Open WHAT IF for which class?',
+                        input: 'select',
+                        inputOptions: inputOptions,
+                        inputPlaceholder: 'Select a class',
+                        showCancelButton: true,
+                    });
+                    if (selected) {
+                        window.location.href = '/instructor/class/' + encodeURIComponent(selected) + '/grades';
+                    }
+                } catch (err) {
+                    console.error('WHAT IF open failed', err);
+                    Swal.fire({ icon: 'error', title: 'Error', text: err.message || 'Failed to open WHAT IF view' });
+                }
+            });
+        })();
+
+        // Delegated fallback: ensure the WHAT IF button works even if timing prevented direct attachment
+        document.addEventListener('click', function (e) {
+            try {
+                var btn = e.target && (e.target.id === 'whatifOpenBtn' ? e.target : (e.target.closest ? e.target.closest('#whatifOpenBtn') : null));
+                if (!btn) return;
+                e.preventDefault();
+                // reuse the same async flow as the attached handler
+                (async function () {
+                    try {
+                        const resp = await fetch('/api/student/joined-classes', { credentials: 'same-origin' });
+                        if (!resp.ok) {
+                            throw new Error('Failed to load your classes');
+                        }
+                        const data = await resp.json();
+                        const classes = (data && data.classes) || [];
+                        if (!classes || classes.length === 0) {
+                            Swal.fire({ icon: 'info', title: 'No classes', text: 'You are not enrolled in any classes.' });
+                            return;
+                        }
+                        // Always show selection modal, even if there's only one class
+                        const inputOptions = {};
+                        classes.forEach(c => { inputOptions[c.id] = (c.class_id || c.course || 'Class ' + c.id) + ' — ' + (c.section || ''); });
+                        const { value: selected } = await Swal.fire({
+                            title: 'Open WHAT IF for which class?',
+                            input: 'select',
+                            inputOptions: inputOptions,
+                            inputPlaceholder: 'Select a class',
+                            showCancelButton: true,
+                        });
+                        if (selected) {
+                            window.location.href = '/instructor/class/' + encodeURIComponent(selected) + '/grades';
+                        }
+                    } catch (err) {
+                        console.error('WHAT IF open failed', err);
+                        Swal.fire({ icon: 'error', title: 'Error', text: err.message || 'Failed to open WHAT IF view' });
+                    }
+                })();
+            } catch (ex) {
+                // swallow
+                console.warn('WHAT IF delegated handler error', ex);
+            }
+        });
     });
 
         // Function to join a class
@@ -883,6 +985,8 @@
 
                     if (data && data.success) {
                         console.log('Join successful');
+                        // Joined — dashboard will refresh and WHAT IF button will fetch classes when clicked
+
                         // Success notification
                         Swal.fire({
                             icon: 'success',

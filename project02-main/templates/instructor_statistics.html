@@ -136,35 +136,9 @@
 </head>
 
 <body>
-    <!-- Header -->
-    <header class="main-header">
-        <div class="header-container">
-            <div class="header-brand">
-                <h1>E-Class Record</h1>
-                <span class="header-subtitle">Instructor Statistics</span>
-            </div>
-            <div class="header-nav">
-                <nav class="main-nav">
-                    <a href="{{ url_for('dashboard.instructor_dashboard') }}" class="nav-link">Dashboard</a>
-                    <a href="{{ url_for('instructor.instructor_classes') }}" class="nav-link">Classes</a>
-                    <a href="{{ url_for('instructor.gradebuilder_v2') }}" class="nav-link">Grade Builder</a>
-                    <a href="{{ url_for('instructor.release_grades') }}" class="nav-link">Release Grades</a>
-                    <a href="{{ url_for('instructor.instructor_statistics') }}" class="nav-link active">Statistics</a>
-                    <a href="{{ url_for('instructor.data_simulation') }}" class="nav-link">Data Simulation</a>
-                </nav>
-            </div>
-            <div class="header-user">
-                <div class="user-info">
-                    <div class="user-avatar">{{ (user.school_id|string)[:2]|upper }}</div>
-                    <div class="user-details">
-                        <span class="user-name">{{ user.school_id }}</span>
-                        <span class="user-role">Instructor</span>
-                    </div>
-                </div>
-                <a href="{{ url_for('auth.logout') }}" class="logout-btn">Logout</a>
-            </div>
-        </div>
-    </header>
+    {% set active_page = 'statistics' %}
+    {% set header_subtitle = 'Instructor Statistics' %}
+    {% include '_instructor_header.html' %}
 
     <!-- Main Content -->
     <main class="main-content">

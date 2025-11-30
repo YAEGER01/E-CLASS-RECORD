@@ -9,38 +9,15 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Use shared instructor styles first, then page-specific overrides -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/instructor-dashboard.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/gradebuilder_v2.css') }}">
 </head>
 
 <body>
-    <!-- Header -->
-    <header class="main-header">
-        <div class="header-container">
-            <div class="header-brand">
-                <h1>Grade Builder v2</h1>
-                <span class="header-subtitle">E-Class Record</span>
-            </div>
-            <div class="header-nav">
-                <nav class="main-nav">
-                    <a href="{{ url_for('dashboard.instructor_dashboard') }}" class="nav-link">Dashboard</a>
-                    <a href="{{ url_for('instructor.instructor_classes') }}" class="nav-link">Classes</a>
-                    <a href="{{ url_for('instructor.gradebuilder_v2') }}" class="nav-link active">Grade Builder</a>
-                    <a href="{{ url_for('instructor.instructor_statistics') }}" class="nav-link">Statistics</a>
-                    <a href="{{ url_for('instructor.data_simulation') }}" class="nav-link">Data Simulation</a>
-                </nav>
-            </div>
-            <div class="header-user">
-                <div class="user-info">
-                    <div class="user-avatar">GB</div>
-                    <div class="user-details">
-                        <span class="user-name">Grade Builder</span>
-                        <span class="user-role">Structure Management</span>
-                    </div>
-                </div>
-                <a href="{{ url_for('dashboard.instructor_dashboard') }}" class="back-btn">Back to Dashboard</a>
-            </div>
-        </div>
-    </header>
+    {% set active_page = 'gradebuilder' %}
+    {% set header_subtitle = 'Grade Builder' %}
+    {% include '_instructor_header.html' %}
 
     <!-- Main Content -->
     <main class="main-content">

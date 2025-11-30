@@ -498,3 +498,180 @@ button[disabled],
   font-weight: 700;
   font-size: 1.1em;
 }
+
+/* Compact downscale for student-limited mobile view */
+@media (max-width: 900px) {
+  body.limited-view .page {
+    padding: 12px;
+    max-width: 100%;
+  }
+
+  body.limited-view .toolbar {
+    padding: 6px;
+    gap: 8px;
+  }
+
+  body.limited-view .matrix-wrapper {
+    border-radius: 8px;
+    padding: 6px;
+  }
+
+  /* Reduce overall table density */
+  body.limited-view table.matrix {
+    min-width: 0 !important;
+    width: 100% !important;
+    font-size: 0.88rem;
+    table-layout: auto;
+  }
+
+  body.limited-view table.matrix th,
+  body.limited-view table.matrix td {
+    padding: 6px 6px;
+  }
+
+  /* Narrower sticky columns */
+  body.limited-view td.sticky-left,
+  body.limited-view th.sticky-left {
+    left: 0;
+    min-width: 56px;
+    max-width: 140px;
+    padding: 6px 8px;
+    font-size: 0.95rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* Smaller inputs suitable for narrow screens */
+  body.limited-view input.score {
+    width: 56px !important;
+    max-width: 160px;
+    padding: 4px 6px;
+    font-size: 0.95rem;
+  }
+
+  /* Slightly reduce visual weight of headers */
+  body.limited-view th.section-cell,
+  body.limited-view th.section-subtitle,
+  body.limited-view th.subcat-head {
+    font-size: 0.85rem;
+    padding: 6px 8px;
+  }
+
+  /* Reduce button sizes */
+  body.limited-view .btn {
+    padding: 6px 10px;
+    font-size: 0.9rem;
+  }
+
+  /* Make pills less obtrusive */
+  body.limited-view .header-pill,
+  body.limited-view .input-pill {
+    transform: scale(0.9);
+    padding: 3px 6px;
+    font-size: 0.72rem;
+  }
+
+  /* Final grade table: compact rows */
+  body.limited-view table.matrix.final-grade-table {
+    font-size: 0.9rem;
+  }
+}
+
+/* Aggressive downscale for very small phones when in student-limited view */
+@media (max-width: 700px) {
+  body.limited-view {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body.limited-view .page {
+    padding: 8px;
+    max-width: 100%;
+  }
+
+  body.limited-view .toolbar {
+    padding: 4px;
+    gap: 6px;
+  }
+
+  body.limited-view .matrix-wrapper {
+    padding: 4px;
+    border-radius: 6px;
+  }
+
+  /* Reduce overall table density and font sizes */
+  body.limited-view table.matrix,
+  body.limited-view table.matrix.final-grade-table {
+    min-width: 0 !important;
+    width: 100% !important;
+    font-size: 0.78rem;
+    table-layout: auto;
+  }
+
+  body.limited-view table.matrix th,
+  body.limited-view table.matrix td {
+    padding: 4px 4px;
+  }
+
+  /* Narrower sticky columns and truncated student names */
+  body.limited-view td.sticky-left,
+  body.limited-view th.sticky-left {
+    left: 0;
+    min-width: 48px;
+    max-width: 120px;
+    padding: 4px 6px;
+    font-size: 0.9rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* Very small inputs suitable for narrow screens */
+  body.limited-view input.score {
+    width: 44px !important;
+    max-width: 120px;
+    padding: 3px 4px;
+    font-size: 0.85rem;
+  }
+
+  /* Smaller headers */
+  body.limited-view th.section-cell,
+  body.limited-view th.section-subtitle,
+  body.limited-view th.subcat-head {
+    font-size: 0.75rem;
+    padding: 4px 6px;
+  }
+
+  /* Reduce button sizes */
+  body.limited-view .btn {
+    padding: 4px 8px;
+    font-size: 0.85rem;
+  }
+
+  /* Make pills less obtrusive */
+  body.limited-view .header-pill,
+  body.limited-view .input-pill {
+    transform: scale(0.8);
+    padding: 2px 5px;
+    font-size: 0.65rem;
+  }
+
+  /* Compact final grade rows */
+  body.limited-view table.matrix.final-grade-table td,
+  body.limited-view table.matrix.final-grade-table th {
+    padding: 4px 6px;
+    font-size: 0.8rem;
+  }
+
+  /* Reduce visual clutter (shadows, large radii) */
+  body.limited-view .matrix-wrapper {
+    box-shadow: none;
+  }
+
+  /* Ensure computed text remains legible */
+  body.limited-view td.computed {
+    font-weight: 700;
+    font-size: 0.85rem;
+  }
+}

@@ -492,7 +492,9 @@ def create_class():
                 if not instructor:
                     return jsonify({"error": "Instructor profile not found"}), 404
 
-                data = request.get_json()
+                # Accept JSON but avoid raising a BadRequest that returns HTML
+                data = request.get_json(silent=True) or {}
+                logger.debug(f"create_class payload: {data}")
                 required_fields = [
                     "classType",
                     "year",
@@ -555,10 +557,8 @@ def create_class():
 
                 class_id = cursor.lastrowid
             conn.commit()
-        except Exception:
-            conn.rollback()
-            raise
 
+            # Build returned class object after successful commit
             year_str = str(data["year"]) if data["year"] else ""
             formatted_year = year_str[-2:] if year_str else "XX"
             semester_str = str(data["semester"]) if data["semester"] else ""
@@ -594,6 +594,9 @@ def create_class():
                     },
                 }
             )
+        except Exception:
+            conn.rollback()
+            raise
     except Exception as e:
         if conn:
             conn.rollback()
@@ -754,14 +757,14 @@ def delete_class(class_id):
 
                 cursor.execute("DELETE FROM classes WHERE id = %s", (class_id,))
             conn.commit()
-        except Exception:
-            conn.rollback()
-            raise
 
             logger.info(
                 f"Instructor {session.get('school_id')} deleted class {class_id}"
             )
             return jsonify({"message": "Class deleted successfully"}), 200
+        except Exception:
+            conn.rollback()
+            raise
     except Exception as e:
         if conn:
             conn.rollback()
@@ -769,6 +772,12 @@ def delete_class(class_id):
             f"Failed to delete class {class_id} for instructor {session.get('school_id')}: {str(e)}"
         )
         return jsonify({"error": "Failed to delete class"}), 500
+
+    # Fallback: ensure a response is always returned (prevents Flask TypeError if control falls through)
+    logger.error(
+        f"delete_class: reached end of function without returning for class_id={class_id}"
+    )
+    return jsonify({"error": "internal_server_error"}), 500
 
 
 @instructor_bp.route(
@@ -2334,14 +2343,45 @@ def api_save_snapshot(class_id: int):
 )
 @login_required
 def instructor_class_grades(class_id: int):
-    if session.get("role") != "instructor":
+    # Allow instructors as before; allow students with limited privilege
+    role = session.get("role")
+    if role not in ("instructor", "student"):
         session.clear()
         flash("Unauthorized access.", "error")
         return redirect(url_for("auth.login"))
 
-    if not _instructor_owns_class(class_id, session.get("user_id")):
-        flash("You do not have access to this class.", "error")
-        return redirect(url_for("dashboard.instructor_dashboard"))
+    limited_view = False
+    current_student_id = None
+
+    if role == "instructor":
+        if not _instructor_owns_class(class_id, session.get("user_id")):
+            flash("You do not have access to this class.", "error")
+            return redirect(url_for("dashboard.instructor_dashboard"))
+    else:
+        # role == 'student' -> allow read-only (limited) access only if enrolled
+        try:
+            with get_db_connection().cursor() as _c:
+                _c.execute(
+                    "SELECT id FROM students WHERE user_id = %s",
+                    (session.get("user_id"),),
+                )
+                srow = _c.fetchone()
+                if not srow:
+                    flash("Student profile not found.", "error")
+                    return redirect(url_for("dashboard.student_dashboard"))
+                current_student_id = srow.get("id")
+                _c.execute(
+                    "SELECT 1 FROM student_classes WHERE student_id = %s AND class_id = %s",
+                    (current_student_id, class_id),
+                )
+                if not _c.fetchone():
+                    flash("You do not have access to this class.", "error")
+                    return redirect(url_for("dashboard.student_dashboard"))
+                limited_view = True
+        except Exception as e:
+            logger.error(f"Failed to verify student enrollment: {e}")
+            flash("Failed to verify access.", "error")
+            return redirect(url_for("dashboard.student_dashboard"))
 
     try:
         with get_db_connection().cursor() as cursor:
@@ -2367,77 +2407,94 @@ def instructor_class_grades(class_id: int):
             )
 
             # Ensure normalized categories/subcategories exist for this structure so we can map names -> IDs
+            # Skip any schema-mutating work when a student is viewing in limited mode
             try:
-                with get_db_connection().cursor() as c2:
-                    # Fetch existing categories for this structure
-                    c2.execute(
-                        "SELECT id, name FROM grade_categories WHERE structure_id = %s ORDER BY position",
-                        (grade_structure.get("id"),),
-                    )
-                    existing_cats = {
-                        row["name"]: row["id"] for row in (c2.fetchall() or [])
-                    }
-
-                    # Create missing top-level categories (LECTURE/LABORATORY)
-                    desired_cats = [
-                        k for k in ("LECTURE", "LABORATORY") if structure.get(k)
-                    ]
-                    pos = 1
-                    for cat_name in desired_cats:
-                        if cat_name not in existing_cats:
-                            c2.execute(
-                                """
-                                INSERT INTO grade_categories (structure_id, name, weight, position, description, created_at)
-                                VALUES (%s, %s, %s, %s, %s, NOW())
-                                """,
-                                (grade_structure.get("id"), cat_name, 100.0, pos, None),
-                            )
-                            existing_cats[cat_name] = (
-                                getattr(c2, "lastrowid", None) or 0
-                            )
-                        pos += 1
-
-                    # For each subcategory in the structure JSON, ensure a row exists under its category
-                    for cat_name in desired_cats:
-                        cat_id = existing_cats.get(cat_name)
-                        if not cat_id:
-                            continue
-                        # load existing subs for this category
+                if not limited_view:
+                    with get_db_connection().cursor() as c2:
+                        # Fetch existing categories for this structure
                         c2.execute(
-                            "SELECT id, name FROM grade_subcategories WHERE category_id = %s ORDER BY position",
-                            (cat_id,),
+                            "SELECT id, name FROM grade_categories WHERE structure_id = %s ORDER BY position",
+                            (grade_structure.get("id"),),
                         )
-                        existing_subs = {
+                        existing_cats = {
                             row["name"]: row["id"] for row in (c2.fetchall() or [])
                         }
-                        # insert any missing subs from structure JSON
-                        subs = structure.get(cat_name) or []
-                        sub_pos = 1
-                        for subdef in subs:
-                            try:
-                                sub_name = (subdef or {}).get("name")
-                                sub_weight = float((subdef or {}).get("weight") or 0)
-                            except Exception:
-                                sub_name, sub_weight = (None, 0.0)
-                            if not sub_name:
-                                continue
-                            if sub_name not in existing_subs:
-                                # max_score is required by schema; use 0 as placeholder for subcategory level
+
+                        # Create missing top-level categories (LECTURE/LABORATORY)
+                        desired_cats = [
+                            k for k in ("LECTURE", "LABORATORY") if structure.get(k)
+                        ]
+                        pos = 1
+                        for cat_name in desired_cats:
+                            if cat_name not in existing_cats:
                                 c2.execute(
                                     """
-                                    INSERT INTO grade_subcategories (category_id, name, weight, max_score, position, description, created_at)
-                                    VALUES (%s, %s, %s, %s, %s, %s, NOW())
+                                    INSERT INTO grade_categories (structure_id, name, weight, position, description, created_at)
+                                    VALUES (%s, %s, %s, %s, %s, NOW())
                                     """,
-                                    (cat_id, sub_name, sub_weight, 0.0, sub_pos, None),
+                                    (
+                                        grade_structure.get("id"),
+                                        cat_name,
+                                        100.0,
+                                        pos,
+                                        None,
+                                    ),
                                 )
-                                existing_subs[sub_name] = (
+                                existing_cats[cat_name] = (
                                     getattr(c2, "lastrowid", None) or 0
                                 )
-                            sub_pos += 1
-                try:
-                    conn.commit()
-                except Exception:
-                    pass
+                            pos += 1
+
+                        # For each subcategory in the structure JSON, ensure a row exists under its category
+                        for cat_name in desired_cats:
+                            cat_id = existing_cats.get(cat_name)
+                            if not cat_id:
+                                continue
+                            # load existing subs for this category
+                            c2.execute(
+                                "SELECT id, name FROM grade_subcategories WHERE category_id = %s ORDER BY position",
+                                (cat_id,),
+                            )
+                            existing_subs = {
+                                row["name"]: row["id"] for row in (c2.fetchall() or [])
+                            }
+                            # insert any missing subs from structure JSON
+                            subs = structure.get(cat_name) or []
+                            sub_pos = 1
+                            for subdef in subs:
+                                try:
+                                    sub_name = (subdef or {}).get("name")
+                                    sub_weight = float(
+                                        (subdef or {}).get("weight") or 0
+                                    )
+                                except Exception:
+                                    sub_name, sub_weight = (None, 0.0)
+                                if not sub_name:
+                                    continue
+                                if sub_name not in existing_subs:
+                                    # max_score is required by schema; use 0 as placeholder for subcategory level
+                                    c2.execute(
+                                        """
+                                        INSERT INTO grade_subcategories (category_id, name, weight, max_score, position, description, created_at)
+                                        VALUES (%s, %s, %s, %s, %s, %s, NOW())
+                                        """,
+                                        (
+                                            cat_id,
+                                            sub_name,
+                                            sub_weight,
+                                            0.0,
+                                            sub_pos,
+                                            None,
+                                        ),
+                                    )
+                                    existing_subs[sub_name] = (
+                                        getattr(c2, "lastrowid", None) or 0
+                                    )
+                                sub_pos += 1
+                        try:
+                            conn.commit()
+                        except Exception:
+                            pass
             except Exception:
                 # Non-fatal: if ensuring fails, page may still render, but add-assessment will warn
                 pass
@@ -2459,21 +2516,39 @@ def instructor_class_grades(class_id: int):
             )
             assessments = cursor.fetchall() or []
 
-            cursor.execute(
-                """
-                SELECT 
-                    sc.student_id,
-                    u.school_id,
-                    pi.first_name, pi.last_name, pi.middle_name
-                FROM student_classes sc
-                JOIN students s ON sc.student_id = s.id
-                JOIN users u ON s.user_id = u.id
-                LEFT JOIN personal_info pi ON s.personal_info_id = pi.id
-                WHERE sc.class_id = %s
-                ORDER BY pi.last_name, pi.first_name
-                """,
-                (class_id,),
-            )
+            # If a student is viewing in limited mode, only fetch that student's row
+            if limited_view and current_student_id:
+                cursor.execute(
+                    """
+                    SELECT 
+                        sc.student_id,
+                        u.school_id,
+                        pi.first_name, pi.last_name, pi.middle_name
+                    FROM student_classes sc
+                    JOIN students s ON sc.student_id = s.id
+                    JOIN users u ON s.user_id = u.id
+                    LEFT JOIN personal_info pi ON s.personal_info_id = pi.id
+                    WHERE sc.class_id = %s AND sc.student_id = %s
+                    ORDER BY pi.last_name, pi.first_name
+                    """,
+                    (class_id, current_student_id),
+                )
+            else:
+                cursor.execute(
+                    """
+                    SELECT 
+                        sc.student_id,
+                        u.school_id,
+                        pi.first_name, pi.last_name, pi.middle_name
+                    FROM student_classes sc
+                    JOIN students s ON sc.student_id = s.id
+                    JOIN users u ON s.user_id = u.id
+                    LEFT JOIN personal_info pi ON s.personal_info_id = pi.id
+                    WHERE sc.class_id = %s
+                    ORDER BY pi.last_name, pi.first_name
+                    """,
+                    (class_id,),
+                )
             enrollments = cursor.fetchall() or []
 
             students = []
@@ -2569,6 +2644,8 @@ def instructor_class_grades(class_id: int):
                 sub_id_map=sub_id_map,
                 csrf_token=generate_csrf(),
                 class_info=class_info,
+                limited_view=limited_view,
+                current_student_id=current_student_id,
             )
     except Exception as e:
         import traceback

@@ -1192,3 +1192,263 @@ input:focus {
   padding-top: 1rem;
   border-top: 1px solid #e5e7eb;
 }
+
+/* ===== Glass buttons + glint effect + mobile nav toggle ===== */
+
+:root {
+  --glass-bg: rgba(255, 255, 255, 0.06);
+  --glass-border: rgba(255, 255, 255, 0.12);
+  --glass-shadow: 0 8px 30px rgba(2, 6, 23, 0.06);
+}
+
+/* Enhance nav links with glass look */
+.nav-link {
+  border-radius: 10px;
+  position: relative;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.02),
+    rgba(255, 255, 255, 0)
+  );
+  border: 1px solid rgba(0, 0, 0, 0.03);
+  transition: transform 0.18s cubic-bezier(0.2, 0.9, 0.2, 1), box-shadow 0.18s;
+}
+
+.nav-link:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.06);
+  color: var(--gray-900);
+}
+
+.nav-link.active {
+  background: linear-gradient(
+    180deg,
+    rgba(59, 130, 246, 0.08),
+    rgba(59, 130, 246, 0.03)
+  );
+  color: var(--instructor-primary);
+  border: 1px solid rgba(59, 130, 246, 0.12);
+  box-shadow: 0 8px 24px rgba(59, 130, 246, 0.06);
+}
+
+/* Generic glass class for buttons and links */
+.glass {
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.06),
+    rgba(255, 255, 255, 0.02)
+  );
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: var(--glass-shadow);
+  color: var(--gray-900) !important;
+  position: relative;
+  overflow: hidden;
+}
+
+.glass::after {
+  content: "";
+  position: absolute;
+  top: -60%;
+  left: -40%;
+  width: 40%;
+  height: 220%;
+  background: linear-gradient(
+    120deg,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, 0.6) 50%,
+    rgba(255, 255, 255, 0) 100%
+  );
+  transform: translateX(-100%) rotate(12deg);
+  transition: transform 0.9s cubic-bezier(0.2, 0.9, 0.2, 1), opacity 0.4s;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.glass:hover::after {
+  transform: translateX(220%) rotate(12deg);
+  opacity: 1;
+}
+
+/* Apply glass to logout and primary buttons when desired */
+.logout-btn.glass,
+.btn-primary.glass {
+  padding: 8px 14px;
+  border-radius: 12px;
+}
+
+/* Glossier primary default */
+.btn-primary {
+  /* stronger, high-contrast primary so buttons remain visible on light backgrounds */
+  background: linear-gradient(
+    180deg,
+    var(--instructor-primary),
+    var(--instructor-secondary)
+  );
+  border: 1px solid rgba(37, 99, 235, 0.9);
+  color: var(--white) !important;
+  box-shadow: 0 10px 30px rgba(37, 99, 235, 0.12);
+}
+
+/* Mobile nav toggle */
+.nav-toggle {
+  display: none;
+  background: transparent;
+  border: none;
+  gap: 6px;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 8px;
+  margin-right: 8px;
+}
+
+.nav-toggle .bar {
+  width: 22px;
+  height: 2px;
+  background: var(--gray-700);
+  border-radius: 2px;
+  display: block;
+}
+
+/* Hide nav on smaller screens until toggled */
+.main-nav {
+  transition: all 0.24s ease;
+}
+.main-nav.open {
+  display: flex !important;
+}
+
+@media (max-width: 1024px) {
+  .nav-toggle {
+    display: flex;
+  }
+  .main-nav {
+    display: none;
+    flex-direction: column;
+    gap: 12px;
+    width: 100%;
+  }
+  .header-container {
+    align-items: flex-start;
+  }
+  .header-nav {
+    width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .nav-toggle .bar {
+    width: 18px;
+  }
+  .nav-link {
+    padding: 6px 10px;
+    font-size: 13px;
+  }
+}
+
+/* Accessibility: keep focus visible on glass elements */
+.glass:focus::after {
+  opacity: 0.9;
+}
+
+/* Subtle animated patterned background for the main header
+   - Uses a pseudo-element so header content keeps normal opacity/z-index
+   - Background art provided by the user, animated slowly for a gentle drift
+*/
+.main-header {
+  position: relative;
+  overflow: hidden;
+}
+
+.main-header::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  /* Slightly stronger translucent pattern so it's visible on white backgrounds */
+  background-image: radial-gradient(
+      circle,
+      transparent 25%,
+      rgba(255, 255, 255, 0.92) 26%
+    ),
+    linear-gradient(
+      45deg,
+      rgba(0, 0, 0, 0.08) 46%,
+      rgba(0, 0, 0, 0.08) 47%,
+      rgba(0, 0, 0, 0.08) 52%,
+      transparent 53%
+    ),
+    linear-gradient(
+      135deg,
+      rgba(0, 0, 0, 0.08) 46%,
+      rgba(0, 0, 0, 0.08) 47%,
+      rgba(0, 0, 0, 0.08) 52%,
+      transparent 53%
+    );
+  background-size: 2em 2em;
+  background-color: transparent;
+  opacity: 0.5; /* increased to 50% as requested */
+  transform-origin: center;
+  animation: header-bg-drift 28s linear infinite;
+}
+
+/* Add a second subtle overlay to create depth/movement without distraction */
+.main-header::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background-image: linear-gradient(
+    120deg,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(0, 0, 0, 0.035) 50%,
+    rgba(255, 255, 255, 0) 100%
+  );
+  background-size: 400% 100%;
+  opacity: 0.2;
+  transform-origin: center;
+  filter: blur(4px);
+  animation: header-bg-wave 14s ease-in-out infinite;
+}
+
+.main-header > .header-container {
+  position: relative;
+  z-index: 1;
+}
+
+@keyframes header-bg-drift {
+  0% {
+    background-position: 0 0, 0 0, 0 0;
+  }
+  50% {
+    background-position: 20px 18px, -18px -20px, 18px -16px;
+  }
+  100% {
+    background-position: 0 0, 0 0, 0 0;
+  }
+}
+
+@keyframes header-bg-wave {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 50% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+/* Respect users who prefer reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .main-header::before,
+  .main-header::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}

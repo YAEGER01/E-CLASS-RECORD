@@ -228,6 +228,7 @@ from blueprints.admin_routes import admin_bp
 from blueprints.compute_routes import compute_bp
 from blueprints.gradebuilder_routes import gradebuilder_bp
 from blueprints.reports_routes import reports_bp
+from gibber import gibberize, resolve, gibber_form_token, gibber_form_action
 
 # Initialize Flask-Mail
 from flask_mail import Mail
@@ -255,6 +256,84 @@ app.register_blueprint(admin_bp)
 app.register_blueprint(compute_bp)
 app.register_blueprint(gradebuilder_bp)
 app.register_blueprint(reports_bp)
+
+# Expose form helper to templates: use `gibber_form_action('/target/path')` as form `action`
+app.jinja_env.globals.update(gibber_form_action=gibber_form_action)
+
+
+# --- Auto-Gibber middleware & resolver
+@app.before_request
+def auto_gibber_redirect():
+    path = request.path
+
+    # Don't re-gibber the gibber resolver
+    if path.startswith("/g/"):
+        return
+
+    # Ignore static files and obvious assets
+    if path.startswith("/static") or "." in path:
+        return
+
+    # Only auto-redirect for safe idempotent methods (GET/HEAD)
+    # Determine whether this is a top-level navigation (browser address change)
+    # Prefer `Sec-Fetch-Mode` when present (modern browsers): only 'navigate' should be redirected.
+    sec_fetch_mode = (request.headers.get("Sec-Fetch-Mode") or "").lower()
+    if sec_fetch_mode:
+        if sec_fetch_mode != "navigate":
+            return
+    else:
+        # Fallback: treat requests that explicitly accept JSON or are XHR as non-navigations
+        accept = request.headers.get("Accept", "") or ""
+        is_xhr = request.headers.get("X-Requested-With", "") == "XMLHttpRequest"
+        if "application/json" in accept or is_xhr:
+            return
+        # If the client explicitly accepts HTML, treat it as navigation; otherwise skip to be safe
+        if "text/html" not in accept:
+            return
+
+    if request.method in ("GET", "HEAD"):
+        qs = request.query_string.decode() if request.query_string else ""
+        token = gibberize(path, qs=qs)
+        return redirect(f"/g/{token}")
+
+    # For POSTs we expect forms to submit to /g/<token> (form tokenization).
+    # Do not auto-redirect a raw POST to avoid changing semantics.
+    return
+
+
+@app.route("/g/<token>", methods=["GET", "HEAD", "POST"])
+def gib_route(token):
+    max_age = app.config.get("GIBBER_MAX_AGE")
+    real_payload = resolve(token, max_age=max_age)
+    if not real_payload:
+        return "Invalid gibber", 404
+
+    try:
+        real_path = real_payload.get("path")
+        real_qs = real_payload.get("qs", "")
+
+        # Prepare the request.environ so that request.path and request.args reflect the real target
+        orig_environ = dict(request.environ)
+        try:
+            request.environ["PATH_INFO"] = real_path
+            request.environ["QUERY_STRING"] = real_qs or ""
+
+            # Match the endpoint for the real path using the original request method
+            adapter = app.url_map.bind("", url_scheme=request.scheme)
+            endpoint, args = adapter.match(real_path, method=request.method)
+            view = app.view_functions.get(endpoint)
+            if not view:
+                return "Invalid gibber endpoint", 404
+
+            return view(**args)
+        finally:
+            # Restore environ values to avoid side-effects for other handlers
+            for k in ("PATH_INFO", "QUERY_STRING"):
+                if k in orig_environ:
+                    request.environ[k] = orig_environ[k]
+    except Exception as e:
+        logger.exception("Failed to resolve gibber token: %s", e)
+        return "Invalid gibber", 404
 
 
 # Close thread-local DB connection at the end of each request/app context

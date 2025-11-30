@@ -42,34 +42,9 @@
 </head>
 
 <body>
-    <!-- Header -->
-    <header class="main-header">
-        <div class="header-container">
-            <div class="header-brand">
-                <h1>E-Class Record</h1>
-                <div class="header-subtitle">Class Management</div>
-            </div>
-            <nav class="header-nav">
-                <div class="main-nav">
-                    <a href="{{ url_for('dashboard.instructor_dashboard') }}" class="nav-link">Dashboard</a>
-                    <a href="{{ url_for('instructor.instructor_classes') }}" class="nav-link active">Classes</a>
-                    <a href="{{ url_for('instructor.gradebuilder_v2') }}" class="nav-link">Grade Builder</a>
-                    <a href="{{ url_for('instructor.instructor_statistics') }}" class="nav-link">Statistics</a>
-                    <a href="{{ url_for('instructor.data_simulation') }}" class="nav-link">Data Simulation</a>
-                </div>
-            </nav>
-            <div class="header-user">
-                <div class="user-info">
-                    <div class="user-avatar">IC</div>
-                    <div class="user-details">
-                        <div class="user-name">Instructor Classes</div>
-                        <div class="user-role">Management</div>
-                    </div>
-                </div>
-                <a href="{{ url_for('dashboard.instructor_dashboard') }}" class="back-btn">← Back to Dashboard</a>
-            </div>
-        </div>
-    </header>
+    {% set active_page = 'classes' %}
+    {% set header_subtitle = 'Class Management' %}
+    {% include '_instructor_header.html' %}
 
     <!-- Main Content -->
     <main class="main-content">
@@ -706,8 +681,13 @@
             });
 
             try {
+                const csrfToken = document.querySelector('input[name="csrf_token"]')?.value || '';
                 const response = await fetch(`/api/instructor/classes/${id}`, {
-                    method: 'DELETE'
+                    method: 'DELETE',
+                    credentials: 'same-origin',
+                    headers: {
+                        'X-CSRFToken': csrfToken
+                    }
                 });
 
                 const data = await response.json();

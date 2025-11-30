@@ -70,6 +70,7 @@
       this.SCROLL_PERSIST_ENABLED = true;
       this.PERSIST_KEY = '';
       this.inputsLocked = false;
+      this._tempAssessmentCounter = -1;
     }
 
     /**
@@ -82,6 +83,8 @@
         this.setupScrollPersistence();
         this.buildSubGroups();
         this.applyClassTypeDecorations();
+        // If page is in limited (student) view, prune final-grade table and hide controls
+        try { this.applyLimitedViewConstraints(); } catch(_) {}
         this.init();
       }
     }
@@ -98,6 +101,9 @@
       this.classId = parseInt(this.dataEl?.dataset?.classId || '0', 10) || 0;
       this.structureId = parseInt(this.dataEl?.dataset?.structureId || '0', 10) || 0;
       this.csrfToken = this.dataEl?.dataset?.csrfToken || null;
+      // Respect limited-view flags set by server when students open the page
+      this.limitedView = String(this.dataEl?.dataset?.limitedView || '0') === '1';
+      this.currentStudentId = String(parseInt(this.dataEl?.dataset?.currentStudent || '0', 10) || 0);
       const typeAttr = this.dataEl?.dataset?.classType || 'MAJOR';
       this.classType = String(typeAttr).toUpperCase();
       this.isMinor = this.classType === 'MINOR';
@@ -108,9 +114,125 @@
     }
 
     /**
+     * Apply client-side constraints when the page is opened in limited (student) view
+     * - Remove other students from final-grade table
+     * - Hide save/recalc/actions controls
+     */
+    applyLimitedViewConstraints() {
+      if (!this.limitedView) return;
+      const cs = String(this.currentStudentId || '0');
+      try {
+        // Remove other students from final-grade table
+        const finalTbody = document.querySelector('table.final-grade-table tbody');
+        if (finalTbody) {
+          Array.from(finalTbody.querySelectorAll('tr')).forEach(tr => {
+            const sid = String(parseInt(tr.getAttribute('data-student-id')||'0',10)||0);
+            if (sid !== cs) tr.remove();
+          });
+        }
+
+        // For the main grade matrix: unlock empty inputs for the current student,
+        // and lock (readonly) inputs that already have values so students can't overwrite existing scores.
+        const tbodyRows = Array.from(this.tbody.querySelectorAll('tr'));
+        tbodyRows.forEach(tr => {
+          const sid = String(parseInt(tr.getAttribute('data-student-id')||'0',10)||0);
+          if (sid !== cs) {
+            // remove other student rows entirely
+            tr.remove();
+            return;
+          }
+          // For current student row, enable all inputs (including those with existing values)
+          tr.querySelectorAll('input.score').forEach(inp => {
+            try {
+              inp.removeAttribute('disabled');
+              inp.readOnly = false;
+              inp.classList.remove('score-locked');
+            } catch(_) {}
+          });
+        });
+      } catch(_) {}
+
+      // Hide server-affecting controls (save/submit) — student changes are local-only
+      try { if (this.saveBtn) this.saveBtn.style.display = 'none'; } catch(_) {}
+      try { if (this.recalcBtn) this.recalcBtn.style.display = 'none'; } catch(_) {}
+      try { document.querySelectorAll('button[data-action="submit-inputs"]').forEach(b=>b.style.display='none'); } catch(_) {}
+      try { const actions = document.getElementById('structure-actions'); if (actions) actions.style.display = 'none'; } catch(_) {}
+
+      // Add a client-only 'Add Temp Assessment' button to allow theoretical inputs
+      try {
+        if (!document.getElementById('add-temp-assessment-btn')) {
+          const btn = document.createElement('button');
+          btn.id = 'add-temp-assessment-btn';
+          btn.type = 'button';
+          btn.className = 'btn btn-sm btn-outline-secondary';
+          btn.textContent = 'Add Temp Assessment';
+          btn.style.marginLeft = '8px';
+          btn.addEventListener('click', (ev) => { ev.preventDefault(); this.addTemporaryAssessment(); });
+          const container = document.getElementById('structure-actions') || document.getElementById('page-data') || document.body;
+          container.appendChild(btn);
+        }
+      } catch(_) {}
+    }
+
+    /**
+     * Add a temporary, client-only assessment column. These use negative IDs and
+     * are not sent to the server; they are removed on page refresh.
+     */
+    addTemporaryAssessment() {
+      try {
+        // generate a new negative ID
+        const aid = this._tempAssessmentCounter = (this._tempAssessmentCounter - 1);
+        const strAid = String(aid);
+
+        // Find header row to append to
+        const thead = document.querySelector('table.matrix thead');
+        if (!thead) return;
+        // choose last header row that contains assess-col
+        let headerRow = null;
+        Array.from(thead.querySelectorAll('tr')).forEach(r => { if (r.querySelector('th.assess-col')) headerRow = r; });
+        if (!headerRow) headerRow = thead.querySelector('tr') || thead;
+
+        const th = document.createElement('th');
+        th.className = 'assess-col temporary';
+        th.setAttribute('data-assessment-id', strAid);
+        th.setAttribute('data-category', 'LECTURE');
+        th.setAttribute('data-subcategory', 'TEMP');
+        th.setAttribute('data-max', '100');
+        th.setAttribute('data-subweight', '0');
+        th.textContent = `Temp ${Math.abs(aid)}`;
+        headerRow.appendChild(th);
+
+        // Add corresponding cells for each student row (should be only current student)
+        const rows = Array.from(this.tbody.querySelectorAll('tr'));
+        rows.forEach(tr => {
+          const td = document.createElement('td');
+          td.className = 'assess-col-cell';
+          const inp = document.createElement('input');
+          inp.type = 'number';
+          inp.className = 'score';
+          inp.setAttribute('data-assessment', strAid);
+          inp.setAttribute('data-student', tr.getAttribute('data-student-id') || tr.getAttribute('data-student') || '0');
+          inp.setAttribute('max', '100');
+          inp.value = '';
+          td.appendChild(inp);
+          tr.appendChild(td);
+        });
+
+        // Rebuild groups and recompute locally
+        try { this.buildSubGroups(); } catch(_) {}
+        try { this.recomputeAll(); this.updateFinalGrades(); } catch(_) {}
+      } catch (err) { console.error('addTemporaryAssessment failed', err); }
+    }
+
+    /**
      * Get grouped assessments from JSON element
      */
     async computeServerForAll() {
+      // Do not call server when in limited (student) view — keep computations local-only
+      if (this.limitedView) {
+        try { this.recomputeAll(); this.updateFinalGrades(); } catch(_) {}
+        return;
+      }
       try {
         const groupsPayload = {};
         Object.entries(this.SUB_GROUPS).forEach(([k, g]) => {
@@ -366,7 +488,15 @@
      * Get all student rows
      */
     getStudentRows() {
-      return Array.from(this.tbody.querySelectorAll('tr'));
+      let rows = Array.from(this.tbody.querySelectorAll('tr'));
+      if (this.limitedView && this.currentStudentId) {
+        const cs = String(this.currentStudentId);
+        rows = rows.filter(tr => {
+          const sid = String(parseInt(tr.getAttribute('data-student-id')||'0',10)||0);
+          return sid === cs;
+        });
+      }
+      return rows;
     }
 
     /**
@@ -459,7 +589,12 @@
         this.updateFinalGradeForRow(tr);
         
         if (this.serverComputeTimer) clearTimeout(this.serverComputeTimer);
-        this.serverComputeTimer = setTimeout(() => { this.computeServerForAll(); this.serverComputeTimer = null; }, 800);
+        if (this.limitedView) {
+          // In limited (student) view, do local recompute only — do NOT call server compute
+          this.serverComputeTimer = setTimeout(() => { try { this.recomputeAll(); this.updateFinalGrades(); } catch(_){}; this.serverComputeTimer = null; }, 400);
+        } else {
+          this.serverComputeTimer = setTimeout(() => { this.computeServerForAll(); this.serverComputeTimer = null; }, 800);
+        }
       });
 
       // Save button listener removed — save functionality intentionally removed
@@ -786,6 +921,12 @@
      * Sends POST to `/classes/<classId>/save-snapshot` with payload { scores: [...] }
      */
     async saveAndSnapshot() {
+      // Prevent saving from limited (student) view — limited view is for local/theoretical edits only
+      if (this.limitedView) {
+        try { await swalAlert('info', 'Limited view', 'Changes in limited view are local-only and will not be saved to the official gradebook.'); } catch(_) {}
+        this.status.textContent = 'Limited view — no save performed';
+        return false;
+      }
       const classId = this.classId || 0;
       if (!classId) {
         this.status.textContent = 'Missing class id';
@@ -872,15 +1013,17 @@
      */
     applyLockState(locked) {
       this.inputsLocked = !!locked;
+      // If in limited (student) view, we should not disable inputs (students can edit locally)
+      const effectiveLocked = this.limitedView ? false : !!this.inputsLocked;
       // Disable/enable input fields
-      document.querySelectorAll('input.score').forEach(inp => { inp.disabled = !!this.inputsLocked; });
+      document.querySelectorAll('input.score').forEach(inp => { try { inp.disabled = effectiveLocked; } catch(_) {} });
       // Disable/enable add/edit assessment controls and important buttons
       const controls = Array.from(document.querySelectorAll('button[data-action="add-assessment"], button[data-action="add-assessment-select"], button[data-action="edit-assessment"], #save-btn, #recalc-btn'));
-      controls.forEach(el => { try { el.disabled = !!this.inputsLocked; } catch(_) {} });
+      controls.forEach(el => { try { el.disabled = effectiveLocked; } catch(_) {} });
       // No visual overlay — simply enable/disable inputs and controls when locked
       // Persist lock state
       try { localStorage.setItem(this.LOCK_KEY, this.inputsLocked ? '1' : '0'); } catch(_) {}
-      // Update related UI buttons
+      // Update related UI buttons (reflect the logical locked state even if inputs stay enabled in limited view)
       document.querySelectorAll('button[data-action="toggle-lock"]').forEach(b => {
         b.classList.toggle('locked', !!this.inputsLocked);
         b.textContent = this.inputsLocked ? 'Unlock Data' : 'Lock/Unlock Data';
@@ -1143,6 +1286,11 @@
      * Compute grades using server API
      */
     async computeServerForAll() {
+      // Do not call server when in limited (student) view — keep computations local-only
+      if (this.limitedView) {
+        try { this.recomputeAll(); this.updateFinalGrades(); } catch(_) {}
+        return;
+      }
       try {
         const groupsPayload = {};
         Object.entries(this.SUB_GROUPS).forEach(([k, g]) => {
@@ -1266,7 +1414,9 @@
       this.updateFinalGrades();
       // Schedule an initial server-side compute shortly after startup to populate authoritative values
       try {
-        setTimeout(() => { try { this.computeServerForAll(); } catch(_){} }, 250);
+        if (!this.limitedView) {
+          setTimeout(() => { try { this.computeServerForAll(); } catch(_){} }, 250);
+        }
       } catch(_) {}
     }
   }

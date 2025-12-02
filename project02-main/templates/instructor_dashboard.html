@@ -94,6 +94,13 @@
                                 <p>View teaching statistics</p>
                             </div>
                         </a>
+                        <a href="#" onclick="openGradeExports()" class="action-card">
+                            <div class="card-icon">📊</div>
+                            <div class="card-content">
+                                <h3>Grade Exports</h3>
+                                <p>View and export released grade sheets</p>
+                            </div>
+                        </a>
                         <a href="{{ url_for('instructor.data_simulation') }}" class="action-card">
                             <div class="card-icon">🔮</div>
                             <div class="card-content">
@@ -982,6 +989,34 @@
         </div>
     </div>
 
+    <!-- Grade Exports Modal -->
+    <div id="grade-exports-modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="grade-exports-title" aria-hidden="true">
+        <div class="modal-content modal-xl" role="document" tabindex="-1">
+            <div class="modal-header">
+                <h2 class="modal-title" id="grade-exports-title">Released Grade Exports</h2>
+                <button class="close" onclick="closeGradeExportsModal()" aria-label="Close grade exports modal" title="Close">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="grade-exports-container">
+                    <div class="exports-toolbar">
+                        <select id="exports-class-select" onchange="loadGradeExports()">
+                            <option value="">Select a class...</option>
+                        </select>
+                        <button class="btn btn-secondary" onclick="refreshGradeExports()">Refresh</button>
+                    </div>
+
+                    <div id="grade-exports-content">
+                        <div class="no-exports">
+                            <div class="empty-icon">📊</div>
+                            <h3>No Released Grades</h3>
+                            <p>Select a class to view released grade sheets</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script>
         // Reports modal functions
         function openReportsModal() {
@@ -1192,6 +1227,275 @@
 
         function exportStudentReport() {
             window.open('/api/export/student-grades', '_blank');
+        }
+
+        // Grade Exports Modal Functions
+        function openGradeExports() {
+            loadClassesForGradeExports();
+            document.getElementById('grade-exports-modal').setAttribute('aria-hidden', 'false');
+            document.getElementById('grade-exports-modal').style.display = 'flex';
+        }
+
+        function closeGradeExportsModal() {
+            document.getElementById('grade-exports-modal').setAttribute('aria-hidden', 'true');
+            document.getElementById('grade-exports-modal').style.display = 'none';
+        }
+
+        async function loadClassesForGradeExports() {
+            try {
+                const response = await fetch('/api/instructor/classes');
+                const data = await response.json();
+
+                const select = document.getElementById('exports-class-select');
+                select.innerHTML = '<option value="">Select a class...</option>';
+
+                data.classes.forEach(cls => {
+                    const option = document.createElement('option');
+                    option.value = cls.id;
+                    option.textContent = `${cls.class_code} - ${cls.course}`;
+                    select.appendChild(option);
+                });
+            } catch (error) {
+                console.error('Failed to load classes for exports:', error);
+            }
+        }
+
+        async function loadGradeExports() {
+            const classId = document.getElementById('exports-class-select').value;
+            const container = document.getElementById('grade-exports-content');
+
+            if (!classId) {
+                container.innerHTML = `
+                    <div class="no-exports">
+                        <div class="empty-icon">📊</div>
+                        <h3>No Released Grades</h3>
+                        <p>Select a class to view released grade sheets</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = '<div class="loading"><div class="spinner"></div>Loading grade exports...</div>';
+
+            try {
+                // Get released grades for the class
+                const response = await fetch(`/api/instructor/classes/${classId}/released-grades`);
+                const data = await response.json();
+
+                if (!data.released_grades || data.released_grades.length === 0) {
+                    container.innerHTML = `
+                        <div class="no-exports">
+                            <div class="empty-icon">📋</div>
+                            <h3>No Released Grades</h3>
+                            <p>This class doesn't have any released grade sheets yet</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                // Display grade sheets
+                displayGradeSheets(data.class_info, data.released_grades);
+
+            } catch (error) {
+                console.error('Failed to load grade exports:', error);
+                container.innerHTML = `
+                    <div class="error-state">
+                        <div class="error-icon">❌</div>
+                        <h3>Error Loading Grades</h3>
+                        <p>Failed to load grade exports. Please try again.</p>
+                    </div>
+                `;
+            }
+        }
+
+        function displayGradeSheets(classInfo, releasedGrades) {
+            const container = document.getElementById('grade-exports-content');
+
+            let html = `
+                <div class="grade-sheets-list">
+                    <div class="class-header">
+                        <h3>${classInfo.class_code} - ${classInfo.course}</h3>
+                        <p>${classInfo.subject} • Section ${classInfo.section}</p>
+                        <p><strong>Class:</strong> ${classInfo.class_code}</p>
+                    </div>
+            `;
+
+            releasedGrades.forEach(gradeSheet => {
+                const releaseDate = new Date(gradeSheet.released_at).toLocaleDateString('en-US', {
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+
+                html += `
+                    <div class="grade-sheet-card">
+                        <div class="sheet-header">
+                            <div class="sheet-info">
+                                <h4>Grade Sheet - Version ${gradeSheet.version || 'N/A'}</h4>
+                                <p>Released: ${releaseDate}</p>
+                                <p>Students: ${gradeSheet.student_count}</p>
+                            </div>
+                            <div class="sheet-actions">
+                                <button class="btn btn-secondary" onclick="viewGradeSheet(${gradeSheet.id})">View Sheet</button>
+                                <button class="btn btn-secondary" onclick="exportGradeSheet(${gradeSheet.id})">Export PDF</button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+
+            html += '</div>';
+            container.innerHTML = html;
+        }
+
+        async function viewGradeSheet(snapshotId) {
+            // Open a modal to display the structured grade sheet
+            const modal = document.createElement('div');
+            modal.className = 'modal grade-sheet-modal';
+            modal.setAttribute('role', 'dialog');
+            modal.setAttribute('aria-modal', 'true');
+            modal.innerHTML = `
+                <div class="modal-content modal-xl">
+                    <div class="modal-header">
+                        <h2>Grade Sheet Details</h2>
+                        <button class="close" onclick="this.closest('.modal').remove()">×</button>
+                    </div>
+                    <div class="modal-body">
+                        <div id="grade-sheet-content" class="grade-sheet-content">
+                            <div class="loading"><div class="spinner"></div>Loading grade sheet...</div>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            document.body.appendChild(modal);
+            modal.style.display = 'flex';
+
+            try {
+                const response = await fetch(`/api/snapshots/${snapshotId}/grades`);
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.error || 'Failed to load grade sheet');
+                }
+
+                displayStructuredGradeSheet(data, modal.querySelector('#grade-sheet-content'));
+
+            } catch (error) {
+                console.error('Failed to load grade sheet:', error);
+                modal.querySelector('#grade-sheet-content').innerHTML = `
+                    <div class="error-state">
+                        <h3>Error Loading Grade Sheet</h3>
+                        <p>${error.message || 'Failed to load grade details. Please try again.'}</p>
+                    </div>
+                `;
+            }
+        }
+
+        function displayStructuredGradeSheet(data, container) {
+            const { class_info, grades, instructor_info } = data;
+
+            let html = `
+                <div class="structured-grade-sheet">
+                    <!-- Header Section -->
+                    <div class="sheet-header-section">
+                        <div class="school-info">
+                            <h1>E-Class Record System</h1>
+                            <h2>Official Grade Sheet</h2>
+                        </div>
+                        <div class="class-details">
+                            <table class="details-table">
+                                <tr><td><strong>Class Code:</strong></td><td>${class_info.class_code}</td></tr>
+                                <tr><td><strong>Course:</strong></td><td>${class_info.course}</td></tr>
+                                <tr><td><strong>Subject:</strong></td><td>${class_info.subject}</td></tr>
+                                <tr><td><strong>Section:</strong></td><td>${class_info.section}</td></tr>
+                                <tr><td><strong>Track:</strong></td><td>${class_info.track}</td></tr>
+                                <tr><td><strong>Instructor:</strong></td><td>${instructor_info.full_name}</td></tr>
+                                <tr><td><strong>Released:</strong></td><td>${new Date().toLocaleDateString()}</td></tr>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Grades Table -->
+                    <div class="grades-section">
+                        <h3>Student Grades</h3>
+                        <table class="grades-table">
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>Student ID</th>
+                                    <th>Student Name</th>
+                                    <th>Raw Grade</th>
+                                    <th>Final Grade</th>
+                                    <th>Equivalent</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+            `;
+
+            grades.forEach((grade, index) => {
+                const status = grade.final_grade >= 75 ? 'PASSED' :
+                              grade.final_grade >= 60 ? 'CONDITIONAL' :
+                              grade.final_grade >= 1 ? 'FAILED' : 'INC';
+
+                const statusClass = status === 'PASSED' ? 'status-passed' :
+                                   status === 'CONDITIONAL' ? 'status-conditional' : 'status-failed';
+
+                html += `
+                    <tr>
+                        <td>${index + 1}</td>
+                        <td>${grade.student_id}</td>
+                        <td>${grade.student_name}</td>
+                        <td>${grade.raw_grade?.toFixed(2) || 'N/A'}%</td>
+                        <td>${grade.final_grade?.toFixed(2) || 'N/A'}%</td>
+                        <td>${grade.equivalent || 'N/A'}</td>
+                        <td class="status-cell ${statusClass}">${status}</td>
+                    </tr>
+                `;
+            });
+
+            html += `
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Summary Statistics -->
+                    <div class="summary-section">
+                        <h3>Summary Statistics</h3>
+                        <div class="stats-grid">
+                            <div class="stat-item">
+                                <span class="stat-label">Total Students:</span>
+                                <span class="stat-value">${grades.length}</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-label">Passed:</span>
+                                <span class="stat-value">${grades.filter(g => g.final_grade >= 75).length}</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-label">Failed:</span>
+                                <span class="stat-value">${grades.filter(g => g.final_grade < 60 && g.final_grade > 0).length}</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-label">Average Grade:</span>
+                                <span class="stat-value">${(grades.reduce((sum, g) => sum + (g.final_grade || 0), 0) / grades.length).toFixed(2)}%</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            container.innerHTML = html;
+        }
+
+        function exportGradeSheet(snapshotId) {
+            window.open(`/api/export/snapshot/${snapshotId}`, '_blank');
+        }
+
+        function refreshGradeExports() {
+            loadGradeExports();
         }
     </script>
     <script type="module" src="{{ url_for('static', filename='js/ngrokFetch.js') }}"></script>

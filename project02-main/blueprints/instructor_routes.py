@@ -4144,6 +4144,264 @@ def api_instructor_calculate_class_grades(class_id):
     return api_calculate_class_grades(class_id)
 
 
+@instructor_bp.route(
+    "/api/instructor/classes/<int:class_id>/snapshots",
+    methods=["GET"],
+    endpoint="get_class_snapshots",
+)
+def api_get_class_snapshots(class_id):
+    """Get all grade snapshots for a class owned by the instructor."""
+    instructor_id, err = _require_instructor()
+    if err:
+        return err
+
+    if not _instructor_owns_class(class_id, session.get("user_id")):
+        return jsonify({"error": "forbidden"}), 403
+
+    try:
+        with get_db_connection().cursor() as cursor:
+            cursor.execute(
+                """
+                SELECT
+                    id,
+                    version,
+                    status,
+                    created_at,
+                    released_at,
+                    snapshot_json
+                FROM grade_snapshots
+                WHERE class_id = %s
+                ORDER BY version DESC
+                """,
+                (class_id,),
+            )
+            snapshots = cursor.fetchall() or []
+
+            # Get class info for context
+            cursor.execute(
+                "SELECT class_code, course, subject, section FROM classes WHERE id = %s",
+                (class_id,),
+            )
+            class_info = cursor.fetchone()
+
+            snapshot_list = []
+            for snap in snapshots:
+                # Parse snapshot_json to get basic info
+                try:
+                    snapshot_data = json.loads(snap.get("snapshot_json") or "{}")
+                    student_count = len(snapshot_data.get("students", []))
+                    assessment_count = len(snapshot_data.get("assessments", []))
+                except Exception:
+                    student_count = 0
+                    assessment_count = 0
+
+                snapshot_list.append(
+                    {
+                        "id": snap.get("id"),
+                        "version": snap.get("version"),
+                        "status": snap.get("status"),
+                        "created_at": (
+                            snap.get("created_at").isoformat()
+                            if snap.get("created_at")
+                            else None
+                        ),
+                        "released_at": (
+                            snap.get("released_at").isoformat()
+                            if snap.get("released_at")
+                            else None
+                        ),
+                        "student_count": student_count,
+                        "assessment_count": assessment_count,
+                        "snapshot_data": snapshot_data,
+                    }
+                )
+
+            return jsonify(
+                {
+                    "class_id": class_id,
+                    "class_info": {
+                        "class_code": (
+                            class_info.get("class_code") if class_info else None
+                        ),
+                        "course": class_info.get("course") if class_info else None,
+                        "subject": class_info.get("subject") if class_info else None,
+                        "section": class_info.get("section") if class_info else None,
+                    },
+                    "snapshots": snapshot_list,
+                    "total_snapshots": len(snapshot_list),
+                }
+            )
+
+    except Exception as e:
+        logger.error(f"Failed to get snapshots for class {class_id}: {str(e)}")
+        return jsonify({"error": "failed_to_get_snapshots"}), 500
+
+
+@instructor_bp.route(
+    "/api/instructor/classes/<int:class_id>/released-grades",
+    methods=["GET"],
+    endpoint="get_class_released_grades",
+)
+def api_get_class_released_grades(class_id):
+    """Get released grades for a class owned by the instructor."""
+    instructor_id, err = _require_instructor()
+    if err:
+        return err
+
+    if not _instructor_owns_class(class_id, session.get("user_id")):
+        return jsonify({"error": "forbidden"}), 403
+
+    try:
+        with get_db_connection().cursor() as cursor:
+            # Get class info
+            cursor.execute(
+                "SELECT class_code, course, subject, section FROM classes WHERE id = %s",
+                (class_id,),
+            )
+            class_info = cursor.fetchone()
+            if not class_info:
+                return jsonify({"error": "class_not_found"}), 404
+
+            # Get released grades grouped by snapshot
+            cursor.execute(
+                """
+                SELECT
+                    rg.snapshot_id,
+                    gs.version,
+                    gs.released_at,
+                    COUNT(rg.student_id) as student_count,
+                    GROUP_CONCAT(rg.student_name) as student_names
+                FROM released_grades rg
+                JOIN grade_snapshots gs ON rg.snapshot_id = gs.id
+                WHERE rg.class_id = %s AND rg.status = 'released'
+                GROUP BY rg.snapshot_id, gs.version, gs.released_at
+                ORDER BY gs.released_at DESC
+                """,
+                (class_id,),
+            )
+            released_snapshots = cursor.fetchall() or []
+
+            released_list = []
+            for snap in released_snapshots:
+                released_list.append(
+                    {
+                        "id": snap.get("snapshot_id"),
+                        "version": snap.get("version"),
+                        "released_at": (
+                            snap.get("released_at").isoformat()
+                            if snap.get("released_at")
+                            else None
+                        ),
+                        "student_count": snap.get("student_count"),
+                    }
+                )
+
+            return jsonify(
+                {
+                    "class_id": class_id,
+                    "class_info": {
+                        "class_code": class_info.get("class_code"),
+                        "course": class_info.get("course"),
+                        "subject": class_info.get("subject"),
+                        "section": class_info.get("section"),
+                    },
+                    "released_grades": released_list,
+                    "total_released": len(released_list),
+                }
+            )
+
+    except Exception as e:
+        logger.error(f"Failed to get released grades for class {class_id}: {str(e)}")
+        return jsonify({"error": "failed_to_get_released_grades"}), 500
+
+
+@instructor_bp.route(
+    "/api/snapshots/<int:snapshot_id>/grades",
+    methods=["GET"],
+    endpoint="get_snapshot_grades",
+)
+@login_required
+def api_get_snapshot_grades(snapshot_id):
+    """Get grades from a specific snapshot for viewing."""
+    instructor_id, err = _require_instructor()
+    if err:
+        return err
+
+    try:
+        with get_db_connection().cursor() as cursor:
+            # Verify instructor owns the class this snapshot belongs to
+            cursor.execute(
+                """
+                SELECT gs.class_id, c.class_code, c.course, c.subject, c.section,
+                       CONCAT(pi.first_name, ' ', pi.last_name) as instructor_name
+                FROM grade_snapshots gs
+                JOIN classes c ON gs.class_id = c.id
+                LEFT JOIN instructors i ON c.instructor_id = i.id
+                LEFT JOIN personal_info pi ON i.personal_info_id = pi.id
+                WHERE gs.id = %s
+                """,
+                (snapshot_id,),
+            )
+            snapshot_info = cursor.fetchone()
+            if not snapshot_info:
+                return jsonify({"error": "snapshot_not_found"}), 404
+
+            class_id = snapshot_info.get("class_id")
+            if not _instructor_owns_class(class_id, session.get("user_id")):
+                return jsonify({"error": "forbidden"}), 403
+
+            # Get grades from released_grades table for this snapshot
+            cursor.execute(
+                """
+                SELECT
+                    rg.student_school_id,
+                    rg.student_name,
+                    rg.final_grade,
+                    rg.equivalent,
+                    rg.overall_percentage,
+                    rg.released_at
+                FROM released_grades rg
+                WHERE rg.snapshot_id = %s AND rg.status = 'released'
+                ORDER BY rg.student_name
+                """,
+                (snapshot_id,),
+            )
+            grades = cursor.fetchall() or []
+
+            # Format grades for display
+            formatted_grades = []
+            for grade in grades:
+                formatted_grades.append(
+                    {
+                        "student_id": grade.get("student_school_id"),
+                        "student_name": grade.get("student_name"),
+                        "raw_grade": float(grade.get("overall_percentage") or 0.0),
+                        "final_grade": float(grade.get("final_grade") or 0.0),
+                        "equivalent": grade.get("equivalent") or "",
+                    }
+                )
+
+            return jsonify(
+                {
+                    "class_info": {
+                        "class_code": snapshot_info.get("class_code"),
+                        "course": snapshot_info.get("course"),
+                        "subject": snapshot_info.get("subject"),
+                        "section": snapshot_info.get("section"),
+                    },
+                    "instructor_info": {
+                        "full_name": snapshot_info.get("instructor_name") or "N/A",
+                    },
+                    "grades": formatted_grades,
+                    "total_students": len(formatted_grades),
+                }
+            )
+
+    except Exception as e:
+        logger.error(f"Failed to get grades for snapshot {snapshot_id}: {str(e)}")
+        return jsonify({"error": "failed_to_get_snapshot_grades"}), 500
+
+
 @instructor_bp.route("/api/instructor/grades-overview", methods=["GET"])
 @login_required
 def api_instructor_grades_overview():

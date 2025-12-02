@@ -468,6 +468,209 @@ def export_student_grades_pdf():
         return jsonify({"error": "Failed to generate report"}), 500
 
 
+@reports_bp.route("/api/export/snapshot/<int:snapshot_id>", methods=["GET"])
+@login_required
+def export_snapshot_grades_pdf(snapshot_id):
+    """Export grades from a specific snapshot as PDF report."""
+    instructor_id = _require_instructor()
+    if not isinstance(instructor_id, int):
+        return instructor_id  # Error response
+
+    try:
+        with get_db_connection().cursor() as cursor:
+            # Verify instructor owns the class this snapshot belongs to
+            cursor.execute(
+                """
+                SELECT gs.class_id, c.class_code, c.course, c.subject, c.section,
+                       CONCAT(pi.first_name, ' ', pi.last_name) as instructor_name
+                FROM grade_snapshots gs
+                JOIN classes c ON gs.class_id = c.id
+                LEFT JOIN instructors i ON c.instructor_id = i.id
+                LEFT JOIN personal_info pi ON i.personal_info_id = pi.id
+                WHERE gs.id = %s
+                """,
+                (snapshot_id,),
+            )
+            snapshot_info = cursor.fetchone()
+            if not snapshot_info:
+                return jsonify({"error": "Snapshot not found"}), 404
+
+            class_id = snapshot_info.get("class_id")
+
+            # Verify ownership
+            cursor.execute(
+                "SELECT id FROM classes WHERE id = %s AND instructor_id = %s",
+                (class_id, instructor_id),
+            )
+            if not cursor.fetchone():
+                return jsonify({"error": "Access denied"}), 403
+
+            # Get grades from released_grades table for this snapshot
+            cursor.execute(
+                """
+                SELECT
+                    rg.student_school_id,
+                    rg.student_name,
+                    rg.final_grade,
+                    rg.equivalent,
+                    rg.overall_percentage,
+                    rg.released_at
+                FROM released_grades rg
+                WHERE rg.snapshot_id = %s AND rg.status = 'released'
+                ORDER BY rg.student_name
+                """,
+                (snapshot_id,),
+            )
+            grades = cursor.fetchall() or []
+
+            if not grades:
+                return (
+                    jsonify({"error": "No released grades found for this snapshot"}),
+                    404,
+                )
+
+            # Generate PDF
+            buffer = BytesIO()
+            doc = SimpleDocTemplate(buffer, pagesize=letter)
+            styles = getSampleStyleSheet()
+            elements = []
+
+            # Title
+            title = Paragraph(
+                f"Official Grade Sheet - {snapshot_info['course']}", styles["Title"]
+            )
+            elements.append(title)
+            elements.append(Spacer(1, 12))
+
+            # Class info
+            class_info_text = f"""
+            Class Code: {snapshot_info['class_code']}<br/>
+            Course: {snapshot_info['course']}<br/>
+            Subject: {snapshot_info['subject']}<br/>
+            Section: {snapshot_info['section']}<br/>
+            Instructor: {snapshot_info.get('instructor_name', 'N/A')}<br/>
+            Released: {grades[0]['released_at'].strftime('%Y-%m-%d %H:%M:%S') if grades[0]['released_at'] else 'N/A'}
+            """
+            elements.append(Paragraph(class_info_text, styles["Normal"]))
+            elements.append(Spacer(1, 20))
+
+            # Grades table
+            data = [
+                [
+                    "#",
+                    "Student ID",
+                    "Student Name",
+                    "Final Grade",
+                    "Equivalent",
+                    "Status",
+                ]
+            ]
+
+            # Track row colors for styling
+            row_colors = []
+
+            for index, grade in enumerate(grades, 1):
+                final_grade = grade["final_grade"]
+                if final_grade is None:
+                    status = "NO GRADE"
+                    row_color = colors.lightgrey
+                else:
+                    if final_grade >= 75:
+                        status = "PASSED"
+                        row_color = colors.lightgreen
+                    elif final_grade >= 60:
+                        status = "CONDITIONAL"
+                        row_color = colors.lightyellow
+                    else:
+                        status = "FAILED"
+                        row_color = colors.lightcoral
+
+                row_colors.append(row_color)
+
+                data.append(
+                    [
+                        str(index),
+                        grade["student_school_id"] or "N/A",
+                        grade["student_name"] or "N/A",
+                        (
+                            f"{grade['final_grade']:.2f}%"
+                            if grade["final_grade"]
+                            else "N/A"
+                        ),
+                        grade["equivalent"] or "N/A",
+                        status,
+                    ]
+                )
+
+            table = Table(data)
+            style_commands = [
+                ("BACKGROUND", (0, 0), (-1, 0), colors.grey),
+                ("TEXTCOLOR", (0, 0), (-1, 0), colors.whitesmoke),
+                ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+                ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+                ("FONTSIZE", (0, 0), (-1, 0), 12),
+                ("BOTTOMPADDING", (0, 0), (-1, 0), 12),
+                ("GRID", (0, 0), (-1, -1), 1, colors.black),
+            ]
+
+            # Add row background colors
+            for i, row_color in enumerate(row_colors):
+                style_commands.append(
+                    ("BACKGROUND", (0, i + 1), (-1, i + 1), row_color)
+                )
+
+            table.setStyle(TableStyle(style_commands))
+
+            elements.append(table)
+
+            # Summary statistics
+            elements.append(Spacer(1, 20))
+            elements.append(Paragraph("Summary Statistics:", styles["Heading2"]))
+
+            if grades:
+                final_grades = [
+                    g["final_grade"] for g in grades if g["final_grade"] is not None
+                ]
+                if final_grades:
+                    avg_grade = sum(final_grades) / len(final_grades)
+                    min_grade = min(final_grades)
+                    max_grade = max(final_grades)
+
+                    passing_count = sum(1 for g in final_grades if g >= 75)
+                    conditional_count = sum(1 for g in final_grades if 60 <= g < 75)
+                    failing_count = sum(1 for g in final_grades if g < 60)
+                else:
+                    avg_grade = min_grade = max_grade = 0
+                    passing_count = conditional_count = failing_count = 0
+
+                stats_text = f"""
+                Total Students: {len(grades)}<br/>
+                Average Grade: {avg_grade:.2f}%<br/>
+                Highest Grade: {max_grade:.2f}%<br/>
+                Lowest Grade: {min_grade:.2f}%<br/>
+                Passed (≥75%): {passing_count}<br/>
+                Conditional (60-74%): {conditional_count}<br/>
+                Failed (<60%): {failing_count}
+                """
+                elements.append(Paragraph(stats_text, styles["Normal"]))
+
+            doc.build(elements)
+
+            buffer.seek(0)
+            filename = f"grade_sheet_{snapshot_info['class_code']}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
+
+            return send_file(
+                buffer,
+                as_attachment=True,
+                download_name=filename,
+                mimetype="application/pdf",
+            )
+
+    except Exception as e:
+        logger.error(f"Error generating snapshot PDF report: {str(e)}")
+        return jsonify({"error": "Failed to generate report"}), 500
+
+
 def _calculate_gpa_equivalent(avg_grade):
     """Convert average grade to GPA equivalent."""
     if avg_grade >= 96:

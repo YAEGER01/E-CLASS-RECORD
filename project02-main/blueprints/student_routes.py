@@ -888,53 +888,52 @@ def student_analytics():
                 (student_id,),
             )
             classes_data = cursor.fetchall()
-
             classes = []
+
             for cls in classes_data:
-                # Get missing assessments for this class
                 missing_assessments = []
                 try:
-                    # Get grade structure for this class
+                    # Get all assessments for this class
                     cursor.execute(
-                        "SELECT structure_json FROM grade_structures WHERE class_id = %s AND is_active = 1",
+                        """
+                        SELECT ga.id, ga.name, ga.max_score, gc.name as category, gsc.name as subcategory
+                        FROM grade_assessments ga
+                        JOIN grade_subcategories gsc ON ga.subcategory_id = gsc.id
+                        JOIN grade_categories gc ON gsc.category_id = gc.id
+                        JOIN grade_structures gs ON gc.structure_id = gs.id
+                        WHERE gs.class_id = %s AND gs.is_active = 1
+                        """,
                         (cls["id"],),
                     )
-                    structure_row = cursor.fetchone()
+                    assessments = cursor.fetchall()
 
-                    if structure_row and structure_row["structure_json"]:
+                    # Get the latest grade_snapshot for this class
+                    cursor.execute(
+                        "SELECT snapshot_json FROM grade_snapshots WHERE class_id = %s ORDER BY created_at DESC LIMIT 1",
+                        (cls["id"],),
+                    )
+                    snapshot_row = cursor.fetchone()
+                    snapshot_scores = {}
+                    if snapshot_row and snapshot_row["snapshot_json"]:
                         import json
 
-                        structure = json.loads(structure_row["structure_json"])
+                        try:
+                            snapshot = json.loads(snapshot_row["snapshot_json"])
+                            # Find this student in the snapshot
+                            for student in snapshot.get("students", []):
+                                if student.get("student_id") == student_id:
+                                    for score_obj in student.get("scores", []):
+                                        snapshot_scores[score_obj["assessment_id"]] = (
+                                            score_obj.get("score")
+                                        )
+                        except Exception as e:
+                            logger.warning(f"Snapshot JSON decode failed: {e}")
 
-                        # Get all assessments for this class with category and subcategory info
-                        # grade_assessments does not store class_id directly; we join through
-                        # grade_subcategories -> grade_categories -> grade_structures (by class_id)
-                        cursor.execute(
-                            """
-                            SELECT ga.id, ga.name, gc.name as category, gsc.name as subcategory
-                            FROM grade_assessments ga
-                            JOIN grade_subcategories gsc ON ga.subcategory_id = gsc.id
-                            JOIN grade_categories gc ON gsc.category_id = gc.id
-                            JOIN grade_structures gs ON gc.structure_id = gs.id
-                            WHERE gs.class_id = %s AND gs.is_active = 1
-                            """,
-                            (cls["id"],),
-                        )
-                        assessments = cursor.fetchall()
-
-                        # Check which assessments the student hasn't completed
-                        for assessment in assessments:
-                            # Check if student has a score for this assessment
-                            cursor.execute(
-                                "SELECT score FROM student_scores WHERE student_id = %s AND assessment_id = %s",
-                                (student_id, assessment["id"]),
-                            )
-                            score_row = cursor.fetchone()
-
-                            # If no score found, it's missing
-                            if not score_row or score_row["score"] is None:
-                                missing_assessments.append(assessment["name"])
-
+                    # For each assessment, check if score exists in snapshot; if not, or if score is None/0, count as missing
+                    for assessment in assessments:
+                        score = snapshot_scores.get(assessment["id"])
+                        if score is None or float(score) == 0.0:
+                            missing_assessments.append(assessment["name"])
                 except Exception as e:
                     logger.warning(
                         f"Failed to get missing assessments for class {cls['id']}: {e}"

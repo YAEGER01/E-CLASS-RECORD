@@ -17,6 +17,13 @@
       .swal2-container .swal2-popup {
         box-shadow: 0 8px 30px rgba(16,24,40,0.12);
       }
+      /* Glass styling for SweetAlert close button */
+      .swal2-close {
+        background: rgba(255, 255, 255, 0.1) !important;
+        backdrop-filter: blur(10px) !important;
+        border: 2px solid white !important;
+        border-radius: 50% !important;
+      }
       /* Small floating pill for assessment input progress */
       th.assess-head.assess-col { position: relative; }
       /* Header pill on Grade Input toggle */
@@ -346,7 +353,7 @@
                 {% for s in students %}
                 <tr data-student-id="{{ s.id }}">
                   <td class="sticky-left">{{ loop.index }}</td>
-                  <td class="sticky-left">{{ s.name }}</td>
+                  <td class="sticky-left">{{ s.name }}{% if s.school_id %} <br><hr> {{ s.school_id }}{% endif %}</td>
                   {% for cat in all_cats %} {% set subs =
                   grouped_assessments.get(cat, {}) %} {% for subdef in
                   (structure.get(cat) or []) %} {% set sub = subdef.name %} {%

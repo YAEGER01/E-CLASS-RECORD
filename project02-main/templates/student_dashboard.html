@@ -16,7 +16,7 @@
     <div class="header">
         <div>
             <h1>🎓 Student Dashboard</h1>
-            <p>Welcome, {{ user.school_id }}!</p>
+            <p>Welcome, {{ user.personal_info.first_name }} {{ user.personal_info.last_name }} ({{ user.school_id }})!</p>
         </div>
         <a href="{{ url_for('auth.logout') }}" class="logout-btn">Logout</a>
     </div>
@@ -473,6 +473,53 @@
                 .swal-field select {
                     padding: 8px;
                 }
+                .swal-photo-select {
+                    font-size: 16px !important; /* Prevent zoom on iOS */
+                    padding: 12px 14px !important;
+                }
+                #photoUploadModal {
+                    padding: 8px !important;
+                    align-items: flex-start !important;
+                    justify-content: center !important;
+                    padding-top: 10vh !important;
+                }
+                #photoUploadModal > div {
+                    max-width: none !important;
+                    width: 92vw !important;
+                    max-height: 75vh !important;
+                    border-radius: 16px !important;
+                    padding: 20px !important;
+                }
+                #photoModalTitle {
+                    font-size: 16px !important;
+                    margin-bottom: 16px !important;
+                }
+                #photoPreviewContainer {
+                    width: 120px !important;
+                    height: 120px !important;
+                    margin: 0 auto 12px !important;
+                }
+                #photoPreviewPlaceholder {
+                    font-size: 11px !important;
+                }
+                #photoFileInput {
+                    font-size: 16px !important; /* Prevent zoom on iOS */
+                    width: 100% !important;
+                    padding: 10px !important;
+                    border-radius: 8px !important;
+                    margin-bottom: 16px !important;
+                }
+                .photo-change-btn {
+                    padding: 14px 18px !important;
+                    font-size: 15px !important;
+                    min-height: 48px !important; /* Ensure touch target is large enough */
+                }
+                #photoUploadModal button {
+                    padding: 12px 16px !important;
+                    font-size: 14px !important;
+                    border-radius: 8px !important;
+                    min-height: 44px !important;
+                }
             }
     
             /* Responsive dashboard styles */
@@ -551,25 +598,51 @@
                 {% else %}
                 <img id="swalPhotoPreview" src="{{ url_for('static', filename='images/default-profile.svg') }}" class="swal-photo-preview" alt="Face Preview">
                 {% endif %}
-                <div class="swal-photo-zone" onclick="document.getElementById('swalPhotoInput').click()">
-                    <div style="font-weight:600;">Face Photo</div>
-                    <div style="font-size:12px;color:#6b7280;">Click or drop to upload (JPG/PNG)</div>
-                    <input id="swalPhotoInput" type="file" accept="image/*" style="display:none;" onchange="previewProfilePhoto(this,'swalPhotoPreview')">
+                <div style="display:flex; flex-direction:column; gap:12px;">
+                    <div style="display:flex; flex-direction:column; gap:8px;">
+                        <label style="font-weight:600; font-size:14px; color:#374155;">Change Photos:</label>
+                        <div style="display:flex; flex-direction:column; gap:8px;">
+                            <button type="button" onclick="openPhotoModal('profile')" class="photo-change-btn" style="width:100%; border-radius:12px; padding:12px 16px; font-weight:600; font-size:14px; background:linear-gradient(135deg, #667eea 0%, #764ba2 100%); border:none; color:#fff; cursor:pointer; transition:all 0.3s ease; box-shadow:0 4px 15px rgba(102,126,234,0.3);">📷 Change Profile Photo</button>
+
+                            <button type="button" onclick="openPhotoModal('id_front')" class="photo-change-btn" style="width:100%; border-radius:12px; padding:12px 16px; font-weight:600; font-size:14px; background:linear-gradient(135deg, #f97316 0%, #ea580c 100%); border:none; color:#fff; cursor:pointer; transition:all 0.3s ease; box-shadow:0 4px 15px rgba(249,115,22,0.3);">🆔 Change ID Front Photo</button>
+
+                            <button type="button" onclick="openPhotoModal('id_back')" class="photo-change-btn" style="width:100%; border-radius:12px; padding:12px 16px; font-weight:600; font-size:14px; background:linear-gradient(135deg, #10b981 0%, #059669 100%); border:none; color:#fff; cursor:pointer; transition:all 0.3s ease; box-shadow:0 4px 15px rgba(16,185,129,0.3);">🆔 Change ID Back Photo</button>
+                        </div>
+                    </div>
+
+                    <!-- Hidden file inputs -->
+                    <input id="swalPhotoInput" type="file" accept="image/*" style="display:none;">
+                    <input id="swalIdFront" type="file" accept="image/*" style="display:none;">
+                    <input id="swalIdBack" type="file" accept="image/*" style="display:none;">
+
+                    <div id="swalIdFrontPreview" style="min-height:48px; border:1px solid #e2e8f0; border-radius:8px; padding:4px; background:#fafbfc;">{% if user.student_profile.id_front_path %}<img src="{{ url_for('static', filename=user.student_profile.id_front_path) }}" style="max-width:100%; height:auto; border-radius:6px;">{% else %}<div style="color:#9ca3af; font-size:12px; text-align:center; padding:8px;">No ID front photo uploaded</div>{% endif %}</div>
+
+                    <div id="swalIdBackPreview" style="min-height:48px; border:1px solid #e2e8f0; border-radius:8px; padding:4px; background:#fafbfc;">{% if user.student_profile.id_back_path %}<img src="{{ url_for('static', filename=user.student_profile.id_back_path) }}" style="max-width:100%; height:auto; border-radius:6px;">{% else %}<div style="color:#9ca3af; font-size:12px; text-align:center; padding:8px;">No ID back photo uploaded</div>{% endif %}</div>
                 </div>
-                <div style="height:8px;"></div>
-                <div class="swal-photo-zone" onclick="document.getElementById('swalIdFront').click()">
-                    <div style="font-weight:600;">ID Front</div>
-                    <div style="font-size:12px;color:#6b7280;">Click to upload</div>
-                    <input id="swalIdFront" type="file" accept="image/*" style="display:none;" onchange="previewProfilePhoto(this,'swalIdFrontPreview')">
-                    <div id="swalIdFrontPreview" style="margin-top:8px; min-height:48px">{% if user.student_profile.id_front_path %}<img src="{{ url_for('static', filename=user.student_profile.id_front_path) }}" style="max-width:100%; height:auto; border-radius:6px;">{% endif %}</div>
+
+                <!-- Photo Upload Modal Template -->
+                <div id="photoUploadModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:20000; align-items:center; justify-content:center;">
+                    <div style="background:#fff; border-radius:16px; padding:24px; max-width:400px; width:90%; max-height:80vh; overflow-y:auto;">
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+                            <h3 id="photoModalTitle" style="margin:0; font-size:18px; color:#374155;">Upload Photo</h3>
+                            <button onclick="closePhotoModal()" style="background:none; border:none; font-size:24px; cursor:pointer; color:#6b7280;">×</button>
+                        </div>
+
+                        <div style="text-align:center; margin-bottom:20px;">
+                            <div id="photoPreviewContainer" style="width:200px; height:200px; border:2px dashed #cbd5f5; border-radius:12px; margin:0 auto 16px; display:flex; align-items:center; justify-content:center; background:#f8fafc; overflow:hidden;">
+                                <div id="photoPreviewPlaceholder" style="color:#9ca3af; font-size:14px; text-align:center;">No image selected<br><span style="font-size:12px;">Click upload to select</span></div>
+                                <img id="photoPreviewImage" src="" style="display:none; width:100%; height:100%; object-fit:cover; border-radius:10px;">
+                            </div>
+                            <input type="file" id="photoFileInput" accept="image/*" style="display:block; margin:0 auto; padding:8px; border:1px solid #cbd5f5; border-radius:8px; width:100%; box-sizing:border-box;">
+                        </div>
+
+                        <div style="display:flex; gap:12px; justify-content:flex-end;">
+                            <button onclick="closePhotoModal()" style="padding:10px 20px; border:1px solid #cbd5f5; background:#fff; border-radius:8px; cursor:pointer;">Cancel</button>
+                            <button id="photoConfirmBtn" onclick="confirmPhotoUpload()" style="padding:10px 20px; background:#16a34a; color:#fff; border:none; border-radius:8px; cursor:pointer;" disabled>Upload</button>
+                        </div>
+                    </div>
                 </div>
-                <div style="height:8px;"></div>
-                <div class="swal-photo-zone" onclick="document.getElementById('swalIdBack').click()">
-                    <div style="font-weight:600;">ID Back</div>
-                    <div style="font-size:12px;color:#6b7280;">Click to upload</div>
-                    <input id="swalIdBack" type="file" accept="image/*" style="display:none;" onchange="previewProfilePhoto(this,'swalIdBackPreview')">
-                    <div id="swalIdBackPreview" style="margin-top:8px; min-height:48px">{% if user.student_profile.id_back_path %}<img src="{{ url_for('static', filename=user.student_profile.id_back_path) }}" style="max-width:100%; height:auto; border-radius:6px;">{% endif %}</div>
-                </div>
+
             </div>
             <div>
                 <div class="swal-field"><label>First name</label><input id="swalFirstName" value="{{ user.personal_info.first_name or '' }}"></div>
@@ -1465,6 +1538,13 @@
                     try { modalResizeObserver.disconnect(); modalResizeObserver = null; } catch (e) {}
                 }
             });
+
+            // Initialize photo selector after modal is created
+            setTimeout(() => {
+                if (typeof window.initPhotoSelector === 'function') {
+                    window.initPhotoSelector();
+                }
+            }, 100);
             try {
                 modalResizeObserver = new ResizeObserver(() => {
                     const popup = document.querySelector('.swal-edit-profile');
@@ -1613,14 +1693,24 @@
             let html = '';
 
             data.classes.forEach(cls => {
-                const missingCount = cls.missing_assessments ? cls.missing_assessments.length : 0;
+                // Always count 0, null, undefined, or blank scores as missing
+                let missingAssessments = [];
+                if (cls.assessments && Array.isArray(cls.assessments)) {
+                    cls.assessments.forEach(assess => {
+                        if (assess.score === 0 || assess.score === null || assess.score === undefined || assess.score === "") {
+                            missingAssessments.push(assess.name || assess);
+                        }
+                    });
+                } else if (cls.missing_assessments) {
+                    // Fallback to backend-provided missing_assessments if no assessments array
+                    missingAssessments = cls.missing_assessments;
+                }
+                const missingCount = missingAssessments.length;
                 totalMissing += missingCount;
-                
                 let countClass = 'none';
                 if (missingCount > 0) {
                     countClass = missingCount > 3 ? '' : 'low';
                 }
-
                 html += `
                     <div class="assessment-summary-item">
                         <div class="assessment-summary-header">
@@ -1631,7 +1721,7 @@
                             <div class="assessment-list">
                                 <strong>Missing:</strong>
                                 <ul>
-                                    ${cls.missing_assessments.slice(0, 3).map(assessment => `<li>${assessment}</li>`).join('')}
+                                    ${missingAssessments.slice(0, 3).map(assessment => `<li>${assessment}</li>`).join('')}
                                     ${missingCount > 3 ? `<li><em>...and ${missingCount - 3} more</em></li>` : ''}
                                 </ul>
                             </div>
@@ -1706,8 +1796,17 @@
             let html = '';
 
             data.classes.forEach(cls => {
-                const missingAssessments = cls.missing_assessments || [];
-                
+                // Always count 0, null, undefined, or blank scores as missing
+                let missingAssessments = [];
+                if (cls.assessments && Array.isArray(cls.assessments)) {
+                    cls.assessments.forEach(assess => {
+                        if (assess.score === 0 || assess.score === null || assess.score === undefined || assess.score === "") {
+                            missingAssessments.push(assess.name || assess);
+                        }
+                    });
+                } else if (cls.missing_assessments) {
+                    missingAssessments = cls.missing_assessments;
+                }
                 html += `
                     <div class="class-details-card">
                         <div class="class-header">
@@ -2393,6 +2492,102 @@
         document.addEventListener('DOMContentLoaded', function() {
             initializeCarousels();
         });
+    </script>
+
+    <!-- Photo Upload Modal Script -->
+    <script>
+    // Global variables for photo upload modal
+    let currentPhotoType = null;
+    let selectedFile = null;
+
+    // Photo change functionality will be initialized when modal opens
+    window.initPhotoSelector = function() {
+        // No initialization needed for buttons - they call openPhotoModal directly
+    };
+
+    // Open photo upload modal
+    window.openPhotoModal = function(photoType) {
+        currentPhotoType = photoType;
+        selectedFile = null;
+
+        const modal = document.getElementById('photoUploadModal');
+        const title = document.getElementById('photoModalTitle');
+        const previewImg = document.getElementById('photoPreviewImage');
+        const placeholder = document.getElementById('photoPreviewPlaceholder');
+        const fileInput = document.getElementById('photoFileInput');
+        const confirmBtn = document.getElementById('photoConfirmBtn');
+
+        // Set title
+        const titles = {
+            'profile': '📷 Upload Profile Photo',
+            'id_front': '🆔 Upload ID Front Photo',
+            'id_back': '🆔 Upload ID Back Photo'
+        };
+        title.textContent = titles[photoType] || 'Upload Photo';
+
+        // Reset preview
+        previewImg.style.display = 'none';
+        previewImg.src = '';
+        placeholder.style.display = 'block';
+        fileInput.value = '';
+        confirmBtn.disabled = true;
+
+        // Show modal
+        modal.style.display = 'flex';
+
+        // Handle file selection
+        fileInput.onchange = function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                selectedFile = file;
+                const url = URL.createObjectURL(file);
+                previewImg.src = url;
+                previewImg.style.display = 'block';
+                placeholder.style.display = 'none';
+                confirmBtn.disabled = false;
+
+                // Clean up object URL when image loads
+                previewImg.onload = () => URL.revokeObjectURL(url);
+            } else {
+                selectedFile = null;
+                previewImg.style.display = 'none';
+                placeholder.style.display = 'block';
+                confirmBtn.disabled = true;
+            }
+        };
+    };
+
+    // Close photo upload modal
+    window.closePhotoModal = function() {
+        const modal = document.getElementById('photoUploadModal');
+        modal.style.display = 'none';
+        currentPhotoType = null;
+        selectedFile = null;
+    };
+
+    // Confirm photo upload
+    window.confirmPhotoUpload = function() {
+        if (!selectedFile || !currentPhotoType) return;
+
+        // Set the file to the appropriate input
+        const inputId = currentPhotoType === 'profile' ? 'swalPhotoInput' :
+                       currentPhotoType === 'id_front' ? 'swalIdFront' : 'swalIdBack';
+
+        const input = document.getElementById(inputId);
+        if (input) {
+            // Create a new DataTransfer to set the file
+            const dt = new DataTransfer();
+            dt.items.add(selectedFile);
+            input.files = dt.files;
+
+            // Trigger the preview function
+            const previewTarget = currentPhotoType === 'profile' ? 'swalPhotoPreview' :
+                                currentPhotoType === 'id_front' ? 'swalIdFrontPreview' : 'swalIdBackPreview';
+            previewProfilePhoto(input, previewTarget);
+        }
+
+        closePhotoModal();
+    };
     </script>
 </body>
 

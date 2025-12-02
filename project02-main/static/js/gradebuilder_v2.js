@@ -273,6 +273,28 @@ document.addEventListener('DOMContentLoaded', () => {
     } catch (e) { /* non-fatal */ console.warn('showTipsIfNeeded failed', e); }
   }
 
+  // Test trigger: force show tips (bypass time check) - run in console: showTips()
+  window.showTips = async () => {
+    try {
+      // show sequence of tips
+      for (let i = 0; i < tips.length; i++) {
+        const t = tips[i];
+        const target = document.querySelector(t.sel);
+        if (!target) continue; // skip if element absent
+        const tipEl = createTipEl(t.text);
+        // wait for it to be added to DOM to measure
+        await new Promise(r => requestAnimationFrame(r));
+        positionTipEl(tipEl, target);
+        // fade in
+        tipEl.classList.add('visible');
+        await new Promise(r => setTimeout(r, tipsConfig.displayMs));
+        tipEl.classList.remove('visible');
+        tipEl.remove();
+        await new Promise(r => setTimeout(r, tipsConfig.gapMs));
+      }
+    } catch (e) { console.warn('showTips failed', e); }
+  };
+
   // Run tips asynchronously after a short delay so page elements settle
   setTimeout(() => { try { showTipsIfNeeded(); } catch (e){console.warn(e);} }, 1200);
 

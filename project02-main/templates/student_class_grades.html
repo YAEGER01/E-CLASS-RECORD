@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Class Grades</title>
+    <title>Scores</title>
     <link rel="stylesheet" href="/static/css/student-dashboard.css">
     <style>
         body {
@@ -266,23 +266,24 @@
 <body>
     <div class="header">
         <div>
-            <h1>📊 Class Grades</h1>
+            <h1>📊 Scores   </h1>
             <p>Detailed breakdown of your performance</p>
         </div>
         <div class="nav-back">
-            <a href="/student/classes">⟵ Back to Classes</a>
+            <a href="{{ url_for('student.student_classes') }}">⟵ Back to Classes</a>
+            <a href="{{ url_for('dashboard.student_dashboard') }}">⟵ Back to Dashboard</a>
         </div>
     </div>
 
     <div class="classes-grid">
         <div class="card classes-card">
             <header>
-                <h2>Grade Details</h2>
+                <h2>Score Details</h2>
                 <span id="class-info">Loading...</span>
             </header>
             <div class="table-wrapper">
                 <div id="grade-details">
-                    <p>Loading grades...</p>
+                    <p>Loading Scores...</p>
                 </div>
             </div>
         </div>
@@ -297,7 +298,7 @@
                 .then(response => response.json())
                 .then(data => {
                     if (data.message === "No Snapshots") {
-                        container.innerHTML = `<div class='alert'>No grade snapshots available for this class or student.</div>`;
+                        container.innerHTML = `<div class='alert'>No available for this class or student.</div>`;
                         classInfo.textContent = 'No Data';
                         return;
                     }

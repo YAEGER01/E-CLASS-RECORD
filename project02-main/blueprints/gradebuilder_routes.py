@@ -214,6 +214,7 @@ def gb_save():
 
         structure_json_str = json.dumps(structure_obj)
 
+        # All DB operations must be inside the cursor block
         with get_db_connection().cursor() as cursor:
             # compute next version
             cursor.execute(
@@ -230,7 +231,6 @@ def gb_save():
                     (class_id,),
                 )
             except Exception:
-                # non-fatal; continue
                 pass
 
             # insert new record as active (created_by is required by schema)
@@ -247,7 +247,6 @@ def gb_save():
                     next_version,
                 ),
             )
-            # Some DB drivers return lastrowid via cursor.lastrowid; fetch by ordering as fallback
             new_id = getattr(cursor, "lastrowid", None)
             if not new_id:
                 cursor.execute(
@@ -257,11 +256,60 @@ def gb_save():
                 r2 = cursor.fetchone()
                 new_id = r2["id"] if isinstance(r2, dict) else (r2[0] if r2 else None)
 
-        # commit transaction (PyMySQL autocommit is disabled)
-        try:
-            get_db_connection().commit()
-        except Exception:
-            logger.warning("Commit failed after save; attempting to continue")
+            # --- Normalize and insert categories/subcategories ---
+            cursor.execute(
+                "SELECT id FROM grade_categories WHERE structure_id = %s", (new_id,)
+            )
+            cat_rows = cursor.fetchall() or []
+            cat_ids = [r["id"] if isinstance(r, dict) else r[0] for r in cat_rows]
+            if cat_ids:
+                placeholders = ",".join(["%s"] * len(cat_ids))
+                cursor.execute(
+                    f"DELETE FROM grade_subcategories WHERE category_id IN ({placeholders})",
+                    tuple(cat_ids),
+                )
+                cursor.execute(
+                    "DELETE FROM grade_categories WHERE structure_id = %s", (new_id,)
+                )
+
+            struct = structure_obj
+            pos_cat = 1
+            for cat_key in ("LECTURE", "LABORATORY"):
+                subs = struct.get(cat_key) or []
+                if subs:
+                    cat_weight = 0.0
+                    for s in subs:
+                        try:
+                            cat_weight += float(s.get("weight") or 0)
+                        except Exception:
+                            pass
+                    cursor.execute(
+                        """
+                        INSERT INTO grade_categories (structure_id, name, weight, position, description)
+                        VALUES (%s, %s, %s, %s, NULL)
+                        """,
+                        (new_id, cat_key, cat_weight, pos_cat),
+                    )
+                    cat_id = cursor.lastrowid
+                    pos_sub = 1
+                    for s in subs:
+                        sub_name = s.get("name")
+                        sub_weight = s.get("weight") or 0
+                        cursor.execute(
+                            """
+                            INSERT INTO grade_subcategories (category_id, name, weight, max_score, passing_score, position, description)
+                            VALUES (%s, %s, %s, %s, NULL, %s, NULL)
+                            """,
+                            (cat_id, sub_name, float(sub_weight), 100.0, pos_sub),
+                        )
+                        pos_sub += 1
+                    pos_cat += 1
+
+            # Commit transaction
+            try:
+                get_db_connection().commit()
+            except Exception:
+                logger.warning("Commit failed after save; attempting to continue")
 
         return jsonify({"message": "saved", "id": new_id, "version": next_version}), 200
     except Exception as e:
@@ -402,7 +450,7 @@ def gb_update(structure_id: int):
 
         structure_json_str = json.dumps(structure_obj)
 
-        # update in place
+        # update in place and normalize categories/subcategories
         with get_db_connection().cursor() as cursor:
             cursor.execute(
                 """
@@ -414,6 +462,57 @@ def gb_update(structure_id: int):
                 """,
                 (structure_name, structure_json_str, structure_id),
             )
+
+            # Remove ALL previous categories/subcategories for this structure
+            cursor.execute(
+                "SELECT id FROM grade_categories WHERE structure_id = %s",
+                (structure_id,),
+            )
+            cat_rows = cursor.fetchall() or []
+            cat_ids = [r["id"] if isinstance(r, dict) else r[0] for r in cat_rows]
+            if cat_ids:
+                placeholders = ",".join(["%s"] * len(cat_ids))
+                cursor.execute(
+                    f"DELETE FROM grade_subcategories WHERE category_id IN ({placeholders})",
+                    tuple(cat_ids),
+                )
+            cursor.execute(
+                "DELETE FROM grade_categories WHERE structure_id = %s", (structure_id,)
+            )
+
+            # Parse the structure JSON and re-insert ALL categories/subcategories
+            struct = structure_obj
+            pos_cat = 1
+            for cat_key in ("LABORATORY", "LECTURE"):
+                subs = struct.get(cat_key)
+                # Always insert the category, even if subs is empty or None
+                cat_weight = 0.0
+                for s in subs or []:
+                    try:
+                        cat_weight += float(s.get("weight") or 0)
+                    except Exception:
+                        pass
+                cursor.execute(
+                    """
+                    INSERT INTO grade_categories (structure_id, name, weight, position, description)
+                    VALUES (%s, %s, %s, %s, NULL)
+                    """,
+                    (structure_id, cat_key, cat_weight, pos_cat),
+                )
+                cat_id = cursor.lastrowid
+                pos_sub = 1
+                for s in subs or []:
+                    sub_name = s.get("name")
+                    sub_weight = s.get("weight") or 0
+                    cursor.execute(
+                        """
+                        INSERT INTO grade_subcategories (category_id, name, weight, max_score, passing_score, position, description)
+                        VALUES (%s, %s, %s, %s, NULL, %s, NULL)
+                        """,
+                        (cat_id, sub_name, float(sub_weight), 100.0, pos_sub),
+                    )
+                    pos_sub += 1
+                pos_cat += 1
 
         try:
             get_db_connection().commit()

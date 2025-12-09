@@ -228,6 +228,7 @@ from blueprints.admin_routes import admin_bp
 from blueprints.compute_routes import compute_bp
 from blueprints.gradebuilder_routes import gradebuilder_bp
 from blueprints.reports_routes import reports_bp
+from blueprints.statistics_routes import statistics_bp
 from gibber import gibberize, resolve, gibber_form_token, gibber_form_action
 
 # Initialize Flask-Mail
@@ -256,6 +257,7 @@ app.register_blueprint(admin_bp)
 app.register_blueprint(compute_bp)
 app.register_blueprint(gradebuilder_bp)
 app.register_blueprint(reports_bp)
+app.register_blueprint(statistics_bp)
 
 # Expose form helper to templates: use `gibber_form_action('/target/path')` as form `action`
 app.jinja_env.globals.update(gibber_form_action=gibber_form_action)

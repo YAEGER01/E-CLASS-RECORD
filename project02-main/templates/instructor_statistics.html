@@ -31,15 +31,27 @@
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
             border: 1px solid #e5e7eb;
             text-align: center;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
         }
-        
+
+        .stat-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+
+        .stat-icon {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+            color: #6366f1;
+        }
+
         .stat-value {
             font-size: 2.5rem;
             font-weight: 700;
             color: #1f2937;
             margin-bottom: 0.5rem;
         }
-        
+
         .stat-label {
             font-size: 0.875rem;
             color: #6b7280;
@@ -80,7 +92,64 @@
         .classes-table tbody tr:hover {
             background: #f9fafb;
         }
-        
+
+        .classes-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 1.5rem;
+            margin-top: 1rem;
+        }
+
+        .class-card {
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            border: 1px solid #e5e7eb;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .class-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+
+        .class-card h4 {
+            color: #1f2937;
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 0.75rem;
+            border-bottom: 2px solid #e5e7eb;
+            padding-bottom: 0.5rem;
+        }
+
+        .class-info {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 0.75rem;
+            margin-top: 1rem;
+        }
+
+        .class-info-item {
+            font-size: 0.875rem;
+            color: #374151;
+        }
+
+        .class-info-label {
+            font-size: 0.75rem;
+            color: #6b7280;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 0.25rem;
+        }
+
+        .class-info-value {
+            font-size: 0.95rem;
+            color: #1f2937;
+            font-weight: 600;
+        }
+
         .grade-stats {
             background: white;
             border-radius: 12px;
@@ -142,7 +211,17 @@
 
     <!-- Main Content -->
     <main class="main-content">
-        <div class="content-container">
+        <div class="content-container" id="stats-content" style="display:none;">
+            <!-- Class Selection Dropdown -->
+            <div style="margin-bottom: 2rem;">
+                <label for="class-select" style="font-weight:600; color:#374151;">Select Class:</label>
+                <select id="class-select" style="margin-left:1rem; padding:0.5rem 1rem; border-radius:6px; border:1px solid #e5e7eb; font-size:1rem;">
+                    <option value="">-- Choose a class --</option>
+                    {% for class in stats.classes %}
+                        <option value="{{ class.id }}">{{ class.class_code }} - {{ class.subject }} ({{ class.section }})</option>
+                    {% endfor %}
+                </select>
+            </div>
             <!-- Statistics Overview -->
             <div class="classes-header">
                 <div class="classes-title">
@@ -150,105 +229,120 @@
                     <p>Overview of your teaching performance and class metrics</p>
                 </div>
             </div>
-
+            <div class="grade-stats" id="advanced-stats-block" style="margin-top:2rem; display:none;">
+                <h3>Advanced Class Statistics</h3>
+                <p style="color: #6b7280; font-size: 0.875rem; margin-bottom: 1rem;">
+                    These advanced metrics provide deeper insights into student performance patterns and trends.
+                </p>
+                <div class="grade-grid">
+                    <div class="grade-stat" title="Measures how spread out student scores are. Higher values indicate more variability in performance.">
+                        <span class="value" id="std-dev-value">-</span>
+                        <span class="label">Standard Deviation</span>
+                    </div>
+                    <div class="grade-stat" title="Number of students with scores significantly different from the class average (more than 2 standard deviations away).">
+                        <span class="value" id="outlier-count-value">-</span>
+                        <span class="label">Outlier Count</span>
+                    </div>
+                    <div class="grade-stat" title="Shows the trend of assessment performance over time. Positive slope indicates improving performance.">
+                        <span class="value" id="regression-value">-</span>
+                        <span class="label">Regression (Slope)</span>
+                    </div>
+                    <div class="grade-stat" title="Measures how well the regression line fits the data (0 to 1). Higher values indicate stronger trends.">
+                        <span class="value" id="regression-r2-value">-</span>
+                        <span class="label">Regression R²</span>
+                    </div>
+                </div>
+                <div id="outlier-list" style="margin-top:1rem; font-size:0.875rem; color:#6b7280;"></div>
+                <div id="stats-descriptions" style="margin-top:1.5rem; padding-top:1rem; border-top:1px solid #e5e7eb;">
+                    <div style="display: grid; gap: 1rem;">
+                        <div class="stat-description" id="std-dev-description" style="display: none;">
+                            <strong>📊 Standard Deviation Analysis:</strong>
+                            <span id="std-dev-message">This measures the variability in student scores. A lower value indicates more consistent performance across students.</span>
+                        </div>
+                        <div class="stat-description" id="outlier-description" style="display: none;">
+                            <strong>⚠️ Outlier Analysis:</strong>
+                            <span id="outlier-message">These are students performing significantly above or below the class average. They may need special attention or recognition.</span>
+                        </div>
+                        <div class="stat-description" id="regression-description" style="display: none;">
+                            <strong>📈 Performance Trend Analysis:</strong>
+                            <span id="regression-message">This shows how student performance is changing over time across assessments. A positive slope suggests improvement.</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <br>
+            <hr>
+            <br>
             <div class="stats-grid">
                 <div class="stat-card">
-                    <div class="stat-value">{{ stats.total_classes }}</div>
+                    <div class="stat-icon">📚</div>
+                    <div class="stat-value" id="total-classes-value">0</div>
                     <div class="stat-label">Total Classes</div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-value">{{ stats.total_students }}</div>
+                    <div class="stat-icon">👥</div>
+                    <div class="stat-value" id="total-students-value">0</div>
                     <div class="stat-label">Total Students</div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-value">{{ stats.avg_class_size }}</div>
+                    <div class="stat-icon">📊</div>
+                    <div class="stat-value" id="avg-class-size-value">0</div>
                     <div class="stat-label">Avg Class Size</div>
                 </div>
-                {% if stats.grade_stats %}
                 <div class="stat-card">
-                    <div class="stat-value">{{ stats.grade_stats.pass_rate }}%</div>
+                    <div class="stat-icon">✅</div>
+                    <div class="stat-value" id="pass-rate-value">0%</div>
                     <div class="stat-label">Pass Rate</div>
                 </div>
-                {% endif %}
             </div>
 
             <!-- Classes Breakdown -->
             <div class="classes-content">
                 <h3 style="margin-bottom: 1rem; color: #1f2937; font-size: 1.25rem; font-weight: 600;">Classes Overview</h3>
-                {% if stats.classes %}
-                <div class="classes-table">
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>Class Code</th>
-                                <th>Subject</th>
-                                <th>Course</th>
-                                <th>Section</th>
-                                <th>Students</th>
-                                <th>Assessments</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for class in stats.classes %}
-                            <tr>
-                                <td>{{ class.class_code }}</td>
-                                <td>{{ class.subject }}</td>
-                                <td>{{ class.course }}</td>
-                                <td>{{ class.section }}</td>
-                                <td>{{ class.student_count }}</td>
-                                <td>{{ class.assessment_count or 0 }}</td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
+                <div class="classes-grid" id="classes-grid-block" style="display:none;">
+                    <!-- Classes will be populated here by JavaScript -->
                 </div>
-                {% else %}
-                <div class="no-data">
+                <div class="no-data" id="no-classes-block" style="display:none;">
                     No classes found. Start by creating your first class.
                 </div>
-                {% endif %}
             </div>
 
             <!-- Grade Statistics -->
-            {% if stats.grade_stats %}
-            <div class="grade-stats">
+            <div class="grade-stats" id="grade-stats-block" style="display:none;">
                 <h3>Assessment Performance</h3>
                 <div class="grade-grid">
                     <div class="grade-stat">
-                        <span class="value">{{ stats.grade_stats.total_scores }}</span>
+                        <span class="value" id="total-scores-value">0</span>
                         <span class="label">Total Scores</span>
                     </div>
                     <div class="grade-stat">
-                        <span class="value">{{ stats.grade_stats.avg_score }}%</span>
+                        <span class="value" id="avg-score-value">0%</span>
                         <span class="label">Avg Score</span>
                     </div>
                     <div class="grade-stat">
-                        <span class="value">{{ stats.grade_stats.students_with_scores }}</span>
+                        <span class="value" id="students-assessed-value">0</span>
                         <span class="label">Students Assessed</span>
                     </div>
                     <div class="grade-stat">
-                        <span class="value">{{ stats.grade_stats.total_assessments }}</span>
+                        <span class="value" id="total-assessments-value">0</span>
                         <span class="label">Assessments</span>
                     </div>
-                    {% if stats.grade_stats.pass_rate is defined %}
                     <div class="grade-stat">
-                        <span class="value">{{ stats.grade_stats.pass_rate }}%</span>
+                        <span class="value" id="pass-rate-60-value">0%</span>
                         <span class="label">Pass Rate (≥60%)</span>
                     </div>
-                    {% endif %}
                 </div>
-                <div style="margin-top: 1rem; font-size: 0.875rem; color: #6b7280;">
-                    Score Range: {{ stats.grade_stats.score_range }} | 
-                    Passing: {{ stats.grade_stats.passing_count or 0 }} | 
-                    Failing: {{ stats.grade_stats.failing_count or 0 }}
+                <div style="margin-top: 1rem; font-size: 0.875rem; color: #6b7280;" id="score-range-block">
+                    Score Range: 0 | Passing: 0 | Failing: 0
                 </div>
             </div>
-            {% endif %}
+
+            <!-- New Statistics Blocks -->
+          
         </div>
     </main>
 
     <script>
-        // Add any interactive functionality here if needed
         document.addEventListener('DOMContentLoaded', function() {
             // Handle flashed messages
             const flashedMessages = document.getElementById('flashed-messages');
@@ -264,6 +358,269 @@
                     });
                 });
             }
+
+            // Hide stats content until class is selected
+            const statsContent = document.getElementById('stats-content');
+            const classSelect = document.getElementById('class-select');
+
+            // Show SweetAlert2 modal for class selection
+            function showClassModal() {
+                // Get class options from the HTML dropdown (which is already populated by Jinja2)
+                const htmlSelect = document.getElementById('class-select');
+                let classOptions = '';
+                for (let i = 1; i < htmlSelect.options.length; i++) {
+                    const option = htmlSelect.options[i];
+                    classOptions += `<option value='${option.value}'>${option.text}</option>`;
+                }
+
+                Swal.fire({
+                    title: 'Select Class',
+                    html: `<select id='swal-class-select' style='width:100%;padding:0.75rem 1.5rem;border-radius:6px;border:1px solid #e5e7eb;font-size:1rem;margin-top:1rem;'>
+                        <option value=''>-- Choose a class --</option>
+                        ${classOptions}
+                    </select>`,
+                    showCancelButton: false,
+                    confirmButtonText: 'Select',
+                    allowOutsideClick: false,
+                    allowEscapeKey: false,
+                    didOpen: () => {
+                        // Focus the select on open
+                        document.getElementById('swal-class-select').focus();
+                    },
+                    preConfirm: () => {
+                        const selectEl = document.getElementById('swal-class-select');
+                        const selected = selectEl.options[selectEl.selectedIndex].value;
+                        if (!selected || selected === '') {
+                            Swal.showValidationMessage('Please select a class');
+                            return false;
+                        }
+                        return selected;
+                    }
+                }).then(result => {
+                    if (result.isConfirmed && result.value && result.value !== '') {
+                        classSelect.value = result.value;
+                        statsContent.style.display = 'block';
+                        // Trigger change event to load stats
+                        const event = new Event('change');
+                        classSelect.dispatchEvent(event);
+                    } else {
+                        // If not selected, show modal again
+                        showClassModal();
+                    }
+                });
+            }
+
+            // Set all stats to 0/default
+            function resetStats() {
+                document.getElementById('total-classes-value').textContent = '0';
+                document.getElementById('total-students-value').textContent = '0';
+                document.getElementById('avg-class-size-value').textContent = '0';
+                document.getElementById('pass-rate-value').textContent = '0%';
+                document.getElementById('total-scores-value').textContent = '0';
+                document.getElementById('avg-score-value').textContent = '0%';
+                document.getElementById('students-assessed-value').textContent = '0';
+                document.getElementById('total-assessments-value').textContent = '0';
+                document.getElementById('pass-rate-60-value').textContent = '0%';
+                document.getElementById('score-range-block').textContent = 'Score Range: 0 | Passing: 0 | Failing: 0';
+                document.getElementById('std-dev-value').textContent = '-';
+                document.getElementById('outlier-count-value').textContent = '-';
+                document.getElementById('regression-value').textContent = '-';
+                document.getElementById('regression-r2-value').textContent = '-';
+                document.getElementById('outlier-list').textContent = '';
+                document.getElementById('classes-grid-block').style.display = 'none';
+                document.getElementById('no-classes-block').style.display = 'none';
+                document.getElementById('grade-stats-block').style.display = 'none';
+                document.getElementById('advanced-stats-block').style.display = 'none';
+            }
+
+            function highlightAdvancedStats() {
+                const block = document.getElementById('advanced-stats-block');
+                block.style.boxShadow = '0 0 0 4px #2563eb44';
+                block.style.border = '2px solid #2563eb';
+                setTimeout(() => {
+                    block.style.boxShadow = '';
+                    block.style.border = '1px solid #e5e7eb';
+                }, 2000);
+            }
+
+            function generateSmartMessages(data) {
+                // Standard Deviation analysis
+                const stdDev = data.std_dev;
+                const stdDevMessageEl = document.getElementById('std-dev-message');
+                if (stdDev !== null && stdDev !== undefined) {
+                    if (stdDev < 5) {
+                        stdDevMessageEl.textContent = 'Excellent consistency! Students are performing very uniformly with low variability in scores.';
+                    } else if (stdDev < 10) {
+                        stdDevMessageEl.textContent = 'Good consistency. Students show moderate variability in performance, which is typical for most classes.';
+                    } else if (stdDev < 15) {
+                        stdDevMessageEl.textContent = 'Moderate variability detected. Some students are performing significantly differently from others. Consider reviewing teaching methods or assessment difficulty.';
+                    } else {
+                        stdDevMessageEl.textContent = 'High variability alert! There are significant differences in student performance. This may indicate diverse learning needs or assessment challenges.';
+                    }
+                }
+
+                // Outlier analysis
+                const outlierCount = data.outlier_count;
+                const outlierMessageEl = document.getElementById('outlier-message');
+                if (outlierCount !== null && outlierCount !== undefined) {
+                    if (outlierCount === 0) {
+                        outlierMessageEl.textContent = 'No outliers detected. All students are performing within expected ranges relative to the class average.';
+                    } else if (outlierCount <= 2) {
+                        outlierMessageEl.textContent = `Found ${outlierCount} student(s) performing significantly differently from the average. These may be high achievers or students needing extra support.`;
+                    } else if (outlierCount <= 5) {
+                        outlierMessageEl.textContent = `Identified ${outlierCount} outliers. This suggests a notable group of students with distinct performance patterns that may require attention.`;
+                    } else {
+                        outlierMessageEl.textContent = `High number of outliers (${outlierCount}). A significant portion of the class is performing outside typical ranges, indicating potential assessment or instructional challenges.`;
+                    }
+                }
+
+                // Regression analysis
+                const regression = data.regression;
+                const regressionMessageEl = document.getElementById('regression-message');
+                if (regression && regression.slope !== null && regression.slope !== undefined) {
+                    if (regression.slope > 0.5) {
+                        regressionMessageEl.textContent = 'Strong positive trend! Student performance is improving significantly across assessments. Current teaching methods appear effective.';
+                    } else if (regression.slope > 0.1) {
+                        regressionMessageEl.textContent = 'Positive trend detected. Students are showing gradual improvement in performance over time.';
+                    } else if (regression.slope > -0.1) {
+                        regressionMessageEl.textContent = 'Stable performance. Student scores are remaining consistent across assessments with minimal trend.';
+                    } else if (regression.slope > -0.5) {
+                        regressionMessageEl.textContent = 'Negative trend detected. Student performance is declining slightly across assessments. Consider reviewing recent instructional approaches.';
+                    } else {
+                        regressionMessageEl.textContent = 'Significant negative trend! Student performance is declining notably across assessments. Immediate review of teaching methods and student engagement may be needed.';
+                    }
+
+                    // Add R² interpretation if available
+                    if (regression.r2 !== null && regression.r2 !== undefined) {
+                        const currentText = regressionMessageEl.textContent;
+                        if (regression.r2 > 0.7) {
+                            regressionMessageEl.textContent = currentText + ' This trend is statistically strong and reliable.';
+                        } else if (regression.r2 > 0.4) {
+                            regressionMessageEl.textContent = currentText + ' This trend is moderately reliable.';
+                        } else {
+                            regressionMessageEl.textContent = currentText + ' This trend has low statistical reliability and should be interpreted cautiously.';
+                        }
+                    }
+                }
+            }
+
+            // Load stats for selected class
+            classSelect && classSelect.addEventListener('change', function() {
+                const classId = classSelect.value;
+                resetStats();
+                if (!classId) return;
+                // Fetch main stats
+                fetch(`/api/class/${classId}/stats`, {
+                    method: 'GET',
+                    headers: {
+                        'X-CSRFToken': csrfToken
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('total-classes-value').textContent = data.total_classes ?? '0';
+                    document.getElementById('total-students-value').textContent = data.total_students ?? '0';
+                    document.getElementById('avg-class-size-value').textContent = data.avg_class_size ?? '0';
+                    document.getElementById('pass-rate-value').textContent = (data.grade_stats?.pass_rate ?? '0') + '%';
+
+                    // Classes grid
+                    const classesGrid = document.getElementById('classes-grid-block');
+                    const noClassesBlock = document.getElementById('no-classes-block');
+
+                    if (data.classes && data.classes.length > 0) {
+                        classesGrid.style.display = 'grid';
+                        noClassesBlock.style.display = 'none';
+                        classesGrid.innerHTML = '';
+
+                        data.classes.forEach(cls => {
+                            const classCard = document.createElement('div');
+                            classCard.className = 'class-card';
+                            classCard.innerHTML = `
+                                <h4>${cls.class_code} - ${cls.subject}</h4>
+                                <div class="class-info">
+                                    <div class="class-info-item">
+                                        <div class="class-info-label">Course</div>
+                                        <div class="class-info-value">${cls.course}</div>
+                                    </div>
+                                    <div class="class-info-item">
+                                        <div class="class-info-label">Section</div>
+                                        <div class="class-info-value">${cls.section}</div>
+                                    </div>
+                                    <div class="class-info-item">
+                                        <div class="class-info-label">Students</div>
+                                        <div class="class-info-value">${cls.student_count}</div>
+                                    </div>
+                                    <div class="class-info-item">
+                                        <div class="class-info-label">Assessments</div>
+                                        <div class="class-info-value">${cls.assessment_count ?? 0}</div>
+                                    </div>
+                                </div>
+                            `;
+                            classesGrid.appendChild(classCard);
+                        });
+                    } else {
+                        classesGrid.style.display = 'none';
+                        noClassesBlock.style.display = 'block';
+                    }
+
+                    // Grade stats
+                    if (data.grade_stats) {
+                        document.getElementById('grade-stats-block').style.display = 'block';
+                        document.getElementById('total-scores-value').textContent = data.grade_stats.total_scores ?? '0';
+                        document.getElementById('avg-score-value').textContent = (data.grade_stats.avg_score ?? '0') + '%';
+                        document.getElementById('students-assessed-value').textContent = data.grade_stats.students_with_scores ?? '0';
+                        document.getElementById('total-assessments-value').textContent = data.grade_stats.total_assessments ?? '0';
+                        document.getElementById('pass-rate-60-value').textContent = (data.grade_stats.pass_rate ?? '0') + '%';
+                        document.getElementById('score-range-block').textContent = `Score Range: ${data.grade_stats.score_range ?? '0'} | Passing: ${data.grade_stats.passing_count ?? '0'} | Failing: ${data.grade_stats.failing_count ?? '0'}`;
+                    } else {
+                        document.getElementById('grade-stats-block').style.display = 'none';
+                    }
+                });
+
+                // Fetch advanced stats
+                fetch(`/api/class/${classId}/advanced-stats`, {
+                    method: 'GET',
+                    headers: {
+                        'X-CSRFToken': csrfToken
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('advanced-stats-block').style.display = 'block';
+                    document.getElementById('std-dev-value').textContent = data.std_dev ?? '-';
+                    document.getElementById('outlier-count-value').textContent = data.outlier_count ?? '-';
+                    document.getElementById('regression-value').textContent = data.regression?.slope ?? '-';
+                    document.getElementById('regression-r2-value').textContent = data.regression?.r2 ?? '-';
+
+                    // Show descriptive messages
+                    document.getElementById('std-dev-description').style.display = 'block';
+                    document.getElementById('outlier-description').style.display = 'block';
+                    document.getElementById('regression-description').style.display = 'block';
+
+                    // Generate smart messages based on the data
+                    generateSmartMessages(data);
+
+                    if (data.outliers && data.outliers.length > 0) {
+                        document.getElementById('outlier-list').textContent = 'Outlier Student IDs: ' + data.outliers.join(', ');
+                    } else {
+                        document.getElementById('outlier-list').textContent = '';
+                    }
+                    highlightAdvancedStats();
+                })
+                .catch(() => {
+                    document.getElementById('advanced-stats-block').style.display = 'block';
+                    document.getElementById('std-dev-value').textContent = '-';
+                    document.getElementById('outlier-count-value').textContent = '-';
+                    document.getElementById('regression-value').textContent = '-';
+                    document.getElementById('regression-r2-value').textContent = '-';
+                    document.getElementById('outlier-list').textContent = 'Error loading statistics.';
+                });
+            });
+
+            // Initial state
+            statsContent.style.display = 'none';
+            resetStats();
+            showClassModal();
         });
     </script>
 </body>

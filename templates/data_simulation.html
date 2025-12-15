@@ -385,8 +385,42 @@
         }
 
         .chart-container {
-            margin-top: 2rem;
-            height: 300px;
+            margin-top: 1.5rem;
+            margin-bottom: 2rem;
+            height: 450px;
+            background: white;
+            padding: 1.5rem;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            border: 1px solid #e5e7eb;
+        }
+
+        .chart-container canvas {
+            max-height: 350px;
+        }
+
+        .results-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+        }
+
+        .results-table th,
+        .results-table td {
+            padding: 0.75rem;
+            text-align: left;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .results-table th {
+            background: #f9fafb;
+            font-weight: 600;
+            color: #374151;
+            font-size: 0.875rem;
+        }
+
+        .results-table tbody tr:hover {
+            background: #f9fafb;
         }
     
     /* Page-specific animated falling patterned background for Data Simulation */
@@ -655,23 +689,34 @@
 
                 if (result.error) {
                     html = `<div class="error-message">${result.error}</div>`;
+                    // Hide chart on error
+                    document.getElementById('chart-container').style.display = 'none';
                 } else if (result.analysis_type === 'pass_fail') {
                     html = displayPassFailResults(result);
                 } else if (result.analysis_type === 'maintaining') {
+                    // Hide chart for other analysis types
+                    document.getElementById('chart-container').style.display = 'none';
                     html = displayMaintainingResults(result);
                 } else if (result.analysis_type === 'failing') {
+                    document.getElementById('chart-container').style.display = 'none';
                     html = displayFailingResults(result);
                 } else if (result.analysis_type === 'top_performers') {
+                    document.getElementById('chart-container').style.display = 'none';
                     html = displayTopPerformersResults(result);
                 } else if (result.analysis_type === 'grade_trends') {
+                    document.getElementById('chart-container').style.display = 'none';
                     html = displayGradeTrendsResults(result);
                 } else if (result.analysis_type === 'assessment_difficulty') {
+                    document.getElementById('chart-container').style.display = 'none';
                     html = displayAssessmentDifficultyResults(result);
                 } else if (result.analysis_type === 'consistency') {
+                    document.getElementById('chart-container').style.display = 'none';
                     html = displayConsistencyResults(result);
                 } else if (result.analysis_type === 'peer_comparison') {
+                    document.getElementById('chart-container').style.display = 'none';
                     html = displayPeerComparisonResults(result);
                 } else if (result.analysis_type === 'risk_prediction') {
+                    document.getElementById('chart-container').style.display = 'none';
                     html = displayRiskPredictionResults(result);
                 }
 
@@ -792,6 +837,9 @@
             }
 
             function displayPassFailResults(result) {
+                // Create charts for pass/fail analysis
+                createPassFailCharts(result);
+
                 let html = `
                     <h4>Pass/Fail Analysis Results</h4>
                     <p>Analysis of ${result.total_students} students across ${result.total_assessments} assessments</p>
@@ -829,6 +877,230 @@
 
                 html += '</tbody></table>';
                 return html;
+            }
+
+            function createPassFailCharts(result) {
+                // Show chart container
+                const chartContainer = document.getElementById('chart-container');
+                chartContainer.style.display = 'block';
+
+                // Destroy previous chart if exists
+                if (currentChart) {
+                    currentChart.destroy();
+                }
+
+                const canvas = document.getElementById('analysis-chart');
+                const ctx = canvas.getContext('2d');
+
+                // Extract grade distribution data
+                const labels = [];
+                const counts = [];
+                const percentages = [];
+                const colors = [
+                    '#10b981', // A - Green
+                    '#3b82f6', // B - Blue
+                    '#f59e0b', // C - Amber
+                    '#f97316', // D - Orange
+                    '#ef4444'  // F - Red
+                ];
+
+                for (const [range, data] of Object.entries(result.grade_distribution)) {
+                    labels.push(range);
+                    counts.push(data.count);
+                    percentages.push(data.percentage);
+                }
+
+                // Create a combination chart with bars and line
+                currentChart = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: labels,
+                        datasets: [
+                            {
+                                label: 'Number of Students',
+                                data: counts,
+                                backgroundColor: colors,
+                                borderColor: colors.map(color => color),
+                                borderWidth: 2,
+                                yAxisID: 'y'
+                            },
+                            {
+                                label: 'Percentage',
+                                data: percentages,
+                                type: 'line',
+                                borderColor: '#8b5cf6',
+                                backgroundColor: 'rgba(139, 92, 246, 0.1)',
+                                borderWidth: 3,
+                                pointRadius: 5,
+                                pointBackgroundColor: '#8b5cf6',
+                                pointBorderColor: '#ffffff',
+                                pointBorderWidth: 2,
+                                yAxisID: 'y1',
+                                tension: 0.4,
+                                fill: true
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        interaction: {
+                            mode: 'index',
+                            intersect: false
+                        },
+                        plugins: {
+                            title: {
+                                display: true,
+                                text: 'Grade Distribution Analysis',
+                                font: {
+                                    size: 18,
+                                    weight: 'bold'
+                                },
+                                padding: 20
+                            },
+                            legend: {
+                                display: true,
+                                position: 'top',
+                                labels: {
+                                    font: {
+                                        size: 12,
+                                        weight: '600'
+                                    },
+                                    padding: 15,
+                                    usePointStyle: true
+                                }
+                            },
+                            tooltip: {
+                                backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                                titleFont: {
+                                    size: 14,
+                                    weight: 'bold'
+                                },
+                                bodyFont: {
+                                    size: 13
+                                },
+                                padding: 12,
+                                cornerRadius: 8,
+                                callbacks: {
+                                    label: function(context) {
+                                        const label = context.dataset.label || '';
+                                        const value = context.parsed.y;
+                                        if (context.datasetIndex === 0) {
+                                            return ` ${label}: ${value} students`;
+                                        } else {
+                                            return ` ${label}: ${value}%`;
+                                        }
+                                    },
+                                    afterLabel: function(context) {
+                                        if (context.datasetIndex === 0) {
+                                            const total = result.total_students;
+                                            const percentage = ((context.parsed.y / total) * 100).toFixed(1);
+                                            return `(${percentage}% of total)`;
+                                        }
+                                        return '';
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            y: {
+                                type: 'linear',
+                                position: 'left',
+                                beginAtZero: true,
+                                title: {
+                                    display: true,
+                                    text: 'Number of Students',
+                                    font: {
+                                        size: 14,
+                                        weight: 'bold'
+                                    }
+                                },
+                                ticks: {
+                                    stepSize: 1,
+                                    font: {
+                                        size: 12
+                                    }
+                                },
+                                grid: {
+                                    color: 'rgba(0, 0, 0, 0.05)'
+                                }
+                            },
+                            y1: {
+                                type: 'linear',
+                                position: 'right',
+                                beginAtZero: true,
+                                max: 100,
+                                title: {
+                                    display: true,
+                                    text: 'Percentage (%)',
+                                    font: {
+                                        size: 14,
+                                        weight: 'bold'
+                                    }
+                                },
+                                ticks: {
+                                    callback: function(value) {
+                                        return value + '%';
+                                    },
+                                    font: {
+                                        size: 12
+                                    }
+                                },
+                                grid: {
+                                    drawOnChartArea: false
+                                }
+                            },
+                            x: {
+                                title: {
+                                    display: true,
+                                    text: 'Grade Range',
+                                    font: {
+                                        size: 14,
+                                        weight: 'bold'
+                                    }
+                                },
+                                ticks: {
+                                    font: {
+                                        size: 12,
+                                        weight: '600'
+                                    }
+                                },
+                                grid: {
+                                    display: false
+                                }
+                            }
+                        }
+                    }
+                });
+
+                // Add summary annotation
+                const passPercentage = result.pass_percentage;
+                const passStatus = passPercentage >= 80 ? '✓ Excellent' : 
+                                  passPercentage >= 70 ? '✓ Good' : 
+                                  passPercentage >= 60 ? '⚠ Fair' : 
+                                  '⚠ Needs Attention';
+                
+                // Add a styled summary below the chart
+                setTimeout(() => {
+                    const summaryDiv = document.createElement('div');
+                    summaryDiv.className = 'chart-summary';
+                    summaryDiv.style.cssText = 'margin-top: 1rem; padding: 1rem; background: #f3f4f6; border-radius: 8px; text-align: center;';
+                    summaryDiv.innerHTML = `
+                        <div style="font-size: 0.875rem; color: #6b7280; margin-bottom: 0.5rem;">Overall Pass Rate</div>
+                        <div style="font-size: 2rem; font-weight: bold; color: ${passPercentage >= 70 ? '#10b981' : '#ef4444'};">
+                            ${passPercentage}% ${passStatus}
+                        </div>
+                        <div style="font-size: 0.875rem; color: #6b7280; margin-top: 0.5rem;">
+                            ${result.pass_count} passing / ${result.fail_count} at risk of ${result.total_students} total students
+                        </div>
+                    `;
+                    
+                    const existingSummary = chartContainer.querySelector('.chart-summary');
+                    if (existingSummary) {
+                        existingSummary.remove();
+                    }
+                    chartContainer.appendChild(summaryDiv);
+                }, 100);
             }
 
             function displayMaintainingResults(result) {

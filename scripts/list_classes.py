@@ -9,14 +9,14 @@ This uses the same DB configuration as the app (env vars / hardcoded defaults).
 import sys
 import traceback
 
-# Ensure we can import project02-main utils
-sys.path.insert(0, "project02-main")
+# Ensure we can import utils from parent directory
+sys.path.insert(0, ".")
 
 try:
     from utils.db_conn import get_db_connection
 except Exception as e:
     print(
-        "Failed to import get_db_connection from project02-main/utils. Make sure you're running from the repo root and that project02-main is present."
+        "Failed to import get_db_connection from utils. Make sure you're running from the repo root."
     )
     traceback.print_exc()
     sys.exit(1)

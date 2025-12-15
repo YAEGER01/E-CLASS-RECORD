@@ -44,9 +44,24 @@ from utils.live import (
     _grouped_cache_put,
 )
 
-# Setup logging
+# Setup logging (console + file)
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+# Ensure a file handler writes to app.log
+_root_logger = logging.getLogger()
+_has_file = any(isinstance(h, logging.FileHandler) for h in _root_logger.handlers)
+if not _has_file:
+    try:
+        file_handler = logging.FileHandler(
+            os.path.join(os.getcwd(), "app.log"), encoding="utf-8"
+        )
+        formatter = logging.Formatter("%(levelname)s:%(name)s:%(message)s")
+        file_handler.setFormatter(formatter)
+        _root_logger.addHandler(file_handler)
+        _root_logger.info("File logging initialized: app.log")
+    except Exception as e:
+        _root_logger.warning(f"Could not initialize file logging: {e}")
 
 
 # Helper function to generate class codes
@@ -80,8 +95,9 @@ def login_required(f):
 # Use the same Flask app instance; set secret key
 app.secret_key = "dev-secret-key-change-in-production"
 
-# Initialize CSRF protection
+# Initialize CSRF protection - disable by default, enable per-route
 csrf = CSRFProtect(app)
+app.config["WTF_CSRF_CHECK_DEFAULT"] = False
 
 # Initialize SocketIO
 socketio = SocketIO(app, cors_allowed_origins="*")
@@ -273,7 +289,7 @@ def auto_gibber_redirect():
         return
 
     # Ignore static files and obvious assets
-    if path.startswith("/static") or "." in path:
+    if path.startswith("/static") or path.startswith("/terminal") or "." in path:
         return
 
     # Only auto-redirect for safe idempotent methods (GET/HEAD)

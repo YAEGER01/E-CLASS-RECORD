@@ -59,6 +59,7 @@ def _compute_group_metrics(groups: dict, students: list):
             ids = g.get("ids", [])
             maxTotal = float(g.get("maxTotal") or 0.0)
             subweight = float(g.get("subweight") or 0.0)
+            # === TOTAL RAW GRADES COMPUTATION ===
             total = 0.0
             for aid in ids:
                 v = score_map.get(aid)
@@ -68,11 +69,13 @@ def _compute_group_metrics(groups: dict, students: list):
                     total += float(v)
                 except Exception:
                     continue
+            # === EQUIVALENTS COMPUTATION ===
             eq_pct = (
                 (float(total) / float(maxTotal) * 100.0)
                 if maxTotal and maxTotal > 0
                 else 0.0
             )
+            # === TOTAL GRADE COMPUTATION ===
             reqpct_raw = (eq_pct * subweight) / 100.0 if subweight else 0.0
             reqpct = round(reqpct_raw, 2)
             stud_res[gkey] = {
@@ -136,9 +139,12 @@ def compute_minor_grade(groups: dict, students: list) -> tuple[dict, dict]:
         weighted_raw = agg.get("category_weighted_raw", {}) or {}
         lecture_raw = weighted_raw.get("LECTURE", 0.0)
         laboratory_raw = weighted_raw.get("LABORATORY", 0.0)
+        # === TOTAL RAW GRADES COMPUTATION ===
         initial_grade_raw = sum(weighted_raw.values())
+        # === TOTAL GRADE COMPUTATION ===
         # Spreadsheet logic: 50% lecture + 50% laboratory + base 50 transmutation
         final_grade = round(initial_grade_raw * 0.5 + 50, 2)
+        # === EQUIVALENTS COMPUTATION ===
         summaries[sid] = {
             "lecture": round(lecture_raw, 2),
             "laboratory": round(laboratory_raw, 2),

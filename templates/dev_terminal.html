@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug Terminal - E-Class Record</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+            background: #1e1e1e;
+            color: #d4d4d4;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .terminal-container {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            padding: 10px;
+        }
+
+        .terminal-header {
+            background: #2d2d30;
+            padding: 10px 15px;
+            border-radius: 5px 5px 0 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #007acc;
+        }
+
+        .terminal-title {
+            color: #007acc;
+            font-weight: bold;
+            font-size: 14px;
+        }
+
+        .terminal-info {
+            font-size: 11px;
+            color: #858585;
+        }
+
+        .terminal-output {
+            flex: 1;
+            background: #1e1e1e;
+            padding: 15px;
+            overflow-y: auto;
+            font-size: 14px;
+            line-height: 1.5;
+            border-left: 1px solid #2d2d30;
+            border-right: 1px solid #2d2d30;
+        }
+
+        .terminal-line {
+            margin-bottom: 5px;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+
+        .terminal-prompt {
+            color: #4ec9b0;
+            margin-right: 5px;
+        }
+
+        .terminal-command {
+            color: #dcdcaa;
+        }
+
+        .terminal-output-text {
+            color: #d4d4d4;
+            margin-left: 0;
+            font-size: 13px;
+        }
+
+        .terminal-error {
+            color: #f48771;
+        }
+
+        .terminal-success {
+            color: #4ec9b0;
+        }
+
+        .terminal-input-container {
+            background: #2d2d30;
+            padding: 10px 15px;
+            border-radius: 0 0 5px 5px;
+            display: flex;
+            align-items: center;
+            border-top: 1px solid #007acc;
+        }
+
+        .terminal-input-prompt {
+            color: #4ec9b0;
+            margin-right: 10px;
+            font-weight: bold;
+        }
+
+        #terminal-input {
+            flex: 1;
+            background: transparent;
+            border: none;
+            color: #dcdcaa;
+            font-family: inherit;
+            font-size: 14px;
+            outline: none;
+            padding: 5px;
+        }
+
+        #terminal-input::placeholder {
+            color: #6a6a6a;
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        .btn {
+            background: #0e639c;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 3px;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 12px;
+            transition: background 0.2s;
+        }
+
+        .btn:hover {
+            background: #1177bb;
+        }
+
+        .btn-danger {
+            background: #d13438;
+        }
+
+        .btn-danger:hover {
+            background: #e81123;
+        }
+
+        .btn-info {
+            background: #4ec9b0;
+            color: #1e1e1e;
+        }
+
+        .btn-info:hover {
+            background: #6fddcb;
+        }
+
+        .quick-commands {
+            background: #252526;
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 10px;
+            display: flex;
+            gap: 5px;
+            flex-wrap: wrap;
+        }
+
+        .quick-cmd {
+            background: #3e3e42;
+            color: #d4d4d4;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 3px;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 11px;
+            transition: background 0.2s;
+        }
+
+        .quick-cmd:hover {
+            background: #4e4e52;
+        }
+
+        ::-webkit-scrollbar {
+            width: 10px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #1e1e1e;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #424242;
+            border-radius: 5px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #4e4e4e;
+        }
+
+        .loading {
+            color: #858585;
+            font-style: italic;
+        }
+
+        .welcome-message {
+            color: #007acc;
+            margin-bottom: 15px;
+            padding: 10px;
+            background: #252526;
+            border-radius: 3px;
+            border-left: 3px solid #007acc;
+        }
+    </style>
+</head>
+<body>
+    <div class="terminal-container">
+        <div class="controls">
+            <button class="btn" onclick="clearTerminal()">Clear Terminal</button>
+            <button class="btn-info btn" onclick="showSystemInfo()">System Info</button>
+            <button class="btn-danger btn" onclick="confirmExit()">Exit</button>
+        </div>
+
+        <div class="quick-commands">
+            <span style="color: #858585; margin-right: 10px;">Quick Commands:</span>
+            <button class="quick-cmd" onclick="runQuickCommand('pwd')">pwd</button>
+            <button class="quick-cmd" onclick="runQuickCommand('dir')">dir</button>
+            <button class="quick-cmd" onclick="runQuickCommand('python --version')">python --version</button>
+            <button class="quick-cmd" onclick="runQuickCommand('pip list')">pip list</button>
+            <button class="quick-cmd" onclick="runQuickCommand('git status')">git status</button>
+            <button class="quick-cmd" onclick="runQuickCommand('git branch')">git branch</button>
+            <button class="quick-cmd" onclick="runQuickCommand('python scripts\\list_classes.py')">list classes</button>
+        </div>
+
+        <div class="terminal-header">
+            <div class="terminal-title">🔧 E-Class Record - Debug Terminal</div>
+            <div class="terminal-info" id="terminal-info">Loading...</div>
+        </div>
+        
+        <div class="terminal-output" id="terminal-output">
+            <div class="welcome-message">
+                <strong>E-Class Record System - Web Terminal</strong><br>
+                Type commands and press Enter to execute. Type 'help' for common commands.<br>
+                ⚠️ Admin access only - Use with caution!
+            </div>
+        </div>
+
+        <div class="terminal-output" id="log-output" style="margin-top:10px; border-top:1px solid #2d2d30;">
+            <div class="welcome-message" style="border-left-color:#4ec9b0;">
+                <strong>Live Application Logs</strong><br>
+                Auto-refreshing every 2 seconds (tail of app.log)
+            </div>
+        </div>
+        
+        <div class="terminal-input-container">
+            <span class="terminal-input-prompt" id="prompt">></span>
+            <input type="text" id="terminal-input" placeholder="Enter command..." autofocus autocomplete="off">
+        </div>
+    </div>
+
+    <script>
+        const terminalOutput = document.getElementById('terminal-output');
+        const terminalInput = document.getElementById('terminal-input');
+        const terminalInfo = document.getElementById('terminal-info');
+        const logOutput = document.getElementById('log-output');
+        let commandHistory = [];
+        let historyIndex = -1;
+        let currentCwd = '';
+
+        // Helper to get cookie value by name
+        function getCookie(name) {
+            const value = `; ${document.cookie}`;
+            const parts = value.split(`; ${name}=`);
+            if (parts.length === 2) return parts.pop().split(';').shift();
+            return '';
+        }
+
+        // Load system info on start
+        loadSystemInfo();
+        // Start log polling
+        startLogPolling();
+
+        // Handle Enter key
+        terminalInput.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') {
+                const command = this.value.trim();
+                if (command) {
+                    executeCommand(command);
+                    commandHistory.unshift(command);
+                    historyIndex = -1;
+                }
+                this.value = '';
+            } else if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                if (historyIndex < commandHistory.length - 1) {
+                    historyIndex++;
+                    this.value = commandHistory[historyIndex];
+                }
+            } else if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                if (historyIndex > 0) {
+                    historyIndex--;
+                    this.value = commandHistory[historyIndex];
+                } else if (historyIndex === 0) {
+                    historyIndex = -1;
+                    this.value = '';
+                }
+            }
+        });
+
+        // Handle help command locally
+        function showHelp() {
+            const helpText = `
+<div class="terminal-output-text">
+<strong>Available Commands:</strong>
+  pwd                    - Show current directory
+  dir / ls               - List directory contents
+  cd [path]              - Change directory
+  cls / clear            - Clear terminal
+  python [script]        - Run Python script
+  pip [command]          - Pip package manager
+  git [command]          - Git commands
+  mysql [command]        - MySQL commands (if available)
+  python --version       - Check Python version
+  pip list               - List installed packages
+  help                   - Show this help
+
+<strong>Quick Access Scripts:</strong>
+  python scripts\\list_classes.py  - List all classes
+  python app.py                    - Start Flask app (don't use here!)
+
+<strong>Keyboard Shortcuts:</strong>
+  ↑/↓                    - Navigate command history
+  Ctrl+L                 - Clear terminal (or use 'clear')
+  
+⚠️ <span class="terminal-error">Dangerous commands (rm -rf, del /f, format) are blocked</span>
+</div>`;
+            addOutput(helpText);
+        }
+
+        async function executeCommand(command) {
+            // Add command to output
+            addOutput(`<span class="terminal-prompt">></span><span class="terminal-command">${escapeHtml(command)}</span>`);
+
+            // Handle help locally
+            if (command === 'help') {
+                showHelp();
+                return;
+            }
+
+            // Show loading
+            const loadingId = 'loading-' + Date.now();
+            addOutput(`<span class="loading" id="${loadingId}">⏳ Executing...</span>`);
+
+            try {
+                // Get CSRF token from meta tag or cookie
+                const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || 
+                                  getCookie('csrf_token') || '';
+                
+                const response = await fetch('/terminal/execute', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken
+                    },
+                    body: JSON.stringify({ command: command })
+                });
+
+                // Remove loading indicator
+                const loadingEl = document.getElementById(loadingId);
+                if (loadingEl) loadingEl.remove();
+
+                if (response.ok) {
+                    const data = await response.json();
+                    
+                    if (data.output === 'CLEAR_SCREEN') {
+                        clearTerminal();
+                    } else {
+                        if (data.output) {
+                            addOutput(`<div class="terminal-output-text">${escapeHtml(data.output)}</div>`);
+                        }
+                        if (data.error) {
+                            addOutput(`<div class="terminal-error">❌ ${escapeHtml(data.error)}</div>`);
+                        }
+                    }
+
+                    // Update CWD if it changed
+                    if (command.startsWith('cd ')) {
+                        loadSystemInfo();
+                    }
+                } else {
+                    const error = await response.json();
+                    addOutput(`<div class="terminal-error">❌ Error: ${escapeHtml(error.error || 'Unknown error')}</div>`);
+                }
+            } catch (error) {
+                const loadingEl = document.getElementById(loadingId);
+                if (loadingEl) loadingEl.remove();
+                addOutput(`<div class="terminal-error">❌ Network error: ${escapeHtml(error.message)}</div>`);
+            }
+        }
+
+        function addOutput(html) {
+            const line = document.createElement('div');
+            line.className = 'terminal-line';
+            line.innerHTML = html;
+            terminalOutput.appendChild(line);
+            terminalOutput.scrollTop = terminalOutput.scrollHeight;
+        }
+
+        function clearTerminal() {
+            terminalOutput.innerHTML = '';
+            addOutput('<div class="terminal-success">✓ Terminal cleared</div>');
+        }
+
+        async function loadSystemInfo() {
+            try {
+                const response = await fetch('/terminal/info');
+                if (response.ok) {
+                    const info = await response.json();
+                    currentCwd = info.cwd;
+                    terminalInfo.textContent = `Python ${info.python_version.split(' ')[0]} | ${info.platform} | ${shortenPath(info.cwd)}`;
+                }
+            } catch (error) {
+                terminalInfo.textContent = 'System info unavailable';
+            }
+        }
+
+        async function showSystemInfo() {
+            try {
+                const response = await fetch('/terminal/info');
+                if (response.ok) {
+                    const info = await response.json();
+                    const infoHtml = `
+<div class="terminal-output-text">
+<strong>System Information:</strong>
+  Python Version: ${escapeHtml(info.python_version)}
+  Platform: ${escapeHtml(info.platform)}
+  Python Executable: ${escapeHtml(info.executable)}
+  Current Directory: ${escapeHtml(info.cwd)}
+</div>`;
+                    addOutput(infoHtml);
+                }
+            } catch (error) {
+                addOutput(`<div class="terminal-error">❌ Failed to load system info</div>`);
+            }
+        }
+
+        function runQuickCommand(cmd) {
+            terminalInput.value = cmd;
+            terminalInput.focus();
+            executeCommand(cmd);
+            terminalInput.value = '';
+        }
+
+        function confirmExit() {
+            if (confirm('Exit terminal and return to dashboard?')) {
+                window.location.href = '/';
+            }
+        }
+
+        async function startLogPolling() {
+            await loadLogs();
+            setInterval(loadLogs, 2000);
+        }
+
+        async function loadLogs() {
+            try {
+                const res = await fetch('/terminal/logs');
+                if (!res.ok) return;
+                const data = await res.json();
+                const logText = data.log || '(no logs)';
+                renderLog(logText);
+            } catch (e) {
+                // ignore transient errors
+            }
+        }
+
+        function renderLog(text) {
+            logOutput.innerHTML = '';
+            const pre = document.createElement('pre');
+            pre.className = 'terminal-output-text';
+            pre.style.whiteSpace = 'pre-wrap';
+            pre.textContent = text;
+            logOutput.appendChild(pre);
+            logOutput.scrollTop = logOutput.scrollHeight;
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function shortenPath(path) {
+            if (path.length > 50) {
+                return '...' + path.substring(path.length - 47);
+            }
+            return path;
+        }
+
+        // Ctrl+L to clear
+        document.addEventListener('keydown', function(e) {
+            if (e.ctrlKey && e.key === 'l') {
+                e.preventDefault();
+                clearTerminal();
+            }
+        });
+
+        // Keep input focused
+        document.addEventListener('click', function(e) {
+            if (e.target.id !== 'terminal-input') {
+                terminalInput.focus();
+            }
+        });
+    </script>
+</body>
+</html>

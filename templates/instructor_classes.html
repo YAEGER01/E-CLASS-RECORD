@@ -1,0 +1,855 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>E-Class Record - Instructor Class Management</title>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/instructor-classes.css') }}">
+    <style>
+        .section-box {
+            background-color: #e5e7eb;
+            border-radius: 4px;
+            padding: 2px 6px;
+            margin: 0 2px;
+            font-weight: bold;
+            display: inline-block;
+            border: 1px solid #d1d5db;
+            position: relative;
+            cursor: pointer;
+        }
+        .section-box:hover::after {
+            content: attr(data-tooltip);
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            color: white;
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-size: 12px;
+            white-space: nowrap;
+            z-index: 1000;
+            opacity: 1;
+            pointer-events: none;
+            margin-bottom: 5px;
+        }
+    </style>
+</head>
+
+<body>
+    {% set active_page = 'classes' %}
+    {% set header_subtitle = 'Class Management' %}
+    {% include '_instructor_header.html' %}
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <div class="content-container">
+            <!-- Left Sidebar - 40% -->
+            <aside class="sidebar" id="left-sidebar">
+                <section class="sidebar-section">
+                    <h2 class="section-title">Add New Class</h2>
+                    
+                    <form id="class-form" onsubmit="event.preventDefault(); handleFormSubmit();">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                        <input type="hidden" id="class-id">
+                        
+                        <div id="step1" class="form-step">
+                            <div class="form-grid">
+                                <div class="form-group">
+                                    <label for="classType">Class Type</label>
+                                    <select id="classType" required>
+                                        <option value="" disabled selected>Select Type</option>
+                                        <option value="MINOR">MINOR (Lecture Only)</option>
+                                        <option value="MAJOR">MAJOR (Lecture Only)</option>
+                                        <option value="MAJOR_LAB">MAJOR (with Laboratory)</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="year">Year</label>
+                                    <select id="year" required>
+                                        <option value="" disabled selected>Select Year</option>
+                                        <option value="2024">2024</option>
+                                        <option value="2025">2025</option>
+                                        <option value="2026">2026</option>
+                                        <option value="addNewOption">Add New Year...</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="semester">Semester</label>
+                                    <select id="semester" required>
+                                        <option value="" disabled selected>Select Semester</option>
+                                        <option value="1st sem">1st Semester</option>
+                                        <option value="2nd sem">2nd Semester</option>
+                                        <option value="addNewOption">Add New Semester...</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="form-actions">
+                                <button type="button" id="next-btn" class="btn btn-primary">Next</button>
+                                <button type="button" id="clear-btn" class="btn btn-secondary">Clear Form</button>
+                            </div>
+                        </div>
+                        
+                        <div id="step2" class="form-step" style="display: none;">
+                            <div class="form-grid">
+                                <div class="form-group">
+                                    <label for="course">Course</label>
+                                    <select id="course" required>
+                                        <option value="" disabled selected>Select Course</option>
+                                        <option value="BSIT">BS Information Technology</option>
+                                        <option value="BSCS">BS Computer Science</option>
+                                        <option value="BSIS">BS Information Systems</option>
+                                        <option value="BSCpE">BS Computer Engineering</option>
+                                        <option value="BSEMC">BS Entertainment & Multimedia Computing</option>
+                                        <option value="addNewOption">Add New Course...</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="subject">Subject</label>
+                                    <input type="text" id="subject" required placeholder="e.g., Introduction to Programming">
+                                </div>
+                                <div class="form-group">
+                                    <label for="subjectCode">Subject Code</label>
+                                    <input type="text" id="subjectCode" required placeholder="e.g., IT 311">
+                                </div>
+                                <div class="form-group">
+                                    <label for="units">Units</label>
+                                    <input type="number" id="units" required placeholder="e.g., 3" step="0.5" min="0.5" max="10">
+                                </div>
+                                <div class="form-group">
+                                    <label for="track">Track</label>
+                                    <select id="track" required>
+                                        <option value="" disabled selected>Select Track</option>
+                                        <!-- Options will be dynamically populated based on course selection -->
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="sectionNumber">Section</label>
+                                    <div class="section-group">
+                                        <select id="sectionNumber" required aria-label="Section Number">
+                                            <option value="" disabled selected>Num</option>
+                                            <option value="1">1</option>
+                                            <option value="2">2</option>
+                                            <option value="3">3</option>
+                                            <option value="4">4</option>
+                                            <option value="5">5</option>
+                                        </select>
+                                        <select id="sectionLetter" required aria-label="Section Letter">
+                                            <option value="" disabled selected>Letter</option>
+                                            <option value="A">A</option>
+                                            <option value="B">B</option>
+                                            <option value="C">C</option>
+                                            <option value="D">D</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="form-actions">
+                                <button type="button" id="back-btn" class="btn btn-secondary">Back</button>
+                                <button type="submit" id="submit-btn" class="btn btn-primary">
+                                    <span id="submit-text">Add Class</span>
+                                    <span id="submit-loading" class="loading" style="display: none;"></span>
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </section>
+
+                <section class="sidebar-section">
+                    <h3 class="section-title">Quick Tips</h3>
+                    <ul class="tips-list">
+                        <li>Fill in all required fields to add a new class</li>
+                        <li>Use "Add New..." to customize dropdown options</li>
+                        <li>Classes are automatically assigned join codes</li>
+                        <li>Edit existing classes using the action buttons</li>
+                    </ul>
+                </section>
+            </aside>
+
+            <!-- Right Main Content - 60% -->
+            <section class="main-section">
+                <div class="editor-section">
+                    <div class="editor-header">
+                        <h2>Your Classes</h2>
+                        <div class="editor-actions">
+                            <button class="btn btn-secondary" id="refresh-btn" onclick="loadClasses()">Refresh</button>
+                        </div>
+                    </div>
+                    
+                    <div class="editor-body">
+                        <div class="alert-container" id="alert-container"></div>
+                        <div id="classes-container" class="record-list">
+                            <p class="empty-state">Loading classes...</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <!-- Modal for adding new options -->
+    <div id="add-option-modal" class="modal-overlay">
+        <div class="modal-content">
+            <h3>Add New Option</h3>
+            <p id="modal-label"></p>
+            <input type="text" id="modal-input" placeholder="Enter new value..." autofocus>
+            <div class="form-actions">
+                <button id="modal-save" class="btn btn-primary">Save</button>
+                <button id="modal-cancel" class="btn btn-secondary">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal for class preview -->
+    <div id="preview-modal" class="modal-overlay">
+        <div class="modal-content">
+            <h3>Class Preview</h3>
+            <p>Is the information correct? If so, proceed to ADD CLASS.</p>
+            <div id="preview-details" class="preview-details">
+                <!-- Preview content will be inserted here -->
+            </div>
+            <div class="form-actions">
+                <button id="preview-confirm" class="btn btn-primary">ADD CLASS</button>
+                <button id="preview-cancel" class="btn btn-secondary">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let classes = [];
+        let editingId = null;
+        let activeDropdownId = '';
+
+        // Helper function to format class type for display
+        function formatClassType(classType) {
+            if (!classType) return 'N/A';
+            switch(classType) {
+                case 'MINOR': return 'MINOR (Lecture Only)';
+                case 'MAJOR': return 'MAJOR (Lecture Only)';
+                case 'MAJOR_LAB': return 'MAJOR (with Laboratory)';
+                default: return classType;
+            }
+        }
+
+        // Default dropdown options
+        const defaultOptions = {
+            year: ["2024", "2025", "2026"],
+            semester: ["1st sem", "2nd sem"],
+            course: ["BSIT", "BSCS", "BSIS", "BSCpE", "BSEMC"]
+        };
+
+        let optionsData = {};
+
+        document.addEventListener('DOMContentLoaded', () => {
+            loadOptions();
+            document.getElementById('clear-btn').addEventListener('click', clearForm);
+            document.getElementById('next-btn').addEventListener('click', nextStep);
+            document.getElementById('back-btn').addEventListener('click', prevStep);
+            document.getElementById('modal-save').addEventListener('click', handleModalSave);
+            document.getElementById('modal-cancel').addEventListener('click', hideModal);
+            document.getElementById('preview-confirm').addEventListener('click', confirmAddClass);
+            document.getElementById('preview-cancel').addEventListener('click', hidePreviewModal);
+            
+            // Add course change listener for dynamic track population
+            const courseSelect = document.getElementById('course');
+            if (courseSelect) {
+                courseSelect.addEventListener('change', populateTrackOptions);
+            }
+            
+            loadClasses();
+        });
+
+        // Function to load dropdown options from localStorage
+        function loadOptions() {
+            for (const key in defaultOptions) {
+                optionsData[key] = JSON.parse(localStorage.getItem(`${key}Options`)) || defaultOptions[key];
+                populateDropdown(key, optionsData[key]);
+            }
+        }
+
+        // (grading calculation UI and functions removed)
+
+        // Function to populate a dropdown with options
+        function populateDropdown(id, options) {
+            const select = document.getElementById(id);
+            if (!select) return; // Skip if element doesn't exist
+            
+            const selectedValue = select.value;
+            select.innerHTML = '';
+            select.innerHTML += `<option value="" disabled selected>Select ${id.charAt(0).toUpperCase() + id.slice(1)}</option>`;
+            options.forEach(option => {
+                const isSelected = selectedValue === option ? 'selected' : '';
+                select.innerHTML += `<option value="${option}" ${isSelected}>${option}</option>`;
+            });
+            select.innerHTML += `<option value="addNewOption">Add New...</option>`;
+
+            select.addEventListener('change', (event) => {
+                if (event.target.value === 'addNewOption') {
+                    showModal(id);
+                }
+            });
+        }
+
+        // Function to show the modal
+        function showModal(id) {
+            activeDropdownId = id;
+            const modalLabel = document.getElementById('modal-label');
+            modalLabel.textContent = `Enter new option for ${id}:`;
+            const modal = document.getElementById('add-option-modal');
+            modal.classList.add('show');
+            document.getElementById('modal-input').focus();
+        }
+
+        // Function to hide the modal
+        function hideModal() {
+            const modalInput = document.getElementById('modal-input');
+            modalInput.value = '';
+            const modal = document.getElementById('add-option-modal');
+            modal.classList.remove('show');
+            const select = document.getElementById(activeDropdownId);
+            if (select.value === 'addNewOption') {
+                select.value = ''; // Reset the dropdown if user cancels
+            }
+        }
+
+        // Function to handle modal save
+        function handleModalSave() {
+            const newValue = document.getElementById('modal-input').value.trim();
+            const options = optionsData[activeDropdownId];
+
+            if (!newValue) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Invalid Input',
+                    text: 'Value cannot be empty.',
+                    confirmButtonColor: '#f59e0b'
+                });
+                return;
+            }
+
+            if (options.includes(newValue)) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Duplicate Value',
+                    text: 'This option already exists.',
+                    confirmButtonColor: '#f59e0b'
+                });
+                return;
+            }
+
+            options.push(newValue);
+            localStorage.setItem(`${activeDropdownId}Options`, JSON.stringify(options));
+
+            populateDropdown(activeDropdownId, options);
+            document.getElementById(activeDropdownId).value = newValue;
+
+            Swal.fire({
+                icon: 'success',
+                title: 'Added!',
+                text: `New ${activeDropdownId} option added successfully`,
+                timer: 1500,
+                timerProgressBar: true,
+                showConfirmButton: false
+            });
+
+            hideModal();
+        }
+
+        // Function to show alert messages using SweetAlert
+        function showAlert(message, type = 'success') {
+            const icon = type === 'success' ? 'success' : type === 'error' ? 'error' : 'info';
+            const title = type === 'success' ? 'Success!' : type === 'error' ? 'Error!' : 'Info';
+
+            Swal.fire({
+                icon: icon,
+                title: title,
+                text: message,
+                timer: 3000,
+                timerProgressBar: true,
+                showConfirmButton: false,
+                toast: true,
+                position: 'top-end',
+                background: type === 'success' ? '#d1fae5' : type === 'error' ? '#fee2e2' : '#f3f4f6',
+                color: type === 'success' ? '#065f46' : type === 'error' ? '#991b1b' : '#1f2937'
+            });
+        }
+
+        // Function to load classes from API
+        async function loadClasses() {
+            try {
+                const response = await fetch('/api/instructor/classes');
+                if (response.ok) {
+                    const data = await response.json();
+                    classes = data.classes;
+                    renderClasses();
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Loading Error',
+                        text: 'Failed to load classes. Please refresh the page.'
+                    });
+                }
+            } catch (error) {
+                console.error('Error loading classes:', error);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Loading Error',
+                    text: 'Error loading classes. Please refresh the page.'
+                });
+            }
+        }
+
+        // Function to format section with tooltips
+        function formatSection(section) {
+            if (!section || section.length < 2) return section;
+            
+            const number = section.charAt(0);
+            const letter = section.charAt(1);
+            
+            // Map number to ordinal year
+            const ordinalMap = {
+                '1': '1st Year',
+                '2': '2nd Year',
+                '3': '3rd Year',
+                '4': '4th Year',
+                '5': '5th Year'
+            };
+            
+            const yearText = ordinalMap[number] || `${number}th Year`;
+            const sectionText = `Section ${letter}`;
+            
+            return `Section: [ <span class="section-box" data-tooltip="${yearText}">${number}</span> ] - [ <span class="section-box" data-tooltip="${sectionText}">${letter}</span> ]`;
+        }
+        function renderClasses() {
+            const container = document.getElementById('classes-container');
+            container.innerHTML = '';
+
+            if (classes.length === 0) {
+                container.innerHTML = '<p class="empty-state">No classes found. Add a new class to get started.</p>';
+                return;
+            }
+
+            classes.forEach(cls => {
+                const recordItem = document.createElement('div');
+                recordItem.className = 'record-item';
+
+                const details = `
+                    <div class="record-header">
+                        <div class="record-id-display">${cls.class_id}</div>
+                        <div class="class-code-section">
+                            <div class="join-code-container">
+                                <h1 class="join-code">${cls.join_code || 'N/A'}</h1>
+                                <button class="copy-btn" onclick="copyJoinCode('${cls.join_code || ''}')" title="Copy join code">
+                                    📋
+                                </button>
+                            </div>
+                            <sub class="class-code">${cls.class_code || 'N/A'}</sub>
+                        </div>
+                        <div class="record-actions">
+                            <!-- grading calculation selector removed -->
+                            <button class="action-btn btn-secondary" onclick="editClass(${cls.id})">Edit</button>
+                            <button class="action-btn btn-danger" onclick="deleteClass(${cls.id})">Remove</button>
+                        </div>
+                    </div>
+                    <div class="record-details">
+                        <div class="detail-item"><span class="detail-label">Type:</span><span>${formatClassType(cls.classType)}</span></div>
+                        <div class="detail-item"><span class="detail-label">Year:</span><span>${cls.year}</span></div>
+                        <div class="detail-item"><span class="detail-label">Semester:</span><span>${cls.semester}</span></div>
+                        <div class="detail-item"><span class="detail-label">Course:</span><span>${cls.course}</span></div>
+                        <div class="detail-item"><span class="detail-label">Subject:</span><span>${cls.subject || 'N/A'}</span></div>
+                        <div class="detail-item"><span class="detail-label">Subject Code:</span><span>${cls.subjectCode || 'N/A'}</span></div>
+                        <div class="detail-item"><span class="detail-label">Units:</span><span>${cls.units || 'N/A'}</span></div>
+                        <div class="detail-item"><span class="detail-label">Track:</span><span>${cls.track}</span></div>
+                        <div class="detail-item"><span class="detail-label">Section:</span><span>${formatSection(cls.section)}</span></div>
+                    </div>
+                `;
+                recordItem.innerHTML = details;
+                container.appendChild(recordItem);
+            });
+        }
+
+        // Function to handle form submission (now shows preview modal)
+        function handleFormSubmit() {
+            const classType = document.getElementById('classType').value;
+            const year = document.getElementById('year').value;
+            const semester = document.getElementById('semester').value;
+            const course = document.getElementById('course').value;
+            const subject = document.getElementById('subject').value.trim();
+            const subjectCode = document.getElementById('subjectCode').value.trim();
+            const units = document.getElementById('units').value;
+            const track = document.getElementById('track').value;
+            const sectionNumber = document.getElementById('sectionNumber').value;
+            const sectionLetter = document.getElementById('sectionLetter').value;
+            const section = sectionNumber + sectionLetter;
+
+            // Validate all fields
+            if (!classType || !year || !semester || !course || !subject || !subjectCode || !units || !track || !sectionNumber || !sectionLetter) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Incomplete Information',
+                    text: 'Please fill in all fields.',
+                    confirmButtonColor: '#f59e0b'
+                });
+                return;
+            }
+
+            // Show preview modal
+            showPreviewModal(classType, year, semester, course, subject, subjectCode, units, track, section);
+        }
+
+        // Function to show preview modal
+        function showPreviewModal(classType, year, semester, course, subject, subjectCode, units, track, section) {
+            const previewDetails = document.getElementById('preview-details');
+            previewDetails.innerHTML = `
+                <div class="preview-item"><strong>Class Type:</strong> ${formatClassType(classType)}</div>
+                <div class="preview-item"><strong>Year:</strong> ${year}</div>
+                <div class="preview-item"><strong>Semester:</strong> ${semester}</div>
+                <div class="preview-item"><strong>Course:</strong> ${course}</div>
+                <div class="preview-item"><strong>Subject:</strong> ${subject}</div>
+                <div class="preview-item"><strong>Subject Code:</strong> ${subjectCode}</div>
+                <div class="preview-item"><strong>Units:</strong> ${parseFloat(units)}</div>
+                <div class="preview-item"><strong>Track:</strong> ${track}</div>
+                <div class="preview-item"><strong>Section:</strong> ${formatSection(section)}</div>
+            `;
+
+            const modal = document.getElementById('preview-modal');
+            modal.classList.add('show');
+        }
+
+        // Function to hide preview modal
+        function hidePreviewModal() {
+            const modal = document.getElementById('preview-modal');
+            modal.classList.remove('show');
+        }
+
+        // Function to confirm and add class
+        async function confirmAddClass() {
+            hidePreviewModal();
+
+            const submitBtn = document.getElementById('submit-btn');
+            const submitText = document.getElementById('submit-text');
+            const submitLoading = document.getElementById('submit-loading');
+
+            // Show loading state
+            submitText.style.display = 'none';
+            submitLoading.style.display = 'inline-block';
+            submitBtn.disabled = true;
+
+            const classType = document.getElementById('classType').value;
+            const year = document.getElementById('year').value;
+            const semester = document.getElementById('semester').value;
+            const course = document.getElementById('course').value;
+            const subject = document.getElementById('subject').value.trim();
+            const subjectCode = document.getElementById('subjectCode').value.trim();
+            const units = document.getElementById('units').value;
+            const track = document.getElementById('track').value;
+            const sectionNumber = document.getElementById('sectionNumber').value;
+            const sectionLetter = document.getElementById('sectionLetter').value;
+            const section = sectionNumber + sectionLetter;
+
+            const classData = {
+                classType,
+                year,
+                semester,
+                course,
+                subject,
+                subjectCode,
+                units: parseFloat(units),
+                track,
+                section
+            };
+
+            // Get CSRF token from the hidden input
+            const csrfToken = document.querySelector('input[name="csrf_token"]').value;
+
+            try {
+                let response;
+                if (editingId) {
+                    // Update existing class
+                    response = await fetch(`/api/instructor/classes/${editingId}`, {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': csrfToken
+                        },
+                        body: JSON.stringify(classData)
+                    });
+                } else {
+                    // Create new class
+                    response = await fetch('/api/instructor/classes', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': csrfToken
+                        },
+                        body: JSON.stringify(classData)
+                    });
+                }
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: editingId ? 'Updated!' : 'Created!',
+                        text: result.message || `Class ${editingId ? 'updated' : 'created'} successfully`,
+                        timer: 2000,
+                        timerProgressBar: true,
+                        showConfirmButton: false
+                    });
+
+                    if (editingId) {
+                        // Update the class in our local array
+                        const index = classes.findIndex(c => c.id === editingId);
+                        if (index !== -1) {
+                            classes[index] = result.class;
+                        }
+                        editingId = null;
+                        submitText.textContent = 'Add Class';
+                    } else {
+                        // Add new class to our local array
+                        classes.push(result.class);
+                    }
+                    renderClasses();
+                    clearForm();
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error!',
+                        text: result.error || 'Failed to save class'
+                    });
+                }
+            } catch (error) {
+                console.error('Error saving class:', error);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error!',
+                    text: 'Error saving class'
+                });
+            } finally {
+                // Hide loading state
+                submitText.style.display = 'inline';
+                submitLoading.style.display = 'none';
+                submitBtn.disabled = false;
+            }
+        }
+
+        // Function to edit a class
+        function editClass(id) {
+            const classToEdit = classes.find(c => c.id === id);
+            if (classToEdit) {
+                document.getElementById('classType').value = classToEdit.classType || '';
+                document.getElementById('year').value = classToEdit.year;
+                document.getElementById('semester').value = classToEdit.semester;
+                document.getElementById('course').value = classToEdit.course;
+                
+                // Populate track options based on course
+                populateTrackOptions();
+                
+                document.getElementById('subject').value = classToEdit.subject || '';
+                document.getElementById('subjectCode').value = classToEdit.subjectCode || '';
+                document.getElementById('units').value = classToEdit.units || '';
+                document.getElementById('track').value = classToEdit.track;
+
+                const sectionNumber = classToEdit.section.match(/\d/)[0];
+                const sectionLetter = classToEdit.section.match(/[A-D]/)[0];
+                document.getElementById('sectionNumber').value = sectionNumber;
+                document.getElementById('sectionLetter').value = sectionLetter;
+
+                editingId = id;
+                document.getElementById('submit-text').textContent = 'Update Class';
+                // Show step 2 directly for editing
+                document.getElementById('step1').style.display = 'none';
+                document.getElementById('step2').style.display = 'block';
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+        }
+
+        // Function to delete a class
+        async function deleteClass(id) {
+            const classToDelete = classes.find(c => c.id === id);
+            const classId = classToDelete ? classToDelete.class_id : 'this class';
+
+            const result = await Swal.fire({
+                title: 'Delete Class',
+                text: `Are you sure you want to delete "${classId}"? This action cannot be undone.`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#ef4444',
+                cancelButtonColor: '#6b7280',
+                confirmButtonText: 'Yes, delete it!',
+                cancelButtonText: 'Cancel'
+            });
+
+            if (!result.isConfirmed) {
+                return;
+            }
+
+            // Show loading state
+            Swal.fire({
+                title: 'Deleting...',
+                text: 'Please wait while we delete the class.',
+                allowOutsideClick: false,
+                showConfirmButton: false,
+                willOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+
+            try {
+                const csrfToken = document.querySelector('input[name="csrf_token"]')?.value || '';
+                const response = await fetch(`/api/instructor/classes/${id}`, {
+                    method: 'DELETE',
+                    credentials: 'same-origin',
+                    headers: {
+                        'X-CSRFToken': csrfToken
+                    }
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Deleted!',
+                        text: data.message || 'Class deleted successfully',
+                        timer: 2000,
+                        timerProgressBar: true,
+                        showConfirmButton: false
+                    });
+                    classes = classes.filter(c => c.id !== id);
+                    renderClasses();
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error!',
+                        text: data.error || 'Failed to delete class'
+                    });
+                }
+            } catch (error) {
+                console.error('Error deleting class:', error);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error!',
+                    text: 'Error deleting class'
+                });
+            }
+        }
+
+        // Function to copy join code to clipboard
+        async function copyJoinCode(code) {
+            if (!code || code === 'N/A') {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'No Code Available',
+                    text: 'This class does not have a join code yet.'
+                });
+                return;
+            }
+
+            try {
+                await navigator.clipboard.writeText(code);
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Copied!',
+                    text: `Join code "${code}" copied to clipboard`,
+                    timer: 1500,
+                    timerProgressBar: true,
+                    showConfirmButton: false,
+                    toast: true,
+                    position: 'top-end'
+                });
+            } catch (error) {
+                console.error('Failed to copy:', error);
+                // Fallback for older browsers
+                const textArea = document.createElement('textarea');
+                textArea.value = code;
+                document.body.appendChild(textArea);
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
+
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Copied!',
+                    text: `Join code "${code}" copied to clipboard`,
+                    timer: 1500,
+                    timerProgressBar: true,
+                    showConfirmButton: false,
+                    toast: true,
+                    position: 'top-end'
+                });
+            }
+        }
+
+        // Function to clear the form
+        function clearForm() {
+            document.getElementById('class-form').reset();
+            editingId = null;
+            document.getElementById('submit-text').textContent = 'Add Class';
+            // Reset to step 1
+            document.getElementById('step1').style.display = 'block';
+            document.getElementById('step2').style.display = 'none';
+        }
+
+        // Track options mapping based on course
+        const trackOptions = {
+            'BSIT': ['NS', 'WMAD', 'BA', 'BPO'],
+            'BSCS': ['BA', 'DM'],
+            'BSEMC': ['GD', 'DA']
+        };
+
+        // Function to populate track dropdown based on course
+        function populateTrackOptions() {
+            const course = document.getElementById('course').value;
+            const trackSelect = document.getElementById('track');
+            
+            // Clear existing options
+            trackSelect.innerHTML = '<option value="">Select Track</option>';
+            
+            // Add options based on course
+            if (course && trackOptions[course]) {
+                trackOptions[course].forEach(track => {
+                    const option = document.createElement('option');
+                    option.value = track;
+                    option.textContent = track;
+                    trackSelect.appendChild(option);
+                });
+            }
+        }
+
+        // Function to go to next step
+        function nextStep() {
+            const classType = document.getElementById('classType').value;
+            const year = document.getElementById('year').value;
+            const semester = document.getElementById('semester').value;
+
+            if (!classType || !year || !semester) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Incomplete Information',
+                    text: 'Please fill in all fields in step 1.',
+                    confirmButtonColor: '#f59e0b'
+                });
+                return;
+            }
+
+            document.getElementById('step1').style.display = 'none';
+            document.getElementById('step2').style.display = 'block';
+        }
+
+        // Function to go to previous step
+        function prevStep() {
+            document.getElementById('step2').style.display = 'none';
+            document.getElementById('step1').style.display = 'block';
+        }
+    </script>
+    <script type="module" src="{{ url_for('static', filename='js/ngrokFetch.js') }}"></script>
+</body>
+
+</html>

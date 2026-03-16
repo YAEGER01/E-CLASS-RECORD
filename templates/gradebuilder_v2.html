@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Grade Builder v2 - E-Class Record</title>
+    <meta name="theme-color" content="#6b7280">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Use shared instructor styles first, then page-specific overrides -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/instructor-dashboard.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/gradebuilder_v2.css') }}">
+</head>
+
+<body>
+    {% set active_page = 'gradebuilder' %}
+    {% set header_subtitle = 'Grade Builder' %}
+    {% include '_instructor_header.html' %}
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <div class="content-container">
+            <!-- Left Sidebar - 40% -->
+            <aside class="sidebar">
+                <div class="sidebar-section">
+                    <h2 class="section-title">Saved Structures</h2>
+                    <div id="structure-list" class="structure-list" role="list" aria-label="Saved structures">
+                        <!-- populated by JS as clickable items -->
+                    </div>
+                    <div class="sidebar-actions">
+                        <button id="new-structure-btn" class="btn btn-primary" data-tooltip="Create a new grade structure">+ New Structure</button>
+                    </div>
+                </div>
+                
+                <div class="sidebar-section">
+                    <h2 class="section-title">Structure Details</h2>
+                    <div class="detail-panel">
+                        <label class="detail-label">Structure Name:
+                            <input id="structure-name" type="text" value="New Structure" placeholder="Enter structure name" />
+                        </label>
+                        <label class="detail-label">For Class:
+                            <select id="class-select" class="class-list">
+                                <option value="">(select class)</option>
+                            </select>
+                        </label>
+                        <div id="class-type-indicator" style="display: none; padding: 8px 12px; margin: 8px 0; border-radius: 6px; font-size: 0.9rem; font-weight: 600;">
+                            <span id="class-type-text"></span>
+                        </div>
+                        <div class="import-row">
+                            <label class="detail-label">Import XLSX Template:
+                                <input id="xlsx-upload" type="file" accept=".xlsx,.xls" />
+                            </label>
+                            <button id="import-btn" class="btn btn-secondary" data-tooltip="Import subcategories from an Excel template file">Import</button>
+                        </div>
+                        <button id="save-btn" class="btn btn-primary" data-tooltip="Save the current grade structure to the selected class">Save Structure</button>
+                    
+                    </div>
+                </div>
+
+                <div class="sidebar-section">
+                    <h2 class="section-title">Tips & Help</h2>
+                    <div class="help-panel">
+                        <ul class="help-list">
+                            <li>Subcategory weights inside each category must sum to 100%.</li>
+                            <li>Assessments are created on the Grade Entry page.</li>
+                            <li>Use clear, descriptive names for your structures.</li>
+                            <li>Save frequently to avoid losing work.</li>
+                        </ul>
+                    </div>
+                </div>
+            </aside>
+
+            <!-- Right Main Content - 60% -->
+            <section class="main-section">
+                <div class="editor-section" id="main-content">
+                    <div class="editor-header">
+                        <h2>Grade Structure Editor</h2>
+                        <div class="editor-actions">
+                            <button class="btn btn-secondary" id="clear-fields-btn">Clear Fields</button>
+                            <button class="btn btn-secondary" id="cancel-edit-btn">Cancel Edit</button>
+                            <button class="btn btn-secondary" id="preview-btn">Preview</button>
+                        </div>
+                    </div>
+
+                    <div class="editor-body">
+                        <div class="column lab" id="lab-column">
+                            <div class="column-header">
+                                <h3>LABORATORY</h3>
+                                <small>(must sum to 100%)</small>
+                            </div>
+                            <div class="small-actions">
+                                <button id="lab-add" class="btn btn-primary" data-tooltip="Add a new subcategory to the laboratory section">Add Subcategory</button>
+                                <span id="lab-sum" class="percent">Total: 0%</span>
+                            </div>
+                            <div id="lab-list" class="sub-list"></div>
+                        </div>
+
+                        <div class="column lecture">
+                            <div class="column-header">
+                                <h3>LECTURE</h3>
+                                <small>(must sum to 100%)</small>
+                            </div>
+                            <div class="small-actions">
+                                <button id="lecture-add" class="btn btn-primary" data-tooltip="Add a new subcategory to the lecture section">Add Subcategory</button>
+                                <span id="lecture-sum" class="percent">Total: 0%</span>
+                            </div>
+                            <div id="lecture-list" class="sub-list"></div>
+                        </div>
+                    </div>
+
+                    <div class="preview-section">
+                        <h3>Preview</h3>
+                        <div class="preview-box" id="preview-box">
+                            No preview yet. Add subcategories to see the structure.
+                        </div>
+                    </div>
+
+                    <div class="sticky-actions">
+                        <button id="save-btn-bottom" class="btn btn-primary" data-tooltip="Save the current grade structure to the selected class">Save Structure</button>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <!-- Template for subcategories -->
+    <template id="sub-template">
+        <div class="sub-item">
+            <input data-field="name" placeholder="Subcategory name" />
+            <input data-field="weight" type="number" min="0" max="100" step="0.01" placeholder="0" />
+            <button data-action="remove" class="btn btn-ghost btn-icon" aria-label="Remove subcategory" title="Remove subcategory">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                    <path d="M3 6h18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M10 11v6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M14 11v6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+            </button>
+        </div>
+    </template>
+
+    <!-- Confirmation modal -->
+    <div id="confirm-modal" class="modal" aria-hidden="true">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="confirm-modal-title">Confirm action</h3>
+                <button class="close" onclick="closeConfirmModal()" aria-label="Close">×</button>
+            </div>
+            <div class="modal-body">
+                <p id="confirm-modal-message">Are you sure?</p>
+            </div>
+            <div class="modal-actions">
+                <button id="confirm-cancel" class="btn">Cancel</button>
+                <button id="confirm-ok" class="btn btn-primary">Confirm</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/swal.js') }}"></script>
+    <script>
+        // Pass preselected class_id from server to JavaScript
+        window._preselectClassId = {{ (preselect_class_id or None)|tojson }};
+        console.log('🎯 Preselected class_id from server:', window._preselectClassId);
+    </script>
+    <script src="{{ url_for('static', filename='js/gradebuilder_v2.js') }}"></script>
+    <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
+
+    <script>
+    // XLSX import + parsing focused on TEMPLATE.xlsx layout (keywords)
+    (function(){
+        const KNOWN_SUBCATS = [
+            'QUIZ','ATTENDANCE','ATTITUDE','LAB PARTICIPATION','LAB HOMEWORK','LAB EXERCISE',
+            'LAB REPORT','PRELIM LAB EXAM','MIDTERM LAB EXAM','FINAL LAB EXAM','HOMEWORK','PROJECT',
+            'RECITATION','PARTICIPATION','ORAL','PRACTICAL','LABORATORY','REPORT','MIDTERM','FINAL','EXAM'
+        ];
+
+        const LAB_TOKENS = [/\bLAB\b/i, /LABORATORY/i, /LAB\s/i, /LAB-/i, /LAB PARTICIPATION/i, /LAB REPORT/i, /LAB HOMEWORK/i, /LAB EXERCISE/i, /LAB EXAM/i, /PRACTIC/i, /PRACTICAL/i];
+
+        function findNearestNumber(rawRows, r, c) {
+            // look right in same row
+            const row = rawRows[r] || [];
+            for (let j = c+1; j <= c+8 && j < row.length; j++) {
+                const v = row[j];
+                const n = parseNumberLike(v);
+                if (!isNaN(n)) return n;
+            }
+            // look down same column
+            for (let i = r+1; i <= r+8 && i < rawRows.length; i++) {
+                const row2 = rawRows[i] || [];
+                const v = row2[c];
+                const n = parseNumberLike(v);
+                if (!isNaN(n)) return n;
+            }
+            // small neighborhood search
+            for (let dr=-2; dr<=2; dr++) for (let dc=1; dc<=6; dc++) {
+                const i = r+dr; const j = c+dc;
+                if (i<0||i>=rawRows.length) continue;
+                const row3 = rawRows[i]||[];
+                const v = row3[j];
+                const n = parseNumberLike(v);
+                if (!isNaN(n)) return n;
+            }
+            return null;
+        }
+
+        function parseNumberLike(v) {
+            if (v === null || v === undefined) return NaN;
+            const s = String(v).trim();
+            if (s === '') return NaN;
+            // percent like 60%
+            const m = s.match(/^-?\d+(?:\.\d+)?\s*%$/);
+            if (m) return parseFloat(s.replace('%',''));
+            const n = parseFloat(s.replace(/[^0-9.\-]/g, ''));
+            if (isNaN(n)) return NaN;
+            // if small (<=1) treat as fraction -> percent
+            if (Math.abs(n) <= 1) return n * 100;
+            return n;
+        }
+
+        function detectWeightsRow(raw) {
+            // returns an array where index -> normalized percent (number) or NaN, or null if none found
+            let best = {idx:-1, count:0, weights:[]};
+            for (let r=0; r<raw.length; r++) {
+                const row = raw[r] || [];
+                let count = 0;
+                const weights = [];
+                for (let c=0; c<row.length; c++) {
+                    const v = row[c];
+                    const n = parseNumberLike(v);
+                    if (!isNaN(n) && n > 0 && n <= 100) {
+                        weights[c] = n;
+                        count++;
+                    } else {
+                        weights[c] = NaN;
+                    }
+                }
+                if (count > best.count && count >= 3) {
+                    best = {idx: r, count: count, weights: weights};
+                }
+            }
+            return best.idx >= 0 ? best.weights : null;
+        }
+
+        function scanSheetForKeywords(ws) {
+            const raw = XLSX.utils.sheet_to_json(ws, {header:1, defval: ''});
+            const weightsRow = detectWeightsRow(raw); // prefer this if available
+            const found = [];
+            for (let r=0; r<raw.length; r++) {
+                const row = raw[r] || [];
+                for (let c=0; c<row.length; c++) {
+                    const cell = (row[c]||'').toString().trim();
+                    if (!cell) continue;
+                    const up = cell.toUpperCase();
+                    for (const token of KNOWN_SUBCATS) {
+                        if (up.indexOf(token) !== -1) {
+                            // prefer weight from weightsRow at same column
+                            let weight = '';
+                            if (weightsRow && !isNaN(weightsRow[c])) {
+                                weight = String(Number(weightsRow[c]));
+                            } else if (weightsRow) {
+                                // try nearest columns in weightsRow
+                                for (let d=1; d<=8 && weight===''; d++) {
+                                    const left = c-d;
+                                    const right = c+d;
+                                    if (left>=0 && !isNaN(weightsRow[left])) { weight = String(Number(weightsRow[left])); break; }
+                                    if (right < weightsRow.length && !isNaN(weightsRow[right])) { weight = String(Number(weightsRow[right])); break; }
+                                }
+                            }
+                            // fallback to neighborhood search in raw sheet if no weightsRow match
+                            if (!weight) {
+                                const nearest = findNearestNumber(raw, r, c);
+                                if (nearest !== null) weight = String(Number(nearest));
+                            }
+                            found.push({name: cell, weight: weight, token});
+                            break;
+                        }
+                    }
+                }
+            }
+            // dedupe by name (keep first occurrence)
+            const seen = new Set();
+            return found.filter(it => {
+                const k = it.name.trim().toUpperCase();
+                if (seen.has(k)) return false; seen.add(k); return true;
+            });
+        }
+
+        function populateFromKeywordResults(results) {
+            const labList = document.getElementById('lab-list');
+            const lectureList = document.getElementById('lecture-list');
+            if (!labList || !lectureList) return;
+            // append items
+            const template = document.getElementById('sub-template');
+            function attachEvents(node) {
+                const removeBtn = node.querySelector('[data-action="remove"]');
+                if (removeBtn) removeBtn.addEventListener('click', e => { node.remove(); if (typeof window.updateTotalDisplay==='function') window.updateTotalDisplay(); });
+                const inputs = node.querySelectorAll('input[data-field]');
+                inputs.forEach(inp => inp.addEventListener('input', () => { if (typeof window.updateTotalDisplay==='function') window.updateTotalDisplay(); }));
+            }
+            results.forEach(it => {
+                const targetIsLab = LAB_TOKENS.some(rx => rx.test(it.name));
+                const listEl = targetIsLab ? labList : lectureList;
+                const clone = template.content.firstElementChild.cloneNode(true);
+                const nameInp = clone.querySelector('input[data-field="name"]');
+                const weightInp = clone.querySelector('input[data-field="weight"]');
+                if (nameInp) nameInp.value = it.name || '';
+                if (weightInp) weightInp.value = it.weight || '';
+                listEl.appendChild(clone);
+                attachEvents(listEl.lastElementChild);
+            });
+            setTimeout(()=>{ if (typeof window.updateTotalDisplay==='function') window.updateTotalDisplay(); if (typeof window.updateSaveEnabled==='function') window.updateSaveEnabled(); if (typeof window.renderPreview==='function') window.renderPreview(); },50);
+        }
+
+        function handleWorkbook(workbook) {
+            // prefer dedicated sheets named lab/lecture first
+            const sheetNames = workbook.SheetNames||[];
+            const labSheet = sheetNames.find(n=>/lab|laboratory/i.test(n));
+            const lectureSheet = sheetNames.find(n=>/lecture/i.test(n));
+            if (labSheet || lectureSheet) {
+                const labResults = labSheet ? scanSheetForKeywords(workbook.Sheets[labSheet]) : [];
+                const lecResults = lectureSheet ? scanSheetForKeywords(workbook.Sheets[lectureSheet]) : [];
+                if (labResults.length || lecResults.length) {
+                    // clear lists then populate
+                    const labList = document.getElementById('lab-list');
+                    const lectureList = document.getElementById('lecture-list');
+                    if (labList) labList.innerHTML='';
+                    if (lectureList) lectureList.innerHTML='';
+                    populateFromKeywordResults(labResults.concat(lecResults));
+                    return;
+                }
+            }
+
+            // otherwise scan all sheets and collect known tokens
+            let combined = [];
+            for (const name of sheetNames) {
+                try { combined = combined.concat(scanSheetForKeywords(workbook.Sheets[name])); } catch(e) { console.warn('scan fail', name, e); }
+            }
+            if (combined.length) {
+                // clear
+                const labList = document.getElementById('lab-list');
+                const lectureList = document.getElementById('lecture-list');
+                if (labList) labList.innerHTML='';
+                if (lectureList) lectureList.innerHTML='';
+                populateFromKeywordResults(combined);
+                return;
+            }
+
+            // fallback: attempt to use structured rows (first sheet)
+            if (sheetNames.length) {
+                try {
+                    const ws = workbook.Sheets[sheetNames[0]];
+                    const rows = XLSX.utils.sheet_to_json(ws, {defval: ''});
+                    // try to find name/weight columns
+                    if (rows && rows.length) {
+                        const keys = Object.keys(rows[0]);
+                        const nameKey = keys.find(k => /subcat|name|subcategory|title|label|assessment/i.test(k)) || keys[0];
+                        const weightKey = keys.find(k => /weight|percent|percentage|value|wgt|pct/i.test(k)) || keys[1] || keys[0];
+                        const parsed = rows.map(r=>({name: r[nameKey], weight: r[weightKey]})).filter(p=>p.name);
+                        // assign by name heuristics
+                        const lab = parsed.filter(p=> LAB_TOKENS.some(rx=> rx.test(p.name)));
+                        const lec = parsed.filter(p=> !LAB_TOKENS.some(rx=> rx.test(p.name)));
+                        const labListEl = document.getElementById('lab-list'); if (labListEl) labListEl.innerHTML='';
+                        const lecListEl = document.getElementById('lecture-list'); if (lecListEl) lecListEl.innerHTML='';
+                        populateFromKeywordResults(lab.concat(lec));
+                    }
+                } catch(e){ console.warn('structured fallback failed', e); }
+            }
+        }
+
+        function handleFile(file) {
+            const reader = new FileReader();
+            reader.onload = function(e){
+                try {
+                    const data = e.target.result;
+                    const wb = XLSX.read(data, {type:'array'});
+                    handleWorkbook(wb);
+                } catch(err) { console.error('XLSX parse error', err); alert('Unable to parse the Excel file.'); }
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        document.addEventListener('DOMContentLoaded', ()=>{
+            const upload = document.getElementById('xlsx-upload');
+            const importBtn = document.getElementById('import-btn');
+            if (upload) upload.addEventListener('change', e => { const f = e.target.files && e.target.files[0]; if (f) handleFile(f); });
+            if (importBtn) importBtn.addEventListener('click', e=>{ e.preventDefault(); if (upload && upload.files && upload.files[0]) handleFile(upload.files[0]); else alert('Choose an .xlsx template first.'); });
+        });
+    })();
+    </script>
+    
+    <script>
+        // Additional script for save button highlighting based on lab/lecture totals
+        document.addEventListener('DOMContentLoaded', function() {
+            const saveBtn = document.getElementById('save-btn');
+            const saveBtnBottom = document.getElementById('save-btn-bottom');
+            const detailPanel = document.querySelector('.detail-panel');
+            
+            // Monitor the existing updateSaveEnabled function and enhance it
+            const originalUpdateSaveEnabled = window.updateSaveEnabled;
+            
+            window.updateSaveEnabled = function() {
+                // Call the original function if it exists
+                if (typeof originalUpdateSaveEnabled === 'function') {
+                    originalUpdateSaveEnabled();
+                }
+                
+                // Get current totals from existing logic
+                const labList = document.getElementById('lab-list');
+                const lectureList = document.getElementById('lecture-list');
+                
+                if (labList && lectureList) {
+                    // Calculate lab total
+                    let labTotal = 0;
+                    let labCount = 0;
+                    labList.querySelectorAll('.sub-item').forEach(item => {
+                        const weightInput = item.querySelector('input[data-field="weight"]');
+                        if (weightInput && weightInput.value) {
+                            labTotal += parseFloat(weightInput.value) || 0;
+                            labCount++;
+                        }
+                    });
+                    
+                    // Calculate lecture total
+                    let lectureTotal = 0;
+                    let lectureCount = 0;
+                    lectureList.querySelectorAll('.sub-item').forEach(item => {
+                        const weightInput = item.querySelector('input[data-field="weight"]');
+                        if (weightInput && weightInput.value) {
+                            lectureTotal += parseFloat(weightInput.value) || 0;
+                            lectureCount++;
+                        }
+                    });
+                    
+                    // Check if either lab or lecture meets 100%
+                    const tol = 0.001;
+                    const labIs100 = Math.abs(labTotal - 100) <= tol;
+                    const lectureIs100 = Math.abs(lectureTotal - 100) <= tol;
+                    const hasOneComplete = (labCount > 0 && labIs100) || (lectureCount > 0 && lectureIs100);
+                    
+                    // Enable/disable save buttons with neon green styling
+                    [saveBtn, saveBtnBottom].forEach(btn => {
+                        if (btn) {
+                            if (hasOneComplete) {
+                                btn.disabled = false;
+                                btn.classList.add('enabled');
+                            } else {
+                                btn.disabled = true;
+                                btn.classList.remove('enabled');
+                            }
+                        }
+                    });
+                    
+                    // Toggle detail panel highlighting
+                    if (detailPanel) {
+                        if (hasOneComplete) {
+                            detailPanel.classList.add('save-ready');
+                        } else {
+                            detailPanel.classList.remove('save-ready');
+                        }
+                    }
+                }
+            };
+            
+            // Override the existing updateTotalDisplay function to also trigger save state updates
+            const originalUpdateTotalDisplay = window.updateTotalDisplay;
+            window.updateTotalDisplay = function() {
+                if (typeof originalUpdateTotalDisplay === 'function') {
+                    originalUpdateTotalDisplay();
+                }
+                // Trigger save state update after totals are updated
+                setTimeout(() => {
+                    if (typeof window.updateSaveEnabled === 'function') {
+                        window.updateSaveEnabled();
+                    }
+                }, 50);
+            };
+            
+            // Initial call to set up the state
+            setTimeout(() => {
+                if (typeof window.updateSaveEnabled === 'function') {
+                    window.updateSaveEnabled();
+                }
+            }, 100);
+        });
+    </script>
+    <script type="module" src="{{ url_for('static', filename='js/ngrokFetch.js') }}"></script>
+</body>
+
+</html>

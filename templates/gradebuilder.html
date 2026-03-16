@@ -1,0 +1,905 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Responsive Grade Structure Editor</title>
+    
+    <!-- Load Font Awesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/gradebuilder.css') }}">
+    <script src="{{ url_for('static', filename='js/swal.js') }}"></script>
+</head>
+
+<body>
+
+
+    <!-- Header -->
+    <header class="page-header">
+        <div class="header-content">
+            <a href="{{ url_for('dashboard.instructor_dashboard') }}" class="back-link">← Back to Dashboard</a>
+            <h1>Grade Structure Editor</h1>
+            <div class="instructor-info">
+                <h3>Instructor: <span id="instructor-name">Loading...</span></h3>
+                <p>Email: <span id="instructor-email">Loading...</span></p>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content Container -->
+    <main class="main-content-container">
+
+        <!-- Left Panel: Saved Structures (30%) -->
+        <div class="card card-30">
+            <div class="card-header">
+                <h2>Saved Structures</h2>
+                <button class="btn btn-primary" id="create-structure-btn">
+                    <i class="fas fa-plus"></i> Create New
+                </button>
+            </div>
+
+            <div class="structure-list-container" id="structure-list">
+                <!-- Structure items will be rendered here -->
+                <p class="loading-text">Loading saved structures...</p>
+            </div>
+        </div>
+
+        <!-- Right Panel: Editor (70%) -->
+        <div class="card card-70" id="editor-panel">
+            <div class="card-header editor-header">
+                <h2 id="current-class-name">Select or Create a Structure</h2>
+                <div class="header-actions">
+                    <button class="btn btn-secondary" id="undo-btn" disabled title="Undo last change">
+                        <i class="fas fa-undo"></i>
+                    </button>
+                    <button class="btn btn-secondary" id="redo-btn" disabled title="Redo last undone change">
+                        <i class="fas fa-redo"></i>
+                    </button>
+                    <button class="btn btn-secondary" id="cancel-editor-btn" disabled>
+                        <i class="fas fa-times"></i> Cancel
+                    </button>
+                    <button class="btn btn-primary" id="save-structure-btn" disabled>
+                        <i class="fas fa-save"></i> <span id="save-btn-text">Save Structure</span>
+                    </button>
+                </div>
+            </div>
+
+            <div class="editor-content" id="grading-editor-content">
+                <p class="placeholder-text">
+                    Click "Create New" to begin or select a saved structure from the left panel.
+                </p>
+
+                <div id="grade-structure-builder">
+
+                    <!-- Lab Category Panel -->
+                    <div class="main-category-panel" data-type="LAB">
+                        <div>
+                            <h3>
+                                <i class="fas fa-flask"></i> LABORATORY
+                                <span class="category-weight">(100% Target)</span>
+                            </h3>
+                            <span class="percent-checker" id="lab-percent-checker">0%</span>
+                        </div>
+                        <div class="sub-categories" id="lab-sub-categories">
+                            <!-- Sub-categories will be appended here -->
+                        </div>
+                        <button class="btn btn-add-sub" data-type="LAB">
+                            <i class="fas fa-plus"></i> Add Sub-Category
+                        </button>
+                    </div>
+
+                    <!-- Lecture Category Panel -->
+                    <div class="main-category-panel" data-type="LECTURE">
+                        <div>
+                            <h3>
+                                <i class="fas fa-chalkboard-teacher"></i> LECTURE
+                                <span class="category-weight">(100% Target)</span>
+                            </h3>
+                            <span class="percent-checker" id="lecture-percent-checker">0%</span>
+                        </div>
+                        <div class="sub-categories" id="lecture-sub-categories">
+                            <!-- Sub-categories will be appended here -->
+                        </div>
+                        <button class="btn btn-add-sub" data-type="LECTURE">
+                            <i class="fas fa-plus"></i> Add Sub-Category
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+    </main>
+
+     <!-- Modal for Class Selection -->
+    <div id="class-selection-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Select Class for New Structure</h2>
+                <span class="close-btn">&times;</span>
+            </div>
+            <p class="modal-description">Choose a class to associate with the new grading structure.</p>
+
+            <div class="class-list" id="class-list">
+                <!-- Class buttons will be rendered here via JS -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Custom Notification Box -->
+    <div id="notification-box" role="alert" class="shadow-xl"></div>
+
+    <!-- Custom Confirmation Modal -->
+    <div id="confirmation-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="confirm-title">Confirm Action</h3>
+            </div>
+            <p id="confirm-message">Are you sure you want to proceed?</p>
+            <div class="modal-actions">
+                <button id="confirm-cancel">Cancel</button>
+                <button id="confirm-ok">OK</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- History Modal -->
+    <div id="history-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Structure History</h2>
+                <span class="close-history-btn">&times;</span>
+            </div>
+            <div id="history-content">
+                <!-- History entries will be loaded here -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            // #################### DOM ELEMENTS ####################
+            const createStructureBtn = document.getElementById('create-structure-btn');
+            const modal = document.getElementById('class-selection-modal');
+            const closeModalBtn = modal.querySelector('.close-btn');
+            const classListContainer = document.getElementById('class-list');
+            const editorPanel = document.getElementById('editor-panel');
+            const currentClassName = document.getElementById('current-class-name');
+            const gradeStructureBuilder = document.getElementById('grade-structure-builder');
+            const placeholderText = editorPanel.querySelector('.placeholder-text');
+            const saveBtn = document.getElementById('save-structure-btn');
+            const saveBtnText = document.getElementById('save-btn-text');
+            const cancelBtn = document.getElementById('cancel-editor-btn');
+            const undoBtn = document.getElementById('undo-btn');
+            const redoBtn = document.getElementById('redo-btn');
+            const labSubCategories = document.getElementById('lab-sub-categories');
+            const lectureSubCategories = document.getElementById('lecture-sub-categories');
+            const instructorNameEl = document.getElementById('instructor-name');
+            const instructorEmailEl = document.getElementById('instructor-email');
+
+            // #################### GLOBAL STATE ####################
+            let instructor = {};
+            let classes = [];
+            let savedStructures = [];
+            let structureIdCounter = 1;
+            let currentEditingStructure = null;
+            let isEditingExisting = false;
+            let undoStack = [];
+            let redoStack = [];
+            let maxUndoSteps = 50;
+
+            // #################### UNDO/REDO FUNCTIONALITY ####################
+            function saveStateToUndoStack() {
+                const state = {
+                    labCategories: Array.from(labSubCategories.children).map(cat => ({
+                        name: cat.querySelector('input[data-field="name"]').value,
+                        weight: cat.querySelector('input[data-field="weight"]').value,
+                        assessments: Array.from(cat.querySelectorAll('.assessment-item')).map(item => ({
+                            name: item.querySelector('input[data-field="assessment-name"]').value,
+                            max_score: parseFloat(item.querySelector('input[data-field="max-score"]').value) || 100
+                        }))
+                    })),
+                    lectureCategories: Array.from(lectureSubCategories.children).map(cat => ({
+                        name: cat.querySelector('input[data-field="name"]').value,
+                        weight: cat.querySelector('input[data-field="weight"]').value,
+                        assessments: Array.from(cat.querySelectorAll('.assessment-item')).map(item => ({
+                            name: item.querySelector('input[data-field="assessment-name"]').value,
+                            max_score: parseFloat(item.querySelector('input[data-field="max-score"]').value) || 100
+                        }))
+                    }))
+                };
+
+                undoStack.push(JSON.parse(JSON.stringify(state)));
+                if (undoStack.length > maxUndoSteps) {
+                    undoStack.shift();
+                }
+                redoStack = []; // Clear redo stack when new action is performed
+
+                updateUndoRedoButtons();
+            }
+
+            function undo() {
+                if (undoStack.length > 1) { // Keep at least one state
+                    redoStack.push(undoStack.pop());
+                    const previousState = undoStack[undoStack.length - 1];
+                    restoreState(previousState);
+                    updateUndoRedoButtons();
+                }
+            }
+
+            function redo() {
+                if (redoStack.length > 0) {
+                    const nextState = redoStack.pop();
+                    undoStack.push(nextState);
+                    restoreState(nextState);
+                    updateUndoRedoButtons();
+                }
+            }
+
+            function restoreState(state) {
+                // Clear current categories
+                labSubCategories.innerHTML = '';
+                lectureSubCategories.innerHTML = '';
+
+                // Restore LAB categories
+                state.labCategories.forEach(cat => {
+                    // Ensure assessments have max_score for backward compatibility
+                    const processedCat = {
+                        ...cat,
+                        assessments: cat.assessments.map(a => typeof a === 'string' ? { name: a, max_score: 100 } : a)
+                    };
+                    addSubCategoryElement('LAB', processedCat);
+                });
+
+                // Restore LECTURE categories
+                state.lectureCategories.forEach(cat => {
+                    // Ensure assessments have max_score for backward compatibility
+                    const processedCat = {
+                        ...cat,
+                        assessments: cat.assessments.map(a => typeof a === 'string' ? { name: a, max_score: 100 } : a)
+                    };
+                    addSubCategoryElement('LECTURE', processedCat);
+                });
+
+                updatePercentCheckers();
+            }
+
+            function updateUndoRedoButtons() {
+                undoBtn.disabled = undoStack.length <= 1;
+                redoBtn.disabled = redoStack.length === 0;
+            }
+
+            // #################### UTILITIES ####################
+            function showNotification(message, type = 'info') {
+                const box = document.getElementById('notification-box');
+                box.textContent = message;
+                box.className = 'shadow-xl';
+                let bgColor = 'bg-blue-500';
+                if (type === 'success') bgColor = 'bg-green-600';
+                if (type === 'error') bgColor = 'bg-red-600';
+                if (type === 'warning') bgColor = 'bg-yellow-500';
+                box.classList.add('show', bgColor);
+                setTimeout(() => box.classList.remove('show'), 5000); // Extended timeout for better visibility
+            }
+
+            function showConfirmation(message) {
+                return new Promise(resolve => {
+                    const confirmModal = document.getElementById('confirmation-modal');
+                    const confirmMessage = document.getElementById('confirm-message');
+                    const confirmOk = document.getElementById('confirm-ok');
+                    const confirmCancel = document.getElementById('confirm-cancel');
+
+                    confirmMessage.textContent = message;
+                    confirmModal.style.display = 'block';
+
+                    const handleOk = () => {
+                        cleanup();
+                        confirmModal.style.display = 'none';
+                        resolve(true);
+                    };
+                    const handleCancel = () => {
+                        cleanup();
+                        confirmModal.style.display = 'none';
+                        resolve(false);
+                    };
+                    const cleanup = () => {
+                        confirmOk.removeEventListener('click', handleOk);
+                        confirmCancel.removeEventListener('click', handleCancel);
+                    };
+
+                    confirmOk.addEventListener('click', handleOk);
+                    confirmCancel.addEventListener('click', handleCancel);
+                });
+            }
+
+            // #################### INITIAL LOAD ####################
+            async function loadBackendData() {
+                // Show loading state
+                const structureList = document.getElementById('structure-list');
+                structureList.innerHTML = '<p class="text-center text-gray-500 py-4"><i class="fas fa-spinner fa-spin mr-2"></i>Loading structures...</p>';
+
+                try {
+                    const res = await fetch('/api/gradebuilder/data');
+                    if (!res.ok) throw new Error('Failed to fetch backend data.');
+                    const data = await res.json();
+
+                    instructor = data.instructor || {};
+                    classes = data.classes || [];
+                    savedStructures = (data.structures || []).map(s => ({
+                        id: s.id,
+                        class_id: s.class_id,
+                        class: `${classes.find(c => c.class_id === s.class_id)?.course || 'Unknown'} - ${classes.find(c => c.class_id === s.class_id)?.section || ''}`,
+                        structure_name: s.structure_name,
+                        structure: JSON.parse(s.structure_json || '{"LABORATORY":[],"LECTURE":[]}')
+                    }));
+
+                    // Store CSRF token globally
+                    window.csrfToken = data.csrf_token;
+
+                    instructorNameEl.textContent = instructor.name || 'Instructor';
+                    instructorEmailEl.textContent = instructor.email || '';
+
+                    renderStructureList();
+                    renderClassOptions();
+                } catch (err) {
+                    console.error('Error loading backend data:', err);
+                    structureList.innerHTML = '<p class="text-center text-red-500 py-4">Failed to load data. <button onclick="loadBackendData()" class="underline">Retry</button></p>';
+                    showNotification('Failed to load instructor or class data. Please refresh the page.', 'error');
+                }
+            }
+
+            await loadBackendData();
+
+            // #################### STRUCTURE LIST ####################
+            function renderStructureList() {
+                const listContainer = document.getElementById('structure-list');
+                listContainer.innerHTML = '';
+
+                if (savedStructures.length === 0) {
+                    listContainer.innerHTML = '<p class="text-center text-gray-500 py-4">No saved structures. Create one!</p>';
+                    return;
+                }
+
+                savedStructures.forEach(item => {
+                    const el = document.createElement('div');
+                    el.className = 'structure-item';
+                    el.innerHTML = `
+                            <span>${item.class.split(' - ')[0]}</span>
+                            <span>${item.class.split(' - ')[1] || item.structure_name}</span>
+                            <div class="item-actions">
+                                <button class="btn-icon edit-btn" data-id="${item.id}" title="Edit"><i class="fas fa-edit"></i></button>
+                                <button class="btn-icon history-btn" data-id="${item.id}" title="View History"><i class="fas fa-history"></i></button>
+                                <button class="btn-icon delete-btn" data-id="${item.id}" title="Delete"><i class="fas fa-trash"></i></button>
+                            </div>
+                        `;
+                    listContainer.appendChild(el);
+                });
+
+                attachListEventListeners();
+            }
+
+            function attachListEventListeners() {
+                // 🟡 DEBUG: Make sure buttons exist
+                console.log("Attaching listeners to structure list...");
+                const deleteButtons = document.querySelectorAll('.delete-btn');
+                console.log("Found delete buttons:", deleteButtons.length);
+
+                // ===== Edit buttons =====
+                document.querySelectorAll('.edit-btn').forEach(btn => {
+                    btn.addEventListener('click', e => {
+                        e.stopPropagation();
+                        const id = parseInt(e.currentTarget.dataset.id);
+                        const structure = savedStructures.find(s => s.id === id);
+                        if (structure) loadStructureForEditing(structure);
+                    });
+                });
+
+                // ===== History buttons =====
+                document.querySelectorAll('.history-btn').forEach(btn => {
+                    btn.addEventListener('click', async e => {
+                        e.stopPropagation();
+                        const id = parseInt(e.currentTarget.dataset.id);
+                        const structure = savedStructures.find(s => s.id === id);
+                        showHistoryModal(id, structure);
+                    });
+                });
+
+                // ===== Delete buttons =====
+                deleteButtons.forEach(btn => {
+                    btn.addEventListener('click', async e => {
+                        e.stopPropagation();
+                        const deleteBtn = e.currentTarget; // ✅ capture early reference
+                        const id = parseInt(deleteBtn.dataset.id);
+                        const structureToDelete = savedStructures.find(s => s.id === id);
+                        console.log("🟡 Delete clicked for ID:", id, structureToDelete);
+
+                        const confirmed = await showConfirmation(`Delete structure for ${structureToDelete.class}?`);
+                        if (!confirmed) return;
+
+                        // ✅ check again to be safe
+                        if (!deleteBtn) {
+                            console.warn("Delete button no longer exists after confirmation.");
+                            return;
+                        }
+
+                        // Loading state
+                        const originalIcon = deleteBtn.innerHTML;
+                        deleteBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+                        deleteBtn.disabled = true;
+                        deleteBtn.style.pointerEvents = 'none';
+
+                        try {
+                            console.log("🟢 Sending DELETE:", `/api/gradebuilder/delete/${id}`);
+                            const res = await fetch(`/api/gradebuilder/delete/${id}`, {
+                                method: 'DELETE',
+                                headers: { 'X-CSRFToken': window.csrfToken }
+                            });
+                            console.log("Response received:", res.status);
+
+                            const result = await res.json();
+                            console.log("Result:", result);
+
+                            if (res.ok) {
+                                showNotification(result.message || 'Structure deleted.', 'success');
+                                savedStructures = savedStructures.filter(s => s.id !== id);
+                                renderStructureList(); // auto rebinds listeners
+                                if (currentEditingStructure && currentEditingStructure.id === id) resetEditorPanel();
+                            } else {
+                                showNotification(result.message || 'Delete failed.', 'error');
+                            }
+                        } catch (err) {
+                            console.error('❌ Error deleting:', err);
+                            showNotification('Network error during deletion. Please try again.', 'error');
+                        } finally {
+                            // Reset button safely
+                            if (deleteBtn) {
+                                deleteBtn.innerHTML = originalIcon;
+                                deleteBtn.disabled = false;
+                                deleteBtn.style.pointerEvents = 'auto';
+                            }
+                        }
+                    });
+                });
+
+            }
+
+
+            // #################### CLASS MODAL ####################
+            function renderClassOptions() {
+                classListContainer.innerHTML = '';
+                classes.forEach(c => {
+                    const btn = document.createElement('button');
+                    btn.className = 'btn-class-option';
+                    btn.dataset.class = `${c.course} - ${c.section}`;
+                    btn.dataset.classId = c.class_id;
+                    btn.textContent = `${c.course} - ${c.section}`;
+                    classListContainer.appendChild(btn);
+                });
+
+                const otherBtn = document.createElement('button');
+                otherBtn.className = 'btn-class-option';
+                otherBtn.dataset.class = 'Other - Blank Structure';
+                otherBtn.dataset.classId = '';
+                otherBtn.textContent = 'Other (Blank Structure)';
+                classListContainer.appendChild(otherBtn);
+
+                classListContainer.querySelectorAll('.btn-class-option').forEach(btn => {
+                    btn.addEventListener('click', e => {
+                        const className = e.currentTarget.dataset.class;
+                        const classId = e.currentTarget.dataset.classId;
+                        modal.style.display = 'none';
+                        createNewStructure(className, classId);
+                    });
+                });
+            }
+
+            createStructureBtn.addEventListener('click', () => (modal.style.display = 'block'));
+            closeModalBtn.addEventListener('click', () => (modal.style.display = 'none'));
+            // History modal event listeners
+            const historyModal = document.getElementById('history-modal');
+            const closeHistoryBtn = historyModal.querySelector('.close-history-btn');
+            closeHistoryBtn.addEventListener('click', () => (historyModal.style.display = 'none'));
+            window.addEventListener('click', e => {
+                if (e.target === modal) modal.style.display = 'none';
+                if (e.target === historyModal) historyModal.style.display = 'none';
+                const confirmModal = document.getElementById('confirmation-modal');
+                if (e.target === confirmModal) confirmModal.style.display = 'none';
+            });
+
+            // #################### EDITOR PANEL ####################
+            function resetEditorPanel() {
+                currentEditingStructure = null;
+                isEditingExisting = false;
+                currentClassName.textContent = 'Select or Create a Structure';
+                placeholderText.style.display = 'block';
+                gradeStructureBuilder.style.display = 'none';
+                saveBtn.disabled = true;
+                cancelBtn.disabled = true;
+                undoBtn.disabled = true;
+                redoBtn.disabled = true;
+                undoStack = [];
+                redoStack = [];
+            }
+
+            function createNewStructure(className, classId) {
+                currentEditingStructure = {
+                    id: structureIdCounter++,
+                    class: className,
+                    class_id: classId,
+                    structure_name: 'New Structure',
+                    structure: { LABORATORY: [], LECTURE: [] }
+                };
+                isEditingExisting = false;
+
+                currentClassName.innerHTML = `<input type="text" value="${className.split(' - ')[0]} - New Structure" placeholder="Structure Name" class="structure-name-input">`;
+                placeholderText.style.display = 'none';
+                gradeStructureBuilder.style.display = 'block';
+                saveBtn.disabled = false;
+                cancelBtn.disabled = false;
+                undoBtn.disabled = true;
+                redoBtn.disabled = true;
+
+                labSubCategories.innerHTML = '';
+                lectureSubCategories.innerHTML = '';
+
+                currentClassName.querySelector('input').addEventListener('input', e => {
+                    currentEditingStructure.structure_name = e.target.value;
+                });
+
+                // Initialize undo/redo stacks
+                undoStack = [];
+                redoStack = [];
+                saveStateToUndoStack();
+
+                updatePercentCheckers();
+            }
+
+            function loadStructureForEditing(structure) {
+                currentEditingStructure = JSON.parse(JSON.stringify(structure));
+                isEditingExisting = true;
+
+                currentClassName.innerHTML = `<input type="text" value="${structure.class.split(' - ')[0]} - ${structure.structure_name}" placeholder="Structure Name" class="structure-name-input">`;
+                placeholderText.style.display = 'none';
+                gradeStructureBuilder.style.display = 'block';
+                saveBtn.disabled = false;
+                cancelBtn.disabled = false;
+                undoBtn.disabled = true;
+                redoBtn.disabled = true;
+
+                labSubCategories.innerHTML = '';
+                lectureSubCategories.innerHTML = '';
+
+                currentClassName.querySelector('input').addEventListener('input', e => {
+                    currentEditingStructure.structure_name = e.target.value.replace(structure.class.split(' - ')[0] + ' - ', '').trim();
+                });
+
+                (currentEditingStructure.structure.LABORATORY || []).forEach(subCat => {
+                    // Handle backward compatibility for assessments
+                    const processedSubCat = {
+                        ...subCat,
+                        assessments: subCat.assessments.map(a => typeof a === 'string' ? { name: a, max_score: 100 } : a)
+                    };
+                    addSubCategoryElement('LAB', processedSubCat);
+                });
+                (currentEditingStructure.structure.LECTURE || []).forEach(subCat => {
+                    // Handle backward compatibility for assessments
+                    const processedSubCat = {
+                        ...subCat,
+                        assessments: subCat.assessments.map(a => typeof a === 'string' ? { name: a, max_score: 100 } : a)
+                    };
+                    addSubCategoryElement('LECTURE', processedSubCat);
+                });
+
+                // Initialize undo/redo stacks
+                undoStack = [];
+                redoStack = [];
+                saveStateToUndoStack();
+
+                updatePercentCheckers();
+            }
+
+            undoBtn.addEventListener('click', undo);
+            redoBtn.addEventListener('click', redo);
+
+            cancelBtn.addEventListener('click', async () => {
+                const confirmed = await showConfirmation('Discard all unsaved changes? This action cannot be undone.');
+                if (confirmed) {
+                    showNotification('Changes discarded.', 'info');
+                    resetEditorPanel();
+                }
+            });
+
+            // #################### HISTORY MODAL ####################
+            function showHistoryModal(structureId, structure) {
+                const historyModal = document.getElementById('history-modal');
+                const historyContent = document.getElementById('history-content');
+
+                historyContent.innerHTML = '<p class="text-center py-4"><i class="fas fa-spinner fa-spin mr-2"></i>Loading history...</p>';
+                historyModal.style.display = 'block';
+
+                // Fetch history
+                fetch(`/api/gradebuilder/history/${structureId}`)
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data.success) {
+                            renderHistory(structureId, structure, data.history);
+                        } else {
+                            historyContent.innerHTML = '<p class="text-center text-red-500 py-4">Failed to load history.</p>';
+                        }
+                    })
+                    .catch(err => {
+                        console.error('Error loading history:', err);
+                        historyContent.innerHTML = '<p class="text-center text-red-500 py-4">Error loading history.</p>';
+                    });
+            }
+
+            function renderHistory(structureId, structure, history) {
+                const historyContent = document.getElementById('history-content');
+
+                if (history.length === 0) {
+                    historyContent.innerHTML = '<p class="text-center text-gray-500 py-4">No history available for this structure.</p>';
+                    return;
+                }
+
+                let html = '<div class="space-y-4">';
+                history.forEach(entry => {
+                    const date = new Date(entry.changed_at).toLocaleString();
+                    html += `
+                            <div>
+                                <div class="history-entry">
+                                    <div class="history-header">
+                                        <h4>Version ${entry.version}</h4>
+                                        <span class="history-date">${date}</span>
+                                    </div>
+                                    <div class="history-details">
+                                        <div>
+                                            <strong>LAB:</strong> ${entry.structure.LABORATORY?.length || 0} categories
+                                        </div>
+                                        <div>
+                                            <strong>LECTURE:</strong> ${entry.structure.LECTURE?.length || 0} categories
+                                        </div>
+                                    </div>
+                                    <button class="restore-btn btn btn-primary"
+                                            data-structure-id="${structureId}"
+                                            data-history-id="${entry.id}"
+                                            data-version="${entry.version}">
+                                        Restore to this version
+                                    </button>
+                                </div>
+                            </div>
+                        `;
+                });
+                html += '</div>';
+
+                historyContent.innerHTML = html;
+
+                // Add restore button listeners
+                document.querySelectorAll('.restore-btn').forEach(btn => {
+                    btn.addEventListener('click', async e => {
+                        const structureId = e.target.dataset.structureId;
+                        const historyId = e.target.dataset.historyId;
+                        const version = e.target.dataset.version;
+
+                        const confirmed = await showConfirmation(`Restore structure to version ${version}?`);
+                        if (!confirmed) return;
+
+                        // Show loading
+                        e.target.textContent = 'Restoring...';
+                        e.target.disabled = true;
+
+                        try {
+                            const res = await fetch(`/api/gradebuilder/restore/${structureId}/${historyId}`, {
+                                method: 'POST',
+                                headers: {
+                                    'X-CSRFToken': window.csrfToken
+                                }
+                            });
+                            const result = await res.json();
+
+                            if (res.ok) {
+                                showNotification(result.message || 'Structure restored!', 'success');
+                                document.getElementById('history-modal').style.display = 'none';
+                                await loadBackendData();
+                            } else {
+                                showNotification(result.message || 'Restore failed.', 'error');
+                            }
+                        } catch (err) {
+                            console.error('Error restoring:', err);
+                            showNotification('Network error during restore.', 'error');
+                        } finally {
+                            e.target.textContent = `Restore to this version`;
+                            e.target.disabled = false;
+                        }
+                    });
+                });
+            }
+
+            // #################### DYNAMIC BUILDER ####################
+            document.querySelectorAll('.btn-add-sub').forEach(btn => {
+                btn.addEventListener('click', e => {
+                    const type = e.currentTarget.dataset.type;
+                    addSubCategoryElement(type);
+                    saveStateToUndoStack();
+                    updatePercentCheckers();
+                });
+            });
+
+            function addSubCategoryElement(type, data = { name: '', weight: 0, assessments: [] }) {
+                const container = type === 'LAB' ? labSubCategories : lectureSubCategories;
+                const subCatId = `sub-${Date.now()}-${Math.random().toFixed(4).slice(2)}`;
+                const el = document.createElement('div');
+                el.className = 'sub-category-item shadow-sm';
+                el.dataset.id = subCatId;
+                el.dataset.type = type;
+                el.innerHTML = `
+                        <div class="sub-category-header">
+                            <input type="text" placeholder="Category Name" value="${data.name}" data-field="name">
+                            <input type="number" min="0" max="100" placeholder="0" value="${data.weight}" data-field="weight">
+                            <span>%</span>
+                            <button class="btn-icon add-assessment-btn"><i class="fas fa-file-alt"></i> Add Assessment</button>
+                            <button class="btn-icon delete-sub-btn"><i class="fas fa-trash"></i></button>
+                        </div>
+                        <div class="assessment-list" data-sub-id="${subCatId}"></div>
+                    `;
+                container.appendChild(el);
+
+                const assessmentList = el.querySelector('.assessment-list');
+                data.assessments.forEach(a => {
+                    // Handle backward compatibility: if a is a string, convert to object
+                    const assessmentData = typeof a === 'string' ? { name: a, max_score: 100 } : a;
+                    addAssessmentElement(assessmentList, assessmentData);
+                });
+
+                el.querySelector('.delete-sub-btn').addEventListener('click', () => {
+                    el.remove();
+                    saveStateToUndoStack();
+                    updatePercentCheckers();
+                });
+                el.querySelector('.add-assessment-btn').addEventListener('click', () => {
+                    addAssessmentElement(assessmentList);
+                    saveStateToUndoStack();
+                });
+                el.querySelector('input[data-field="weight"]').addEventListener('input', e => {
+                    updatePercentCheckers();
+                    // Debounce state saving for weight changes
+                    clearTimeout(el._weightTimeout);
+                    el._weightTimeout = setTimeout(() => saveStateToUndoStack(), 500);
+                });
+            }
+
+            function addAssessmentElement(container, data = { name: '', max_score: 100 }) {
+                const assId = `ass-${Date.now()}-${Math.random().toFixed(4).slice(2)}`;
+                const el = document.createElement('div');
+                el.className = 'assessment-item';
+                el.dataset.id = assId;
+                el.innerHTML = `
+                        <input type="text" placeholder="Assessment Name" value="${data.name}" data-field="assessment-name">
+                        <input type="number" min="0" placeholder="Max Score" value="${data.max_score}" data-field="max-score">
+                        <button class="btn-icon delete-assessment-btn" title="Delete assessment"><i class="fas fa-trash"></i></button>
+                    `;
+                container.appendChild(el);
+                el.querySelector('.delete-assessment-btn').addEventListener('click', () => {
+                    el.remove();
+                    saveStateToUndoStack();
+                });
+            }
+
+            function updatePercentCheckers() {
+                const labCheck = document.getElementById('lab-percent-checker');
+                const lectureCheck = document.getElementById('lecture-percent-checker');
+                let totalLab = 0, totalLecture = 0;
+                document.querySelectorAll('.sub-category-item').forEach(item => {
+                    const weight = parseFloat(item.querySelector('input[data-field="weight"]').value) || 0;
+                    if (item.dataset.type === 'LAB') totalLab += weight;
+                    else totalLecture += weight;
+                });
+                labCheck.textContent = `${totalLab.toFixed(0)}%`;
+                lectureCheck.textContent = `${totalLecture.toFixed(0)}%`;
+                labCheck.classList.toggle('valid', totalLab === 100);
+                lectureCheck.classList.toggle('valid', totalLecture === 100);
+            }
+
+            // #################### SAVE ####################
+            function buildStructureJson() {
+                const structure = { LAB: [], LECTURE: [] };
+                const labChecker = document.getElementById('lab-percent-checker');
+                const lectureChecker = document.getElementById('lecture-percent-checker');
+                const totalLab = parseFloat(labChecker.textContent) || 0;
+                const totalLecture = parseFloat(lectureChecker.textContent) || 0;
+
+                if (totalLab !== 100 && totalLab !== 0) {
+                    showNotification(`LAB must total 100% or 0%. Current: ${totalLab}%`, 'error');
+                    return null;
+                }
+                if (totalLecture !== 100 && totalLecture !== 0) {
+                    showNotification(`LECTURE must total 100% or 0%. Current: ${totalLecture}%`, 'error');
+                    return null;
+                }
+                if (totalLab === 0 && totalLecture === 0) {
+                    showNotification('Add at least one category with assessments before saving.', 'warning');
+                    return null;
+                }
+
+                document.querySelectorAll('.sub-category-item').forEach(sub => {
+                    const type = sub.dataset.type;
+                    const name = sub.querySelector('input[data-field="name"]').value.trim();
+                    const weight = parseFloat(sub.querySelector('input[data-field="weight"]').value) || 0;
+                    const assessments = [];
+                    sub.querySelectorAll('.assessment-item').forEach(item => {
+                        const assessmentName = item.querySelector('input[data-field="assessment-name"]').value.trim();
+                        const maxScore = parseFloat(item.querySelector('input[data-field="max-score"]').value) || 100;
+                        if (assessmentName) {
+                            assessments.push({ name: assessmentName, max_score: maxScore });
+                        }
+                    });
+                    if (name && weight > 0) {
+                        structure[type].push({ name, weight, assessments });
+                    }
+                });
+                return structure;
+            }
+
+            saveBtn.addEventListener('click', async () => {
+                if (!currentEditingStructure) return;
+                const built = buildStructureJson();
+                if (!built) return;
+
+                // Show loading state
+                saveBtn.disabled = true;
+                saveBtnText.textContent = 'Saving...';
+                saveBtn.classList.add('opacity-75', 'cursor-not-allowed');
+
+                const payload = {
+                    id: currentEditingStructure.id,
+                    class_id: parseInt(currentEditingStructure.class_id),
+                    structure_name: currentEditingStructure.structure_name || currentEditingStructure.class,
+                    structure_json: JSON.stringify({
+                        LABORATORY: built.LAB,
+                        LECTURE: built.LECTURE
+                    })
+                };
+
+                console.log('Frontend save payload:', payload);
+
+                try {
+                    const res = await fetch('/api/gradebuilder/save', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': window.csrfToken
+                        },
+                        body: JSON.stringify(payload)
+                    });
+                    console.log('Frontend save response status:', res.status);
+                    const result = await res.json();
+                    console.log('Frontend save response data:', result);
+                    if (res.ok) {
+                        Swal.fire({
+                            title: 'Success!',
+                            text: result.message || 'Structure saved successfully!',
+                            icon: 'success',
+                            confirmButtonText: 'OK'
+                        });
+                        await loadBackendData();
+                        resetEditorPanel();
+                    } else {
+                        showNotification(result.message || 'Save failed.', 'error');
+                    }
+                } catch (err) {
+                    console.error('Save error:', err);
+                    showNotification('Network error. Please check your connection and try again.', 'error');
+                } finally {
+                    // Reset loading state
+                    saveBtn.disabled = false;
+                    saveBtnText.textContent = 'Save Structure';
+                    saveBtn.classList.remove('opacity-75', 'cursor-not-allowed');
+                }
+            });
+
+            updatePercentCheckers();
+        });
+    </script>
+        
+    <script type="module" src="{{ url_for('static', filename='js/ngrokFetch.js') }}"></script>
+</body>
+
+</html>

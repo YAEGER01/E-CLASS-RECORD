@@ -1,0 +1,447 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scores</title>
+    <link rel="stylesheet" href="/static/css/student-dashboard.css">
+    <style>
+        body {
+            padding: 20px;
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 2rem;
+            color: #14532d;
+        }
+        .header p {
+            margin: 4px 0 0 0;
+            color: #64748b;
+            font-size: 1rem;
+        }
+        .nav-back {
+            margin-top: 12px;
+        }
+        .nav-back a {
+            background: #16a34a;
+            color: #fff;
+            padding: 8px 16px;
+            border-radius: 12px;
+            font-weight: 600;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            box-shadow: 0 6px 18px rgba(22, 163, 74, 0.15);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        .nav-back a:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 24px rgba(22, 163, 74, 0.22);
+        }
+        .classes-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+        .classes-card {
+            padding: 0;
+        }
+        .classes-card header {
+            padding: 16px 20px 12px 20px;
+            border-bottom: 1.5px solid #e5e7eb;
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+        .classes-card header h2 {
+            margin: 0;
+            font-size: clamp(1.25rem, 2vw, 1.6rem);
+            color: #14532d;
+        }
+        .classes-card header span {
+            color: #64748b;
+            font-weight: 600;
+            font-size: 0.95rem;
+        }
+        .classes-card .table-wrapper {
+            padding: 12px 16px 20px 16px;
+            overflow-x: auto;
+        }
+        .alert {
+            color: #fff;
+            background: #d9534f;
+            padding: 10px;
+            border-radius: 8px;
+            margin-bottom: 16px;
+            font-size: 1rem;
+        }
+        .assessment-box {
+            background: #f9fafb;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 8px 12px;
+            margin: 6px 0;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            font-size: 0.9rem;
+        }
+        .assessment-name {
+            font-weight: 600;
+            color: #374151;
+            margin-bottom: 4px;
+        }
+        .assessment-score {
+            font-size: 1rem;
+        }
+        .grade-summary {
+            background: #f0fdf4;
+            border: 1px solid #bbf7d0;
+            border-radius: 8px;
+            padding: 12px 16px;
+            margin-bottom: 16px;
+        }
+        .grade-summary h3 {
+            margin: 0 0 8px 0;
+            color: #14532d;
+        }
+        .grade-summary p {
+            margin: 4px 0;
+            color: #14532d;
+        }
+
+        /* Grade Breakdown Columns - Mobile First */
+        .grade-breakdown-columns {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .grade-column {
+            background: #ffffff;
+            border: 1px solid #e5e7eb;
+            border-radius: 12px;
+            padding: 16px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+
+        .grade-column h5 {
+            margin: 0 0 16px 0;
+            color: #14532d;
+            font-size: 1.1rem;
+            font-weight: 600;
+            border-bottom: 2px solid #e5e7eb;
+            padding-bottom: 8px;
+        }
+
+        .laboratory-column h5 {
+            border-bottom-color: #3b82f6;
+            color: #1e40af;
+        }
+
+        .lecture-column h5 {
+            border-bottom-color: #10b981;
+            color: #047857;
+        }
+
+        .column-content {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .category-section {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 12px;
+        }
+
+        .category-section h6 {
+            margin: 0 0 8px 0;
+            color: #374151;
+            font-size: 0.95rem;
+            font-weight: 600;
+        }
+
+        .subcategory-section {
+            margin-bottom: 8px;
+        }
+
+        .subcategory-name {
+            font-weight: 600;
+            color: #4b5563;
+            font-size: 0.9rem;
+            margin-bottom: 6px;
+            padding-left: 8px;
+            border-left: 3px solid #d1d5db;
+        }
+
+        .assessment-box {
+            background: #ffffff;
+            border: 1px solid #e5e7eb;
+            border-radius: 6px;
+            padding: 8px 10px;
+            margin: 4px 0 4px 12px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            font-size: 0.85rem;
+        }
+
+        .assessment-name {
+            font-weight: 600;
+            color: #374151;
+            margin-bottom: 2px;
+        }
+
+        .assessment-score {
+            font-size: 0.9rem;
+            color: #6b7280;
+        }
+
+        /* Tablet and Desktop - Side by side columns */
+        @media (min-width: 768px) {
+            .grade-breakdown-columns {
+                flex-direction: row;
+                gap: 24px;
+            }
+
+            .grade-column {
+                flex: 1;
+                padding: 20px;
+            }
+
+            .grade-column h5 {
+                font-size: 1.2rem;
+            }
+
+            .assessment-box {
+                padding: 10px 12px;
+                margin: 6px 0 6px 16px;
+                font-size: 0.9rem;
+            }
+
+            .subcategory-name {
+                font-size: 0.95rem;
+                padding-left: 12px;
+            }
+        }
+
+        /* Large Desktop */
+        @media (min-width: 1024px) {
+            .grade-breakdown-columns {
+                gap: 32px;
+            }
+
+            .grade-column {
+                padding: 24px;
+            }
+
+            .grade-column h5 {
+                font-size: 1.3rem;
+            }
+
+            .assessment-box {
+                padding: 12px 16px;
+                margin: 8px 0 8px 20px;
+                font-size: 0.95rem;
+            }
+
+            .subcategory-name {
+                font-size: 1rem;
+                padding-left: 16px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div>
+            <h1>📊 Scores   </h1>
+            <p>Detailed breakdown of your performance</p>
+        </div>
+        <div class="nav-back">
+            <a href="{{ url_for('student.student_classes') }}">⟵ Back to Classes</a>
+            <a href="{{ url_for('dashboard.student_dashboard') }}">⟵ Back to Dashboard</a>
+        </div>
+    </div>
+
+    <div class="classes-grid">
+        <div class="card classes-card">
+            <header>
+                <h2>Score Details</h2>
+                <span id="class-info">Loading...</span>
+            </header>
+            <div class="table-wrapper">
+                <div id="grade-details">
+                    <p>Loading Scores...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const classId = "{{ class_id }}";
+            const container = document.getElementById('grade-details');
+            const classInfo = document.getElementById('class-info');
+            container.innerHTML = `<p>Loading latest matching snapshot data...</p>`;
+            fetch(`/api/student/classes/${classId}/grades`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.message === "No Snapshots") {
+                        container.innerHTML = `<div class='alert'>No available for this class or student.</div>`;
+                        classInfo.textContent = 'No Data';
+                        return;
+                    }
+                    if (data.error) {
+                        container.innerHTML = `<div class='alert'>${data.error}</div>`;
+                        classInfo.textContent = 'Error';
+                        return;
+                    }
+                    classInfo.textContent = data.class_id || 'Unknown Class';
+                    let html = `<div class="grade-summary">
+                        <h3>Grade Summary</h3>
+                        <p><strong>Final Grade:</strong> ${data.equivalent === 'DRP' ? '<span style="color: #6b7280; text-decoration: line-through;">' + (data.final_grade !== null ? data.final_grade + '%' : 'N/A') + '</span>' : (data.final_grade !== null ? data.final_grade + '%' : 'Pending')}</p>
+                        <p><strong>Equivalent:</strong> ${data.equivalent !== null ? data.equivalent : 'N/A'}</p>
+                    </div>`;
+                    if (data.details && data.details.scores && data.details.structure_json) {
+                        html += `<h4>Grade Breakdown</h4>`;
+                        const structure = data.details.structure_json;
+                        const scores = data.details.scores;
+
+                        // Separate categories into LABORATORY and LECTURE
+                        const laboratoryCategories = {};
+                        const lectureCategories = {};
+
+                        for (const [category, subcats] of Object.entries(structure)) {
+                            if (category.toUpperCase().includes('LABORATORY') || category.toUpperCase().includes('LAB')) {
+                                laboratoryCategories[category] = subcats;
+                            } else if (category.toUpperCase().includes('LECTURE') || category.toUpperCase().includes('LEC')) {
+                                lectureCategories[category] = subcats;
+                            } else {
+                                // If not clearly LAB or LEC, check subcategories for clues
+                                const hasLabSubcat = subcats.some(subcat =>
+                                    subcat.name && (subcat.name.toUpperCase().includes('LAB') || subcat.name.toUpperCase().includes('PRACTICAL'))
+                                );
+                                const hasLecSubcat = subcats.some(subcat =>
+                                    subcat.name && (subcat.name.toUpperCase().includes('LEC') || subcat.name.toUpperCase().includes('THEORY'))
+                                );
+
+                                if (hasLabSubcat && !hasLecSubcat) {
+                                    laboratoryCategories[category] = subcats;
+                                } else {
+                                    lectureCategories[category] = subcats;
+                                }
+                            }
+                        }
+
+                        // Create 2-column layout
+                        html += `<div class="grade-breakdown-columns">`;
+
+                        // LABORATORY Column
+                        html += `<div class="grade-column laboratory-column">
+                            <h5>LABORATORY Breakdown</h5>
+                            <div class="column-content">`;
+
+                        if (Object.keys(laboratoryCategories).length === 0) {
+                            html += `<div class="assessment-box" style="background: #fef3c7; border-color: #f59e0b; color: #92400e;">
+                                <div class="assessment-name">No Laboratory Assessments</div>
+                                <div class="assessment-score">No laboratory assessments available.</div>
+                            </div>`;
+                        } else {
+                            for (const [category, subcats] of Object.entries(laboratoryCategories)) {
+                                html += `<div class="category-section">
+                                    <h6>${category}</h6>`;
+                                let hasAssessments = false;
+                                subcats.forEach(subcat => {
+                                    if (subcat.assessments && Array.isArray(subcat.assessments) && subcat.assessments.length > 0) {
+                                        hasAssessments = true;
+                                        html += `<div class="subcategory-section">
+                                            <div class="subcategory-name">${subcat.name}</div>`;
+                                        subcat.assessments.forEach(assessment => {
+                                            const score = assessment.released_score !== undefined && assessment.released_score !== null ? assessment.released_score : 'N/A';
+                                            const maxScore = assessment.max_score !== undefined ? assessment.max_score : '';
+                                            const color = assessment.color || 'black';
+                                            html += `<div class="assessment-box">
+                                                <div class="assessment-name">${assessment.name}</div>
+                                                <div class="assessment-score">Score: <strong style="color: ${color}">${score}</strong> / ${maxScore}</div>
+                                            </div>`;
+                                        });
+                                        html += `</div>`;
+                                    }
+                                });
+                                if (!hasAssessments) {
+                                    html += `<div class="assessment-box" style="background: #fef3c7; border-color: #f59e0b; color: #92400e;">
+                                        <div class="assessment-name">No Assessments</div>
+                                        <div class="assessment-score">No assessments available for ${category.toLowerCase()}.</div>
+                                    </div>`;
+                                }
+                                html += `</div>`;
+                            }
+                        }
+
+                        html += `</div></div>`;
+
+                        // LECTURE Column
+                        html += `<div class="grade-column lecture-column">
+                            <h5>LECTURE Breakdown</h5>
+                            <div class="column-content">`;
+
+                        if (Object.keys(lectureCategories).length === 0) {
+                            html += `<div class="assessment-box" style="background: #fef3c7; border-color: #f59e0b; color: #92400e;">
+                                <div class="assessment-name">No Lecture Assessments</div>
+                                <div class="assessment-score">No lecture assessments available.</div>
+                            </div>`;
+                        } else {
+                            for (const [category, subcats] of Object.entries(lectureCategories)) {
+                                html += `<div class="category-section">
+                                    <h6>${category}</h6>`;
+                                let hasAssessments = false;
+                                subcats.forEach(subcat => {
+                                    if (subcat.assessments && Array.isArray(subcat.assessments) && subcat.assessments.length > 0) {
+                                        hasAssessments = true;
+                                        html += `<div class="subcategory-section">
+                                            <div class="subcategory-name">${subcat.name}</div>`;
+                                        subcat.assessments.forEach(assessment => {
+                                            const score = assessment.released_score !== undefined && assessment.released_score !== null ? assessment.released_score : 'N/A';
+                                            const maxScore = assessment.max_score !== undefined ? assessment.max_score : '';
+                                            const color = assessment.color || 'black';
+                                            html += `<div class="assessment-box">
+                                                <div class="assessment-name">${assessment.name}</div>
+                                                <div class="assessment-score">Score: <strong style="color: ${color}">${score}</strong> / ${maxScore}</div>
+                                            </div>`;
+                                        });
+                                        html += `</div>`;
+                                    }
+                                });
+                                if (!hasAssessments) {
+                                    html += `<div class="assessment-box" style="background: #fef3c7; border-color: #f59e0b; color: #92400e;">
+                                        <div class="assessment-name">No Assessments</div>
+                                        <div class="assessment-score">No assessments available for ${category.toLowerCase()}.</div>
+                                    </div>`;
+                                }
+                                html += `</div>`;
+                            }
+                        }
+
+                        html += `</div></div></div>`;
+                    }
+                    container.innerHTML = html;
+                })
+                .catch(err => {
+                    container.innerHTML = `<div class='alert'>Failed to load grades. Please try again later.</div>`;
+                    classInfo.textContent = 'Error';
+                });
+        });
+    </script>
+</body>
+</html>

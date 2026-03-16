@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Instructor Login - E-Class Record System | ISU CCSICT</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/instructorlogin.css') }}">
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <style>
+
+  </style>
+</head>
+
+<body>
+  <button class="back-btn" onclick="window.location.href='/'">
+    <i class="fas fa-arrow-left"></i> Back to Home
+  </button>
+
+  <div class="container">
+    <div class="header">
+      <div class="logo-container">
+        <i class="fas fa-chalkboard-teacher"></i>
+      </div>
+      <h1 class="title">Faculty Portal</h1>
+      <h2 class="subtitle">Teaching & Learning Management</h2>
+      <p class="university">Isabela State University - Cauayan Campus<br>College of Computing Studies, Information and
+        Communication Technology</p>
+    </div>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          <div id="errorContainer" style="display: none;">{{ message }}</div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+
+    <form id="loginForm" class="form" method="POST">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+      <input type="hidden" name="role" value="instructor">
+
+      <div class="form-row">
+        <label for="username">Faculty Email or Employee ID</label>
+        <div class="input-wrap">
+          <input type="text" id="username" name="username" required autocomplete="username"
+            placeholder="faculty@isu.edu.ph" />
+          <span class="icon"><i class="fas fa-chalkboard-teacher"></i></span>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <label for="password">Password</label>
+        <div class="input-wrap">
+          <input type="password" id="password" name="password" required autocomplete="current-password"
+            placeholder="Enter your password" />
+          <button type="button" class="show-pass" id="togglePass" aria-label="Toggle password visibility">
+            <i class="fas fa-eye"></i>
+          </button>
+        </div>
+      </div>
+
+      <div class="form-row flex-between">
+
+        <a href="{{ url_for('auth.forgot_password') }}" class="link">Forgot Password?</a>
+      </div>
+
+      <button type="submit" class="btn primary" id="loginBtn">
+        <i class="fas fa-sign-in-alt"></i> Faculty Sign In
+      </button>
+      <!--
+      <div class="divider"></div>
+
+      <ul class="demo-list">
+        <li onclick="fillCredentials('faculty@isu.edu.ph', 'faculty123')">
+          <strong>faculty@isu.edu.ph</strong> <span>faculty123</span>
+        </li>
+        <li onclick="fillCredentials('prof.santos', 'prof123')">
+          <strong>prof.santos</strong> <span>prof123</span>
+        </li>
+        <li onclick="fillCredentials('instructor.cruz', 'inst123')">
+          <strong>instructor.cruz</strong> <span>inst123</span>
+        </li>
+      </ul>
+    -->
+    </form>
+
+    <div class="footer">
+      <span class="version">Faculty Portal v2.1.0</span>
+      <p class="footer-text">
+        Comprehensive teaching tools for managing classes and tracking student progress.
+      </p>
+
+    </div>
+  </div>
+
+  <script>
+    // Toggle password visibility
+    document.getElementById('togglePass').addEventListener('click', function () {
+      const passwordInput = document.getElementById('password');
+      const icon = this.querySelector('i');
+
+      if (passwordInput.type === 'password') {
+        passwordInput.type = 'text';
+        icon.classList.remove('fa-eye');
+        icon.classList.add('fa-eye-slash');
+      } else {
+        passwordInput.type = 'password';
+        icon.classList.remove('fa-eye-slash');
+        icon.classList.add('fa-eye');
+      }
+    });
+
+    // Fill demo credentials
+    function fillCredentials(username, password) {
+      document.getElementById('username').value = username;
+      document.getElementById('password').value = password;
+
+      // Add a subtle animation to indicate the fields were filled
+      const inputs = [document.getElementById('username'), document.getElementById('password')];
+      inputs.forEach(input => {
+        input.style.transform = 'scale(1.02)';
+        input.style.borderColor = 'var(--instructor-primary)';
+        setTimeout(() => {
+          input.style.transform = 'scale(1)';
+          input.style.borderColor = 'var(--gray-100)';
+        }, 200);
+      });
+    }
+
+    // Form submission handler
+    document.getElementById('loginForm').addEventListener('submit', function (e) {
+      const loginBtn = document.getElementById('loginBtn');
+
+      // Show loading state
+      loginBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Authenticating...';
+      loginBtn.disabled = true;
+
+      // Let the form submit normally - Flask will handle authentication
+      // The page will redirect or show error based on authentication result
+    });
+
+    // Add smooth transitions on page load
+    document.addEventListener('DOMContentLoaded', function () {
+      const container = document.querySelector('.container');
+      container.style.opacity = '0';
+      container.style.transform = 'translateY(20px)';
+
+      setTimeout(() => {
+        container.style.transition = 'all 0.6s ease';
+        container.style.opacity = '1';
+        container.style.transform = 'translateY(0)';
+      }, 100);
+
+      // Check for error message and show SweetAlert
+      const errorContainer = document.getElementById('errorContainer');
+      if (errorContainer && errorContainer.textContent.trim()) {
+        const errorMessage = errorContainer.textContent.trim();
+        Swal.fire({
+          icon: 'error',
+          title: 'Login Failed',
+          text: errorMessage,
+          confirmButtonText: 'Try Again',
+          confirmButtonColor: '#2563eb',
+          allowOutsideClick: false
+        });
+      }
+    });
+  </script>
+</body>
+
+</html>

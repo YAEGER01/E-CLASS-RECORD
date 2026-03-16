@@ -1,0 +1,831 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>E-Class Record System - Register</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/register-page.css') }}">
+    <!-- SweetAlert2 CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11.7.32/dist/sweetalert2.min.css">
+</head>
+
+<body>
+    <div class="bg-container">
+        <div class="bg-shape"></div>
+        <div class="bg-shape"></div>
+        <div class="bg-shape"></div>
+    </div>
+    <div class="grid-overlay"></div>
+
+    <div class="main-container">
+        <div class="registration-card"> 
+            <header class="header">
+                <div class="brand">
+                    <div class="brand-logo">🎓</div>
+                    <div class="brand-info">
+                        <h1>E-CLASS RECORD SYSTEM</h1>
+                        <p>Isabela State University - Cauayan | CCSICT</p>
+                    </div>
+                </div>
+                <a href="#login" class="login-link">Already have an account? Log in →</a>
+            </header>
+
+            <div class="content">
+                <div class="form-section">
+                    {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                    {% for category, message in messages %}
+                    <div class="status {{ 'error' if category == 'error' else 'success' }}" role="alert"
+                        aria-live="assertive">
+                        <i class="fas fa-{{ 'exclamation-circle' if category == 'error' else 'check-circle' }}"></i> {{
+                        message }}
+                    </div>
+                    {% endfor %}
+                    {% endif %}
+                    {% endwith %}
+
+                    <form id="registrationForm" method="POST" enctype="multipart/form-data">
+                        <!-- CSRF protection token required by Flask-WTF -->
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+                        <div class="form-grid">
+                            <div class="form-field">
+                                <label for="firstName">
+                                    First Name <span class="required-mark">*</span>
+                                </label>
+                                <div class="input-group">
+                                    <input id="firstName" name="firstName" type="text" placeholder="Juan"
+                                        required value="{{ form_data.firstName if form_data else '' }}" />
+                                </div>
+                            </div>
+
+                            <div class="form-field">
+                                <label for="lastName">
+                                    Last Name <span class="required-mark">*</span>
+                                </label>
+                                <div class="input-group">
+                                    <input id="lastName" name="lastName" type="text" placeholder="Dela Cruz"
+                                        required value="{{ form_data.lastName if form_data else '' }}" />
+                                </div>
+                            </div>
+
+                            <div class="form-field">
+                                <label for="middleName">
+                                    Middle Name
+                                </label>
+                                <div class="input-group">
+                                    <input id="middleName" name="middleName" type="text" placeholder="Santos"
+                                        value="{{ form_data.middleName if form_data else '' }}" />
+                                </div>
+                                <div class="field-hint">Optional</div>
+                            </div>
+
+                            <div class="form-field">
+                                <label for="schoolId">
+                                    School ID <span class="required-mark">*</span>
+                                </label>
+                                <div class="input-group">
+                                    <input id="schoolId" name="schoolId" type="text" placeholder="e.g. 2019-01234"
+                                        required value="{{ form_data.schoolId if form_data else '' }}" />
+                                </div>
+                                <div class="field-hint">Your official school ID number</div>
+                            </div>
+
+                            <div class="form-field">
+                                <label for="email">
+                                    Email Address <span class="required-mark">*</span>
+                                </label>
+                                <div class="input-group">
+                                    <input id="email" name="email" type="email" placeholder="your.email@example.com"
+                                        required value="{{ form_data.email if form_data else '' }}" />
+                                </div>
+                                <div class="field-hint">We'll send your approval notification here</div>
+                            </div>
+
+                            <div class="form-field">
+                                <label for="course">
+                                    Course <span class="required-mark">*</span>
+                                </label>
+                                <select id="course" name="course" required>
+                                    <option value="">Select Course</option>
+                                    <option value="BSIT" {{ 'selected' if form_data and form_data.course=='BSIT' else ''
+                                        }}>BS Information Technology</option>
+                                    <option value="BSCS" {{ 'selected' if form_data and form_data.course=='BSCS' else ''
+                                        }}>BS Computer Science</option>
+                                    <option value="BSIS" {{ 'selected' if form_data and form_data.course=='BSIS' else ''
+                                        }}>BS Information Systems</option>
+                                    <option value="BSCpE" {{ 'selected' if form_data and form_data.course=='BSCpE'
+                                        else '' }}>BS Computer Engineering</option>
+                                    <option value="BSEMC" {{ 'selected' if form_data and form_data.course=='BSEMC'
+                                        else '' }}>BS Entertainment & Multimedia Computing</option>
+                                </select>
+                            </div>
+
+                            <div class="form-field">
+                                <label for="track">Specialization Track</label>
+                                <select id="track" name="track">
+                                    <option value="">Select Track</option>
+                                    <!-- Options will be populated dynamically based on course selection -->
+                                </select>
+                            </div>
+
+                            <div class="form-field">
+                                <label for="yearLevel">
+                                    Year Level <span class="required-mark">*</span>
+                                </label>
+                                <select id="yearLevel" name="yearLevel" required>
+                                    <option value="">Select Year Level</option>
+                                    <option value="1" {{ 'selected' if form_data and form_data.yearLevel=='1' else ''
+                                        }}>1st Year</option>
+                                    <option value="2" {{ 'selected' if form_data and form_data.yearLevel=='2' else ''
+                                        }}>2nd Year</option>
+                                    <option value="3" {{ 'selected' if form_data and form_data.yearLevel=='3' else ''
+                                        }}>3rd Year</option>
+                                    <option value="4" {{ 'selected' if form_data and form_data.yearLevel=='4' else ''
+                                        }}>4th Year</option>
+                                </select>
+                            </div>
+
+                            <div class="form-field">
+                                <label for="section">
+                                    Section <span class="required-mark">*</span>
+                                </label>
+                                <input id="section" name="section" type="text" placeholder="e.g. A, B, C" required
+                                    value="{{ form_data.section if form_data else '' }}" />
+                            </div>
+
+                            <div class="form-field">
+                                <label for="password">
+                                    Password <span class="required-mark">*</span>
+                                </label>
+                                <div class="input-group">
+                                    <input id="password" name="password" type="password"
+                                        placeholder="Create a strong password" required />
+                                    <button type="button" class="password-toggle" onclick="togglePassword('password')">
+                                        Show
+                                    </button>
+                                </div>
+                                <div class="password-strength">
+                                    <div class="strength-bar">
+                                        <div class="strength-fill" id="strengthFill"></div>
+                                    </div>
+                                    <div class="strength-label" id="strengthLabel">Type a password</div>
+                                </div>
+                                <div class="field-hint">Min 6 characters. Use letters, numbers & symbols.</div>
+                            </div>
+
+                            <div class="form-field">
+                                <label for="confirmPassword">
+                                    Confirm Password <span class="required-mark">*</span>
+                                </label>
+                                <div class="input-group">
+                                    <input id="confirmPassword" name="confirmPassword" type="password"
+                                        placeholder="Confirm your password" required />
+                                </div>
+                                <div class="field-hint" id="confirmHint"></div>
+                            </div>
+                        </div>
+
+                        <div class="photo-upload-section">
+                            <div class="photo-header">
+                                <h3>📸 Photo Requirements</h3>
+                                <p>Upload clear photos for verification</p>
+                            </div>
+
+                            <div class="photo-grid">
+                                <div class="photo-item" data-photo-type="id-front">
+                                    <div class="photo-upload-container">
+                                        <label for="idFront" class="sr-only">Upload ID Front Photo</label>
+                                        <input
+                                            id="idFront"
+                                            name="idFront"
+                                            type="file"
+                                            accept="image/jpeg,image/jpg,image/png,image/webp"
+                                            data-max-size="5242880"
+                                            data-preview-target="idFrontPreview"
+                                            aria-describedby="idFrontHelp"
+                                            required
+                                        />
+                                        <div class="photo-upload-zone" onclick="document.getElementById('idFront').click()">
+                                            <div class="photo-preview" id="idFrontPreview" role="img" aria-label="ID Front preview">
+                                                <span class="preview-placeholder" aria-hidden="true">📄</span>
+                                            </div>
+                                            <div class="upload-content">
+                                                <div class="photo-label">ID Front</div>
+                                                <div class="photo-sublabel">Front side of ID</div>
+                                                <div class="upload-hint" id="idFrontHelp">
+                                                    JPG, PNG up to 5MB
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="upload-status" id="idFrontStatus" aria-live="polite"></div>
+                                    </div>
+                                </div>
+
+                                <div class="photo-item" data-photo-type="id-back">
+                                    <div class="photo-upload-container">
+                                        <label for="idBack" class="sr-only">Upload ID Back Photo</label>
+                                        <input
+                                            id="idBack"
+                                            name="idBack"
+                                            type="file"
+                                            accept="image/jpeg,image/jpg,image/png,image/webp"
+                                            data-max-size="5242880"
+                                            data-preview-target="idBackPreview"
+                                            aria-describedby="idBackHelp"
+                                            required
+                                        />
+                                        <div class="photo-upload-zone" onclick="document.getElementById('idBack').click()">
+                                            <div class="photo-preview" id="idBackPreview" role="img" aria-label="ID Back preview">
+                                                <span class="preview-placeholder" aria-hidden="true">📄</span>
+                                            </div>
+                                            <div class="upload-content">
+                                                <div class="photo-label">ID Back</div>
+                                                <div class="photo-sublabel">Back side of ID</div>
+                                                <div class="upload-hint" id="idBackHelp">
+                                                    JPG, PNG up to 5MB
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="upload-status" id="idBackStatus" aria-live="polite"></div>
+                                    </div>
+                                </div>
+
+                                <div class="photo-item" data-photo-type="face-photo">
+                                    <div class="photo-upload-container">
+                                        <label for="facePhoto" class="sr-only">Upload Face Photo</label>
+                                        <input
+                                            id="facePhoto"
+                                            name="facePhoto"
+                                            type="file"
+                                            accept="image/jpeg,image/jpg,image/png,image/webp"
+                                            data-max-size="5242880"
+                                            data-preview-target="facePhotoPreview"
+                                            aria-describedby="facePhotoHelp"
+                                            required
+                                        />
+                                        <div class="photo-upload-zone" onclick="document.getElementById('facePhoto').click()">
+                                            <div class="photo-preview" id="facePhotoPreview" role="img" aria-label="Face Photo preview">
+                                                <span class="preview-placeholder" aria-hidden="true">👤</span>
+                                            </div>
+                                            <div class="upload-content">
+                                                <div class="photo-label">Face Photo</div>
+                                                <div class="photo-sublabel">Clear face photo</div>
+                                                <div class="upload-hint" id="facePhotoHelp">
+                                                    JPG, PNG up to 5MB
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="upload-status" id="facePhotoStatus" aria-live="polite"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="submit-section">
+                            <button type="submit" class="submit-btn">
+                                🚀 Create Account
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <div class="preview-section">
+                    <div class="preview-card">
+                        <h3 class="preview-title">📋 Registration Preview</h3>
+
+                        <div class="student-preview">
+                            <div class="student-avatar" id="studentAvatar">👤</div>
+                            <div>
+                                <div class="student-name" id="previewName">—</div>
+                                <div class="student-id" id="previewId">School ID: —</div>
+                            </div>
+                        </div>
+
+                        <div class="info-list">
+                            <div class="info-item">
+                                <span class="info-label">Last Name</span>
+                                <span class="info-value" id="previewLastName">—</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">First Name</span>
+                                <span class="info-value" id="previewFirstName">—</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">Middle Name</span>
+                                <span class="info-value" id="previewMiddleName">—</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">Course</span>
+                                <span class="info-value" id="previewCourse">—</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">Track</span>
+                                <span class="info-value" id="previewTrack">—</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">Year Level</span>
+                                <span class="info-value" id="previewYear">—</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">Section</span>
+                                <span class="info-value" id="previewSection">—</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="tips-section">
+                        <h4 class="tips-title">💡 Tips</h4>
+                        <ul class="tips-list">
+                            <li>Use a photo with plain background</li>
+                            <li>Ensure ID text is readable</li>
+                            <li>Create a strong password</li>
+                            <li>Double-check all information</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <footer class="footer">
+                <p>By registering you agree to the ISU policies and terms of service.</p>
+            </footer>
+        </div>
+    </div>
+
+    <script>
+        // Track/Specialization options for each course
+        const trackOptions = {
+            'BSIT': [
+                { value: 'Networking and Security', text: 'Networking and Security' },
+                { value: 'Business Analytics', text: 'Business Analytics' },
+                { value: 'Service Management for Business Process (BPO)', text: 'Service Management for Business Process (BPO)' },
+                { value: 'Web and Mobile Application Development', text: 'Web and Mobile Application Development' }
+            ],
+            'BSCS': [
+                { value: 'Business Analytics', text: 'Business Analytics' },
+                { value: 'Data Mining', text: 'Data Mining' }
+            ],
+            'BSEMC': [
+                { value: 'Game Development', text: 'Game Development' },
+                { value: 'Digital Animation', text: 'Digital Animation' }
+            ],
+            'BSIS': [], // No specific tracks for BSIS
+            'BSCpE': [] // No specific tracks for BSCpE
+        };
+
+        // Populate track dropdown based on selected course
+        function updateTrackOptions() {
+            const courseSelect = document.getElementById('course');
+            const trackSelect = document.getElementById('track');
+            const selectedCourse = courseSelect.value;
+
+            // Clear existing options except the first one
+            trackSelect.innerHTML = '<option value="">Select Track</option>';
+
+            // If a course is selected and has tracks, add them
+            if (selectedCourse && trackOptions[selectedCourse]) {
+                const tracks = trackOptions[selectedCourse];
+                
+                if (tracks.length > 0) {
+                    tracks.forEach(track => {
+                        const option = document.createElement('option');
+                        option.value = track.value;
+                        option.textContent = track.text;
+                        trackSelect.appendChild(option);
+                    });
+                    trackSelect.disabled = false;
+                } else {
+                    // No tracks available for this course
+                    trackSelect.disabled = true;
+                    const option = document.createElement('option');
+                    option.value = '';
+                    option.textContent = 'No tracks available';
+                    trackSelect.appendChild(option);
+                }
+            } else {
+                trackSelect.disabled = true;
+            }
+
+            // Restore previously selected track if it exists in form_data
+            {% if form_data and form_data.track %}
+            const savedTrack = "{{ form_data.track }}";
+            if (savedTrack) {
+                const matchingOption = Array.from(trackSelect.options).find(opt => opt.value === savedTrack);
+                if (matchingOption) {
+                    trackSelect.value = savedTrack;
+                }
+            }
+            {% endif %}
+        }
+
+        // Listen for course changes
+        document.getElementById('course').addEventListener('change', updateTrackOptions);
+
+        // Initialize tracks on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            updateTrackOptions();
+        });
+
+        // Password visibility toggle
+        function togglePassword(fieldId) {
+            const field = document.getElementById(fieldId);
+            const button = field.nextElementSibling;
+
+            if (field.type === 'password') {
+                field.type = 'text';
+                button.textContent = 'Hide';
+            } else {
+                field.type = 'password';
+                button.textContent = 'Show';
+            }
+        }
+
+        // Password strength checker
+        document.getElementById('password').addEventListener('input', function (e) {
+            const password = e.target.value;
+            const strengthFill = document.getElementById('strengthFill');
+            const strengthLabel = document.getElementById('strengthLabel');
+
+            let strength = 0;
+            let label = 'Very Weak';
+
+            if (password.length >= 6) strength += 25;
+            if (password.match(/[a-z]/)) strength += 25;
+            if (password.match(/[A-Z]/)) strength += 25;
+            if (password.match(/[0-9]/)) strength += 25;
+            if (password.match(/[^a-zA-Z0-9]/)) strength += 25;
+
+            if (strength >= 100) label = 'Very Strong';
+            else if (strength >= 75) label = 'Strong';
+            else if (strength >= 50) label = 'Medium';
+            else if (strength >= 25) label = 'Weak';
+
+            strengthFill.style.width = Math.min(strength, 100) + '%';
+            strengthLabel.textContent = password ? label : 'Type a password';
+        });
+
+        // Live preview updates
+        const formInputs = ['firstName', 'lastName', 'middleName', 'schoolId', 'course', 'track', 'yearLevel', 'section'];
+
+        formInputs.forEach(inputId => {
+            document.getElementById(inputId).addEventListener('input', updatePreview);
+        });
+
+        function updatePreview() {
+            const firstName = document.getElementById('firstName').value;
+            const lastName = document.getElementById('lastName').value;
+            const middleName = document.getElementById('middleName').value;
+            const schoolId = document.getElementById('schoolId').value;
+            const course = document.getElementById('course').value;
+            const track = document.getElementById('track').value;
+            const yearLevel = document.getElementById('yearLevel').value;
+            const section = document.getElementById('section').value;
+
+            // Update full name display
+            let fullName = '';
+            if (lastName || firstName || middleName) {
+                fullName = [lastName, firstName, middleName].filter(n => n).join(', ');
+            }
+            document.getElementById('previewName').textContent = fullName || '—';
+            
+            // Update individual name fields
+            document.getElementById('previewLastName').textContent = lastName || '—';
+            document.getElementById('previewFirstName').textContent = firstName || '—';
+            document.getElementById('previewMiddleName').textContent = middleName || '—';
+            
+            document.getElementById('previewId').textContent =
+                schoolId ? `School ID: ${schoolId}` : 'School ID: —';
+            document.getElementById('previewCourse').textContent = course || '—';
+            document.getElementById('previewTrack').textContent = track || '—';
+            document.getElementById('previewYear').textContent =
+                yearLevel ? `${yearLevel}${getOrdinalSuffix(yearLevel)} Year` : '—';
+            document.getElementById('previewSection').textContent = section || '—';
+        }
+
+        function getOrdinalSuffix(num) {
+            const suffixes = ['st', 'nd', 'rd', 'th'];
+            return suffixes[num - 1] || 'th';
+        }
+
+        // Enhanced photo upload functionality with validation and error handling
+        class PhotoUploadHandler {
+            constructor() {
+                this.maxFileSize = 5 * 1024 * 1024; // 5MB
+                this.allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+                this.photoInputs = ['idFront', 'idBack', 'facePhoto'];
+
+                this.init();
+            }
+
+            init() {
+                this.photoInputs.forEach(inputId => {
+                    const input = document.getElementById(inputId);
+                    if (input) {
+                        input.addEventListener('change', (e) => this.handleFileSelect(e));
+                    }
+                });
+            }
+
+            handleFileSelect(event) {
+                const input = event.target;
+                const file = input.files[0];
+                const previewTargetId = input.dataset.previewTarget;
+                const statusElementId = input.id + 'Status';
+                const previewElement = document.getElementById(previewTargetId);
+                const statusElement = document.getElementById(statusElementId);
+
+                if (!file) return;
+
+                // Clear previous status
+                this.clearStatus(statusElement);
+
+                // Validate file
+                const validation = this.validateFile(file, input);
+                if (!validation.valid) {
+                    this.showError(statusElement, validation.message);
+                    input.value = ''; // Clear the input
+                    return;
+                }
+
+                // Show loading state
+                this.showLoading(statusElement, 'Processing image...');
+
+                // Process the file
+                this.processFile(file, previewElement, statusElement, input);
+            }
+
+            validateFile(file, input) {
+                // Check file size
+                const maxSize = parseInt(input.dataset.maxSize) || this.maxFileSize;
+                if (file.size > maxSize) {
+                    const sizeMB = (maxSize / (1024 * 1024)).toFixed(1);
+                    return {
+                        valid: false,
+                        message: `File size must be less than ${sizeMB}MB`
+                    };
+                }
+
+                // Check file type
+                if (!this.allowedTypes.includes(file.type)) {
+                    return {
+                        valid: false,
+                        message: 'Please select a valid image file (JPG, PNG, WebP)'
+                    };
+                }
+
+                return { valid: true };
+            }
+
+            processFile(file, previewElement, statusElement, input) {
+                const reader = new FileReader();
+
+                reader.onload = (e) => {
+                    const img = new Image();
+
+                    img.onload = () => {
+                        // Create compressed preview
+                        const canvas = this.createOptimizedCanvas(img, 200, 200);
+                        const optimizedDataUrl = canvas.toDataURL('image/jpeg', 0.8);
+
+                        // Update preview
+                        previewElement.innerHTML = `<img src="${optimizedDataUrl}" alt="Preview" loading="lazy">`;
+
+                        // Show success
+                        this.showSuccess(statusElement, '✓ Image uploaded successfully');
+
+                        // Special handling for face photo
+                        if (input.id === 'facePhoto') {
+                            this.updateStudentAvatar(optimizedDataUrl);
+                        }
+                    };
+
+                    img.onerror = () => {
+                        this.showError(statusElement, 'Failed to process image');
+                    };
+
+                    img.src = e.target.result;
+                };
+
+                reader.onerror = () => {
+                    this.showError(statusElement, 'Failed to read file');
+                };
+
+                reader.onloadstart = () => {
+                    this.showLoading(statusElement, 'Reading file...');
+                };
+
+                // Read file
+                reader.readAsDataURL(file);
+            }
+
+            createOptimizedCanvas(img, maxWidth, maxHeight) {
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+
+                // Calculate dimensions
+                let { width, height } = this.calculateDimensions(img.width, img.height, maxWidth, maxHeight);
+
+                canvas.width = width;
+                canvas.height = height;
+
+                // Draw and compress
+                ctx.drawImage(img, 0, 0, width, height);
+
+                return canvas;
+            }
+
+            calculateDimensions(originalWidth, originalHeight, maxWidth, maxHeight) {
+                let width = originalWidth;
+                let height = originalHeight;
+
+                // Maintain aspect ratio
+                if (width > height) {
+                    if (width > maxWidth) {
+                        height = (height * maxWidth) / width;
+                        width = maxWidth;
+                    }
+                } else {
+                    if (height > maxHeight) {
+                        width = (width * maxHeight) / height;
+                        height = maxHeight;
+                    }
+                }
+
+                return { width: Math.round(width), height: Math.round(height) };
+            }
+
+            updateStudentAvatar(imageDataUrl) {
+                const avatarElement = document.getElementById('studentAvatar');
+                if (avatarElement) {
+                    avatarElement.innerHTML = `<img src="${imageDataUrl}" alt="Student Avatar" loading="lazy">`;
+                }
+            }
+
+            showError(element, message) {
+                element.textContent = message;
+                element.className = 'upload-status error';
+                element.setAttribute('role', 'alert');
+            }
+
+            showSuccess(element, message) {
+                element.textContent = message;
+                element.className = 'upload-status success';
+            }
+
+            showLoading(element, message) {
+                element.textContent = message;
+                element.className = 'upload-status loading';
+            }
+
+            clearStatus(element) {
+                element.textContent = '';
+                element.className = 'upload-status';
+                element.removeAttribute('role');
+            }
+        }
+
+        // Initialize photo upload handler when DOM is loaded
+        document.addEventListener('DOMContentLoaded', function() {
+            new PhotoUploadHandler();
+        });
+
+        // Password confirmation validation
+        document.getElementById('confirmPassword').addEventListener('input', function (e) {
+            const password = document.getElementById('password').value;
+            const confirmPassword = e.target.value;
+            const hint = document.getElementById('confirmHint');
+
+            if (confirmPassword) {
+                if (password === confirmPassword) {
+                    hint.textContent = '✓ Passwords match';
+                    hint.style.color = 'var(--success)';
+                } else {
+                    hint.textContent = '✗ Passwords do not match';
+                    hint.style.color = 'var(--danger)';
+                }
+            } else {
+                hint.textContent = '';
+            }
+        });
+
+        // Form submission
+        document.getElementById('registrationForm').addEventListener('submit', function (e) {
+            const submitBtn = document.querySelector('.submit-btn');
+            const originalText = submitBtn.innerHTML;
+
+            // Show loading state
+            submitBtn.innerHTML = '🚀 Creating Account...';
+            submitBtn.style.opacity = '0.7';
+            submitBtn.disabled = true;
+
+            // Let the form submit normally - Flask will handle it
+            // The page will redirect based on the response
+            // Don't prevent default - allow form submission
+        });
+
+        // Add floating animation to background shapes
+        document.addEventListener('DOMContentLoaded', function () {
+            const shapes = document.querySelectorAll('.bg-shape');
+            shapes.forEach((shape, index) => {
+                shape.style.animationDelay = `${index * -5}s`;
+            });
+        });
+
+        // Login link navigation
+        document.querySelector('.login-link').addEventListener('click', function (e) {
+            e.preventDefault();
+            window.location.href = '{{ url_for("auth.login") }}';
+        });
+
+        // Add subtle hover effects to form fields
+        document.querySelectorAll('input, select').forEach(field => {
+            field.addEventListener('mouseenter', function () {
+                this.style.transform = 'translateY(-1px)';
+            });
+
+            field.addEventListener('mouseleave', function () {
+                if (this !== document.activeElement) {
+                    this.style.transform = 'translateY(0)';
+                }
+            });
+        });
+
+        // Responsive: move preview-section inside the form before the submit button on small screens
+        function relocatePreview() {
+            const preview = document.querySelector('.preview-section');
+            const form = document.getElementById('registrationForm');
+            const submitSection = document.querySelector('.submit-section');
+            const content = document.querySelector('.content');
+            if (!preview || !form || !submitSection || !content) return;
+
+            // Use 480px as the mobile breakpoint for this behavior
+            if (window.innerWidth <= 480) {
+                if (preview.parentElement !== form) {
+                    // Insert preview before submit button inside the form
+                    form.insertBefore(preview, submitSection);
+                }
+            } else {
+                // Ensure preview is back in the content column on larger screens
+                if (preview.parentElement === form) {
+                    content.appendChild(preview);
+                }
+            }
+        }
+
+        // Debounce resize handler for performance
+        let _relocateTimer = null;
+        window.addEventListener('resize', function () {
+            clearTimeout(_relocateTimer);
+            _relocateTimer = setTimeout(relocatePreview, 120);
+        });
+
+        // Run on load to set initial placement
+        document.addEventListener('DOMContentLoaded', relocatePreview);
+
+        // Check for registration pending flash message
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        {% for category, message in messages %}
+        {% if message == 'registration_pending' %}
+        document.addEventListener('DOMContentLoaded', function() {
+            Swal.fire({
+                icon: 'info',
+                title: '⏳ Registration Pending Approval',
+                html: `
+                    <div style="text-align: left; padding: 20px;">
+                        <p style="font-size: 16px; margin-bottom: 15px;">
+                            Thank you for registering! Your account has been submitted for approval.
+                        </p>
+                        <div style="background: #f3f4f6; padding: 15px; border-radius: 8px; border-left: 4px solid #3b82f6;">
+                            <p style="margin: 0; font-size: 14px;">
+                                <strong>📧 Email Notification:</strong><br>
+                                You will receive an email notification at your registered email address once your account is:
+                            </p>
+                            <ul style="margin: 10px 0 0 20px; font-size: 14px;">
+                                <li>✅ <strong>Approved</strong> - You can then log in to the system</li>
+                                <li>❌ <strong>Not Approved</strong> - With information about the decision</li>
+                            </ul>
+                        </div>
+                        <p style="font-size: 13px; color: #6b7280; margin-top: 15px;">
+                            The administrator will review your registration soon. Please check your email regularly.
+                        </p>
+                    </div>
+                `,
+                confirmButtonText: 'OK, Got it!',
+                confirmButtonColor: '#3b82f6',
+                width: '600px',
+                customClass: {
+                    popup: 'registration-pending-popup'
+                }
+            });
+        });
+        {% endif %}
+        {% endfor %}
+        {% endif %}
+        {% endwith %}
+    </script>
+    <!-- SweetAlert2 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.7.32/dist/sweetalert2.all.min.js"></script>
+</body>
+
+</html>

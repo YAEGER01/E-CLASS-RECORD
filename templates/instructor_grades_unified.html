@@ -1,0 +1,762 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='css/instructor-grades-unified.css') }}"
+    />
+    <title>Unified — Grade Entry</title>
+    <style></style>
+    <style>
+      /* Rounded SweetAlert popups for this page */
+      .swal2-popup {
+        border-radius: 12px !important;
+      }
+      .swal2-container .swal2-popup {
+        box-shadow: 0 8px 30px rgba(16,24,40,0.12);
+      }
+      /* Glass styling for SweetAlert close button */
+      .swal2-close {
+        background: rgba(255, 255, 255, 0.1) !important;
+        backdrop-filter: blur(10px) !important;
+        border: 2px solid white !important;
+        border-radius: 50% !important;
+      }
+      /* Small floating pill for assessment input progress */
+      th.assess-head.assess-col { position: relative; }
+      /* Header pill on Grade Input toggle */
+      .grade-input-toggle { position: relative; }
+      .header-pill {
+        position: absolute;
+        top: 8px;
+        right: 8px;
+        background: #2563eb;
+        color: #fff;
+        padding: 4px 10px;
+        border-radius: 999px;
+        font-size: 0.825rem;
+        line-height: 1;
+        box-shadow: 0 6px 18px rgba(16,24,40,0.12);
+        white-space: nowrap;
+        z-index: 30;
+        pointer-events: none;
+      }
+      .header-pill.empty { background: #9ca3af; }
+      .input-pill {
+        position: absolute;
+        top: 6px;
+        right: 6px;
+        background: #059669;
+        color: #fff;
+        padding: 2px 8px;
+        border-radius: 999px;
+        font-size: 0.75rem;
+        line-height: 1;
+        box-shadow: 0 4px 10px rgba(16,24,40,0.12);
+        white-space: nowrap;
+        z-index: 20;
+        pointer-events: none;
+      }
+      .input-pill.empty { background: #9ca3af; color: #fff; }
+      .input-pill[aria-hidden="true"] { display: none; }
+    </style>
+    <script src="{{ url_for('static', filename='js/swal.js') }}"></script>
+  </head>
+  <body>
+    <div class="page">
+      <div
+        id="page-data"
+        data-class-id="{{ class_id }}"
+        data-structure-id="{{ structure_id }}"
+        data-csrf-token="{{ csrf_token }}"
+        data-class-type="{{ (class_info.class_type or 'MAJOR') if class_info else 'MAJOR' }}"
+        data-limited-view="{{ '1' if limited_view else '0' }}"
+        data-current-student="{{ current_student_id or '' }}"
+        style="display: none"
+      ></div>
+      <div class="toolbar">
+        <div>
+          <a class="btn" href="{% if limited_view %}{{ url_for('dashboard.student_dashboard') }}{% else %}{{ url_for('dashboard.instructor_dashboard') }}{% endif %}">← Back</a>
+        </div>
+        <div class="status" id="save-status"></div>
+        <div class="btn-row">
+
+        </div>
+      </div>
+
+      <div
+        class="class-details"
+        style="
+          margin: 12px 0;
+          padding: 10px 12px;
+          border: 1px solid #e5e7eb;
+          border-radius: 6px;
+          background: #fff;
+        "
+      >
+        {% set ci = class_info or {} %}
+        <div
+          style="display: flex; gap: 16px; flex-wrap: wrap; align-items: center"
+        >
+          <div style="font-weight: 700; font-size: 1.1rem">
+            {{ ci.course or 'Course' }} — {{ ci.subject or 'Subject' }}
+          </div>
+          <div style="color: #6b7280">
+            {{ ci.year or '' }} · {{ ci.semester or '' }} · Section {{
+            ci.section or '' }}
+          </div>
+          <div style="color: #6b7280">Type: {{ ci.class_type or 'MAJOR' }}</div>
+          <div style="color: #6b7280">Track: {{ ci.track or 'N/A' }}</div>
+          <div style="margin-left: auto; color: #374151">
+            Join Code: <strong>{{ ci.join_code or '-' }}</strong>
+          </div>
+        </div>
+      </div>
+      <br />
+      <!-- Structure summary and quick add (dropdown per category) -->
+      <div class="collapsable-drawer-container">
+        <button
+          class="drawer-toggle collapsed"
+          aria-expanded="false"
+          aria-controls="drawerContentStructure"
+        >
+          <h1>Add Assessments <span class="arrow-icon">▼</span></h1>
+        </button>
+
+        <div
+          class="drawer-content"
+          id="drawerContentStructure"
+          aria-hidden="true"
+        >
+          <div id="structure-actions" style="margin: 8px 0 12px 0">
+            {% if structure %} {% for cat in ['LECTURE','LABORATORY'] %} {% set
+            sublist = structure.get(cat) or [] %} {% if sublist %}
+            <div
+              class="structure-cat"
+              data-category="{{ cat|lower }}"
+              style="margin: 6px 0; font-weight: 700"
+            >
+              {{ cat }}
+            </div>
+            <div
+              style="
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                margin-bottom: 8px;
+              "
+            >
+              <select
+                id="select-{{ cat|lower }}"
+                data-category="{{ cat }}"
+                class="btn"
+                style="min-width: 260px"
+              >
+                {% for sub in sublist %} {% set sid = (sub_id_map.get(cat, {})
+                or {}).get(sub.name) %}
+                <option value="{{ sub.name }}" data-subcategory-id="{{ sid }}">
+                  {{ sub.name }} — {{ '%.2f' % (sub.weight|float) }}%
+                </option>
+                {% endfor %}
+              </select>
+              <button
+                class="btn"
+                data-action="add-assessment-select"
+                data-select-id="select-{{ cat|lower }}"
+              >
+                + Add assessment
+              </button>
+            </div>
+            {% endif %} {% endfor %} {% else %}
+            <div class="status">No active grading structure found.</div>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+      <br />
+      <div class="collapsable-drawer-container">
+        <button
+          class="drawer-toggle collapsed grade-input-toggle"
+          aria-expanded="false"
+          aria-controls="drawerContentMatrix"
+          style="position: relative"
+        >
+          <h1>Grade Input<span class="arrow-icon">▼</span></h1>
+          <span id="grade-input-pill" class="header-pill" title="Completed: 0 of {{ students|length }}">0% · 0/{{ students|length }}</span>
+        </button>
+
+        <div class="drawer-content" id="drawerContentMatrix" aria-hidden="true">
+          <div class="drawerContentHeader">
+            <strong>Instructions:</strong> Enter student scores in the input
+            fields below. Computed totals, equivalent ratings, and percentages
+            will be calculated automatically. Use the "Final Grade" section
+            below to view overall grades.
+            <div class="actions">
+              <button id="undo-btn" data-action="undo" class="btn">Undo</button>
+              <button id="redo-btn" data-action="redo" class="btn">Redo</button>
+              <button data-action="clear-inputs">Clear Inputs</button>
+              <button data-action="toggle-lock">Lock/Unlock Data</button>
+              <button data-action="submit-inputs">Submit</button>
+            </div>
+          </div>
+          <br />
+          <div class="matrix-wrapper">
+            <table class="matrix">
+              <thead>
+                <!-- Section titles row for clear separation -->
+                <tr>
+                  <th class="sticky-left" rowspan="4" style="z-index: 3;">#</th>
+                  <th class="sticky-left" rowspan="4" style="z-index: 1000;">Student</th>
+                  {% set all_cats = ['LECTURE','LABORATORY'] %} {% for cat in
+                  all_cats %} {% set subs = grouped_assessments.get(cat, {}) %}
+                  {% set col_span = 0 %} {% for subdef in (structure.get(cat) or
+                  []) %} {% set subname = subdef.name %} {% set arr =
+                  subs.get(subname, []) %} {% set arr_len = arr|length %} {% set
+                  col_span = col_span + (arr_len + 3 if arr_len > 0 else 1) %}
+                  {% endfor %} {% if col_span > 0 %}
+                  <th class="section-cell" colspan="{{ col_span + 2 }}">
+                    {{ cat }}
+                  </th>
+                  {% endif %} {% endfor %}
+                </tr>
+                <!-- Section subtitles row -->
+                <tr>
+                  {% for cat in all_cats %} {% set subs =
+                  grouped_assessments.get(cat, {}) %} {% set col_span = 0 %} {%
+                  for subdef in (structure.get(cat) or []) %} {% set subname =
+                  subdef.name %} {% set arr = subs.get(subname, []) %} {% set
+                  arr_len = arr|length %} {% set col_span = col_span + (arr_len
+                  + 3 if arr_len > 0 else 1) %} {% endfor %} {% if col_span > 0
+                  %}
+                  <th class="section-subtitle" colspan="{{ col_span + 2 }}">
+                    {% if cat == 'LECTURE' %}Lecture Categories{% else
+                    %}Laboratory Categories{% endif %}
+                  </th>
+                  {% endif %} {% endfor %}
+                </tr>
+                <tr>
+                  {% for cat in all_cats %} {% set subs =
+                  grouped_assessments.get(cat, {}) %} {% for subdef in
+                  (structure.get(cat) or []) %} {% set sub = subdef.name %} {%
+                  set arr = subs.get(sub, []) %} {% set arr_len = arr|length %}
+                  {% set spanv = (arr_len + 3 if arr_len > 0 else 1) %} {% set w
+                  = subdef.weight %} {# Add a data-category attribute and class
+                  so we can target only the subcategory header cells #}
+                  <th
+                    class="subcell subcat-head"
+                    data-category="{{ cat|lower }}"
+                    colspan="{{ spanv }}"
+                  >
+                    {{ sub }}{% if w is not none %} — {{ '%.2f' % (w|float)
+                    }}%{% endif %}
+                  </th>
+                  {% endfor %} {# Add the rating column for this category at the end #}
+                  <th
+                    class="subcell subcat-head grade-calc-header"
+                    data-category="{{ cat|lower }}"
+                    colspan="2"
+                    style="background-color: #22c55e; color: white;"
+                  >
+                    GRADE CALCULATION
+                  </th>
+                  {% endfor %}
+                </tr>
+                <tr>
+                  {% for cat in all_cats %} {% set subs =
+                  grouped_assessments.get(cat, {}) %} {% for subdef in
+                  (structure.get(cat) or []) %} {% set sub = subdef.name %} {%
+                  set arr = subs.get(sub, []) %} {% set w = subdef.weight %} {%
+                  if (arr|length) == 0 %}
+                  <th class="assess-head">
+                    <button
+                      class="btn"
+                      data-action="add-assessment"
+                      data-subcategory="{{ sub }}"
+                      data-category="{{ cat }}"
+                      data-subcategory-id="{{ (sub_id_map.get(cat, {}) or {}).get(sub) }}"
+                    >
+                      + Add
+                    </button>
+                  </th>
+                  {% else %} {% for a in arr %}
+                  <th
+                    class="assess-head assess-col"
+                    title="Max {{ a.max_score }}"
+                    data-assessment-id="{{ a.id }}"
+                    data-category="{{ cat }}"
+                    data-subcategory="{{ sub }}"
+                    data-max="{{ a.max_score }}"
+                    data-subweight="{{ (w|float) if w is not none else 0 }}"
+                  >
+                    {{ a.name }}
+                    <div class="max">
+                      / {{ a.max_score }}
+                      <button
+                        class="btn"
+                        style="
+                          padding: 2px 6px;
+                          font-size: 0.85em;
+                          margin-left: 4px;
+                          vertical-align: middle;
+                        "
+                        data-action="edit-assessment"
+                        data-assessment-id="{{ a.id }}"
+                        data-category="{{ cat }}"
+                        data-subcategory="{{ sub }}"
+                        data-max="{{ a.max_score }}"
+                      >
+                        ✎ Edit
+                      </button>
+                    </div>
+                  </th>
+                  {% endfor %} {# Computed columns per subcategory #}
+                  <th
+                    class="assess-head computed-head total-col"
+                    data-category="{{ cat }}"
+                    data-subcategory="{{ sub }}"
+                    data-subweight="{{ (w|float) if w is not none else 0 }}"
+                  >
+                    TOTAL
+                  </th>
+                  <th
+                    class="assess-head computed-head equiv-col"
+                    data-category="{{ cat }}"
+                    data-subcategory="{{ sub }}"
+                    data-subweight="{{ (w|float) if w is not none else 0 }}"
+                  >
+                    EQUIVALENT RATING
+                  </th>
+                  <th
+                    class="assess-head computed-head reqpct-col"
+                    data-category="{{ cat }}"
+                    data-subcategory="{{ sub }}"
+                    data-subweight="{{ (w|float) if w is not none else 0 }}"
+                  >
+                    % of REQUIREMENT
+                  </th>
+                  {% endif %} {% endfor %} {# Add the rating column header for this category #}
+                  <th
+                    class="assess-head computed-head rating-col"
+                    data-category="{{ cat }}"
+                    style="background-color: #22c55e; color: white;"
+                  >
+                    INITIAL GRADE
+                  </th>
+                  <th
+                    class="assess-head computed-head final-col"
+                    data-category="{{ cat }}"
+                    style="background-color: #22c55e; color: white;"
+                  >
+                    FINAL GRADE
+                  </th>
+                  {% endfor %}
+                </tr>
+              </thead>
+              <tbody id="tbody">
+                {% for s in students %}
+                <tr data-student-id="{{ s.id }}">
+                  <td class="sticky-left">{{ loop.index }}</td>
+                  <td class="sticky-left">{{ s.name }}{% if s.school_id %} <br><hr> {{ s.school_id }}{% endif %}</td>
+                  {% for cat in all_cats %} {% set subs =
+                  grouped_assessments.get(cat, {}) %} {% for subdef in
+                  (structure.get(cat) or []) %} {% set sub = subdef.name %} {%
+                  set arr = subs.get(sub, []) %} {% if (arr|length) == 0 %}
+                  <td style="text-align: center; color: #cbd5e1">—</td>
+                  {% else %} {% for a in arr %} {% set sc =
+                  scores_map.get((s.id, a.id)) %}
+                  <td>
+                    <input
+                      class="score"
+                      type="number"
+                      min="0"
+                      max="{{ a.max_score }}"
+                      step="0.01"
+                      data-student="{{ s.id }}"
+                      data-assessment="{{ a.id }}"
+                      value="{{ sc if sc is not none else '' }}"
+                    />
+                  </td>
+                  {% endfor %} {# Computed value cells per subcategory #}
+                  <td
+                    class="computed total-col"
+                    data-category="{{ cat }}"
+                    data-subcategory="{{ sub }}"
+                    data-subweight="{{ (subdef.weight|float) if subdef.weight is not none else 0 }}"
+                  ></td>
+                  <td
+                    class="computed equiv-col"
+                    data-category="{{ cat }}"
+                    data-subcategory="{{ sub }}"
+                    data-subweight="{{ (subdef.weight|float) if subdef.weight is not none else 0 }}"
+                  ></td>
+                  <td
+                    class="computed reqpct-col"
+                    data-category="{{ cat }}"
+                    data-subcategory="{{ sub }}"
+                    data-subweight="{{ (subdef.weight|float) if subdef.weight is not none else 0 }}"
+                  ></td>
+                  {% endif %} {% endfor %} {# Add the rating cell for this category #}
+                  <td
+                    class="computed rating-col"
+                    data-category="{{ cat }}"
+                  ></td>
+                  <td
+                    class="computed final-col"
+                    data-category="{{ cat }}"
+                  ></td>
+                  {% endfor %}
+                </tr> 
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div class="collapsable-drawer-container">
+        <button
+          class="drawer-toggle collapsed"
+          aria-expanded="false"
+          aria-controls="drawerContentFinal"
+        >
+          <h1>FINAL GRADE<span class="arrow-icon">▼</span></h1>
+        </button>
+
+        <div class="drawer-content" id="drawerContentFinal" aria-hidden="true">
+          <br />
+          <div class="matrix-wrapper">
+            <table class="matrix final-grade-table">
+              <thead>
+                <tr>
+                  <th class="sticky-left">#</th>
+                  <th class="sticky-left">Student</th>
+                  <th class="lecture-header">LECTURE</th>
+                  <th class="laboratory-header" style="display: none;">LABORATORY</th>
+                  <th class="raw-grade-header">RAW GRADE</th>
+                  <th class="total-grade-header">TOTAL GRADE</th>
+                  <th>GRADE MARK</th>
+                  <th>REMARKS</th>
+                  <th>DRP</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for s in students %}
+                <tr data-student-id="{{ s.id }}">
+                  <td class="sticky-left">{{ loop.index }}</td>
+                  <td class="sticky-left">{{ s.name }}</td>
+                  <td class="lecture-grade" data-student="{{ s.id }}"></td>
+                  <td class="laboratory-grade" data-student="{{ s.id }}" style="display: none;"></td>
+                  <td class="raw-grade" data-student="{{ s.id }}"></td>
+                  <td class="total-grade" data-student="{{ s.id }}"></td>
+                  <td class="grade-mark" data-student="{{ s.id }}"></td>
+                  <td class="remarks" data-student="{{ s.id }}"></td>
+                  <td style="text-align: center;"><input type="checkbox" class="dropped-checkbox" data-student="{{ s.id }}" title="Mark as Dropped" {% if s.is_dropped %}checked{% endif %}></td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+    <script id="ga-json" type="application/json">
+      {{ grouped_assessments | tojson }}
+    </script>
+    <script>
+      (function () {
+        function hasSubcategories(cat, ga) {
+          if (!ga || !ga[cat]) return false;
+          var sub = ga[cat];
+          for (var k in sub) {
+            if (Object.prototype.hasOwnProperty.call(sub, k)) {
+              var arr = sub[k];
+              if (Array.isArray(arr) && arr.length > 0) return true;
+            }
+          }
+          return false;
+        }
+
+        function hideRatingColumnFor(cat) {
+          // Hide all subcategory headers for this category
+          var subheads = document.querySelectorAll('th.subcell.subcat-head[data-category]');
+          subheads.forEach(function (h) {
+            if ((h.getAttribute('data-category') || '').toLowerCase() === cat.toLowerCase()) {
+              h.style.display = 'none';
+            }
+          });
+
+          // Hide GRADE CALCULATION header for this category
+          var gradeCalcHeaders = document.querySelectorAll('th.grade-calc-header[data-category]');
+          gradeCalcHeaders.forEach(function (h) {
+            if ((h.getAttribute('data-category') || '').toUpperCase() === cat.toUpperCase()) {
+              h.style.display = 'none';
+            }
+          });
+
+          // Hide INITIAL GRADE header for this category
+          var hdrs = document.querySelectorAll('th.rating-col[data-category]');
+          hdrs.forEach(function (h) {
+            if ((h.getAttribute('data-category') || '').toUpperCase() === cat.toUpperCase()) {
+              h.style.display = 'none';
+            }
+          });
+
+          // Hide FINAL GRADE header for this category
+          var finalHdrs = document.querySelectorAll('th.final-col[data-category]');
+          finalHdrs.forEach(function (h) {
+            if ((h.getAttribute('data-category') || '').toUpperCase() === cat.toUpperCase()) {
+              h.style.display = 'none';
+            }
+          });
+
+          // Hide per-student INITIAL GRADE cells for this category
+          var cells = document.querySelectorAll('td.computed.rating-col[data-category]');
+          cells.forEach(function (c) {
+            if ((c.getAttribute('data-category') || '').toUpperCase() === cat.toUpperCase()) {
+              c.style.display = 'none';
+            }
+          });
+
+          // Hide per-student FINAL GRADE cells for this category
+          var finalCells = document.querySelectorAll('td.computed.final-col[data-category]');
+          finalCells.forEach(function (c) {
+            if ((c.getAttribute('data-category') || '').toUpperCase() === cat.toUpperCase()) {
+              c.style.display = 'none';
+            }
+          });
+        }
+
+        document.addEventListener('DOMContentLoaded', function () {
+          var gaEl = document.getElementById('ga-json');
+          var ga = {};
+          if (gaEl) {
+            try {
+              ga = JSON.parse(gaEl.textContent || gaEl.innerText || '{}');
+            } catch (e) {
+              ga = {};
+            }
+          }
+
+          var cats = ['LECTURE', 'LABORATORY'];
+          cats.forEach(function (cat) {
+            // Only hide rating/initial headers for a category if there are
+            // no assessment columns present for that category in the table.
+            var selector = `th.assess-head[data-category="${cat}"], th.assess-col[data-category="${cat}"], th.assess-head.assess-col[data-category="${cat}"]`;
+            var hasCols = Boolean(document.querySelector(selector));
+            if (!hasCols) hideRatingColumnFor(cat);
+          });
+        });
+      })();
+    </script>
+    <script>
+      // Client-side enforcement for limited student view
+      document.addEventListener('DOMContentLoaded', function () {
+        try {
+          var page = document.getElementById('page-data');
+          if (!page) return;
+          var limited = page.getAttribute('data-limited-view') === '1';
+          var current = page.getAttribute('data-current-student') || '';
+          if (!limited) return;
+
+          // Hide rows that are not the current student
+          document.querySelectorAll('#tbody tr[data-student-id]').forEach(function (r) {
+            var sid = (r.getAttribute('data-student-id') || '').toString();
+            if (sid !== current) r.style.display = 'none';
+          });
+
+          // Disable inputs that do not belong to the current student
+          document.querySelectorAll('input.score').forEach(function (inp) {
+            var sid = inp.getAttribute('data-student') || '';
+            if (sid !== current) inp.disabled = true;
+          });
+
+          // Hide interactive buttons / controls
+          document.querySelectorAll('[data-action]').forEach(function (el) {
+            el.style.display = 'none';
+          });
+
+          // Remove add/edit controls that may still be present
+          document.querySelectorAll('button[data-action="add-assessment"], button[data-action="edit-assessment"]').forEach(function (b) {
+            b.style.display = 'none';
+          });
+        } catch (e) {
+          console.error('Limited view guard failed', e);
+        }
+      });
+    </script>
+    <script>
+      document.addEventListener('DOMContentLoaded', function () {
+        function updatePills() {
+          var totalStudents = document.querySelectorAll('#tbody tr[data-student-id]').length || 0;
+          document.querySelectorAll('span.input-pill[data-assessment-id]').forEach(function (pill) {
+            var aid = pill.getAttribute('data-assessment-id');
+            var inputs = document.querySelectorAll('input.score[data-assessment="' + aid + '"]');
+            var filled = 0;
+            inputs.forEach(function (inp) {
+              var v = inp.value;
+              if (v !== null && v.toString().trim() !== '') filled++;
+            });
+            var pct = totalStudents ? Math.round((filled / totalStudents) * 100) : 0;
+            pill.textContent = pct + '% · ' + filled + '/' + totalStudents;
+            if (filled === 0) pill.classList.add('empty'); else pill.classList.remove('empty');
+            pill.setAttribute('title', 'Inputs: ' + filled + ' of ' + totalStudents);
+          });
+          // compute overall student completion (student has values for all their inputs)
+          var completed = 0;
+          document.querySelectorAll('#tbody tr[data-student-id]').forEach(function (row) {
+            var inputs = row.querySelectorAll('input.score');
+            if (!inputs || inputs.length === 0) return;
+            var filledForStudent = 0;
+            inputs.forEach(function (inp) {
+              var v = inp.value;
+              if (v !== null && v.toString().trim() !== '') filledForStudent++;
+            });
+            if (filledForStudent === inputs.length) completed++;
+          });
+
+          var headerPill = document.getElementById('grade-input-pill');
+          if (headerPill) {
+            var pctAll = totalStudents ? Math.round((completed / totalStudents) * 100) : 0;
+            headerPill.textContent = pctAll + '% · ' + completed + '/' + totalStudents;
+            if (completed === 0) headerPill.classList.add('empty'); else headerPill.classList.remove('empty');
+            headerPill.setAttribute('title', 'Completed: ' + completed + ' of ' + totalStudents);
+          }
+        }
+
+        // initial update
+        updatePills();
+
+        // attach to existing inputs
+        document.querySelectorAll('input.score').forEach(function (inp) {
+          inp.addEventListener('input', updatePills);
+          inp.addEventListener('change', updatePills);
+        });
+
+        // watch for dynamic changes in the tbody (new rows/inputs or value attr changes)
+        var tbody = document.getElementById('tbody');
+        if (tbody && window.MutationObserver) {
+          var mo = new MutationObserver(function () { setTimeout(updatePills, 50); });
+          mo.observe(tbody, { childList: true, subtree: true, attributes: true, attributeFilter: ['value'] });
+        }
+      });
+    </script>
+    <script>
+      (function () {
+        var undoStack = [];
+        var redoStack = [];
+        var maxStack = 1000;
+
+        function setButtons() {
+          var u = document.getElementById('undo-btn');
+          var r = document.getElementById('redo-btn');
+          if (u) u.disabled = undoStack.length === 0;
+          if (r) r.disabled = redoStack.length === 0;
+        }
+
+        function recordChange(oldVal, newVal, student, assessment) {
+          if (oldVal === newVal) return;
+          undoStack.push({ old: oldVal, new: newVal, student: student, assessment: assessment });
+          if (undoStack.length > maxStack) undoStack.shift();
+          redoStack.length = 0;
+          setButtons();
+        }
+
+        function findInput(student, assessment) {
+          return document.querySelector('input.score[data-student="' + student + '"][data-assessment="' + assessment + '"]');
+        }
+
+        function applyValue(input, value) {
+          if (!input) return;
+          input.value = value;
+          input.dataset.prev = value;
+          // notify other scripts
+          input.dispatchEvent(new Event('input', { bubbles: true }));
+          input.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+
+        function performUndo() {
+          if (undoStack.length === 0) return;
+          var change = undoStack.pop();
+          var input = findInput(change.student, change.assessment);
+          applyValue(input, change.old);
+          redoStack.push(change);
+          setButtons();
+        }
+
+        function performRedo() {
+          if (redoStack.length === 0) return;
+          var change = redoStack.pop();
+          var input = findInput(change.student, change.assessment);
+          applyValue(input, change.new);
+          undoStack.push(change);
+          setButtons();
+        }
+
+        document.addEventListener('DOMContentLoaded', function () {
+          // Attach handlers to existing inputs
+          document.querySelectorAll('input.score').forEach(function (inp) {
+            inp.addEventListener('focus', function () {
+              inp.dataset.prev = inp.value == null ? '' : inp.value;
+            });
+
+            inp.addEventListener('change', function () {
+              var prev = inp.dataset.prev == null ? '' : inp.dataset.prev;
+              var cur = inp.value == null ? '' : inp.value;
+              recordChange(prev, cur, inp.getAttribute('data-student'), inp.getAttribute('data-assessment'));
+              inp.dataset.prev = cur;
+            });
+          });
+
+          var ub = document.getElementById('undo-btn');
+          var rb = document.getElementById('redo-btn');
+          if (ub) ub.addEventListener('click', performUndo);
+          if (rb) rb.addEventListener('click', performRedo);
+
+          // Keyboard shortcuts: Ctrl+Z / Ctrl+Y (and Ctrl+Shift+Z)
+          document.addEventListener('keydown', function (e) {
+            var key = (e.key || '').toLowerCase();
+            var isCtrl = e.ctrlKey || e.metaKey;
+            if (!isCtrl) return;
+            if (!e.shiftKey && key === 'z') {
+              e.preventDefault();
+              performUndo();
+            } else if ((key === 'y') || (e.shiftKey && key === 'z')) {
+              e.preventDefault();
+              performRedo();
+            }
+          });
+
+          setButtons();
+
+          // Observe dynamically added inputs (e.g., if rows/assessments added)
+          var tbody = document.getElementById('tbody');
+          if (tbody && window.MutationObserver) {
+            var mo = new MutationObserver(function (mutations) {
+              mutations.forEach(function (m) {
+                if (m.addedNodes && m.addedNodes.length) {
+                  m.addedNodes.forEach(function (n) {
+                    if (n.nodeType === 1) {
+                      n.querySelectorAll && n.querySelectorAll('input.score').forEach(function (inp) {
+                        inp.addEventListener('focus', function () { inp.dataset.prev = inp.value == null ? '' : inp.value; });
+                        inp.addEventListener('change', function () {
+                          var prev = inp.dataset.prev == null ? '' : inp.dataset.prev;
+                          var cur = inp.value == null ? '' : inp.value;
+                          recordChange(prev, cur, inp.getAttribute('data-student'), inp.getAttribute('data-assessment'));
+                          inp.dataset.prev = cur;
+                        });
+                      });
+                    }
+                  });
+                }
+              });
+            });
+            mo.observe(tbody, { childList: true, subtree: true });
+          }
+        });
+      })();
+    </script>
+    <script src="{{ url_for('static', filename='js/instructor_grades_unified.js') }}"></script>
+  </body>
+</html>

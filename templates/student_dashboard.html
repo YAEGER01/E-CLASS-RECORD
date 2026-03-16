@@ -1,0 +1,2583 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Dashboard - E-Class Record</title>
+    <script src="{{ url_for('static', filename='js/swal.js') }}"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="{{ url_for('static', filename='js/socket.io.min.js') }}"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/student-dashboard.css') }}">
+</head>
+
+<body>
+    <div class="header">
+        <div>
+            <h1>🎓 Student Dashboard</h1>
+            <p>Welcome, {{ user.personal_info.first_name }} {{ user.personal_info.last_name }} ({{ user.school_id }})!</p>
+        </div>
+        <a href="{{ url_for('auth.logout') }}" class="logout-btn">Logout</a>
+    </div>
+
+    <!-- Auto-refresh indicators -->
+    <div id="autoRefreshIndicator" class="auto-refresh-indicator">Auto-refresh enabled</div>
+    <div id="refreshTimestamp" class="refresh-timestamp">Last updated: Just now</div>
+    <div id="connectionStatus" class="connection-status" title="Connection status"></div>
+
+    <div class="dashboard-grid">
+        <div class="card">
+            <div class="card-header">
+                <h3>📚 My Profile</h3>
+                <button onclick="editProfile()" id="editProfileBtn" class="edit-btn">✏️ Edit</button>
+            </div>
+
+            <div class="profile-content">
+                {% if user.student_profile.face_photo_path %}
+                <img id="profilePhoto" src="{{ url_for('static', filename=user.student_profile.face_photo_path) }}" data-default="{{ url_for('static', filename='images/default-profile.svg') }}" alt="Profile Photo" onerror="this.onerror=null;this.src=this.dataset.default;" class="profile-img">
+                {% elif user.student_profile.photo_path %}
+                <img id="profilePhoto" src="{{ url_for('static', filename=user.student_profile.photo_path) }}" data-default="{{ url_for('static', filename='images/default-profile.svg') }}" alt="Profile Photo" onerror="this.onerror=null;this.src=this.dataset.default;" class="profile-img">
+                {% elif user.student_profile.photo %}
+                <img id="profilePhoto" src="{{ url_for('static', filename=user.student_profile.photo) }}" data-default="{{ url_for('static', filename='images/default-profile.svg') }}" alt="Profile Photo" onerror="this.onerror=null;this.src=this.dataset.default;" class="profile-img">
+                {% elif user.student_profile.photo_url %}
+                <img id="profilePhoto" src="{{ user.student_profile.photo_url }}" data-default="{{ url_for('static', filename='images/default-profile.svg') }}" alt="Profile Photo" onerror="this.onerror=null;this.src=this.dataset.default;" class="profile-img">
+                {% else %}
+                <img id="profilePhoto" src="{{ url_for('static', filename='images/default-profile.svg') }}" data-default="{{ url_for('static', filename='images/default-profile.svg') }}" alt="Profile Photo" class="profile-img">
+                {% endif %}
+                <div class="profile-info">
+                    <p><strong>School ID:</strong> <span id="schoolIdSpan">{{ user.school_id }}</span></p>
+                    <p><strong>Course:</strong> <span id="courseSpan">{{ user.student_profile.course }}</span></p>
+                    <p><strong>Year Level:</strong> <span id="yearLevelSpan">{{ user.student_profile.year_level }}</span></p>
+                    <p><strong>Section:</strong> <span id="sectionSpan">{{ user.student_profile.section }}</span></p>
+                    {% if user.student_profile.track %}
+                    <p><strong>Track:</strong> <span id="trackSpan">{{ user.student_profile.track }}</span></p>
+                    {% else %}
+                    <p class="no-track"><em id="trackSpan">No track set</em></p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        <div class="card">
+            <div class="card-header">
+                <h3>🔔 Class Updates & Notifications</h3>
+                <div id="notificationCount" class="notification-badge">0</div>
+            </div>
+            <p>Stay updated with important notifications about your classes.</p>
+            <div id="classNotificationsList" class="notifications-list">
+                <div class="notifications-loading">
+                    <div class="spinner"></div> Loading notifications...
+                </div>
+            </div>
+            <button onclick="viewAllNotifications()" class="view-all-notifications-btn">📋 View All Updates</button>
+        </div>
+
+        <!-- Mobile Carousel for Join Classes -->
+        <div class="mobile-carousel join-classes-carousel">
+            <div class="carousel-header">
+                <h3>📚 Join & Manage Classes</h3>
+                <div class="carousel-controls">
+                    <button class="carousel-arrow carousel-prev" data-carousel="join-classes">‹</button>
+                    <button class="carousel-arrow carousel-next" data-carousel="join-classes">›</button>
+                </div>
+            </div>
+            <div class="carousel-container">
+                <div class="carousel-slides">
+                    <div class="carousel-slide">
+                        <div class="card">
+                            <h3>🚀 JOIN CLASS</h3>
+                            <p>Enter a class join code to enroll in a new class.</p>
+                            <div class="join-section">
+                                <input type="text" id="joinCodeMobile" placeholder="Enter 6-digit join code" maxlength="6">
+                                <button onclick="joinClass()" class="join-btn">🚀 Join Class</button>
+                            </div>
+                            <div id="joinMessageMobile"></div>
+                        </div>
+                    </div>
+                    <div class="carousel-slide">
+                        <div class="card" >
+                            <div class="classes-header">
+                                <div>
+                                    <h3>📚 Joined Classes</h3>
+                                    <p class="classes-subtitle">Your enrolled classes</p>
+                                </div>
+                                <div id="classCountMobile" class="class-count">0</div>
+                            </div>
+                            <div id="joinedClassesListMobile">
+                                <p class="loading-text">Loading classes...</p>
+                            </div>
+                            <button id="toggleClassesBtnMobile" onclick="toggleClassList()" class="toggle-btn">
+                                📖 View All Classes
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Desktop versions of Join Class and Joined Classes cards -->
+        <div class="desktop-card join-class-card">
+            <h3>🚀 JOIN CLASS</h3>
+            <p>Enter a class join code to enroll in a new class.</p>
+            <div class="join-section">
+                <input type="text" id="joinCodeDesktop" placeholder="Enter 6-digit join code" maxlength="6">
+                <button onclick="joinClass()" class="join-btn">🚀 Join Class</button>
+            </div>
+            <div id="joinMessageDesktop"></div>
+        </div>
+
+        <div class="desktop-card joined-classes-card">
+            <div class="classes-header">
+                <div>
+                    <h3>📚 Joined Classes</h3>
+                    <p class="classes-subtitle">Your enrolled classes</p>
+                </div>
+                <div id="classCountDesktop" class="class-count">0</div>
+            </div>
+            <div id="joinedClassesListDesktop">
+                <p class="loading-text">Loading classes...</p>
+            </div>
+            <button id="toggleClassesBtnDesktop" onclick="toggleClassList()" class="toggle-btn">
+                📖 View All Classes
+            </button>
+        </div>
+
+        <!-- WHAT IF card: quick access to limited instructor unified view -->
+        <div class="desktop-card whatif-card" style="display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:18px;">
+            <h3 style="margin:0; font-size:1.15rem;">WHAT IF???</h3>
+            <div style="font-size:72px; line-height:1; font-weight:700; color:#111827; margin:8px 0;">?</div>
+            <p style="color:#6b7280; margin:6px 0 12px 0;">Peek at the instructor's unified grade view (limited access).</p>
+            <div style="width:100%; max-width:360px; display:flex; justify-content:center;">
+                <button id="whatifOpenBtn" class="view-grades-btn" style="background:#2563eb; color:#fff; border:none; padding:10px 16px; border-radius:10px; cursor:pointer; font-weight:700;">Open WHAT IF</button>
+            </div>
+            <small id="whatifHelp" style="display:block; margin-top:8px; color:#9ca3af;">Only shows limited student view for enrolled classes.</small>
+        </div>
+
+        <!-- Mobile Carousel for Grades and Assessments -->
+        <div class="mobile-carousel grades-assessments-carousel">
+            <div class="carousel-header">
+                <h3>📊 Grades & Assessments</h3>
+                <div class="carousel-controls">
+                    <button class="carousel-arrow carousel-prev" data-carousel="grades-assessments">‹</button>
+                    <button class="carousel-arrow carousel-next" data-carousel="grades-assessments">›</button>
+                </div>
+            </div>
+            <div class="carousel-container">
+                <div class="carousel-slides">
+                    <div class="carousel-slide">
+                        <div class="card">
+                            <h3>📊 My Grades & Reports</h3>
+                            <p>View your grades and export reports.</p>
+                            <div class="grades-actions">
+                                <a href="{{ url_for('student.student_classes') }}" class="view-grades-btn">📊 View Grades</a>
+                                <!--button onclick="exportStudentReport()" class="export-btn">📄 Export Report</button-->
+                            </div>
+                        </div>
+                    </div>
+                    <div class="carousel-slide">
+                        <div class="card">
+                            <div class="card-header">
+                                <h3>⚠️ Missing Assessments</h3>
+                                <button id="missingAssessmentsToggle" onclick="toggleMissingAssessmentsDrawer()" class="toggle-drawer-btn">
+                                    📋 View Details
+                                </button>
+                            </div>
+                            <p>Track assessments that need to be completed across your classes.</p>
+                            <div id="missingAssessmentsSummary" class="missing-assessments-summary">
+                                <div class="summary-loading">
+                                    <div class="spinner"></div> Loading missing assessments...
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Desktop versions of Grades and Assessments cards -->
+        <div class="desktop-card grades-card">
+            <h3>📊 My Grades & Reports</h3>
+            <p>View your grades and reports.</p>
+            <div class="grades-actions">
+                <a href="{{ url_for('student.student_classes') }}" class="view-grades-btn">📊 View Grades</a>
+            </div>
+        </div>
+
+
+        <div class="desktop-card assessments-card">
+            <div class="card-header">
+                <h3>⚠️ Missing</h3>
+                <button id="missingAssessmentsToggle" onclick="toggleMissingAssessmentsDrawer()" class="toggle-drawer-btn">
+                    📋 View Details
+                </button>
+            </div>
+            <p>Track assessments that need to be completed across your classes.</p>
+            <div id="missingAssessmentsSummary" class="missing-assessments-summary">
+                <div class="summary-loading">
+                    <div class="spinner"></div> Loading missing assessments...
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Missing Assessments Drawer -->
+    <div id="missingAssessmentsDrawer" class="drawer-overlay">
+        <div class="drawer-content">
+            <div class="drawer-header">
+                <h3>📋 Missing Details</h3>
+                <button onclick="toggleMissingAssessmentsDrawer()" class="drawer-close-btn">✕</button>
+            </div>
+            <div id="missingAssessmentsContent" class="drawer-body">
+                <div class="drawer-loading">
+                    <div class="spinner"></div> Loading detailed assessment information...
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notifications Modal -->
+    <div id="notificationsModal">
+        <div class="notifications-modal-content">
+            <div class="notifications-modal-header">
+                <h3>🔔 All Class Notifications</h3>
+                <button onclick="closeNotificationsModal()" class="modal-close-btn">✕</button>
+            </div>
+            <div id="notificationsModalBody" class="notifications-modal-body">
+                <div class="notifications-loading">
+                    <div class="spinner"></div> Loading all notifications...
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Class Details Modal -->
+    <div id="classModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 style="margin: 0; font-size: 20px; color: #1f2937;">📚 Class Details</h3>
+                <button onclick="closeModal()" class="modal-close-btn">✕</button>
+            </div>
+            <div id="classDetails" class="modal-body">
+                <!-- Class details will be populated here -->
+            </div>
+        </div>
+    </div>
+
+
+
+    <template id="swal_edit_profile_template" hidden>
+        <style>
+            .swal-edit-profile {
+                width: min(760px, calc(100vw - 18px)) !important;
+                max-width: 760px !important;
+                height: clamp(520px, 75vh, 700px) !important;
+                padding: 0 !important;
+                border-radius: 20px !important;
+                display: flex !important;
+                flex-direction: column;
+                box-sizing: border-box;
+                backdrop-filter: blur(6px);
+                top: calc(3vh + 16px) !important;
+                margin: 16px auto !important;
+            }
+            @media (max-height: 640px) {
+                .swal-edit-profile {
+                    top: calc(2vh + 12px) !important;
+                    height: 88vh !important;
+                    max-height: 620px !important;
+                }
+            }
+            .swal-edit-scroll {
+                flex: 1;
+                overflow-y: auto;
+                padding: 24px 28px 36px;
+                box-sizing: border-box;
+                background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+            }
+            .swal-edit-scroll::-webkit-scrollbar { width: 6px; }
+            .swal-edit-scroll::-webkit-scrollbar-thumb { background: rgba(148,163,184,0.45); border-radius: 999px; }
+            .swal-edit-scroll::-webkit-scrollbar-track { background: transparent; }
+            .swal-edit-actions {
+                position: sticky;
+                bottom: 0;
+                width: 100%;
+                margin: 0 !important;
+                padding: 14px 28px 24px;
+                background: linear-gradient(180deg, rgba(248,250,252,0.92) 0%, #e2e8f0 100%);
+                border-top: 1px solid #dbeafe;
+                display: flex;
+                gap: 12px;
+                justify-content: flex-end;
+                z-index: 3;
+            }
+            .swal-edit-confirm,
+            .swal-edit-cancel {
+                min-width: 120px;
+                border-radius: 10px;
+                font-weight: 600;
+                font-size: 0.95rem;
+                padding: 10px 18px;
+                border: 1.5px solid transparent;
+                transition: all 0.2s ease;
+            }
+            .swal-edit-confirm {
+                background: #16a34a;
+                color: #fff;
+                box-shadow: 0 8px 20px rgba(22,163,74,0.18);
+            }
+            .swal-edit-confirm:hover {
+                background: #15803d;
+                box-shadow: 0 10px 26px rgba(22,163,74,0.22);
+            }
+            .swal-edit-cancel {
+                background: #fff;
+                color: #0f172a;
+                border-color: #cbd5f5;
+            }
+            .swal-edit-cancel:hover {
+                background: #f8fafc;
+                border-color: #94a3b8;
+            }
+            .swal-register-grid {
+                display: grid;
+                grid-template-columns: minmax(0, 260px) minmax(0, 1fr);
+                gap: 18px;
+                align-items: start;
+                max-width: 100%;
+                box-sizing: border-box;
+            }
+            .swal-register-left {
+                text-align: center;
+                background: rgba(241,245,249,0.6);
+                border-radius: 14px;
+                padding: 16px 12px;
+                border: 1px solid #e2e8f0;
+            }
+            .swal-photo-zone {
+                border: 1.5px dashed #cbd5f5;
+                padding: 10px;
+                border-radius: 10px;
+                cursor: pointer;
+                transition: border-color 0.2s ease, background 0.2s ease;
+                background: #fff;
+            }
+            .swal-photo-zone:hover {
+                border-color: #16a34a;
+                background: #f0fdf4;
+            }
+            .swal-photo-preview {
+                width: 120px;
+                height: 120px;
+                object-fit: cover;
+                border-radius: 10px;
+                border: 1px solid #e2e8f0;
+                display: block;
+                margin: 0 auto 12px;
+            }
+            .swal-field { margin-bottom: 10px; }
+            .swal-field label {
+                display: block;
+                font-size: 12px;
+                color: #334155;
+                margin-bottom: 4px;
+                font-weight: 600;
+                letter-spacing: 0.02em;
+            }
+            .swal-field input,
+            .swal-field select {
+                width: 100%;
+                padding: 9px 10px;
+                border-radius: 8px;
+                border: 1px solid #cbd5f5;
+                box-sizing: border-box;
+                font-size: 0.94rem;
+            }
+            .swal-field input:focus,
+            .swal-field select:focus {
+                outline: none;
+                border-color: #16a34a;
+                box-shadow: 0 0 0 3px rgba(22,163,74,0.15);
+            }
+            .swal-field-row {
+                display: flex;
+                gap: 10px;
+                flex-wrap: wrap;
+            }
+            .swal-field-row .swal-field { flex: 1 1 160px; min-width: 0; }
+            @media (max-width: 900px) {
+                .swal-edit-scroll {
+                    padding: 22px 22px 30px;
+                }
+                .swal-register-grid {
+                    grid-template-columns: 1fr;
+                }
+                .swal-register-left {
+                    order: -1;
+                    padding: 14px 10px;
+                }
+            }
+            @media (max-width: 620px) {
+                .swal-edit-profile {
+                    width: calc(100vw - 12px) !important;
+                    max-width: 560px !important;
+                    height: 92vh !important;
+                    max-height: none !important;
+                    top: calc(1.5vh + 12px) !important;
+                    margin: 12px auto !important;
+                }
+                .swal-edit-scroll {
+                    padding: 18px 16px 28px;
+                }
+                .swal-edit-actions {
+                    padding: 12px 18px 18px;
+                    flex-direction: column-reverse;
+                    align-items: stretch;
+                }
+                .swal-edit-confirm,
+                .swal-edit-cancel {
+                    width: 100%;
+                    min-width: 0;
+                }
+                .swal-register-left {
+                    padding: 12px 8px;
+                }
+                .swal-photo-preview {
+                    width: 104px;
+                    height: 104px;
+                }
+                .swal-field input,
+                .swal-field select {
+                    font-size: 0.92rem;
+                }
+            }
+            @media (max-width: 420px) {
+                .swal-edit-scroll {
+                    padding: 16px 12px 24px;
+                }
+                .swal-photo-preview {
+                    width: 96px;
+                    height: 96px;
+                }
+                .swal-photo-zone {
+                    padding: 8px;
+                }
+                .swal-field input,
+                .swal-field select {
+                    padding: 8px;
+                }
+                .swal-photo-select {
+                    font-size: 16px !important; /* Prevent zoom on iOS */
+                    padding: 12px 14px !important;
+                }
+                #photoUploadModal {
+                    padding: 8px !important;
+                    align-items: flex-start !important;
+                    justify-content: center !important;
+                    padding-top: 10vh !important;
+                }
+                #photoUploadModal > div {
+                    max-width: none !important;
+                    width: 92vw !important;
+                    max-height: 75vh !important;
+                    border-radius: 16px !important;
+                    padding: 20px !important;
+                }
+                #photoModalTitle {
+                    font-size: 16px !important;
+                    margin-bottom: 16px !important;
+                }
+                #photoPreviewContainer {
+                    width: 120px !important;
+                    height: 120px !important;
+                    margin: 0 auto 12px !important;
+                }
+                #photoPreviewPlaceholder {
+                    font-size: 11px !important;
+                }
+                #photoFileInput {
+                    font-size: 16px !important; /* Prevent zoom on iOS */
+                    width: 100% !important;
+                    padding: 10px !important;
+                    border-radius: 8px !important;
+                    margin-bottom: 16px !important;
+                }
+                .photo-change-btn {
+                    padding: 14px 18px !important;
+                    font-size: 15px !important;
+                    min-height: 48px !important; /* Ensure touch target is large enough */
+                }
+                #photoUploadModal button {
+                    padding: 12px 16px !important;
+                    font-size: 14px !important;
+                    border-radius: 8px !important;
+                    min-height: 44px !important;
+                }
+            }
+    
+            /* Responsive dashboard styles */
+            @media (max-width: 768px) {
+                body {
+                    padding: 10px;
+                }
+                .header {
+                    flex-direction: column;
+                    align-items: flex-start;
+                    gap: 10px;
+                }
+                .header h1 {
+                    font-size: 1.8rem;
+                }
+                .dashboard-grid {
+                    grid-template-columns: 1fr;
+                    gap: 15px;
+                }
+                .card {
+                    padding: 15px;
+                }
+                .card h3 {
+                    font-size: 1.1rem;
+                }
+                .card p {
+                    font-size: 0.9rem;
+                }
+                .join-btn {
+                    width: 100%;
+                    padding: 10px;
+                }
+                .nav-back a {
+                    padding: 6px 12px;
+                    font-size: 0.9rem;
+                }
+            }
+    
+            @media (max-width: 480px) {
+                .header h1 {
+                    font-size: 1.5rem;
+                }
+                .card {
+                    padding: 12px;
+                }
+                .card h3 {
+                    font-size: 1rem;
+                }
+                .class-item {
+                    padding: 8px;
+                    margin-bottom: 8px;
+                }
+                .class-item div:first-child {
+                    font-size: 0.9rem;
+                }
+                .class-item div:last-child {
+                    font-size: 0.8rem;
+                }
+                #joinCode {
+                    width: 100%;
+                    margin-bottom: 10px;
+                }
+                .join-btn {
+                    width: 100%;
+                }
+            }
+        </style>
+
+        <div class="swal-edit-scroll">
+            <div class="swal-register-grid">
+            <div class="swal-register-left">
+                {% if user.student_profile.face_photo_path %}
+                <img id="swalPhotoPreview" src="{{ url_for('static', filename=user.student_profile.face_photo_path) }}" class="swal-photo-preview" alt="Face Preview" style="display:none;">
+                {% elif user.student_profile.face_photo_url %}
+                <img id="swalPhotoPreview" src="{{ user.student_profile.face_photo_url }}" class="swal-photo-preview" alt="Face Preview" style="display:none;">
+                {% else %}
+                <img id="swalPhotoPreview" src="{{ url_for('static', filename='images/default-profile.svg') }}" class="swal-photo-preview" alt="Face Preview" style="display:none;">
+                {% endif %}
+                <div style="display:flex; flex-direction:column; gap:12px;">
+                    <div style="display:flex; flex-direction:column; gap:8px; display:none;">
+                        <label style="font-weight:600; font-size:14px; color:#374155;">Change Photos:</label>
+                        <div style="display:flex; flex-direction:column; gap:8px;">
+                            <button type="button" onclick="openPhotoModal('profile')" class="photo-change-btn" style="width:100%; border-radius:12px; padding:12px 16px; font-weight:600; font-size:14px; background:linear-gradient(135deg, #667eea 0%, #764ba2 100%); border:none; color:#fff; cursor:pointer; transition:all 0.3s ease; box-shadow:0 4px 15px rgba(102,126,234,0.3);">📷 Change Profile Photo</button>
+
+                            <button type="button" onclick="openPhotoModal('id_front')" class="photo-change-btn" style="width:100%; border-radius:12px; padding:12px 16px; font-weight:600; font-size:14px; background:linear-gradient(135deg, #f97316 0%, #ea580c 100%); border:none; color:#fff; cursor:pointer; transition:all 0.3s ease; box-shadow:0 4px 15px rgba(249,115,22,0.3);">🆔 Change ID Front Photo</button>
+
+                            <button type="button" onclick="openPhotoModal('id_back')" class="photo-change-btn" style="width:100%; border-radius:12px; padding:12px 16px; font-weight:600; font-size:14px; background:linear-gradient(135deg, #10b981 0%, #059669 100%); border:none; color:#fff; cursor:pointer; transition:all 0.3s ease; box-shadow:0 4px 15px rgba(16,185,129,0.3);">🆔 Change ID Back Photo</button>
+                        </div>
+                    </div>
+
+                    <!-- Hidden file inputs -->
+                    <input id="swalPhotoInput" type="file" accept="image/*" style="display:none;">
+                    <input id="swalIdFront" type="file" accept="image/*" style="display:none;">
+                    <input id="swalIdBack" type="file" accept="image/*" style="display:none;">
+
+                    <div id="swalIdFrontPreview" style="min-height:48px; border:1px solid #e2e8f0; border-radius:8px; padding:4px; background:#fafbfc; display:none;">{% if user.student_profile.id_front_path %}<img src="{{ url_for('static', filename=user.student_profile.id_front_path) }}" style="max-width:100%; height:auto; border-radius:6px;">{% else %}<div style="color:#9ca3af; font-size:12px; text-align:center; padding:8px;">No ID front photo uploaded</div>{% endif %}</div>
+
+                    <div id="swalIdBackPreview" style="min-height:48px; border:1px solid #e2e8f0; border-radius:8px; padding:4px; background:#fafbfc; display:none;">{% if user.student_profile.id_back_path %}<img src="{{ url_for('static', filename=user.student_profile.id_back_path) }}" style="max-width:100%; height:auto; border-radius:6px;">{% else %}<div style="color:#9ca3af; font-size:12px; text-align:center; padding:8px;">No ID back photo uploaded</div>{% endif %}</div>
+                </div>
+
+                <!-- Photo Upload Modal Template -->
+                <div id="photoUploadModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:20000; align-items:center; justify-content:center;">
+                    <div style="background:#fff; border-radius:16px; padding:24px; max-width:400px; width:90%; max-height:80vh; overflow-y:auto;">
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+                            <h3 id="photoModalTitle" style="margin:0; font-size:18px; color:#374155;">Upload Photo</h3>
+                            <button onclick="closePhotoModal()" style="background:none; border:none; font-size:24px; cursor:pointer; color:#6b7280;">×</button>
+                        </div>
+
+                        <div style="text-align:center; margin-bottom:20px;">
+                            <div id="photoPreviewContainer" style="width:200px; height:200px; border:2px dashed #cbd5f5; border-radius:12px; margin:0 auto 16px; display:flex; align-items:center; justify-content:center; background:#f8fafc; overflow:hidden;">
+                                <div id="photoPreviewPlaceholder" style="color:#9ca3af; font-size:14px; text-align:center;">No image selected<br><span style="font-size:12px;">Click upload to select</span></div>
+                                <img id="photoPreviewImage" src="" style="display:none; width:100%; height:100%; object-fit:cover; border-radius:10px;">
+                            </div>
+                            <input type="file" id="photoFileInput" accept="image/*" style="display:block; margin:0 auto; padding:8px; border:1px solid #cbd5f5; border-radius:8px; width:100%; box-sizing:border-box;">
+                        </div>
+
+                        <div style="display:flex; gap:12px; justify-content:flex-end;">
+                            <button onclick="closePhotoModal()" style="padding:10px 20px; border:1px solid #cbd5f5; background:#fff; border-radius:8px; cursor:pointer;">Cancel</button>
+                            <button id="photoConfirmBtn" onclick="confirmPhotoUpload()" style="padding:10px 20px; background:#16a34a; color:#fff; border:none; border-radius:8px; cursor:pointer;" disabled>Upload</button>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+            <div>
+                <div class="swal-field"><label>First name</label><input id="swalFirstName" value="{{ user.personal_info.first_name or '' }}"></div>
+                <div class="swal-field"><label>Last name</label><input id="swalLastName" value="{{ user.personal_info.last_name or '' }}"></div>
+                <div class="swal-field"><label>Middle name</label><input id="swalMiddleName" value="{{ user.personal_info.middle_name or '' }}"></div>
+                <div class="swal-field"><label>Email</label><input id="swalEmail" value="{{ user.personal_info.email or '' }}"></div>
+                <div class="swal-field"><label>Phone</label><input id="swalPhone" value="{{ user.personal_info.phone or '' }}"></div>
+                <div class="swal-field"><label>Address</label><input id="swalAddress" value="{{ user.personal_info.address or '' }}"></div>
+                                <div class="swal-field-row">
+                                    <div class="swal-field"><label>Birth date</label><input id="swalBirthDate" value="{{ user.personal_info.birth_date or '' }}" placeholder="YYYY-MM-DD"></div>
+                                    <div class="swal-field"><label>Gender</label>
+                    <select id="swalGender">
+                      <option value="" {% if not user.personal_info.gender %}selected{% endif %}>Select</option>
+                      <option value="Male" {% if user.personal_info.gender=='Male' %}selected{% endif %}>Male</option>
+                      <option value="Female" {% if user.personal_info.gender=='Female' %}selected{% endif %}>Female</option>
+                      <option value="Other" {% if user.personal_info.gender=='Other' %}selected{% endif %}>Other</option>
+                    </select>
+                  </div>
+                </div>
+                                <div class="swal-field-row" style="margin-top:6px;">
+                                    <div class="swal-field"><label>Emergency name</label><input id="swalEmergName" value="{{ user.personal_info.emergency_contact_name or '' }}"></div>
+                                    <div class="swal-field"><label>Emergency phone</label><input id="swalEmergPhone" value="{{ user.personal_info.emergency_contact_phone or '' }}"></div>
+                </div>
+
+                <hr style="margin:10px 0; border-color:#eef2f7;">
+
+                <div class="swal-field"><label>School ID</label><input id="swalSchoolId" value="{{ user.school_id }}" disabled></div>
+                <div class="swal-field"><label>Course</label>
+                    <select id="swalCourse">
+                        <option value="">Select Course</option>
+                        <option value="BSIT" {% if user.student_profile.course=='BSIT' %}selected{% endif %}>BSIT</option>
+                        <option value="BSCS" {% if user.student_profile.course=='BSCS' %}selected{% endif %}>BSCS</option>
+                        <option value="BSIS" {% if user.student_profile.course=='BSIS' %}selected{% endif %}>BSIS</option>
+                        <option value="BSCpE" {% if user.student_profile.course=='BSCpE' %}selected{% endif %}>BSCpE</option>
+                        <option value="BSEMC" {% if user.student_profile.course=='BSEMC' %}selected{% endif %}>BSEMC</option>
+                    </select>
+                </div>
+                                <div class="swal-field-row">
+                                    <div class="swal-field"><label>Year Level</label><select id="swalYearLevel"><option value="">Select</option><option value="1" {% if user.student_profile.year_level==1 or user.student_profile.year_level=='1' %}selected{% endif %}>1</option><option value="2" {% if user.student_profile.year_level==2 or user.student_profile.year_level=='2' %}selected{% endif %}>2</option><option value="3" {% if user.student_profile.year_level==3 or user.student_profile.year_level=='3' %}selected{% endif %}>3</option><option value="4" {% if user.student_profile.year_level==4 or user.student_profile.year_level=='4' %}selected{% endif %}>4</option></select></div>
+                                    <div class="swal-field"><label>Section</label><input id="swalSection" value="{{ user.student_profile.section or '' }}"></div>
+                </div>
+                <div class="swal-field"><label>Track</label><input id="swalTrack" value="{{ user.student_profile.track or '' }}"></div>
+            </div>
+        </div>
+                </div>
+    </template>
+
+    <style>
+        /* Global SweetAlert2 popup appearance for this page */
+        .swal2-popup {
+            border-radius: 12px !important;
+            box-shadow: 0 10px 30px rgba(2,6,23,0.12);
+            position: fixed !important;
+            top: 20px !important;
+            left: 50% !important;
+            transform: translateX(-50%) !important;
+            z-index: 9999 !important;
+        }
+
+        /* WHAT IF handler removed from style block; script attaches handler in main script below */
+
+        /* Ensure the confirm/cancel buttons also respect rounded corners when shown as toasts */
+        .swal2-toast .swal2-header, .swal2-toast .swal2-content {
+            border-radius: 8px;
+        }
+        .class-item:hover {
+            background-color: #f8fafc;
+            border-color: #16a34a;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+
+        .collapsible-content {
+            transition: all 0.3s ease;
+        }
+
+        .toggle-btn {
+            transition: all 0.3s ease;
+        }
+
+        .toggle-btn:hover {
+            background-color: #e5e7eb;
+        }
+
+        @keyframes slideInLeft {
+            from { opacity: 0; transform: translateX(-20px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        @keyframes bounce {
+            0%, 20%, 53%, 80%, 100% { transform: translate3d(0,0,0); }
+            40%, 43% { transform: translate3d(0, -10px, 0); }
+            70% { transform: translate3d(0, -5px, 0); }
+            90% { transform: translate3d(0, -2px, 0); }
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .spinner {
+            width: 16px;
+            height: 16px;
+            border: 2px solid #f3f3f3;
+            border-top: 2px solid #16a34a;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            display: inline-block;
+            margin-right: 8px;
+        }
+
+    </style>
+
+    <style>
+        /* Make WHAT IF SweetAlert slightly rounder for clarity */
+        .swal-whatif .swal2-popup {
+            border-radius: 14px !important;
+        }
+    </style>
+
+    <script>
+    // CSRF token for AJAX requests (Flask-WTF expects this header)
+    const csrfToken = "{{ csrf_token() }}";
+
+    let isClassListExpanded = false;
+    let currentClassId = null;
+
+    // Carousel logic for mobile carousels
+    function initCarousel(carouselSelector) {
+        const carousel = document.querySelector(carouselSelector);
+        if (!carousel) return;
+        const slidesContainer = carousel.querySelector('.carousel-slides');
+        const slides = carousel.querySelectorAll('.carousel-slide');
+        const prevBtn = carousel.querySelector('.carousel-prev');
+        const nextBtn = carousel.querySelector('.carousel-next');
+        let currentSlide = 0;
+
+        function showSlide(index) {
+            currentSlide = Math.max(0, Math.min(index, slides.length - 1));
+            slidesContainer.style.transform = `translateX(-${currentSlide * 100}%)`;
+            if (prevBtn) prevBtn.disabled = currentSlide === 0;
+            if (nextBtn) nextBtn.disabled = currentSlide === slides.length - 1;
+        }
+        if (prevBtn) prevBtn.addEventListener('click', () => showSlide(currentSlide - 1));
+        if (nextBtn) nextBtn.addEventListener('click', () => showSlide(currentSlide + 1));
+        showSlide(0);
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+        // Initialize carousels
+        initCarousel('.join-classes-carousel');
+        initCarousel('.grades-assessments-carousel');
+
+        // Add small delay to ensure mobile elements are fully rendered
+        setTimeout(() => {
+            loadJoinedClasses().then(() => {
+                loadMissingAssessmentsSummary();
+                loadClassNotifications();
+                initializeAutoRefresh();
+            });
+        }, 100);
+
+        // Welcome notification
+        setTimeout(() => {
+            Swal.fire({
+                title: '🌱 Welcome to Your Dashboard!',
+                text: 'Ready to join some classes? Enter a join code above.',
+                icon: 'info',
+                timer: 1000,
+                timerProgressBar: true,
+                showConfirmButton: false,
+                position: 'top',
+                width: '400px',
+                background: '#f0fdf4',
+                color: '#166534',
+                iconColor: '#16a34a'
+            });
+        }, 1000);
+
+        // WHAT IF button: fetch joined classes and open the limited instructor unified view
+        (function attachWhatIfButton() {
+            const btn = document.getElementById('whatifOpenBtn');
+            if (!btn) return;
+            btn.addEventListener('click', async function () {
+                try {
+                    const resp = await fetch('/api/student/joined-classes', { credentials: 'same-origin' });
+                    if (!resp.ok) {
+                        throw new Error('Failed to load your classes');
+                    }
+                    const data = await resp.json();
+                    const classes = (data && data.classes) || [];
+                    if (!classes || classes.length === 0) {
+                        Swal.fire({ icon: 'info', title: 'No classes', text: 'You are not enrolled in any classes.' });
+                        return;
+                    }
+                    // Always show selection modal, even if there's only one class
+                    // (user requested a confirmation/modal every time)
+
+                    // Multiple classes: present a quick select via SweetAlert
+                    const inputOptions = {};
+                    classes.forEach(c => { inputOptions[c.id] = (c.class_id || c.course || 'Class ' + c.id) + ' — ' + (c.section || ''); });
+                    const { value: selected } = await Swal.fire({
+                        title: 'Open WHAT IF for which class?',
+                        input: 'select',
+                        inputOptions: inputOptions,
+                        inputPlaceholder: 'Select a class',
+                        showCancelButton: true,
+                    });
+                    if (selected) {
+                        window.location.href = '/instructor/class/' + encodeURIComponent(selected) + '/grades';
+                    }
+                } catch (err) {
+                    console.error('WHAT IF open failed', err);
+                    Swal.fire({ icon: 'error', title: 'Error', text: err.message || 'Failed to open WHAT IF view' });
+                }
+            });
+        })();
+
+        // Delegated fallback: ensure the WHAT IF button works even if timing prevented direct attachment
+        document.addEventListener('click', function (e) {
+            try {
+                var btn = e.target && (e.target.id === 'whatifOpenBtn' ? e.target : (e.target.closest ? e.target.closest('#whatifOpenBtn') : null));
+                if (!btn) return;
+                e.preventDefault();
+                // reuse the same async flow as the attached handler
+                (async function () {
+                    try {
+                        const resp = await fetch('/api/student/joined-classes', { credentials: 'same-origin' });
+                        if (!resp.ok) {
+                            throw new Error('Failed to load your classes');
+                        }
+                        const data = await resp.json();
+                        const classes = (data && data.classes) || [];
+                        if (!classes || classes.length === 0) {
+                            Swal.fire({ icon: 'info', title: 'No classes', text: 'You are not enrolled in any classes.' });
+                            return;
+                        }
+                        // Always show selection modal, even if there's only one class
+                        const inputOptions = {};
+                        classes.forEach(c => { inputOptions[c.id] = (c.class_id || c.course || 'Class ' + c.id) + ' — ' + (c.section || ''); });
+                        const { value: selected } = await Swal.fire({
+                            title: 'Open WHAT IF for which class?',
+                            input: 'select',
+                            inputOptions: inputOptions,
+                            inputPlaceholder: 'Select a class',
+                            showCancelButton: true,
+                        });
+                        if (selected) {
+                            window.location.href = '/instructor/class/' + encodeURIComponent(selected) + '/grades';
+                        }
+                    } catch (err) {
+                        console.error('WHAT IF open failed', err);
+                        Swal.fire({ icon: 'error', title: 'Error', text: err.message || 'Failed to open WHAT IF view' });
+                    }
+                })();
+            } catch (ex) {
+                // swallow
+                console.warn('WHAT IF delegated handler error', ex);
+            }
+        });
+    });
+
+        // Function to join a class
+        function joinClass() {
+            // Get the correct input based on screen size
+            const isMobile = window.innerWidth <= 768;
+            const joinCodeInput = document.getElementById(isMobile ? 'joinCodeMobile' : 'joinCodeDesktop');
+            const messageDiv = document.getElementById(isMobile ? 'joinMessageMobile' : 'joinMessageDesktop');
+            
+            let joinCode = '';
+            if (joinCodeInput) {
+                joinCode = (joinCodeInput.value || '').trim().toUpperCase();
+            }
+
+            const joinButton = document.querySelector('.join-btn');
+
+            if (!joinCode) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Missing Code',
+                    text: 'Please enter a join code',
+                    confirmButtonColor: '#16a34a'
+                });
+                return;
+            }
+
+            // Length validation now handled by backend first
+
+            // Prevent multiple submissions
+            if (joinButton.disabled) {
+                return;
+            }
+
+            // Show loading
+            const originalHTML = joinButton.innerHTML;
+            joinButton.innerHTML = '<div class="spinner"></div>Joining...';
+            joinButton.disabled = true;
+
+            // Log the joinCode and input sources for debugging
+            try {
+                const allInputs = Array.from(document.querySelectorAll('input#joinCode')).map(i => ({value: i.value, visible: (window.getComputedStyle(i).display !== 'none' && i.visibility !== 'hidden' && i.offsetParent !== null)}));
+                console.log('Joining class - resolved joinCode:', joinCode, 'inputs:', allInputs);
+            } catch (e) { console.warn('Join debug log failed', e); }
+
+            // Show loading toast
+            let loadingSwal = Swal.fire({
+                title: 'Joining Class...',
+                text: 'Please wait while we enroll you',
+                allowOutsideClick: false,
+                showConfirmButton: false,
+                willOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+
+            fetch('/api/student/join-class', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrfToken,
+                },
+                body: JSON.stringify({ join_code: joinCode }),
+                credentials: 'same-origin'  // Include cookies for authentication
+            })
+                .then(async response => {
+                    console.log('Response status:', response.status);
+                    console.log('Response type:', response.type);
+                    console.log('Response url:', response.url);
+
+                    // Handle redirects (authentication required)
+                    if (response.status === 302 || response.redirected) {
+                        console.log('Redirect detected - user not authenticated');
+                        throw new Error('Authentication required. Please log in again.');
+                    }
+
+                    // Try to parse JSON body (server may return JSON even on 4xx)
+                    let data = null;
+                    try {
+                        data = await response.json();
+                    } catch (e) {
+                        // Ignore parse errors; data remains null
+                    }
+
+                    if (!response.ok) {
+                        // Handle common known server-side validation (e.g., already enrolled)
+                        if (data && data.error && data.error.toLowerCase().includes('already enrolled')) {
+                            console.log('Handling already enrolled response (4xx)');
+                            // Close join loading toast
+                            loadingSwal.close();
+
+                            // Refresh classes immediately
+                            loadJoinedClasses();
+
+                            // Show friendly already-enrolled message
+                            let message = 'You are already a member of this class.';
+                            if (data && data.class_info) {
+                                message += `\n\nClass: ${data.class_info.class_id}`;
+                            }
+
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Already Enrolled!',
+                                text: message,
+                                timer: 3000,
+                                timerProgressBar: true,
+                                showConfirmButton: false,
+                                toast: true,
+                                position: 'top',
+                                background: '#dcfce7',
+                                color: '#166534'
+                            });
+
+                            // Resolve with a handled flag so the chain continues cleanly
+                            return { handled: true };
+                        }
+
+                        // For other errors, prefer server-provided message if available
+                        const errMsg = data && data.error ? data.error : `HTTP error! status: ${response.status}`;
+                        throw new Error(errMsg);
+                    }
+
+                    return data;
+                })
+                .then(data => {
+                    // If the earlier step returned a handled flag, do nothing further.
+                    if (data && data.handled) {
+                        console.log('Already-enrolled case handled; skipping further processing.');
+                        return;
+                    }
+
+                    console.log('Response data:', data);
+                    // Close loading toast
+                    loadingSwal.close();
+
+                    if (data && data.success) {
+                        console.log('Join successful');
+                        // Joined — dashboard will refresh and WHAT IF button will fetch classes when clicked
+
+                        // Success notification
+                        Swal.fire({
+                            icon: 'success',
+                            title: '🎉 Success!',
+                            text: data.message,
+                            timer: 1500,
+                            timerProgressBar: true,
+                            showConfirmButton: false,
+                            toast: true,
+                            position: 'top',
+                            background: '#dcfce7',
+                            color: '#166534'
+                        });
+
+                        // Clear the input and refresh classes list
+                        if (joinCodeInput) joinCodeInput.value = '';
+
+                        // Auto-refresh after successful join to ensure UI is updated
+                        setTimeout(() => {
+                            loadJoinedClasses();
+                        }, 500);
+
+                        // Add bounce animation to the button
+                        joinButton.style.animation = 'bounce 0.6s ease';
+                        setTimeout(() => {
+                            joinButton.style.animation = '';
+                        }, 600);
+                    } else {
+                        console.log('Join failed, error:', data && data.error);
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Failed to Join',
+                            text: (data && data.error) || 'Unknown error occurred',
+                            confirmButtonColor: '#16a34a'
+                        });
+                    }
+                })
+                .catch(error => {
+                    // If we've already handled the 'already enrolled' case, don't show another error toast
+                    if (error && error.message === 'handled_already_enrolled') {
+                        return;
+                    }
+
+                    console.error('Network or parsing error:', error);
+
+                    loadingSwal.close();
+
+                    // Handle authentication errors
+                    if (error.message && error.message.includes('Authentication required')) {
+                        Swal.fire({
+                            icon: 'warning',
+                            title: 'Authentication Required',
+                            text: 'Please log in again to continue.',
+                            confirmButtonColor: '#16a34a',
+                            confirmButtonText: 'Go to Login'
+                        }).then((result) => {
+                            if (result.isConfirmed) {
+                                window.location.href = '/login';
+                            }
+                        });
+                    } else {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Connection Error',
+                            text: error.message || 'Failed to join class. Please check your connection and try again.',
+                            confirmButtonColor: '#16a34a'
+                        });
+                    }
+                })
+                .finally(() => {
+                    console.log('Finally block executed');
+                    joinButton.innerHTML = originalHTML;
+                    joinButton.disabled = false;
+                });
+        }
+
+        // Function to load joined classes
+        function loadJoinedClasses() {
+            // Get the correct elements based on screen size
+            const isMobile = window.innerWidth <= 768;
+            let listDiv = document.getElementById(isMobile ? 'joinedClassesListMobile' : 'joinedClassesListDesktop');
+            let countDiv = document.getElementById(isMobile ? 'classCountMobile' : 'classCountDesktop');
+            let toggleBtn = document.getElementById(isMobile ? 'toggleClassesBtnMobile' : 'toggleClassesBtnDesktop');
+
+            console.log('Loading joined classes - isMobile:', isMobile, 'listDiv found:', !!listDiv, 'countDiv found:', !!countDiv);
+
+            // Fallback: try to get the other version if primary not found
+            if (!listDiv) {
+                console.warn('Primary listDiv not found, trying fallback');
+                listDiv = document.getElementById(isMobile ? 'joinedClassesListDesktop' : 'joinedClassesListMobile');
+            }
+            if (!countDiv) {
+                console.warn('Primary countDiv not found, trying fallback');
+                countDiv = document.getElementById(isMobile ? 'classCountDesktop' : 'classCountMobile');
+            }
+            if (!toggleBtn) {
+                toggleBtn = document.getElementById(isMobile ? 'toggleClassesBtnDesktop' : 'toggleClassesBtnMobile');
+            }
+
+            if (!listDiv || !countDiv) {
+                console.error('Could not find joined classes elements - isMobile:', isMobile, 'listDiv:', !!listDiv, 'countDiv:', !!countDiv);
+                return Promise.resolve();
+            }
+
+            return loadClassesIntoElements(listDiv, countDiv, toggleBtn);
+        }
+
+        function loadClassesIntoElements(listDiv, countDiv, toggleBtn) {
+            if (!listDiv) return Promise.resolve();
+
+            listDiv.innerHTML = '<div style="text-align: center; padding: 20px;"><div class="spinner"></div>Loading your classes...</div>';
+
+            return fetch('/api/student/joined-classes', {
+                credentials: 'same-origin'
+            })
+                .then(response => {
+                    if (response.status === 302 || response.redirected) {
+                        throw new Error('Authentication required. Please log in again.');
+                    }
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    if (data.classes && data.classes.length > 0) {
+                        // Update class count
+                        if (countDiv) countDiv.textContent = data.classes.length;
+
+                        let html = '<div style="max-height: 200px; overflow-y: auto;">';
+                        data.classes.forEach((cls, index) => {
+                            html += `
+                            <div class="class-item" style="border: 1px solid #ddd; padding: 10px; margin-bottom: 10px; border-radius: 8px; cursor: pointer; transition: all 0.3s ease; animation: slideInLeft 0.5s ease-out; animation-delay: ${index * 0.1}s; animation-fill-mode: both;"
+                                 onclick="showClassDetails(${cls.id})">
+                                <div style="font-weight: bold; color: #16a34a; margin-bottom: 5px;">📚 ${cls.class_id}</div>
+                                <div style="font-size: 14px; color: #666;">
+                                    ${cls.course} ${cls.track || ''} - ${cls.section}
+                                </div>
+                            </div>
+                        `;
+                        });
+                        html += '</div>';
+                        listDiv.innerHTML = html;
+
+                        // Show toggle button
+                        if (toggleBtn) {
+                            toggleBtn.style.display = 'block';
+                        }
+
+                        // Success notification
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Classes Loaded!',
+                            text: `Found ${data.classes.length} class${data.classes.length > 1 ? 'es' : ''}`,
+                            timer: 1500,
+                            timerProgressBar: true,
+                            showConfirmButton: false,
+                            toast: true,
+                            position: 'top',
+                            background: '#dcfce7',
+                            color: '#166534'
+                        });
+                    } else {
+                        if (countDiv) countDiv.textContent = '0';
+                        listDiv.innerHTML = '<div style="text-align: center; padding: 40px; color: #666;"><div style="font-size: 48px; margin-bottom: 10px;">📭</div><p style="font-style: italic;">No classes joined yet.<br>Use the join code above to enroll in classes.</p></div>';
+                        if (toggleBtn) {
+                            toggleBtn.style.display = 'none';
+                        }
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading classes:', error);
+                    listDiv.innerHTML = '<div style="text-align: center; padding: 40px; color: #dc3545;"><div style="font-size: 48px; margin-bottom: 10px;">❌</div><p>Failed to load classes. Please refresh the page.</p></div>';
+
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Loading Error',
+                        text: 'Failed to load your classes. Please refresh the page.',
+                        confirmButtonColor: '#16a34a'
+                    });
+                });
+        }
+
+        // Function to toggle class list visibility
+        function toggleClassList() {
+            const isMobile = window.innerWidth <= 768;
+            const listDiv = document.getElementById(isMobile ? 'joinedClassesListMobile' : 'joinedClassesListDesktop');
+            const toggleBtn = document.getElementById(isMobile ? 'toggleClassesBtnMobile' : 'toggleClassesBtnDesktop');
+
+            if (!listDiv || !toggleBtn) return;
+
+            if (isClassListExpanded) {
+                // Collapse
+                listDiv.style.maxHeight = '200px';
+                listDiv.style.overflow = 'hidden';
+                toggleBtn.innerHTML = '📖 View All Classes';
+                isClassListExpanded = false;
+            } else {
+                // Expand
+                listDiv.style.maxHeight = 'none';
+                listDiv.style.overflow = 'visible';
+                toggleBtn.innerHTML = '📕 Collapse Classes';
+                isClassListExpanded = true;
+            }
+        }
+
+        // Function to show class details in modal
+        function showClassDetails(classId) {
+            currentClassId = classId;
+
+            fetch('/api/student/joined-classes', {
+                credentials: 'same-origin'
+            })
+                .then(response => {
+                    if (response.status === 302 || response.redirected) {
+                        throw new Error('Authentication required. Please log in again.');
+                    }
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    const classData = data.classes.find(cls => cls.id === classId);
+                    if (classData) {
+                        const detailsDiv = document.getElementById('classDetails');
+                        detailsDiv.innerHTML = `
+                        <div style="background: #dcfce7; padding: 15px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid #16a34a;">
+                            <div style="font-size: 11px; font-weight: 600; color: #15803d; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px;">CLASS DETAILS</div>
+                            <div style="font-size: 18px; font-weight: 700; color: #14532d; margin-bottom: 6px;">${classData.subject || 'SUBJECT'}</div>
+                            <div style="font-size: 14px; color: #166534; font-weight: 500;">${classData.class_id}</div>
+                        </div>
+                        <div style="margin-bottom: 15px;">
+                            <strong>Instructor:</strong> ${classData.instructor_name}
+                        </div>
+                        <div style="margin-bottom: 15px;">
+                            <strong>Subject Code:</strong> ${classData.subject_code || 'N/A'}
+                        </div>
+                        <div style="margin-bottom: 15px;">
+                            <strong>Units:</strong> ${classData.units || 'N/A'}
+                        </div>
+                        <div style="margin-bottom: 15px;">
+                            <strong>Join Code:</strong> ${classData.join_code}
+                        </div>
+                        <div style="margin-bottom: 15px;">
+                            <strong>Joined Date:</strong> ${new Date(classData.joined_at).toLocaleDateString()}
+                        </div>
+                    `;
+                        const modal = document.getElementById('classModal');
+                        modal.style.display = 'block';
+                        setTimeout(() => modal.classList.add('active'), 10);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading class details:', error);
+                });
+        }
+
+        // Function to confirm leaving a class
+        function confirmLeaveClass() {
+            if (!currentClassId) return;
+
+            Swal.fire({
+                title: '🚪 Leave Class?',
+                html: 'Are you sure you want to leave this class? You will need to rejoin with a join code to access it again.',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: 'Leave Class',
+                cancelButtonText: 'Cancel',
+                confirmButtonColor: '#dc3545',
+                cancelButtonColor: '#6c757d'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    leaveClass();
+                }
+            });
+        }
+
+        // Function to leave a class
+        function leaveClass() {
+            if (!currentClassId) return;
+
+            // Show loading
+            const leaveButton = document.getElementById('leaveClassBtn');
+            const originalHTML = leaveButton.innerHTML;
+            leaveButton.innerHTML = '<div class="spinner"></div>Leaving...';
+            leaveButton.disabled = true;
+
+            fetch(`/api/student/leave-class/${currentClassId}`, {
+                method: 'DELETE',
+                headers: {
+                    'X-CSRFToken': csrfToken
+                },
+                credentials: 'same-origin'
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Left Class!',
+                            text: data.message,
+                            timer: 2000,
+                            showConfirmButton: false,
+                            toast: true,
+                            position: 'top',
+                            background: '#dcfce7',
+                            color: '#166534'
+                        });
+
+                        closeModal();
+                        loadJoinedClasses(); // Refresh the classes list
+                    } else {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Failed to Leave',
+                            text: data.error,
+                            confirmButtonColor: '#dc3545'
+                        });
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Connection Error',
+                        text: 'Failed to leave class. Please check your connection.',
+                        confirmButtonColor: '#dc3545'
+                    });
+                })
+                .finally(() => {
+                    leaveButton.innerHTML = originalHTML;
+                    leaveButton.disabled = false;
+                });
+        }
+
+        // Function to close modal
+        function closeModal() {
+            document.getElementById('classModal').classList.remove('active');
+            setTimeout(() => {
+                document.getElementById('classModal').style.display = 'none';
+            }, 300);
+        }
+
+        // Function to show messages
+        function showMessage(message, type) {
+            const messageDiv = document.getElementById('joinMessage');
+            messageDiv.textContent = message;
+            messageDiv.style.display = 'block';
+            messageDiv.style.color = type === 'success' ? '#16a34a' : '#dc3545';
+            messageDiv.style.fontWeight = 'bold';
+
+            // Hide message after 5 seconds
+            setTimeout(() => {
+                messageDiv.style.display = 'none';
+            }, 5000);
+        }
+
+        // Close modal when clicking outside
+        document.getElementById('classModal').addEventListener('click', function (e) {
+            if (e.target === this) {
+                closeModal();
+            }
+        });
+
+        // --- Edit profile modal and handlers ---
+        // Assumption: backend endpoint for updating student profile is at /api/student/profile
+        // and accepts PUT with multipart/form-data (photo optional). Adjust endpoint/method as needed.
+
+        function previewProfilePhoto(input, targetId) {
+            if (!input) return;
+            const file = input.files && input.files[0];
+            const tid = targetId || 'swalPhotoPreview';
+            const preview = document.getElementById(tid);
+            if (!file || !preview) return;
+
+            // If preview is an <img>, set src; if it's a container div, inject an <img>
+            const url = URL.createObjectURL(file);
+            if (preview.tagName && preview.tagName.toLowerCase() === 'img') {
+                preview.src = url;
+                preview.onload = () => URL.revokeObjectURL(url);
+            } else {
+                preview.innerHTML = `<img src="${url}" style="max-width:100%; max-height:140px; object-fit:cover; border-radius:8px;">`;
+                // revoke later when image loads
+                const img = preview.querySelector('img');
+                if (img) img.onload = () => URL.revokeObjectURL(url);
+            }
+        }
+
+        function editProfile() {
+            let modalResizeObserver = null;
+            const html = document.getElementById('swal_edit_profile_template').innerHTML;
+
+            Swal.fire({
+                title: '✏️ Edit Profile',
+                html: html,
+                width: '760px',
+                heightAuto: false,
+                showCancelButton: true,
+                focusConfirm: false,
+                confirmButtonText: 'Update',
+                cancelButtonText: 'Cancel',
+                customClass: {
+                    popup: 'swal-edit-profile',
+                    htmlContainer: 'swal-edit-container',
+                    actions: 'swal-edit-actions',
+                    confirmButton: 'swal-edit-confirm',
+                    cancelButton: 'swal-edit-cancel'
+                },
+                buttonsStyling: false,
+                allowOutsideClick: true,
+                allowEnterKey: true,
+                allowEscapeKey: true,
+                                
+                preConfirm: () => {
+                    const fd = new FormData();
+                    fd.append('first_name', document.getElementById('swalFirstName').value.trim());
+                    fd.append('last_name', document.getElementById('swalLastName').value.trim());
+                    fd.append('middle_name', document.getElementById('swalMiddleName').value.trim());
+                    fd.append('email', document.getElementById('swalEmail').value.trim());
+                    fd.append('phone', document.getElementById('swalPhone').value.trim());
+                    fd.append('address', document.getElementById('swalAddress').value.trim());
+                    fd.append('birth_date', document.getElementById('swalBirthDate').value.trim());
+                    fd.append('gender', document.getElementById('swalGender').value);
+                    fd.append('emergency_contact_name', document.getElementById('swalEmergName').value.trim());
+                    fd.append('emergency_contact_phone', document.getElementById('swalEmergPhone').value.trim());
+
+                    fd.append('course', document.getElementById('swalCourse').value.trim());
+                    fd.append('year_level', document.getElementById('swalYearLevel').value.trim());
+                    fd.append('section', document.getElementById('swalSection').value.trim());
+                    fd.append('track', document.getElementById('swalTrack').value.trim());
+
+                    const faceInput = document.getElementById('swalPhotoInput');
+                    const idFront = document.getElementById('swalIdFront');
+                    const idBack = document.getElementById('swalIdBack');
+                    const filesProvided = {};
+                    if (faceInput && faceInput.files && faceInput.files.length > 0) { fd.append('face_photo', faceInput.files[0]); filesProvided.face_photo = faceInput.files[0]; }
+                    if (idFront && idFront.files && idFront.files.length > 0) { fd.append('id_front', idFront.files[0]); filesProvided.id_front = idFront.files[0]; }
+                    if (idBack && idBack.files && idBack.files.length > 0) { fd.append('id_back', idBack.files[0]); filesProvided.id_back = idBack.files[0]; }
+
+                    if (!fd.get('first_name') || !fd.get('last_name')) {
+                        Swal.showValidationMessage('First and last name are required');
+                        return false;
+                    }
+
+                    return fetch('/api/student/profile', {
+                        method: 'PUT',
+                        headers: { 'X-CSRFToken': csrfToken },
+                        body: fd,
+                        credentials: 'same-origin'
+                    }).then(async response => {
+                        let data = null;
+                        try { data = await response.json(); } catch (e) { }
+                        if (!response.ok) {
+                            const msg = data && data.error ? data.error : `HTTP ${response.status}`;
+                            throw new Error(msg);
+                        }
+                        return { data: data, filesProvided: filesProvided };
+                    }).catch(err => { throw new Error(err.message || 'Failed to update profile'); });
+                }
+            }).then((result) => {
+                if (result && result.value && result.value.data) {
+                    const res = result.value.data;
+                    const prof = res.profile || res;
+                    if (prof.course !== undefined) document.getElementById('courseSpan').textContent = prof.course;
+                    if (prof.year_level !== undefined) document.getElementById('yearLevelSpan').textContent = prof.year_level;
+                    if (prof.section !== undefined) document.getElementById('sectionSpan').textContent = prof.section;
+                    if (prof.track !== undefined) document.getElementById('trackSpan').textContent = prof.track || 'No track set';
+
+                    const profileImg = document.getElementById('profilePhoto');
+                    if (prof.photo_url || prof.face_photo_url) {
+                        profileImg.src = prof.photo_url || prof.face_photo_url;
+                    } else if (result.value.filesProvided && result.value.filesProvided.face_photo) {
+                        const localUrl = URL.createObjectURL(result.value.filesProvided.face_photo);
+                        profileImg.src = localUrl;
+                        profileImg.onload = () => URL.revokeObjectURL(localUrl);
+                    }
+
+                    Swal.fire({ icon: 'success', title: 'Profile Updated', text: (res.message) ? res.message : 'Your profile has been updated', timer: 1200, showConfirmButton: false, toast: true, position: 'top', background: '#dcfce7', color: '#166534' });
+                    // Refresh the page after a short delay so all changes (including uploaded photos)
+                    // are reflected from the server and any cached blobs are cleared.
+                    setTimeout(() => { try { window.location.reload(); } catch (e) { console.warn('Reload failed', e); } }, 1400);
+                }
+            }).catch(err => {
+                console.error('Update profile error:', err);
+                Swal.fire({ icon: 'error', title: 'Update Failed', text: err.message || 'Failed to update profile', confirmButtonColor: '#dc3545' });
+            }).finally(() => {
+                if (modalResizeObserver) {
+                    try { modalResizeObserver.disconnect(); modalResizeObserver = null; } catch (e) {}
+                }
+            });
+
+            // Initialize photo selector after modal is created
+            setTimeout(() => {
+                if (typeof window.initPhotoSelector === 'function') {
+                    window.initPhotoSelector();
+                }
+            }, 100);
+            try {
+                modalResizeObserver = new ResizeObserver(() => {
+                    const popup = document.querySelector('.swal-edit-profile');
+                    if (!popup) return;
+                    const vh = window.innerHeight;
+                    if (vh < 620) {
+                        popup.style.top = Math.max(20, vh * 0.02 + 14) + 'px';
+                        popup.style.height = Math.min(vh - 28, 0.92 * vh) + 'px';
+                    } else {
+                        popup.style.top = 'calc(3vh + 16px)';
+                        popup.style.height = '';
+                    }
+                });
+                modalResizeObserver.observe(document.body);
+            } catch (e) {
+                console.warn('ResizeObserver unavailable', e);
+            }
+        }
+
+        // Allow Enter key to join class — attach listener to all joinCode inputs (mobile + desktop)
+        (function attachEnterToJoinInputs(){
+            const mobileInput = document.getElementById('joinCodeMobile');
+            const desktopInput = document.getElementById('joinCodeDesktop');
+            
+            [mobileInput, desktopInput].forEach(inp => {
+                if (!inp) return;
+                try {
+                    inp.addEventListener('keypress', function (e) {
+                        if (e.key === 'Enter') {
+                            joinClass();
+                        }
+                    });
+                } catch (err) {
+                    // ignore
+                }
+            });
+        })();
+
+
+        // Export student grades report
+        function exportStudentReport() {
+            const exportBtn = document.getElementById('exportBtn');
+            if (exportBtn) {
+                exportBtn.disabled = true;
+                exportBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating...';
+            }
+
+            fetch('/api/export/student-grades', {
+                method: 'GET',
+                headers: {
+                    'X-CSRFToken': csrfToken
+                }
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Failed to generate report');
+                }
+                return response.blob();
+            })
+            .then(blob => {
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.style.display = 'none';
+                a.href = url;
+                a.download = 'my_grades_report.pdf';
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Report Generated',
+                    text: 'Your grades report has been downloaded successfully.',
+                    timer: 2000,
+                    showConfirmButton: false,
+                    toast: true,
+                    position: 'top'
+                });
+            })
+            .catch(error => {
+                console.error('Export error:', error);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Export Failed',
+                    text: 'Failed to generate your grades report. Please try again.',
+                    confirmButtonColor: '#dc3545'
+                });
+            })
+            .finally(() => {
+                if (exportBtn) {
+                    exportBtn.disabled = false;
+                    exportBtn.innerHTML = '<i class="fas fa-download"></i> Export My Grades';
+                }
+            });
+        }
+
+
+        // Missing Assessments Drawer Functionality
+        let missingAssessmentsData = null;
+
+
+        // Function to load missing assessments summary
+        function loadMissingAssessmentsSummary() {
+            // Get the correct element based on screen size
+            const isMobile = window.innerWidth <= 768;
+            const summaryDiv = isMobile ?
+                document.querySelector('.grades-assessments-carousel #missingAssessmentsSummary') :
+                document.querySelector('.desktop-card.assessments-card #missingAssessmentsSummary');
+
+            if (!summaryDiv) {
+                console.error('Could not find missing assessments summary element');
+                return;
+            }
+
+            summaryDiv.innerHTML = '<div class="summary-loading"><div class="spinner"></div> Loading missing assessments...</div>';
+
+            fetch('/api/student/analytics', {
+                credentials: 'same-origin'
+            })
+                .then(response => {
+                    if (response.status === 302 || response.redirected) {
+                        throw new Error('Authentication required. Please log in again.');
+                    }
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    renderMissingAssessmentsSummary(data, summaryDiv);
+                })
+                .catch(error => {
+                    console.error('Error loading missing assessments:', error);
+                    summaryDiv.innerHTML = '<div style="text-align: center; padding: 20px; color: #dc3545;"><div style="font-size: 32px; margin-bottom: 8px;">❌</div><p>Failed to load missing assessments</p></div>';
+                });
+        }
+
+        // Function to render missing assessments summary
+        function renderMissingAssessmentsSummary(data, summaryDiv) {
+            
+            if (!data.classes || data.classes.length === 0) {
+                summaryDiv.innerHTML = '<div style="text-align: center; padding: 20px; color: #666;"><div style="font-size: 32px; margin-bottom: 8px;">📚</div><p>No classes enrolled</p></div>';
+                return;
+            }
+
+            let totalMissing = 0;
+            let html = '';
+
+            data.classes.forEach(cls => {
+                // Always count 0, null, undefined, or blank scores as missing
+                let missingAssessments = [];
+                if (cls.assessments && Array.isArray(cls.assessments)) {
+                    cls.assessments.forEach(assess => {
+                        if (assess.score === 0 || assess.score === null || assess.score === undefined || assess.score === "") {
+                            missingAssessments.push(assess.name || assess);
+                        }
+                    });
+                } else if (cls.missing_assessments) {
+                    // Fallback to backend-provided missing_assessments if no assessments array
+                    missingAssessments = cls.missing_assessments;
+                }
+                const missingCount = missingAssessments.length;
+                totalMissing += missingCount;
+                let countClass = 'none';
+                if (missingCount > 0) {
+                    countClass = missingCount > 3 ? '' : 'low';
+                }
+                html += `
+                    <div class="assessment-summary-item">
+                        <div class="assessment-summary-header">
+                            <div class="class-name">📚 ${cls.class_name}</div>
+                            <div class="missing-count ${countClass}">${missingCount} missing</div>
+                        </div>
+                        ${missingCount > 0 ? `
+                            <div class="assessment-list">
+                                <strong>Missing:</strong>
+                                <ul>
+                                    ${missingAssessments.slice(0, 3).map(assessment => `<li>${assessment}</li>`).join('')}
+                                    ${missingCount > 3 ? `<li><em>...and ${missingCount - 3} more</em></li>` : ''}
+                                </ul>
+                            </div>
+                        ` : `
+                            <div style="color: #28a745; font-weight: 500;">✅ All assessments completed</div>
+                        `}
+                    </div>
+                `;
+            });
+
+            // Add overall summary
+            html = `
+                <div style="margin-bottom: 16px; padding: 12px; background: ${totalMissing > 0 ? '#fff5f5' : '#f0fff4'}; border-radius: 8px; border: 1px solid ${totalMissing > 0 ? '#fed7d7' : '#c6f6d5'};">
+                    <strong>📊 Summary:</strong> You have ${totalMissing} missing assessment${totalMissing !== 1 ? 's' : ''} across ${data.classes.length} class${data.classes.length !== 1 ? 'es' : ''}.
+                </div>
+            ` + html;
+
+            summaryDiv.innerHTML = html;
+        }
+
+        // Function to toggle missing assessments drawer
+        function toggleMissingAssessmentsDrawer() {
+            const drawer = document.getElementById('missingAssessmentsDrawer');
+            drawer.classList.toggle('active');
+            
+            if (drawer.classList.contains('active')) {
+                loadMissingAssessmentsDetails();
+            }
+        }
+
+        // Function to load missing assessments details
+        function loadMissingAssessmentsDetails() {
+            const contentDiv = document.getElementById('missingAssessmentsContent');
+            contentDiv.innerHTML = '<div class="drawer-loading"><div class="spinner"></div> Loading detailed assessment information...</div>';
+
+            // Use cached data if available, otherwise fetch
+            if (missingAssessmentsData) {
+                renderMissingAssessmentsDetails(missingAssessmentsData);
+            } else {
+                fetch('/api/student/analytics', {
+                    credentials: 'same-origin'
+                })
+                    .then(response => {
+                        if (response.status === 302 || response.redirected) {
+                            throw new Error('Authentication required. Please log in again.');
+                        }
+                        if (!response.ok) {
+                            throw new Error(`HTTP error! status: ${response.status}`);
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        missingAssessmentsData = data;
+                        renderMissingAssessmentsDetails(data);
+                    })
+                    .catch(error => {
+                        console.error('Error loading missing assessments details:', error);
+                        contentDiv.innerHTML = '<div style="text-align: center; padding: 40px; color: #dc3545;"><div style="font-size: 48px; margin-bottom: 12px;">❌</div><p>Failed to load assessment details</p></div>';
+                    });
+            }
+        }
+
+        // Function to render missing assessments details
+        function renderMissingAssessmentsDetails(data) {
+            const contentDiv = document.getElementById('missingAssessmentsContent');
+
+            if (!data.classes || data.classes.length === 0) {
+                contentDiv.innerHTML = '<div style="text-align: center; padding: 40px; color: #666;"><div style="font-size: 48px; margin-bottom: 12px;">📚</div><p>No classes enrolled</p></div>';
+                return;
+            }
+
+            let html = '';
+
+            data.classes.forEach(cls => {
+                // Always count 0, null, undefined, or blank scores as missing
+                let missingAssessments = [];
+                if (cls.assessments && Array.isArray(cls.assessments)) {
+                    cls.assessments.forEach(assess => {
+                        if (assess.score === 0 || assess.score === null || assess.score === undefined || assess.score === "") {
+                            missingAssessments.push(assess.name || assess);
+                        }
+                    });
+                } else if (cls.missing_assessments) {
+                    missingAssessments = cls.missing_assessments;
+                }
+                html += `
+                    <div class="class-details-card">
+                        <div class="class-header">
+                            <div class="class-title">📚 ${cls.class_name}</div>
+                            <div class="class-meta">
+                                ${missingAssessments.length > 0 ? 
+                                    `<span style="color: #dc3545; font-weight: 600;">${missingAssessments.length} missing assessment${missingAssessments.length !== 1 ? 's' : ''}</span>` :
+                                    `<span style="color: #28a745; font-weight: 600;">✅ All assessments completed</span>`
+                                }
+                            </div>
+                        </div>
+                        
+                        ${missingAssessments.length > 0 ? `
+                            <div class="missing-assessments-list">
+                                <div class="missing-assessments-title">Missing Assessments</div>
+                                ${missingAssessments.map(assessment => `
+                                    <div class="assessment-item">
+                                        <div class="assessment-name">📝 ${assessment}</div>
+                                        <div class="assessment-info">This assessment is pending completion</div>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        ` : `
+                            <div class="no-missing-assessments">
+                                <div>Great job! All assessments have been completed for this class.</div>
+                            </div>
+                        `}
+                    </div>
+                `;
+            });
+
+            contentDiv.innerHTML = html;
+        }
+
+        // Close drawer when clicking outside
+        document.getElementById('missingAssessmentsDrawer').addEventListener('click', function (e) {
+            if (e.target === this) {
+                toggleMissingAssessmentsDrawer();
+            }
+        });
+
+        // Prevent drawer content clicks from closing drawer
+        document.querySelector('.drawer-content').addEventListener('click', function (e) {
+            e.stopPropagation();
+        });
+
+        // Notifications System
+        let notificationsData = null;
+        let allNotifications = [];
+
+        // Function to load class notifications
+        function loadClassNotifications() {
+            const notificationsDiv = document.getElementById('classNotificationsList');
+            notificationsDiv.innerHTML = '<div class="notifications-loading"><div class="spinner"></div> Loading notifications...</div>';
+
+            fetch('/api/student/analytics', {
+                credentials: 'same-origin'
+            })
+                .then(response => {
+                    if (response.status === 302 || response.redirected) {
+                        throw new Error('Authentication required. Please log in again.');
+                    }
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    notificationsData = data;
+                    lastRefreshData = data; // Initialize for polling comparison
+                    renderClassNotifications(data);
+                })
+                .catch(error => {
+                    console.error('Error loading notifications:', error);
+                    notificationsDiv.innerHTML = '<div style="text-align: center; padding: 20px; color: #dc3545;"><div style="font-size: 32px; margin-bottom: 8px;">❌</div><p>Failed to load notifications</p></div>';
+                    document.getElementById('notificationCount').textContent = '0';
+                    document.getElementById('notificationCount').classList.add('zero');
+                });
+        }
+
+        // Function to render class notifications
+        function renderClassNotifications(data) {
+            const notificationsDiv = document.getElementById('classNotificationsList');
+            const notificationCount = document.getElementById('notificationCount');
+
+            if (!data.classes || data.classes.length === 0) {
+                notificationsDiv.innerHTML = '<div class="no-notifications"><div>No classes enrolled</div></div>';
+                notificationCount.textContent = '0';
+                notificationCount.classList.add('zero');
+                return;
+            }
+
+            // Generate notifications based on missing assessments and released grades
+            const notifications = [];
+            let totalNotifications = 0;
+
+            data.classes.forEach(cls => {
+                // Missing assessments notification
+                if (cls.missing_assessments && cls.missing_assessments.length > 0) {
+                    notifications.push({
+                        type: 'assessment',
+                        severity: cls.missing_assessments.length > 3 ? 'urgent' : 'warning',
+                        className: cls.class_name,
+                        message: `${cls.missing_assessments.length} missing assessment${cls.missing_assessments.length !== 1 ? 's' : ''}: ${cls.missing_assessments.slice(0, 2).join(', ')}${cls.missing_assessments.length > 2 ? '...' : ''}`,
+                        time: 'Recent'
+                    });
+                    totalNotifications++;
+                }
+
+                // Released grades notification
+                if (cls.released_grades && cls.released_grades.length > 0) {
+                    cls.released_grades.forEach(grade => {
+                        const gradeText = grade.equivalent ? `${grade.final_grade} (${grade.equivalent})` : grade.final_grade;
+                        notifications.push({
+                            type: 'grade',
+                            severity: 'success',
+                            className: cls.class_name,
+                            message: `Grade released: ${gradeText}`,
+                            time: grade.released_at ? new Date(grade.released_at).toLocaleDateString() : 'Recently'
+                        });
+                        totalNotifications++;
+                    });
+                }
+            });
+
+            // Store all notifications for the modal
+            allNotifications = notifications;
+
+            // Update notification count
+            notificationCount.textContent = totalNotifications;
+            if (totalNotifications === 0) {
+                notificationCount.classList.add('zero');
+            } else {
+                notificationCount.classList.remove('zero');
+            }
+
+            // Render notifications
+            if (notifications.length === 0) {
+                notificationsDiv.innerHTML = '<div class="no-notifications"><div>No new notifications</div><div style="font-size: 0.9rem; color: #999;">You\'re all caught up!</div></div>';
+            } else {
+                let html = '';
+                notifications.slice(0, 5).forEach(notification => { // Show max 5 in card
+                    html += `
+                        <div class="notification-item ${notification.severity}" onclick="viewNotificationDetails('${notification.className}')">
+                            <div class="notification-header">
+                                <div class="notification-class">📚 ${notification.className}</div>
+                                <div class="notification-type ${notification.type}">${notification.type}</div>
+                            </div>
+                            <div class="notification-message">${notification.message}</div>
+                            <div class="notification-time">${notification.time}</div>
+                        </div>
+                    `;
+                });
+                notificationsDiv.innerHTML = html;
+            }
+        }
+
+        // Function to view all notifications
+        function viewAllNotifications() {
+            const modal = document.getElementById('notificationsModal');
+            const modalBody = document.getElementById('notificationsModalBody');
+
+            modal.classList.add('active');
+
+            if (allNotifications.length === 0) {
+                modalBody.innerHTML = '<div class="no-notifications"><div>No notifications available</div><div style="font-size: 0.9rem; color: #999;">You\'re all caught up!</div></div>';
+            } else {
+                let html = '<div class="all-notifications-list">';
+                allNotifications.forEach(notification => {
+                    html += `
+                        <div class="notification-item ${notification.severity}" onclick="viewNotificationDetails('${notification.className}')">
+                            <div class="notification-header">
+                                <div class="notification-class">📚 ${notification.className}</div>
+                                <div class="notification-type ${notification.type}">${notification.type}</div>
+                            </div>
+                            <div class="notification-message">${notification.message}</div>
+                            <div class="notification-time">${notification.time}</div>
+                        </div>
+                    `;
+                });
+                html += '</div>';
+                modalBody.innerHTML = html;
+            }
+        }
+
+        // Function to close notifications modal
+        function closeNotificationsModal() {
+            document.getElementById('notificationsModal').classList.remove('active');
+        }
+
+        // Function to view notification details
+        function viewNotificationDetails(className) {
+            // For now, just show a toast. In a real implementation, 
+            // this could navigate to class details or show more info
+            Swal.fire({
+                icon: 'info',
+                title: `📚 ${className}`,
+                text: 'Click "View All Updates" to see complete details',
+                timer: 2000,
+                showConfirmButton: false,
+                position: 'top',
+                background: '#f0f9ff',
+                color: '#0c4a6e'
+            });
+        }
+
+        // Close notifications modal when clicking outside
+        document.getElementById('notificationsModal').addEventListener('click', function (e) {
+            if (e.target === this) {
+                closeNotificationsModal();
+            }
+        });
+
+        // Auto-refresh system
+        let socket = null;
+        let isRefreshing = false;
+        let refreshInterval = null;
+        let lastRefreshData = null;
+
+        // Initialize auto-refresh system
+        function initializeAutoRefresh() {
+            // Initialize Socket.IO connection
+            try {
+                socket = io();
+                
+                // Connection status handlers
+                socket.on('connect', () => {
+                    updateConnectionStatus('connected');
+                    showAutoRefreshIndicator('Connected', 'updated');
+                    subscribeToLiveUpdates();
+                });
+
+                socket.on('disconnect', () => {
+                    updateConnectionStatus('disconnected');
+                    showAutoRefreshIndicator('Disconnected', 'refresh');
+                });
+
+                socket.on('connect_error', () => {
+                    updateConnectionStatus('disconnected');
+                });
+
+                socket.on('reconnect', () => {
+                    updateConnectionStatus('connected');
+                    showAutoRefreshIndicator('Reconnected', 'updated');
+                    subscribeToLiveUpdates();
+                });
+
+                // Listen for live version updates (database changes)
+                socket.on('live_version', (data) => {
+                    console.log('Live version update received:', data);
+                    handleDatabaseChange(data);
+                });
+
+                // Listen for specific class updates
+                socket.on('class_updated', (data) => {
+                    console.log('Class update received:', data);
+                    handleDatabaseChange(data);
+                });
+
+                updateConnectionStatus('connecting');
+            } catch (error) {
+                console.warn('Socket.IO not available, falling back to polling:', error);
+                initializePollingRefresh();
+            }
+
+            // Initialize periodic polling as fallback
+            initializePollingRefresh();
+            
+            // Add page visibility change handler
+            document.addEventListener('visibilitychange', handleVisibilityChange);
+        }
+
+        // Subscribe to live updates for student's classes
+        function subscribeToLiveUpdates() {
+            if (socket && socket.connected) {
+                // Subscribe to class updates
+                socket.emit('subscribe_live_version', { user_type: 'student' });
+            }
+        }
+
+        // Handle database changes
+        function handleDatabaseChange(changeData) {
+            console.log('Database change detected:', changeData);
+            
+            // Determine which sections to refresh based on change type
+            const sectionsToRefresh = determineSectionsToRefresh(changeData);
+            
+            if (sectionsToRefresh.length > 0) {
+                showAutoRefreshIndicator('Updating...', 'refresh');
+                refreshAffectedSections(sectionsToRefresh);
+            }
+        }
+
+        // Determine which dashboard sections need refreshing based on database changes
+        function determineSectionsToRefresh(changeData) {
+            const sections = [];
+
+            if (changeData.type === 'grade_update' || changeData.type === 'new_assessment') {
+                sections.push('notifications', 'missing-assessments', 'joined-classes');
+            } else if (changeData.type === 'class_joined' || changeData.type === 'class_left') {
+                sections.push('joined-classes', 'notifications');
+            } else if (changeData.type === 'profile_update') {
+                sections.push('profile');
+            } else {
+                // General update - refresh everything
+                sections.push('all');
+            }
+
+            return sections;
+        }
+
+        // Refresh specific dashboard sections
+        async function refreshAffectedSections(sections) {
+            if (isRefreshing) return;
+            
+            isRefreshing = true;
+            addRefreshingClassToSections(sections);
+            
+            try {
+                const refreshPromises = [];
+                
+                if (sections.includes('all') || sections.includes('joined-classes')) {
+                    refreshPromises.push(loadJoinedClasses());
+                }
+                
+                if (sections.includes('all') || sections.includes('missing-assessments')) {
+                    refreshPromises.push(loadMissingAssessmentsSummary());
+                    refreshPromises.push(loadClassNotifications());
+                }
+                
+                if (sections.includes('all') || sections.includes('profile')) {
+                    refreshPromises.push(loadProfile());
+                }
+                
+                // Execute all refreshes concurrently
+                await Promise.all(refreshPromises);
+                
+                showAutoRefreshIndicator('Updated', 'updated');
+                updateRefreshTimestamp();
+                
+                // Show success notification
+                setTimeout(() => {
+                    Swal.fire({
+                        icon: 'success',
+                        title: '🔄 Dashboard Updated',
+                        text: 'Your dashboard has been automatically refreshed with the latest data.',
+                        timer: 2000,
+                        showConfirmButton: false,
+                        position: 'top',
+                        background: '#dcfce7',
+                        color: '#166534'
+                    });
+                }, 500);
+                
+            } catch (error) {
+                console.error('Auto-refresh error:', error);
+                showAutoRefreshIndicator('Update failed', 'refresh');
+            } finally {
+                isRefreshing = false;
+                removeRefreshingClassFromSections(sections);
+            }
+        }
+
+        // Add visual indicator when sections are refreshing
+        function addRefreshingClassToSections(sections) {
+            if (sections.includes('all')) {
+                document.querySelectorAll('.card').forEach(card => {
+                    card.classList.add('data-section-refreshing');
+                });
+            } else {
+                // Add specific section classes based on content
+                sections.forEach(section => {
+                    const sectionElements = getSectionElements(section);
+                    sectionElements.forEach(element => {
+                        element.classList.add('data-section-refreshing');
+                    });
+                });
+            }
+        }
+
+        // Remove refreshing visual indicators
+        function removeRefreshingClassFromSections(sections) {
+            if (sections.includes('all')) {
+                document.querySelectorAll('.card').forEach(card => {
+                    card.classList.remove('data-section-refreshing');
+                });
+            } else {
+                sections.forEach(section => {
+                    const sectionElements = getSectionElements(section);
+                    sectionElements.forEach(element => {
+                        element.classList.remove('data-section-refreshing');
+                    });
+                });
+            }
+        }
+
+        // Get section elements based on section type
+        function getSectionElements(section) {
+            const isMobile = window.innerWidth <= 768;
+            switch (section) {
+                case 'joined-classes':
+                    return isMobile ?
+                        [document.querySelector('.join-classes-carousel #joinedClassesList')] :
+                        [document.querySelector('.desktop-card.joined-classes-card #joinedClassesList')];
+                case 'missing-assessments':
+                    return isMobile ?
+                        [document.querySelector('.grades-assessments-carousel #missingAssessmentsSummary')] :
+                        [document.querySelector('.desktop-card.assessments-card #missingAssessmentsSummary')];
+                case 'notifications':
+                    return [document.getElementById('classNotificationsList')];
+                case 'profile':
+                    return [document.querySelector('.profile-content')];
+                default:
+                    return [];
+            }
+        }
+
+        // Initialize polling-based refresh as fallback
+        function initializePollingRefresh() {
+            // Refresh every 30 seconds when page is visible
+            refreshInterval = setInterval(() => {
+                if (!document.hidden) {
+                    performPollingRefresh();
+                }
+            }, 30000);
+        }
+
+        // Fetch analytics data for polling comparison
+        async function fetchAnalyticsData() {
+            const response = await fetch('/api/student/analytics', {
+                credentials: 'same-origin'
+            });
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return await response.json();
+        }
+
+        // Perform polling refresh
+        async function performPollingRefresh() {
+            try {
+                const currentData = await fetchAnalyticsData();
+
+                // Check if data has changed
+                if (hasDataChanged(currentData, lastRefreshData)) {
+                    console.log('Data change detected via polling');
+                    await refreshAffectedSections(['all']);
+                    lastRefreshData = currentData;
+                }
+            } catch (error) {
+                console.error('Polling refresh error:', error);
+            }
+        }
+
+
+        // Check if data has changed (simple deep comparison)
+        function hasDataChanged(newData, oldData) {
+            if (!oldData) return true;
+            
+            try {
+                return JSON.stringify(newData) !== JSON.stringify(oldData);
+            } catch (error) {
+                return true; // If comparison fails, assume data changed
+            }
+        }
+
+        // Handle page visibility changes
+        function handleVisibilityChange() {
+            if (document.hidden) {
+                // Page is hidden, reduce refresh frequency
+                if (refreshInterval) {
+                    clearInterval(refreshInterval);
+                }
+            } else {
+                // Page is visible, perform immediate refresh and resume normal frequency
+                performPollingRefresh();
+                initializePollingRefresh();
+            }
+        }
+
+        // Show auto-refresh indicator
+        function showAutoRefreshIndicator(message, type = 'refresh') {
+            const indicator = document.getElementById('autoRefreshIndicator');
+            indicator.textContent = message;
+            indicator.className = `auto-refresh-indicator show ${type}`;
+            
+            // Hide after 3 seconds
+            setTimeout(() => {
+                indicator.classList.remove('show');
+            }, 3000);
+        }
+
+        // Update connection status indicator
+        function updateConnectionStatus(status) {
+            const statusElement = document.getElementById('connectionStatus');
+            statusElement.className = `connection-status ${status}`;
+            
+            const statusText = {
+                connected: 'Connected to live updates',
+                disconnected: 'Disconnected - using polling',
+                connecting: 'Connecting...'
+            }[status] || 'Unknown status';
+            
+            statusElement.title = statusText;
+        }
+
+        // Update refresh timestamp
+        function updateRefreshTimestamp() {
+            const timestampElement = document.getElementById('refreshTimestamp');
+            const now = new Date();
+            const timeString = now.toLocaleTimeString([], { 
+                hour: '2-digit', 
+                minute: '2-digit' 
+            });
+            
+            timestampElement.textContent = `Last updated: ${timeString}`;
+            timestampElement.classList.add('show');
+            
+            // Hide timestamp after 5 seconds
+            setTimeout(() => {
+                timestampElement.classList.remove('show');
+            }, 5000);
+        }
+
+        // Load profile data (placeholder function)
+        function loadProfile() {
+            // This would refresh the profile section if needed
+            // For now, we'll just return a resolved promise
+            return Promise.resolve();
+        }
+
+        // Cleanup auto-refresh system when page unloads
+        window.addEventListener('beforeunload', function () {
+            if (refreshInterval) {
+                clearInterval(refreshInterval);
+            }
+            if (socket) {
+                socket.disconnect();
+            }
+        });
+
+        // Carousel functionality
+        function initializeCarousels() {
+            // Initialize join classes carousel
+            const joinClassesCarousel = document.querySelector('.join-classes-carousel');
+            if (joinClassesCarousel) {
+                initializeCarousel(joinClassesCarousel);
+            }
+
+            // Initialize grades assessments carousel
+            const gradesAssessmentsCarousel = document.querySelector('.grades-assessments-carousel');
+            if (gradesAssessmentsCarousel) {
+                initializeCarousel(gradesAssessmentsCarousel);
+            }
+        }
+
+        function initializeCarousel(carouselElement) {
+            let currentSlide = 0;
+            let autoAdvanceInterval;
+            let isUserInteracting = false;
+            const slides = carouselElement.querySelector('.carousel-slides');
+            const prevBtn = carouselElement.querySelector('.carousel-prev');
+            const nextBtn = carouselElement.querySelector('.carousel-next');
+            const totalSlides = carouselElement.querySelectorAll('.carousel-slide').length;
+
+            // Update button states
+            updateArrowStates(carouselElement, currentSlide, totalSlides);
+
+            // Add click handlers to arrows
+            if (prevBtn) {
+                prevBtn.addEventListener('click', () => {
+                    const prevSlide = currentSlide - 1;
+                    if (prevSlide >= 0) {
+                        goToSlide(carouselElement, prevSlide);
+                        currentSlide = prevSlide;
+                        updateArrowStates(carouselElement, currentSlide, totalSlides);
+                        resetAutoAdvance();
+                    }
+                });
+            }
+
+            if (nextBtn) {
+                nextBtn.addEventListener('click', () => {
+                    const nextSlide = currentSlide + 1;
+                    if (nextSlide < totalSlides) {
+                        goToSlide(carouselElement, nextSlide);
+                        currentSlide = nextSlide;
+                        updateArrowStates(carouselElement, currentSlide, totalSlides);
+                        resetAutoAdvance();
+                    }
+                });
+            }
+
+            // Function to start auto-advance
+            function startAutoAdvance() {
+                autoAdvanceInterval = setInterval(() => {
+                    const nextSlide = (currentSlide + 1) % totalSlides;
+                    goToSlide(carouselElement, nextSlide);
+                    currentSlide = nextSlide;
+                    updateArrowStates(carouselElement, currentSlide, totalSlides);
+                }, 5000);
+            }
+
+            // Function to stop auto-advance
+            function stopAutoAdvance() {
+                if (autoAdvanceInterval) {
+                    clearInterval(autoAdvanceInterval);
+                    autoAdvanceInterval = null;
+                }
+            }
+
+            // Function to reset auto-advance (used after manual navigation)
+            function resetAutoAdvance() {
+                stopAutoAdvance();
+                startAutoAdvance();
+            }
+
+            // Pause auto-advance when user interacts with carousel content
+            function pauseOnInteraction() {
+                console.log('Pausing carousel auto-advance');
+                stopAutoAdvance();
+            }
+
+            // Resume auto-advance when user stops interacting
+            function resumeOnInteractionEnd() {
+                console.log('Resuming carousel auto-advance');
+                resetAutoAdvance();
+            }
+
+            // Add interaction listeners to carousel slides
+            const carouselSlides = carouselElement.querySelectorAll('.carousel-slide');
+            carouselSlides.forEach(slide => {
+                // Mouse events
+                slide.addEventListener('mouseenter', pauseOnInteraction);
+                slide.addEventListener('mouseleave', resumeOnInteractionEnd);
+
+                // Touch events for mobile
+                slide.addEventListener('touchstart', pauseOnInteraction);
+                slide.addEventListener('touchend', resumeOnInteractionEnd);
+
+                // Focus events for keyboard navigation and form elements
+                const interactiveElements = slide.querySelectorAll('input, button, a, select, textarea');
+                interactiveElements.forEach(element => {
+                    element.addEventListener('focus', pauseOnInteraction);
+                    element.addEventListener('blur', resumeOnInteractionEnd);
+                });
+            });
+
+            // Start auto-advance initially
+            startAutoAdvance();
+        }
+
+        function updateArrowStates(carouselElement, currentSlide, totalSlides) {
+            const prevBtn = carouselElement.querySelector('.carousel-prev');
+            const nextBtn = carouselElement.querySelector('.carousel-next');
+
+            if (prevBtn) {
+                prevBtn.disabled = currentSlide === 0;
+            }
+            if (nextBtn) {
+                nextBtn.disabled = currentSlide === totalSlides - 1;
+            }
+        }
+
+        function goToSlide(carouselElement, slideIndex) {
+            const slides = carouselElement.querySelector('.carousel-slides');
+            const indicators = carouselElement.querySelectorAll('.indicator');
+
+            // Update slide position
+            slides.style.transform = `translateX(-${slideIndex * 100}%)`;
+
+            // Update indicators
+            indicators.forEach((indicator, index) => {
+                if (index === slideIndex) {
+                    indicator.classList.add('active');
+                } else {
+                    indicator.classList.remove('active');
+                }
+            });
+        }
+
+        // Initialize carousels when DOM is loaded
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeCarousels();
+        });
+    </script>
+
+    <!-- Photo Upload Modal Script -->
+    <script>
+    // Global variables for photo upload modal
+    let currentPhotoType = null;
+    let selectedFile = null;
+
+    // Photo change functionality will be initialized when modal opens
+    window.initPhotoSelector = function() {
+        // No initialization needed for buttons - they call openPhotoModal directly
+    };
+
+    // Open photo upload modal
+    window.openPhotoModal = function(photoType) {
+        currentPhotoType = photoType;
+        selectedFile = null;
+
+        const modal = document.getElementById('photoUploadModal');
+        const title = document.getElementById('photoModalTitle');
+        const previewImg = document.getElementById('photoPreviewImage');
+        const placeholder = document.getElementById('photoPreviewPlaceholder');
+        const fileInput = document.getElementById('photoFileInput');
+        const confirmBtn = document.getElementById('photoConfirmBtn');
+
+        // Set title
+        const titles = {
+            'profile': '📷 Upload Profile Photo',
+            'id_front': '🆔 Upload ID Front Photo',
+            'id_back': '🆔 Upload ID Back Photo'
+        };
+        title.textContent = titles[photoType] || 'Upload Photo';
+
+        // Reset preview
+        previewImg.style.display = 'none';
+        previewImg.src = '';
+        placeholder.style.display = 'block';
+        fileInput.value = '';
+        confirmBtn.disabled = true;
+
+        // Show modal
+        modal.style.display = 'flex';
+
+        // Handle file selection
+        fileInput.onchange = function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                selectedFile = file;
+                const url = URL.createObjectURL(file);
+                previewImg.src = url;
+                previewImg.style.display = 'block';
+                placeholder.style.display = 'none';
+                confirmBtn.disabled = false;
+
+                // Clean up object URL when image loads
+                previewImg.onload = () => URL.revokeObjectURL(url);
+            } else {
+                selectedFile = null;
+                previewImg.style.display = 'none';
+                placeholder.style.display = 'block';
+                confirmBtn.disabled = true;
+            }
+        };
+    };
+
+    // Close photo upload modal
+    window.closePhotoModal = function() {
+        const modal = document.getElementById('photoUploadModal');
+        modal.style.display = 'none';
+        currentPhotoType = null;
+        selectedFile = null;
+    };
+
+    // Confirm photo upload
+    window.confirmPhotoUpload = function() {
+        if (!selectedFile || !currentPhotoType) return;
+
+        // Set the file to the appropriate input
+        const inputId = currentPhotoType === 'profile' ? 'swalPhotoInput' :
+                       currentPhotoType === 'id_front' ? 'swalIdFront' : 'swalIdBack';
+
+        const input = document.getElementById(inputId);
+        if (input) {
+            // Create a new DataTransfer to set the file
+            const dt = new DataTransfer();
+            dt.items.add(selectedFile);
+            input.files = dt.files;
+
+            // Trigger the preview function
+            const previewTarget = currentPhotoType === 'profile' ? 'swalPhotoPreview' :
+                                currentPhotoType === 'id_front' ? 'swalIdFrontPreview' : 'swalIdBackPreview';
+            previewProfilePhoto(input, previewTarget);
+        }
+
+        closePhotoModal();
+    };
+    </script>
+</body>
+
+</html>

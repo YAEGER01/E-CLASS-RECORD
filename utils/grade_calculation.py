@@ -1,0 +1,198 @@
+from flask import request
+from utils.db_conn import get_db_connection
+
+
+def get_equivalent(final_grade: float) -> str:
+    """
+    Map numeric grade to ISU equivalent string.
+    Based on Isabela State University official grading system:
+    - 1.0  = 98-100
+    - 1.25 = 95-97
+    - 1.5  = 92-94
+    - 1.75 = 89-91
+    - 2.0  = 86-88
+    - 2.25 = 83-85
+    - 2.5  = 80-82
+    - 2.75 = 77-79
+    - 3.0  = 75-76
+    - 5.0  = Below 75 (Failure)
+    """
+    if final_grade >= 98:
+        return "1.00"
+    if final_grade >= 95:
+        return "1.25"
+    if final_grade >= 92:
+        return "1.50"
+    if final_grade >= 89:
+        return "1.75"
+    if final_grade >= 86:
+        return "2.00"
+    if final_grade >= 83:
+        return "2.25"
+    if final_grade >= 80:
+        return "2.50"
+    if final_grade >= 77:
+        return "2.75"
+    if final_grade >= 75:
+        return "3.00"
+    return "5.00"
+
+
+def perform_grade_computation(
+    formula: dict, normalized_rows: list, student_scores_named: list[dict]
+) -> list[dict]:
+    """
+    Compute per-student grades.
+
+    Developer Customization Guide:
+    - To change how group/category weights are handled, modify the logic in the category_group_weights and category_weight_structure sections.
+    - To change how category contributions are scaled, adjust the scaling logic in the 'cat_contrib' calculation.
+    - To change how final grades are computed, modify the 'total_grade' and 'final_grade' calculations.
+    - To change grade equivalency, edit the get_equivalent() function above.
+    - To add new grading rules, insert your logic in the relevant sections below.
+    Each calculation step is commented for easy modification.
+    """
+    # Build lookup: assessment_name -> (category, group_name, max_score, group_weight)
+    # To change how assessments are mapped, modify this section.
+    assess_lookup = {}
+    from collections import defaultdict
+
+    category_group_weights = defaultdict(float)  # (category, group_name) -> weight
+    category_assessments = defaultdict(list)  # category -> list of assessment names
+
+    for row in normalized_rows:
+        aname = row.get("assessment")
+        category = row.get("category")
+        gname = row.get("name")
+        weight = float(row.get("weight") or 0)
+        max_score = float(row.get("max_score") or 0)
+        if aname:
+            assess_lookup[aname] = (category, gname, max_score, weight)
+            if category:
+                category_assessments[category].append(aname)
+        if category and gname:
+            # To change group weight logic, modify here.
+            category_group_weights[(category, gname)] = weight
+
+    # Compute category total weight from structure
+    # Calculate total weight per category from structure
+    # To change how category weights are summed, modify here.
+    category_weight_structure = defaultdict(float)
+    for (category, gname), w in category_group_weights.items():
+        category_weight_structure[category] += float(w or 0)
+
+    # Compute category total weight from formula (sum of parts)
+    # Calculate total weight per category from formula (customizable)
+    # To change how formula weights are interpreted, modify here.
+    category_weight_formula = {}
+    if isinstance(formula, dict):
+        for category, details in formula.items():
+            if isinstance(details, dict):
+                total_w = 0.0
+                for part in details.values():
+                    try:
+                        total_w += float(part.get("weight", 0))
+                    except Exception:
+                        continue
+                category_weight_formula[category] = total_w
+
+    # Group scores per student
+    # Group scores per student
+    # To change how scores are grouped, modify here.
+    by_student = defaultdict(list)
+    for rec in student_scores_named:
+        sid = rec.get("student_id")
+        aname = rec.get("assessment_name")
+        score = rec.get("score")
+        if sid is None or aname is None:
+            continue
+        by_student[sid].append((aname, float(score or 0)))
+
+    results = []
+    for student_id, pairs in by_student.items():
+        # category -> { group_name -> (sum_score, sum_max) }
+        # To change how group totals are computed, modify here.
+        cat_group_totals = defaultdict(lambda: defaultdict(lambda: [0.0, 0.0]))
+        for aname, score in pairs:
+            if aname not in assess_lookup:
+                # Unknown assessment (not in current structure); skip
+                continue
+            category, gname, max_score, gweight = assess_lookup[aname]
+            if max_score and max_score > 0:
+                cat_group_totals[category][gname][0] += float(score)
+                cat_group_totals[category][gname][1] += float(max_score)
+
+        total_grade = 0.0
+        for category, groups in cat_group_totals.items():
+            # Compute contribution by groups using structure group weights
+            # To change how group contributions affect the total, modify here.
+            cat_contrib = 0.0
+            for gname, (sum_score, sum_max) in groups.items():
+                if sum_max <= 0:
+                    continue
+                avg_percent = sum_score / sum_max  # 0..1
+                gweight = category_group_weights.get((category, gname), 0.0)
+                cat_contrib += avg_percent * gweight
+
+            # Scale category contribution if formula dictates a different total weight
+            # To change scaling logic, modify here.
+            desired_w = category_weight_formula.get(category)
+            struct_w = category_weight_structure.get(category) or 0.0
+            if desired_w is not None:
+                if struct_w > 0:
+                    cat_contrib = cat_contrib * (desired_w / struct_w)
+                else:
+                    # No structure weights; fallback to averaging all assessments in the category
+                    assessments = category_assessments.get(category, [])
+                    if assessments:
+                        sum_score = 0.0
+                        sum_max = 0.0
+                        for aname in assessments:
+                            # find student's score for this assessment
+                            for a2, sc2 in pairs:
+                                if a2 == aname:
+                                    _, _, mx, _ = assess_lookup.get(
+                                        a2, (None, None, 0.0, 0.0)
+                                    )
+                                    sum_score += sc2
+                                    sum_max += float(mx or 0)
+                        if sum_max > 0:
+                            cat_contrib = (sum_score / sum_max) * desired_w
+
+            total_grade += cat_contrib
+
+        # To change final grade calculation, modify here.
+        final_grade = round(total_grade, 2)
+        equivalent = get_equivalent(final_grade)
+        results.append(
+            {
+                "student_id": student_id,
+                "final_grade": final_grade,
+                "equivalent": equivalent,
+            }
+        )
+
+    # To change how missing students are handled, modify here.
+    try:
+        with get_db_connection().cursor() as cursor:
+            cursor.execute(
+                "SELECT sc.student_id FROM student_classes sc WHERE sc.class_id = %s",
+                (
+                    (
+                        request.view_args.get("class_id")
+                        if request and getattr(request, "view_args", None)
+                        else None
+                    ),
+                ),
+            )
+            enrolled = [row["student_id"] for row in cursor.fetchall() or []]
+    except Exception:
+        enrolled = []
+    existing_ids = {r["student_id"] for r in results}
+    for sid in enrolled:
+        if sid not in existing_ids:
+            results.append(
+                {"student_id": sid, "final_grade": 0.0, "equivalent": "5.00"}
+            )
+
+    return sorted(results, key=lambda r: r["student_id"])  # stable order

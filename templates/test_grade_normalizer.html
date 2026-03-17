@@ -1,0 +1,1686 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Filtered Class Record: Sticky Label + Expanding Data</title>
+
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Custom font and base styles */
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f7f9fb;
+            min-height: 100vh;
+            width: 100vw;
+        }
+
+        /* --- CONSTANTS --- */
+        :root {
+            --fixed-label-width: 64px;
+            --expanded-header-height: 64px;
+        }
+
+        /* --- ACCORDION DATA COLUMNS --- */
+
+        /* Accordion Item Parent Container */
+        .accordion-item {
+            transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+            flex-shrink: 0;
+            overflow: hidden;
+            border-right: 1px solid #e5e7eb;
+            width: var(--fixed-label-width);
+            /* Default collapsed width */
+            opacity: 1;
+        }
+
+        .accordion-item.expanded {
+            /* Width set by JS */
+        }
+
+        .accordion-item.hidden {
+            width: 0 !important;
+            opacity: 0;
+            margin: 0 !important;
+            padding: 0 !important;
+            border: none;
+            transition: width 0.5s, opacity 0.5s;
+        }
+
+        /* Inner Wrapper: Always a flex row to hold Col 1 (Label) and Col 2 (Content) */
+        .inner-accordion-wrapper {
+            display: flex;
+            flex-direction: row;
+            height: 100%;
+            width: 100%;
+        }
+
+        /* Col 1: Fixed Label Column (Always visible, always vertical text) */
+        .accordion-fixed-col {
+            width: var(--fixed-label-width);
+            background-color: #e5e7eb;
+            color: #4b5563;
+            writing-mode: vertical-rl;
+            transform: rotate(180deg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column-reverse;
+            white-space: nowrap;
+            cursor: pointer;
+            flex-shrink: 0;
+            border-bottom: 1px solid #d1d5db;
+            height: 100%;
+        }
+
+        .accordion-label-inner {
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        @media (min-width: 640px) {
+            .accordion-label-inner {
+                font-size: 1rem;
+            }
+        }
+
+        /* Col 2: Content Expander (The "Open Column" data) */
+        .accordion-content-wrapper {
+            flex-grow: 1;
+            width: 0;
+            opacity: 0;
+            transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s 0.2s;
+            overflow-x: hidden;
+            background-color: white;
+            position: relative;
+        }
+
+        /* Show content and give it calculated width when expanded */
+        .accordion-item.expanded .accordion-content-wrapper {
+            opacity: 1;
+            /* Width is set by JS */
+            transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s 0.5s;
+        }
+
+        /* Expanded Header/Title (The "Open Column" name) */
+        .expanded-header-title {
+            padding: 0 1rem;
+            height: var(--expanded-header-height);
+            display: none;
+            align-items: center;
+            justify-content: space-between;
+            font-weight: 800;
+            color: white;
+            border-bottom: 1px solid #d1d5db;
+            flex-shrink: 0;
+        }
+
+        /* Apply specific colors to the expanded header (1-5 Lab, 6 Lab Total, 7-10 Lecture) */
+        #item-1.expanded .expanded-header-title {
+            background-color: #16a34a;
+        }
+
+        /* Green */
+        #item-2.expanded .expanded-header-title {
+            background-color: #2563eb;
+        }
+
+        /* Blue */
+        #item-3.expanded .expanded-header-title {
+            background-color: #f97316;
+        }
+
+        /* Orange */
+        #item-4.expanded .expanded-header-title {
+            background-color: #dc2626;
+        }
+
+        /* Red */
+        #item-5.expanded .expanded-header-title {
+            background-color: #7c3aed;
+        }
+
+        /* Violet */
+        #item-6.expanded .expanded-header-title {
+            background-color: #059669;
+        }
+
+        /* Emerald */
+        #item-7.expanded .expanded-header-title {
+            background-color: #0369a1;
+        }
+
+        /* Sky Blue */
+        #item-8.expanded .expanded-header-title {
+            background-color: #ca8a04;
+        }
+
+        /* Amber */
+        #item-9.expanded .expanded-header-title {
+            background-color: #be185d;
+        }
+
+        /* Pink */
+        #item-10.expanded .expanded-header-title {
+            background-color: #4338ca;
+        }
+
+        /* Indigo */
+
+
+        /* Actual scrollable content area */
+        .accordion-content {
+            padding: 1rem;
+            height: calc(100% - var(--expanded-header-height));
+            /* Subtract header height */
+            overflow-y: auto;
+        }
+
+        /* --- HIDDEN SCROLLBAR STYLES --- */
+        .accordion-content::-webkit-scrollbar {
+            width: 0;
+            height: 0;
+            display: none;
+        }
+
+        .accordion-content {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+
+        /* Table and Input Styles */
+        .score-input {
+            width: 60px;
+            padding: 0.4rem;
+            font-size: 0.8rem;
+            border-radius: 0.25rem;
+            border-width: 1px;
+            text-align: center;
+        }
+
+        .total-output {
+            border: none;
+            box-shadow: none;
+            background-color: #e5e7eb;
+            font-weight: 700;
+            width: 80px;
+        }
+
+        .score-table {
+            border-collapse: separate;
+            border-spacing: 0;
+            border-radius: 0.5rem;
+            border: 1px solid #d1d5db;
+        }
+
+        .score-table th,
+        .score-table td {
+            border-right: 1px solid #e5e7eb;
+            border-bottom: 1px solid #e5e7eb;
+            padding: 0.5rem 0.75rem;
+            font-size: 0.875rem;
+        }
+
+        .score-table tbody tr:last-child td {
+            border-bottom: none;
+        }
+
+        .score-table th:last-child,
+        .score-table td:last-child {
+            border-right: none;
+        }
+
+        /* Sticky student name column inside the table */
+        .sticky-col {
+            position: sticky;
+            left: 0;
+            z-index: 5;
+            background-color: white;
+            box-shadow: 2px 0 2px -2px rgba(0, 0, 0, 0.1);
+            width: 120px;
+        }
+
+        @media (min-width: 640px) {
+            .sticky-col {
+                width: 150px;
+            }
+        }
+
+        @media (min-width: 1024px) {
+            .sticky-col {
+                width: 192px;
+            }
+        }
+
+        /* Sticky header for the student name column within the table */
+        .sticky-col-header {
+            position: sticky;
+            left: 0;
+            z-index: 15;
+            background-color: #f9fafb;
+            box-shadow: 2px 0 2px -2px rgba(0, 0, 0, 0.1);
+        }
+
+        /* --- MODAL STYLES --- */
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            z-index: 50;
+            /* Above everything else */
+            display: none;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transition: opacity 0.3s ease-out;
+        }
+
+        .modal.open {
+            display: flex;
+            opacity: 1;
+        }
+
+        .modal-content {
+            background-color: white;
+            border-radius: 1rem;
+            width: 90%;
+            max-width: 600px;
+            padding: 1.5rem;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+            transform: scale(0.9);
+            transition: transform 0.3s ease-out;
+        }
+
+        .modal.open .modal-content {
+            transform: scale(1);
+        }
+
+        /* --- NOTIFICATION TOAST STYLES --- */
+        #notification-toast {
+            position: fixed;
+            top: 1rem;
+            right: 1rem;
+            z-index: 60;
+            transform: translateX(120%);
+            transition: transform 0.3s ease-in-out;
+            max-width: 300px;
+        }
+
+        #notification-toast.show {
+            transform: translateX(0);
+        }
+
+        /* --- LOADING OVERLAY STYLES --- */
+        #loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(255, 255, 255, 0.8);
+            z-index: 55;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        #loading-overlay.show {
+            display: flex;
+            opacity: 1;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3b82f6;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+    </style>
+</head>
+
+<body class="flex items-center justify-center min-h-screen w-screen p-2 md:p-4">
+
+
+
+    <div id="main-container"
+        class="w-[90vw] h-[90vh] bg-white shadow-2xl rounded-2xl border border-black flex flex-col overflow-hidden">
+
+
+
+        <header
+            class="p-3 sm:p-4 text-gray-800 bg-gray-50 border-b-2 border-indigo-100 flex items-center justify-between flex-wrap gap-3">
+            <a href="{{ url_for('dashboard.instructor_dashboard') }}"
+               class="inline-flex items-center text-indigo-700 hover:text-indigo-900 bg-white border border-indigo-200 hover:border-indigo-300 px-3 py-2 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-1">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                    <path fill-rule="evenodd" d="M12.707 15.707a1 1 0 01-1.414 0l-5-5a1 1 0 010-1.414l5-5a1 1 0 111.414 1.414L8.414 9H17a1 1 0 110 2H8.414l4.293 4.293a1 1 0 010 1.414z" clip-rule="evenodd" />
+                </svg>
+                <span class="ml-2 hidden sm:inline">Back to Instructor Dashboard</span>
+                <span class="ml-2 sm:hidden">Back</span>
+            </a>
+            <h1 class="text-xl sm:text-2xl md:text-3xl font-extrabold text-gray-800 flex-grow">
+                {% if structure and structure.get('LABORATORY') %}
+                    Laboratory Class Record ({{ students|length }} Students)
+                {% else %}
+                    No Class Record ({{ students|length }} Students)
+                {% endif %}
+            </h1>
+            <div class="flex items-center space-x-3 mt-2 sm:mt-0">
+                <label for="view-filter" class="text-sm font-semibold text-gray-700 hidden sm:inline">View
+                    Category:</label>
+                <select id="view-filter"
+                    class="p-2 border border-gray-300 rounded-lg text-sm font-medium bg-white shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
+                    {% if structure.get('LABORATORY') %}
+                        <option value="LABORATORY">LABORATORY</option>
+                    {% endif %}
+                    {% if structure.get('LECTURE') %}
+                        <option value="LECTURE">LECTURE</option>
+                    {% endif %}
+                </select>
+                <button id="live-toggle" class="px-3 py-2 rounded-lg text-xs font-semibold border border-green-300 text-green-700 bg-white hover:bg-green-50">
+                    Live: ON
+                </button>
+            </div>
+        </header>
+
+        <div id="content-row" class="flex flex-row h-full w-full min-h-0">
+
+
+
+            <div id="accordion-container" class="flex flex-row h-full w-full flex-grow overflow-x-auto">
+                {% set colors = {
+                    0: 'green',
+                    1: 'blue',
+                    2: 'orange',
+                    3: 'red',
+                    4: 'violet',
+                    5: 'emerald',
+                    6: 'sky',
+                    7: 'amber',
+                    8: 'pink',
+                    9: 'indigo'
+                } %}
+
+                {# Laboratory categories #}
+                {% set lab_categories = structure.get('LABORATORY', []) if structure is mapping else [] %}
+                {% for category in lab_categories %}
+                    {% set key = category.name|lower|replace(' ', '-') %}
+                    <div id="item-{{ loop.index }}" class="accordion-item bg-gray-100" data-view="LABORATORY" data-item-id="{{ loop.index }}">
+                        <div class="inner-accordion-wrapper">
+                            <button class="accordion-fixed-col" aria-expanded="false"
+                                    data-category="{{ key }}"
+                                    data-title="{{ category.name }}">
+                                <div class="accordion-label-inner text-{{ colors[loop.index0 % 10] }}-700">{{ category.name }}</div>
+                            </button>
+                            <div id="content-{{ loop.index }}" class="accordion-content-wrapper">
+                                <div class="expanded-header-title">
+                                    <div class="flex items-center space-x-2">
+                                        <span class="text-xl">{{ category.name }}</span>
+                                        <span class="text-xs font-normal opacity-70">(Criteria: <span id="criteria-count-{{ loop.index }}">{{ category.assessments|length }}</span>)</span>
+                                    </div>
+                                    <button id="options-btn-{{ loop.index }}" class="options-button p-2 bg-white text-gray-800 rounded-full hover:bg-gray-100 transition-colors shadow-lg text-sm font-medium">Options</button>
+                                </div>
+                                <div class="accordion-content">
+                                    <h2 class="text-lg sm:text-xl md:text-2xl font-bold mb-3 sm:mb-4 text-{{ colors[loop.index0 % 10] }}-800">{{ loop.index }}. {{ category.name }} (Weight: {{ category.weight }}%)</h2>
+                                    <div class="text-sm text-gray-600 mb-4">
+                                        {% for assessment in category.assessments %}
+                                        <div>• {{ assessment.name }} (Max Score: {{ assessment.max_score }})</div>
+                                        {% endfor %}
+                                    </div>
+                                    <div id="table-{{ key }}" class="max-h-full"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+
+                {# Laboratory total (calculated) #}
+                {% if lab_categories|length > 0 %}
+                <div id="item-{{ lab_categories|length + 1 }}" class="accordion-item bg-gray-100" data-view="LABORATORY" data-item-id="{{ lab_categories|length + 1 }}">
+                    <div class="inner-accordion-wrapper">
+                        <button class="accordion-fixed-col" aria-expanded="false" data-category="total-lab-grade" data-title="LAB TOTAL">
+                            <div class="accordion-label-inner text-emerald-700 font-bold">LAB TOTAL</div>
+                        </button>
+                        <div id="content-{{ lab_categories|length + 1 }}" class="accordion-content-wrapper">
+                            <div class="expanded-header-title">
+                                <div class="flex items-center space-x-2">
+                                    <span class="text-xl">TOTAL LABORATORY GRADE</span>
+                                    <span class="text-xs font-normal opacity-70">(Calculated)</span>
+                                </div>
+                            </div>
+                            <div class="accordion-content">
+                                <h2 class="text-lg sm:text-xl md:text-2xl font-bold mb-3 sm:mb-4 text-emerald-800">{{ lab_categories|length + 1 }}. Total Laboratory Grade Summary</h2>
+                                <p class="text-sm text-gray-600 mb-4">This table sums up the total scores from all Laboratory criteria columns.</p>
+                                <div id="table-total-lab-grade" class="max-h-full"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+
+                {# Lecture categories #}
+                {% set lecture_categories = structure.get('LECTURE', []) if structure is mapping else [] %}
+                {% set lecture_base_id = lab_categories|length + (1 if lab_categories|length > 0 else 0) %}
+                {% for category in lecture_categories %}
+                    {% set key = category.name|lower|replace(' ', '-') %}
+                    {% set item_id = lecture_base_id + loop.index %}
+                    <div id="item-{{ item_id }}" class="accordion-item bg-gray-100 hidden" data-view="LECTURE" data-item-id="{{ item_id }}">
+                        <div class="inner-accordion-wrapper">
+                            <button class="accordion-fixed-col" aria-expanded="false"
+                                    data-category="{{ key }}"
+                                    data-title="{{ category.name }}">
+                                <div class="accordion-label-inner text-{{ colors[loop.index0 % 10] }}-700">{{ category.name }}</div>
+                            </button>
+                            <div id="content-{{ item_id }}" class="accordion-content-wrapper">
+                                <div class="expanded-header-title">
+                                    <div class="flex items-center space-x-2">
+                                        <span class="text-xl">{{ category.name }}</span>
+                                        <span class="text-xs font-normal opacity-70">(Criteria: <span id="criteria-count-{{ item_id }}">{{ category.assessments|length }}</span>)</span>
+                                    </div>
+                                    <button id="options-btn-{{ item_id }}" class="options-button p-2 bg-white text-gray-800 rounded-full hover:bg-gray-100 transition-colors shadow-lg text-sm font-medium">Options</button>
+                                </div>
+                                <div class="accordion-content">
+                                    <h2 class="text-lg sm:text-xl md:text-2xl font-bold mb-3 sm:mb-4 text-{{ colors[loop.index0 % 10] }}-800">{{ item_id }}. {{ category.name }} (Weight: {{ category.weight }}%)</h2>
+                                    <div class="text-sm text-gray-600 mb-4">
+                                        {% for assessment in category.assessments %}
+                                        <div>• {{ assessment.name }} (Max Score: {{ assessment.max_score }})</div>
+                                        {% endfor %}
+                                    </div>
+                                    <div id="table-{{ key }}" class="max-h-full"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+
+                {# Lecture total (calculated) #}
+                {% if lecture_categories|length > 0 %}
+                <div id="item-{{ lecture_base_id + lecture_categories|length + 1 }}" class="accordion-item bg-gray-100 hidden" data-view="LECTURE" data-item-id="{{ lecture_base_id + lecture_categories|length + 1 }}">
+                    <div class="inner-accordion-wrapper">
+                        <button class="accordion-fixed-col" aria-expanded="false" data-category="total-lecture-grade" data-title="LECTURE TOTAL">
+                            <div class="accordion-label-inner text-indigo-700 font-bold">LECTURE TOTAL</div>
+                        </button>
+                        <div id="content-{{ lecture_base_id + lecture_categories|length + 1 }}" class="accordion-content-wrapper">
+                            <div class="expanded-header-title">
+                                <div class="flex items-center space-x-2">
+                                    <span class="text-xl">TOTAL LECTURE GRADE</span>
+                                    <span class="text-xs font-normal opacity-70">(Calculated)</span>
+                                </div>
+                            </div>
+                            <div class="accordion-content">
+                                <h2 class="text-lg sm:text-xl md:text-2xl font-bold mb-3 sm:mb-4 text-indigo-800">{{ lecture_base_id + lecture_categories|length + 1 }}. Total Lecture Grade Summary</h2>
+                                <p class="text-sm text-gray-600 mb-4">This table sums up the total scores from all Lecture criteria columns.</p>
+                                <div id="table-total-lecture-grade" class="max-h-full"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+
+            </div>
+        </div>
+    </div>
+
+    <!-- --- MODAL STRUCTURE --- -->
+    <div id="options-modal" class="modal" aria-hidden="true">
+        <div class="modal-content">
+            <header class="flex justify-between items-center border-b pb-3 mb-4">
+                <h3 class="text-2xl font-bold text-gray-800">What do you want to do, Prof?</h3>
+                <button id="close-modal-btn" class="text-gray-400 hover:text-gray-600">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24"
+                        stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </header>
+
+            <div class="space-y-6">
+
+                <!-- Grade Actions Section -->
+                <div>
+                    <h4 class="text-lg font-semibold text-indigo-600 mb-3">Grade Actions for: <span
+                            id="modal-category-title" class="font-extrabold"></span></h4>
+                    <div class="grid grid-cols-3 gap-3">
+                        <button data-action="save"
+                            class="modal-action-btn bg-green-500 hover:bg-green-600 text-white font-medium py-3 px-2 rounded-lg transition-colors text-sm shadow-md">
+                            Save Grades
+                        </button>
+                        <button data-action="submit"
+                            class="modal-action-btn bg-blue-500 hover:bg-blue-600 text-white font-medium py-3 px-2 rounded-lg transition-colors text-sm shadow-md">
+                            Submit/Release Grades
+                        </button>
+                        <button data-action="lock"
+                            class="modal-action-btn bg-red-500 hover:bg-red-600 text-white font-medium py-3 px-2 rounded-lg transition-colors text-sm shadow-md">
+                            Lock Grades
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Criteria Management Section -->
+                <div>
+                    <h4 class="text-lg font-semibold text-indigo-600 mb-3 border-t pt-4">Criteria Management</h4>
+                    <div class="flex flex-col space-y-3">
+                        <input type="text" id="criteria-name-input" list="criteria-suggestions"
+                            placeholder="Enter Criteria Name (e.g., Quiz 4)"
+                            class="p-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500" />
+                        <datalist id="criteria-suggestions"></datalist>
+                        <input type="number" id="criteria-max-input" min="1" placeholder="Enter Max Score (e.g., 25)"
+                            class="p-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500" />
+                        <button id="add-criteria-btn"
+                            class="bg-indigo-500 hover:bg-indigo-600 text-white font-medium py-2 rounded-lg transition-colors shadow-md">
+                            Add New Criteria
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- --- NOTIFICATION TOAST --- -->
+    <div id="notification-toast"
+        class="p-4 rounded-xl shadow-2xl transition-all duration-300 ease-in-out text-white font-semibold flex items-center space-x-2">
+        <svg id="toast-icon" class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"
+            xmlns="http://www.w3.org/2000/svg">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+        </svg>
+        <span id="toast-message">Action Successful!</span>
+    </div>
+
+    <!-- --- LOADING OVERLAY --- -->
+    <div id="loading-overlay">
+        <div class="flex flex-col items-center">
+            <div class="spinner"></div>
+            <p class="mt-4 text-lg font-medium text-gray-700">Loading data...</p>
+        </div>
+    </div>
+
+    <!-- Initialize server data -->
+    <script type="application/json" id="server-data">
+        {{ structure|tojson|safe }}
+    </script>
+    <!-- Initialize server students -->
+    <script type="application/json" id="server-students">
+        {{ students|tojson|safe }}
+    </script>
+    <!-- Initialize class id -->
+    <script type="application/json" id="server-class-id">
+        {{ class_id|tojson|safe }}
+    </script>
+
+    <script>
+        // Load server data
+    const serverStructure = JSON.parse(document.getElementById('server-data').textContent);
+    const CLASS_ID = JSON.parse(document.getElementById('server-class-id').textContent);
+
+        // Utility functions for data normalization and safety
+        function normalizeCategory(category, index, view) {
+            if (!category) return null;
+            
+            return {
+                id: index + 1,
+                view: view,
+                isCalculated: category.isCalculated || false,
+                title: category.name || `Unnamed Category ${index + 1}`,
+                weight: category.weight || 0,
+                criteria: normalizeCriteria(category.assessments || [])
+            };
+        }
+
+        function normalizeCriteria(assessments) {
+            return (assessments || []).map((assessment, i) => ({
+                name: assessment.name || `Item ${i + 1}`,
+                max: assessment.max_score || 0,
+                index: i
+            }));
+        }
+
+        function normalizeCalculatedCategory(categories, view, title) {
+            if (!categories || categories.length === 0) return null;
+            
+            return {
+                id: Object.keys(CATEGORY_CONFIG).length + 1,
+                view: view,
+                isCalculated: true,
+                title: title,
+                criteria: categories.map(([key, config]) => ({
+                    name: `${config.title} Total`,
+                    source: key
+                }))
+            };
+        }
+
+        function safeRenderTable(categoryKey) {
+            const config = CATEGORY_CONFIG[categoryKey];
+            if (!config) {
+                console.warn(`Category ${categoryKey} not found in config`);
+                return;
+            }
+
+            const tableContainer = document.getElementById(`table-${categoryKey}`);
+            if (!tableContainer) {
+                console.warn(`Table container for ${categoryKey} not found`);
+                return;
+            }
+
+            const isCalculated = config.isCalculated || false;
+            const criteria = config.criteria || [];
+            const title = config.title || categoryKey;
+
+            // Rest of your rendering logic here, using safe values
+            let tableHTML = `
+                <table class="w-full text-left score-table bg-white shadow-md">
+                    <thead class="bg-gray-50 sticky top-0 z-10">
+                        <tr>
+                            <th class="font-medium text-gray-600 sticky-col">Student Name</th>`;
+
+            // Generate score column headers safely
+            criteria.forEach(criterion => {
+                const criterionName = criterion.name || 'Unnamed';
+                const maxScore = criterion.max || 0;
+                tableHTML += `
+                    <th class="font-medium text-gray-600 text-center whitespace-nowrap">
+                        ${criterionName} 
+                        ${!isCalculated ? `<span class="text-xs font-normal">(Max ${maxScore})</span>` : ''}
+                    </th>`;
+            });
+
+            tableHTML += `
+                            <th class="font-extrabold text-white bg-gray-700 text-center">TOTAL</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+
+            // Generate rows for students
+            const studentsToLoad = studentData.slice(0, BATCH_SIZE);
+            studentsToLoad.forEach(student => {
+                if (!student) return; // Skip invalid student data
+
+                tableHTML += `
+                    <tr data-student-id="${student.id || ''}" class="hover:bg-gray-100 transition-colors">
+                        <td class="font-medium text-gray-800 sticky-col">${student.name || 'Unknown Student'}</td>`;
+
+                // Generate input/output fields
+                criteria.forEach((criterion, i) => {
+                    if (isCalculated) {
+                        const sourceTotal = calculateSourceTotal(student, criterion.source);
+                        tableHTML += `
+                            <td class="bg-gray-50 text-center font-bold">${sourceTotal.toFixed(2)}</td>`;
+                    } else {
+                        const score = (student.scores && student.scores[categoryKey] && student.scores[categoryKey][i]) || 0;
+                        tableHTML += `
+                            <td>
+                                <input type="number"
+                                    class="data-input w-full text-center p-1"
+                                    value="${score}"
+                                    min="0"
+                                    max="${criterion.max || 100}"
+                                    data-index="${i}"
+                                    ${isCalculated ? 'readonly' : ''}
+                                />
+                            </td>`;
+                    }
+                });
+
+                // Add total column
+                tableHTML += `
+                    <td class="bg-gray-50 text-center">
+                        <input type="text" 
+                            id="total-${categoryKey}-${student.id}"
+                            class="w-full text-center p-1 font-bold"
+                            readonly
+                        />
+                    </td>
+                </tr>`;
+            });
+
+            tableHTML += `
+                    </tbody>
+                </table>`;
+
+            tableContainer.innerHTML = tableHTML;
+
+            // Calculate totals for all rows
+            studentsToLoad.forEach(student => {
+                if (student && student.id) {
+                    calculateRowTotal(student.id, categoryKey);
+                }
+            });
+
+            // Add load more button if needed
+            if (currentLoadedCount < studentData.length) {
+                const loadMoreBtn = document.createElement('button');
+                loadMoreBtn.id = 'load-more-btn';
+                loadMoreBtn.className = 'w-full mt-4 p-3 bg-indigo-500 text-white rounded-lg font-semibold hover:bg-indigo-600 transition-colors shadow-md';
+                loadMoreBtn.textContent = `Load More Students (${currentLoadedCount}/${studentData.length})`;
+                loadMoreBtn.onclick = () => loadMoreStudents(categoryKey);
+                tableContainer.closest('.accordion-content').appendChild(loadMoreBtn);
+            }
+
+            // Attach input listeners if not calculated
+            if (!isCalculated) {
+                attachInputListeners(categoryKey);
+            }
+        }
+
+        function calculateSourceTotal(student, sourceKey) {
+            if (!student || !sourceKey || !student.scores || !student.scores[sourceKey]) return 0;
+            return student.scores[sourceKey].reduce((sum, score) => sum + (parseFloat(score) || 0), 0);
+        }
+
+    // --- CONSTANTS AND CONFIG ---
+        const FIXED_LABEL_WIDTH = 64;
+    const BATCH_SIZE = 20; // Number of students to load at once
+
+        // Convert server structure to expected format
+        let CATEGORY_CONFIG = {};
+        
+        if (serverStructure && serverStructure.LABORATORY) {
+            serverStructure.LABORATORY.forEach((category, index) => {
+                const key = category.name.toLowerCase().replace(/\s+/g, '-');
+                CATEGORY_CONFIG[key] = {
+                    id: index + 1,
+                    view: 'LABORATORY',
+                    isCalculated: false,
+                    title: category.name,
+                    weight: category.weight,
+                    criteria: category.assessments.map((assessment, i) => ({
+                        name: assessment.name,
+                        max: assessment.max_score,
+                        index: i
+                    }))
+                };
+            });
+        }
+
+        // Also map LECTURE categories from server structure
+        if (serverStructure && serverStructure.LECTURE) {
+            const baseId = Object.keys(CATEGORY_CONFIG).length + 1;
+            serverStructure.LECTURE.forEach((category, index) => {
+                const key = category.name.toLowerCase().replace(/\s+/g, '-');
+                CATEGORY_CONFIG[key] = {
+                    id: baseId + index,
+                    view: 'LECTURE',
+                    isCalculated: false,
+                    title: category.name,
+                    weight: category.weight,
+                    criteria: category.assessments.map((assessment, i) => ({
+                        name: assessment.name,
+                        max: assessment.max_score,
+                        index: i
+                    }))
+                };
+            });
+        }
+
+    // Lecture CATEGORY_CONFIG is built from serverStructure (see above)
+
+        // Add calculated total categories
+        if (Object.keys(CATEGORY_CONFIG).length > 0) {
+            // Add Laboratory Total if there are laboratory categories
+            const labCategories = Object.entries(CATEGORY_CONFIG).filter(([_, config]) => config.view === 'LABORATORY');
+            if (labCategories.length > 0) {
+                CATEGORY_CONFIG['total-lab-grade'] = {
+                    id: Object.keys(CATEGORY_CONFIG).length + 1,
+                    view: 'LABORATORY',
+                    isCalculated: true,
+                    title: "Total Laboratory Grade",
+                    criteria: labCategories.map(([key, config]) => ({
+                        name: `${config.title} Total`,
+                        source: key
+                    }))
+                };
+            }
+
+            // Add Lecture Total if there are lecture categories
+            const lectureCategories = Object.entries(CATEGORY_CONFIG).filter(([_, config]) => config.view === 'LECTURE');
+            if (lectureCategories.length > 0) {
+                CATEGORY_CONFIG['total-lecture-grade'] = {
+                    id: Object.keys(CATEGORY_CONFIG).length + 1,
+                    view: 'LECTURE',
+                    isCalculated: true,
+                    title: "Total Lecture Grade",
+                    criteria: lectureCategories.map(([key, config]) => ({
+                        name: `${config.title} Total`,
+                        source: key
+                    }))
+                };
+            }
+        };
+    const NUM_TOTAL_ITEMS = 10;
+
+        let expandedItem = null;
+        let activeCategoryKey = null; // Key of the currently expanded item for modal operations
+
+        // --- BUILD STUDENT DATA FROM SERVER ---
+        const serverStudentsRaw = document.getElementById('server-students')?.textContent || '[]';
+        let serverStudents = [];
+        try {
+            serverStudents = JSON.parse(serverStudentsRaw) || [];
+        } catch (e) {
+            console.warn('Failed to parse server students JSON:', e);
+            serverStudents = [];
+        }
+
+        const buildStudentDataFromServer = (students) => {
+            return (students || []).map((s, idx) => {
+                const scores = {};
+                // Initialize scores per non-calculated category using assessment names
+                Object.entries(CATEGORY_CONFIG).forEach(([key, cfg]) => {
+                    if (cfg.isCalculated) return;
+                    scores[key] = (cfg.criteria || []).map(c => {
+                        const raw = s.scores && (s.scores[c.name] ?? s.scores[c.name?.toString?.()]);
+                        const val = parseFloat(raw);
+                        return isNaN(val) ? 0 : val;
+                    });
+                });
+                const displayName = s.name || (s.school_id ? s.school_id : `Student ${idx + 1}`);
+                return {
+                    id: s.id || (idx + 1),
+                    name: displayName,
+                    scores,
+                    loaded: false
+                };
+            });
+        };
+
+        let studentData = buildStudentDataFromServer(serverStudents);
+
+        // --- CLIENT-SIDE PERSISTENCE OF UNSAVED SCORES ---
+        // Adjust the persistence duration here (in milliseconds). Currently 1 hour.
+        // To change how long drafts are kept in the browser, modify this value.
+        const PERSIST_DURATION_MS = 60 * 60 * 1000; // 1 hour
+
+        const getPersistKey = () => `ecr_grade_draft:${CLASS_ID}`;
+
+        function nowMs() { return Date.now(); }
+
+        function saveDraft(draft) {
+            try { localStorage.setItem(getPersistKey(), JSON.stringify(draft)); } catch (e) {}
+        }
+
+        function loadDraftFromStorage() {
+            try {
+                const raw = localStorage.getItem(getPersistKey());
+                if (!raw) return null;
+                return JSON.parse(raw) || null;
+            } catch (e) { return null; }
+        }
+
+        function clearExpiredDraft() {
+            const draft = loadDraftFromStorage();
+            if (!draft) return;
+            const age = nowMs() - (draft.savedAt || 0);
+            if (age > PERSIST_DURATION_MS) {
+                try { localStorage.removeItem(getPersistKey()); } catch (e) {}
+            }
+        }
+
+        function mergeDraftIntoStudentData() {
+            const draft = loadDraftFromStorage();
+            if (!draft) return 0;
+            const age = nowMs() - (draft.savedAt || 0);
+            if (age > PERSIST_DURATION_MS) {
+                try { localStorage.removeItem(getPersistKey()); } catch (e) {}
+                return 0;
+            }
+            let restored = 0;
+            const categories = draft.categories || {};
+            Object.entries(categories).forEach(([catKey, byStudent]) => {
+                const cfg = CATEGORY_CONFIG[catKey];
+                if (!cfg || cfg.isCalculated) return;
+                Object.entries(byStudent || {}).forEach(([sidStr, idxMap]) => {
+                    const sid = parseInt(sidStr, 10);
+                    const student = studentData.find(s => s.id === sid);
+                    if (!student) return;
+                    const arr = student.scores[catKey] || [];
+                    Object.entries(idxMap || {}).forEach(([idxStr, val]) => {
+                        const idx = parseInt(idxStr, 10);
+                        while (arr.length <= idx) arr.push(0);
+                        const num = parseFloat(val);
+                        if (!isNaN(num)) { arr[idx] = num; restored++; }
+                    });
+                    student.scores[catKey] = arr;
+                });
+            });
+            return restored;
+        }
+
+        // Debounced saver collects only non-zero edits to minimize storage
+        let saveTimer = null;
+        function scheduleSaveDraft() {
+            if (saveTimer) clearTimeout(saveTimer);
+            saveTimer = setTimeout(() => {
+                const payload = { savedAt: nowMs(), categories: {} };
+                Object.entries(CATEGORY_CONFIG).forEach(([key, cfg]) => {
+                    if (cfg.isCalculated) return;
+                    studentData.forEach(student => {
+                        const vals = student.scores[key];
+                        if (!Array.isArray(vals)) return;
+                        vals.forEach((v, idx) => {
+                            const num = parseFloat(v);
+                            if (!isNaN(num) && num !== 0) {
+                                if (!payload.categories[key]) payload.categories[key] = {};
+                                if (!payload.categories[key][student.id]) payload.categories[key][student.id] = {};
+                                payload.categories[key][student.id][idx] = num;
+                            }
+                        });
+                    });
+                });
+                saveDraft(payload);
+            }, 400);
+        }
+
+        // Clean expired and merge valid drafts
+        clearExpiredDraft();
+        const restoredCount = mergeDraftIntoStudentData();
+        if (restoredCount > 0) {
+            showNotification(`Restored ${restoredCount} unsaved score(s) from your browser`, 'info', 2500);
+        }
+
+        // --- LIVE REFRESH (poll-based) ---
+        let liveEnabled = true;
+        let lastVersion = null;
+        const liveBtn = document.getElementById('live-toggle');
+
+        if (liveBtn) {
+            liveBtn.addEventListener('click', () => {
+                liveEnabled = !liveEnabled;
+                liveBtn.textContent = `Live: ${liveEnabled ? 'ON' : 'OFF'}`;
+                liveBtn.classList.toggle('text-green-700', liveEnabled);
+                liveBtn.classList.toggle('border-green-300', liveEnabled);
+                liveBtn.classList.toggle('text-gray-500', !liveEnabled);
+                liveBtn.classList.toggle('border-gray-300', !liveEnabled);
+            });
+        }
+
+        async function checkLiveVersion() {
+            try {
+                const res = await fetch(`/api/classes/${CLASS_ID}/live-version`, { cache: 'no-store' });
+                if (!res.ok) return;
+                const data = await res.json();
+                if (!data || !data.version) return;
+                if (lastVersion === null) {
+                    lastVersion = data.version; // initial baseline
+                } else if (data.version !== lastVersion) {
+                    if (liveEnabled) {
+                        showNotification('Changes detected. Refreshing…', 'info', 1200);
+                        setTimeout(() => window.location.reload(), 1000);
+                    }
+                }
+            } catch (e) {
+                // Silently ignore transient errors
+            }
+        }
+
+        // Kick off polling
+        document.addEventListener('DOMContentLoaded', () => {
+            checkLiveVersion();
+            setInterval(checkLiveVersion, 5000); // every 5 seconds
+        });
+
+        // --- UTILITY FUNCTIONS ---
+
+        function showNotification(message, type = 'success', duration = 3000) {
+            const toast = document.getElementById('notification-toast');
+            const messageEl = document.getElementById('toast-message');
+            const iconEl = document.getElementById('toast-icon');
+
+            toast.className = 'p-4 rounded-xl shadow-2xl transition-all duration-300 ease-in-out text-white font-semibold flex items-center space-x-2'; // Reset classes
+
+            let iconPath, bgColor;
+
+            if (type === 'success') {
+                bgColor = 'bg-green-500';
+                iconPath = 'M5 13l4 4L19 7'; // Checkmark
+            } else if (type === 'error') {
+                bgColor = 'bg-red-500';
+                iconPath = 'M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z'; // X in Circle
+            } else {
+                bgColor = 'bg-blue-500';
+                iconPath = 'M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z'; // Info Circle
+            }
+
+            toast.classList.add(bgColor);
+            messageEl.textContent = message;
+            iconEl.innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="${iconPath}"></path>`;
+
+            // Show the toast
+            setTimeout(() => {
+                toast.classList.add('show');
+            }, 50);
+
+            // Hide the toast after duration
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, duration);
+        }
+
+        function showLoadingOverlay() {
+            document.getElementById('loading-overlay').classList.add('show');
+        }
+
+        function hideLoadingOverlay() {
+            document.getElementById('loading-overlay').classList.remove('show');
+        }
+
+        // Helper to calculate total
+        function calculateRowTotal(studentId, categoryKey) {
+            const student = studentData.find(s => s.id === studentId);
+            if (!student) return;
+
+            const config = CATEGORY_CONFIG[categoryKey];
+            let total = 0;
+
+            if (config.isCalculated) {
+                // Total Lab Grade calculation (sums up totals from other categories)
+                config.criteria.forEach(c => {
+                    const sourceKey = c.source;
+                    const sourceConfig = CATEGORY_CONFIG[sourceKey];
+                    if (sourceConfig) {
+                        const sourceScores = student.scores[sourceKey] || [];
+                        const sourceTotal = sourceScores.reduce((sum, score) => sum + parseFloat(score || 0), 0);
+                        total += sourceTotal;
+                    }
+                });
+            } else {
+                // Normal category: sum up scores within its own criteria
+                const scores = student.scores[categoryKey] || [];
+                total = scores.reduce((sum, score) => sum + parseFloat(score || 0), 0);
+            }
+
+            const totalInput = document.getElementById(`total-${categoryKey}-${studentId}`);
+            if (totalInput) {
+                totalInput.value = total.toFixed(2);
+            }
+        }
+
+        function updateAllCalculatedTotals() {
+            // Recalculate 'total-lab-grade' for all students
+            studentData.forEach(student => {
+                calculateRowTotal(student.id, 'total-lab-grade');
+            });
+        }
+
+        // --- DYNAMIC RENDERING FUNCTIONS ---
+        let currentLoadedCount = 0; // Tracks students loaded in the current expanded category
+
+        /**
+         * Renders the score table for a specific category into its content area.
+         */
+        function renderTable(categoryKey, start = 0) {
+            const config = CATEGORY_CONFIG[categoryKey];
+            const tableContainer = document.getElementById(`table-${categoryKey}`);
+            const isCalculated = config.isCalculated;
+
+            // Determine which students to load
+            const end = Math.min(start + BATCH_SIZE, studentData.length);
+            const studentsToLoad = studentData.slice(start, end);
+
+            let tableHTML = start === 0 ? '' : tableContainer.querySelector('tbody').innerHTML; // Keep existing rows if batch loading
+
+            if (start === 0) {
+                tableHTML += `
+                    <table class="w-full text-left score-table bg-white shadow-md">
+                        <thead class="bg-gray-50 sticky top-0 z-10">
+                            <tr>
+                                <th class="font-bold text-gray-700 sticky-col sticky-col-header bg-gray-50">NAME OF STUDENTS</th>
+                `;
+
+                // Generate score column headers
+                config.criteria.forEach(criteria => {
+                    tableHTML += `<th class="font-medium text-gray-600 text-center whitespace-nowrap">
+                                        ${criteria.name} 
+                                        ${!isCalculated ? `<span class="text-xs font-normal">(Max ${criteria.max})</span>` : ''}
+                                  </th>`;
+                });
+
+                // Add Total column header
+                tableHTML += `
+                                <th class="font-extrabold text-white bg-gray-700 text-center">TOTAL</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                `;
+            }
+
+            // Generate rows for the current batch
+            studentsToLoad.forEach(student => {
+                tableHTML += `<tr data-student-id="${student.id}" class="hover:bg-gray-100 transition-colors">
+                                <td class="font-medium text-gray-800 sticky-col">${student.name}</td>`;
+
+                // Generate input/output fields
+                config.criteria.forEach((criteria, i) => {
+                    if (isCalculated) {
+                        // Calculated column: Display the total score from the source category
+                        const sourceTotal = studentData.find(s => s.id === student.id).scores[criteria.source]
+                            .reduce((sum, score) => sum + parseFloat(score || 0), 0);
+
+                        tableHTML += `<td class="bg-gray-50 text-center font-bold">${sourceTotal.toFixed(2)}</td>`;
+
+                    } else {
+                        // Input column: Display editable score
+                        const scoreValue = student.scores[categoryKey][criteria.index] !== undefined ? student.scores[categoryKey][criteria.index] : 0;
+                        tableHTML += `<td>
+                                        <input type="number" 
+                                            class="score-input border-gray-300 data-input" 
+                                            data-category="${categoryKey}"
+                                            data-student-id="${student.id}"
+                                            data-index="${criteria.index}"
+                                            min="0"
+                                            max="${criteria.max}"
+                                            value="${scoreValue}"
+                                            placeholder="0"
+                                        />
+                                    </td>`;
+                    }
+                });
+
+                // Add the Total Score output field
+                tableHTML += `<td class="bg-gray-50 text-center">
+                                <input type="text" 
+                                    class="total-output text-center" 
+                                    id="total-${categoryKey}-${student.id}" 
+                                    value="0" 
+                                    readonly
+                                />
+                              </td>
+                            </tr>`;
+            });
+
+            if (start === 0) {
+                tableHTML += `</tbody></table>`;
+            } else {
+                tableContainer.querySelector('tbody').innerHTML += studentsToLoad.map(student => {
+                    // Re-generate the row HTML for appending
+                    let rowHTML = `<tr data-student-id="${student.id}" class="hover:bg-gray-100 transition-colors">
+                                    <td class="font-medium text-gray-800 sticky-col">${student.name}</td>`;
+
+                    config.criteria.forEach((criteria, i) => {
+                        if (isCalculated) {
+                            const sourceTotal = studentData.find(s => s.id === student.id).scores[criteria.source]
+                                .reduce((sum, score) => sum + parseFloat(score || 0), 0);
+                            rowHTML += `<td class="bg-gray-50 text-center font-bold">${sourceTotal.toFixed(2)}</td>`;
+                        } else {
+                            const scoreValue = student.scores[categoryKey][criteria.index] !== undefined ? student.scores[categoryKey][criteria.index] : 0;
+                            rowHTML += `<td>
+                                            <input type="number" 
+                                                class="score-input border-gray-300 data-input" 
+                                                data-category="${categoryKey}"
+                                                data-student-id="${student.id}"
+                                                data-index="${criteria.index}"
+                                                min="0"
+                                                max="${criteria.max}"
+                                                value="${scoreValue}"
+                                                placeholder="0"
+                                            />
+                                        </td>`;
+                        }
+                    });
+
+                    rowHTML += `<td class="bg-gray-50 text-center">
+                                    <input type="text" 
+                                        class="total-output text-center" 
+                                        id="total-${categoryKey}-${student.id}" 
+                                        value="0" 
+                                        readonly
+                                    />
+                                </td></tr>`;
+                    return rowHTML;
+                }).join('');
+            }
+
+            if (start === 0) {
+                tableContainer.innerHTML = tableHTML;
+            }
+
+            currentLoadedCount = end;
+
+            // Manage the "Load More" button
+            const existingLoadMore = document.getElementById('load-more-btn');
+            if (existingLoadMore) existingLoadMore.remove();
+
+            if (currentLoadedCount < studentData.length) {
+                const loadMoreBtn = document.createElement('button');
+                loadMoreBtn.id = 'load-more-btn';
+                loadMoreBtn.className = 'w-full mt-4 p-3 bg-indigo-500 text-white rounded-lg font-semibold hover:bg-indigo-600 transition-colors shadow-md';
+                loadMoreBtn.textContent = `Load More Students (${currentLoadedCount} / ${studentData.length} visible)`;
+                loadMoreBtn.addEventListener('click', () => {
+                    const contentArea = loadMoreBtn.closest('.accordion-content');
+                    contentArea.scrollTop = contentArea.scrollHeight; // Scroll to bottom before loading
+                    showLoadingOverlay();
+                    setTimeout(() => {
+                        renderTable(categoryKey, currentLoadedCount);
+                        hideLoadingOverlay();
+                        attachInputListeners(categoryKey); // Re-attach listeners for new inputs
+                        // Re-calculate totals for the newly loaded batch
+                        studentsToLoad.forEach(student => calculateRowTotal(student.id, categoryKey));
+                        updateAllCalculatedTotals();
+                    }, 500); // Simulate network delay
+                });
+                tableContainer.closest('.accordion-content').appendChild(loadMoreBtn);
+            } else if (studentData.length > 0 && tableContainer.closest('.accordion-content')) {
+                const contentArea = tableContainer.closest('.accordion-content');
+                let footer = contentArea.querySelector('#end-of-list');
+                if (!footer) {
+                    footer = document.createElement('p');
+                    footer.id = 'end-of-list';
+                    footer.className = 'text-center text-sm text-gray-500 mt-4 mb-2';
+                    contentArea.appendChild(footer);
+                }
+                footer.textContent = `All ${studentData.length} students loaded.`;
+            }
+
+            // Attach input listeners only if it's not a calculated column
+            if (!isCalculated) {
+                attachInputListeners(categoryKey);
+            }
+
+            // Calculate totals for all rows initially
+            studentData.forEach(student => calculateRowTotal(student.id, categoryKey));
+            updateAllCalculatedTotals();
+        }
+
+        // Helper to attach input listeners
+        function attachInputListeners(categoryKey) {
+            const inputs = document.querySelectorAll(`#table-${categoryKey} .data-input`);
+            inputs.forEach(input => {
+                input.removeEventListener('input', handleScoreInput); // Remove existing to prevent duplication
+                input.addEventListener('input', handleScoreInput);
+            });
+        }
+
+        // Single handler for score input events
+        function handleScoreInput(event) {
+            const target = event.target;
+            const studentId = parseInt(target.getAttribute('data-student-id'));
+            const index = parseInt(target.getAttribute('data-index'));
+            const categoryKey = target.getAttribute('data-category');
+            const max = parseFloat(target.getAttribute('max'));
+
+            let value = parseFloat(target.value);
+            if (isNaN(value) || value < 0) {
+                value = 0;
+            }
+            if (value > max) {
+                value = max;
+                target.value = max;
+            }
+
+            const student = studentData.find(s => s.id === studentId);
+            if (student) {
+                // Ensure scores array is large enough
+                while (student.scores[categoryKey].length <= index) {
+                    student.scores[categoryKey].push(0);
+                }
+                student.scores[categoryKey][index] = value;
+            }
+
+            calculateRowTotal(studentId, categoryKey);
+            updateAllCalculatedTotals();
+
+            // If the total-lab-grade column is currently expanded, re-render it to reflect changes
+            if (expandedItem && expandedItem.getAttribute('data-category') === 'total-lab-grade') {
+                renderTable('total-lab-grade', 0); // Quick re-render of the summary table
+            }
+
+            // Persist locally (expires after PERSIST_DURATION_MS)
+            scheduleSaveDraft();
+        }
+
+
+        // --- ACCORDION LOGIC ---
+        document.addEventListener('DOMContentLoaded', () => {
+            const container = document.getElementById('accordion-container');
+            const items = container.querySelectorAll('.accordion-item');
+            const mainContainer = document.getElementById('main-container');
+            const viewFilter = document.getElementById('view-filter');
+
+            // Attach event listeners to all fixed columns
+            items.forEach(item => {
+                const fixedCol = item.querySelector('.accordion-fixed-col');
+                fixedCol.addEventListener('click', () => {
+                    const categoryKey = fixedCol.getAttribute('data-category');
+                    const isExpanded = item.classList.contains('expanded');
+
+                    if (isExpanded) {
+                        collapsePanel(item, fixedCol);
+                    } else {
+                        showLoadingOverlay();
+                        setTimeout(() => { // Simulate delay for loading content
+                            expandPanel(item, fixedCol);
+                            hideLoadingOverlay();
+                        }, 500);
+                    }
+                });
+            });
+
+            // --- View Filter Logic ---
+            const filterItems = (view) => {
+                let totalVisibleItems = 0;
+                items.forEach(item => {
+                    if (item.getAttribute('data-view') === view) {
+                        item.classList.remove('hidden');
+                        totalVisibleItems++;
+                    } else {
+                        item.classList.add('hidden');
+                    }
+                });
+                return totalVisibleItems;
+            };
+
+            viewFilter.addEventListener('change', (event) => {
+                const newView = event.target.value;
+                showLoadingOverlay();
+
+                // Collapse any currently expanded panel before switching view
+                const currentlyExpanded = getExpandedItem();
+                if (currentlyExpanded) {
+                    const currentFixedCol = currentlyExpanded.querySelector('.accordion-fixed-col');
+                    collapsePanel(currentlyExpanded, currentFixedCol, false); // No global collapse
+                }
+
+                showNotification(`Switching view to ${newView}...`, 'info', 1000);
+
+                setTimeout(() => {
+                    filterItems(newView);
+                    hideLoadingOverlay();
+                    showNotification(`${newView} view loaded successfully!`, 'success', 3000);
+                }, 800);
+            });
+
+            // Initial filter setting
+            const initialView = viewFilter.value;
+            filterItems(initialView);
+
+            // Function to get the currently expanded item
+            const getExpandedItem = () => document.querySelector('.accordion-item.expanded');
+
+
+            // --- Core Accordion Functions ---
+            function collapsePanel(item, fixedCol, isGlobalCollapse = true) {
+                if (!item.classList.contains('expanded')) return;
+
+                item.classList.remove('expanded');
+                fixedCol.setAttribute('aria-expanded', 'false');
+                expandedItem = null;
+                activeCategoryKey = null;
+
+                const contentWrapper = item.querySelector('.accordion-content-wrapper');
+                contentWrapper.style.width = '0px';
+
+                // Remove close button
+                // FIX: Query the item for the descendant close button, not using closest()
+                const closeButton = item.querySelector('.close-button');
+                if (closeButton) closeButton.remove();
+
+                // Hide header title
+                const headerTitle = item.querySelector('.expanded-header-title');
+                if (headerTitle) headerTitle.style.display = 'none';
+
+                // Reset all visible items to their initial collapsed width (64px)
+                const visibleItems = container.querySelectorAll('.accordion-item:not(.hidden)');
+                visibleItems.forEach(i => {
+                    const iContentWrapper = i.querySelector('.accordion-content-wrapper');
+                    i.style.width = `${FIXED_LABEL_WIDTH}px`;
+                    iContentWrapper.style.width = '0px';
+                });
+
+                // Remove Load More button from its container if it exists
+                const existingLoadMore = document.getElementById('load-more-btn');
+                if (existingLoadMore) existingLoadMore.remove();
+
+                // Remove end of list footer
+                const endOfList = document.getElementById('end-of-list');
+                if (endOfList) endOfList.remove();
+            }
+
+            function expandPanel(item, fixedCol) {
+                // Collapse any currently expanded item first, if it's a different one
+                const currentlyExpanded = getExpandedItem();
+                if (currentlyExpanded && currentlyExpanded !== item) {
+                    const currentFixedCol = currentlyExpanded.querySelector('.accordion-fixed-col');
+                    collapsePanel(currentlyExpanded, currentFixedCol);
+                }
+
+                const categoryKey = fixedCol.getAttribute('data-category');
+                const view = fixedCol.closest('.accordion-item').getAttribute('data-view');
+                const visibleItems = container.querySelectorAll(`.accordion-item[data-view="${view}"]:not(.hidden)`);
+                const numVisibleItems = visibleItems.length;
+
+                item.classList.add('expanded');
+                fixedCol.setAttribute('aria-expanded', 'true');
+                activeCategoryKey = categoryKey;
+
+                // 1. Render the table content (triggers lazy load if necessary)
+                renderTable(categoryKey, 0);
+
+                // 2. Calculate the required expanded width
+
+                const totalAvailableWidth = container.offsetWidth;
+                const otherItemsCount = numVisibleItems - 1;
+                const totalCollapsedWidth = otherItemsCount * FIXED_LABEL_WIDTH;
+                const TOTAL_BORDER_WIDTH = numVisibleItems; // Each visible item has a right border
+
+                // 3. Apply widths
+                const expandedItemTotalWidth = `calc(100% - ${totalCollapsedWidth}px - ${TOTAL_BORDER_WIDTH}px)`;
+                const expandedContentWidth = `calc(${expandedItemTotalWidth} - ${FIXED_LABEL_WIDTH}px)`;
+
+
+                visibleItems.forEach(otherItem => {
+                    const otherContentWrapper = otherItem.querySelector('.accordion-content-wrapper');
+
+                    if (otherItem === item) {
+                        // Expanded item takes the calculated large width
+                        otherItem.style.width = expandedItemTotalWidth;
+
+                        // Content wrapper takes the calculated remaining width
+                        otherContentWrapper.style.width = expandedContentWidth;
+
+                        // Show header title
+                        const headerTitle = otherItem.querySelector('.expanded-header-title');
+                        if (headerTitle) headerTitle.style.display = 'flex';
+
+                        // Add or ensure Close button
+                        const closeButtonId = `close-btn-${categoryKey}`;
+                        // Use querySelector to find the inner wrapper, not closest, since it's a child.
+                        const innerWrapper = otherItem.querySelector('.inner-accordion-wrapper');
+
+                        if (innerWrapper && !innerWrapper.querySelector('.close-button')) {
+                            const closeButtonHTML = `
+                                <button id="${closeButtonId}" 
+                                        class="close-button absolute top-2 right-2 sm:top-4 sm:right-4 z-20 text-gray-400 hover:text-gray-700 p-2 rounded-full bg-white hover:bg-gray-100 transition-colors shadow-md">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                                    </svg>
+                                </button>
+                            `;
+                            // Use the found innerWrapper as the parent for inserting the close button
+                            innerWrapper.insertAdjacentHTML('beforeend', closeButtonHTML);
+
+                            const newCloseButton = document.getElementById(closeButtonId);
+                            if (newCloseButton) {
+                                newCloseButton.addEventListener('click', (event) => {
+                                    event.stopPropagation();
+                                    const btnItem = newCloseButton.closest('.accordion-item');
+                                    const btnFixedCol = btnItem.querySelector('.accordion-fixed-col');
+                                    collapsePanel(btnItem, btnFixedCol);
+                                });
+                            }
+                        }
+
+                        expandedItem = item;
+                    } else {
+                        // Other visible items remain at the fixed label width (64px)
+                        otherItem.style.width = `${FIXED_LABEL_WIDTH}px`;
+                        otherItem.classList.remove('expanded');
+                        otherItem.querySelector('.accordion-fixed-col').setAttribute('aria-expanded', 'false');
+
+                        // Hide content wrapper completely
+                        otherContentWrapper.style.width = '0px';
+                        const headerTitle = otherItem.querySelector('.expanded-header-title');
+                        if (headerTitle) headerTitle.style.display = 'none';
+                    }
+                });
+
+                // Set modal title
+                document.getElementById('modal-category-title').textContent = fixedCol.getAttribute('data-title');
+            }
+
+            // --- Global Click Listener for Outside Click ---
+            document.body.addEventListener('click', (event) => {
+                const expanded = getExpandedItem();
+                const modal = document.getElementById('options-modal');
+                if (!expanded || modal.classList.contains('open')) return;
+
+                // Check if the click occurred outside the main application container
+                if (!mainContainer.contains(event.target)) {
+                    const fixedCol = expanded.querySelector('.accordion-fixed-col');
+                    collapsePanel(expanded, fixedCol);
+                }
+            });
+
+            // Initial setup: ensure all panels are fully collapsed on load
+            items.forEach(item => {
+                const contentWrapper = item.querySelector('.accordion-content-wrapper');
+                item.style.width = `${FIXED_LABEL_WIDTH}px`;
+                contentWrapper.style.width = '0px';
+                item.querySelector('.accordion-fixed-col').setAttribute('aria-expanded', 'false');
+                const headerTitle = item.querySelector('.expanded-header-title');
+                if (headerTitle) headerTitle.style.display = 'none';
+
+                // Update criteria counts
+                const itemId = item.getAttribute('data-item-id');
+                const config = Object.values(CATEGORY_CONFIG).find(c => c.id == itemId);
+                if (config && document.getElementById(`criteria-count-${itemId}`)) {
+                    document.getElementById(`criteria-count-${itemId}`).textContent = config.criteria.length;
+                }
+            });
+
+            // --- MODAL & ACTION LOGIC ---
+            const modal = document.getElementById('options-modal');
+            const closeModalBtn = document.getElementById('close-modal-btn');
+
+            // Open Modal Listener
+            document.querySelectorAll('.options-button').forEach(button => {
+                button.addEventListener('click', (event) => {
+                    event.stopPropagation();
+                    modal.classList.add('open');
+                    modal.setAttribute('aria-hidden', 'false');
+
+                    // Populate suggestions for criteria name
+                    const suggestions = new Set([
+                        'Quiz', 'Attendance', 'Lab Report', 'Project', 'Midterm', 'Final', 'Seatwork', 'Recitation', 'Performance Task'
+                    ]);
+                    // Add existing criteria names
+                    for (const key in CATEGORY_CONFIG) {
+                        if (!CATEGORY_CONFIG[key].isCalculated) {
+                            CATEGORY_CONFIG[key].criteria.forEach(c => suggestions.add(c.name));
+                        }
+                    }
+
+                    const datalist = document.getElementById('criteria-suggestions');
+                    datalist.innerHTML = '';
+                    suggestions.forEach(name => {
+                        const option = document.createElement('option');
+                        option.value = name;
+                        datalist.appendChild(option);
+                    });
+                });
+            });
+
+            // Close Modal Listener
+            closeModalBtn.addEventListener('click', () => {
+                modal.classList.remove('open');
+                modal.setAttribute('aria-hidden', 'true');
+                document.getElementById('criteria-name-input').value = '';
+                document.getElementById('criteria-max-input').value = '';
+            });
+            modal.addEventListener('click', (event) => {
+                if (event.target === modal) {
+                    closeModalBtn.click();
+                }
+            });
+
+            // Modal Action Buttons (Mock Functionality)
+            document.querySelectorAll('.modal-action-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const action = btn.getAttribute('data-action');
+                    showNotification(`Mock Action: ${btn.textContent} executed for ${CATEGORY_CONFIG[activeCategoryKey].title}!`, 'success');
+                    closeModalBtn.click();
+                });
+            });
+
+            // Add Criteria Button Logic
+            document.getElementById('add-criteria-btn').addEventListener('click', () => {
+                const nameInput = document.getElementById('criteria-name-input');
+                const maxInput = document.getElementById('criteria-max-input');
+                const name = nameInput.value.trim();
+                const max = parseInt(maxInput.value);
+
+                if (!name || isNaN(max) || max <= 0) {
+                    showNotification('Please enter a valid criteria name and max score.', 'error');
+                    return;
+                }
+
+                if (CATEGORY_CONFIG[activeCategoryKey].isCalculated) {
+                    showNotification('Cannot add criteria to a calculated total column.', 'error');
+                    return;
+                }
+
+                showLoadingOverlay();
+                setTimeout(() => {
+                    const config = CATEGORY_CONFIG[activeCategoryKey];
+                    const newIndex = config.criteria.length;
+
+                    config.criteria.push({
+                        name: name,
+                        max: max,
+                        index: newIndex
+                    });
+
+                    // Add a default score (0) for the new criteria for ALL students
+                    studentData.forEach(student => {
+                        student.scores[activeCategoryKey].push(0);
+                    });
+
+                    // Update criteria count display
+                    document.getElementById(`criteria-count-${config.id}`).textContent = config.criteria.length;
+
+                    // Re-render the expanded panel to show the new column
+                    const expandedItem = getExpandedItem();
+                    const fixedCol = expandedItem.querySelector('.accordion-fixed-col');
+                    collapsePanel(expandedItem, fixedCol);
+                    expandPanel(expandedItem, fixedCol); // Re-expand to trigger full re-render
+
+                    hideLoadingOverlay();
+                    showNotification(`New Criteria "${name}" (Max ${max}) added!`, 'success');
+                    closeModalBtn.click();
+
+                }, 500);
+            });
+        });
+    </script>
+
+</body>
+
+</html>

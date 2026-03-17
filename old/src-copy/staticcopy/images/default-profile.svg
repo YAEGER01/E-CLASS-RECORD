@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200">
+  <rect width="100%" height="100%" rx="20" fill="#eef2f7"/>
+  <g transform="translate(50,40)">
+    <circle cx="50" cy="30" r="28" fill="#d1fae5" stroke="#16a34a" stroke-width="2"/>
+    <rect x="10" y="78" width="80" height="48" rx="8" fill="#ffffff" stroke="#e5e7eb"/>
+    <text x="50" y="120" font-family="Arial, Helvetica, sans-serif" font-size="12" fill="#6b7280" text-anchor="middle">No Photo</text>
+  </g>
+</svg>

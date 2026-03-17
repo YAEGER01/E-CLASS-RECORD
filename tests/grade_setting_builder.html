@@ -1,0 +1,1936 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Grade Structure Builder - E-Class Record</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="{{ url_for('static', filename='css/grade_structure_builder.css') }}" rel="stylesheet">
+    <style>
+        /* Import modern font */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+
+        /* Global Variables and Defaults - Modern Theme */
+        :root {
+            --primary-color: #4f46e5;
+            /* Indigo */
+            --primary-hover: #6366f1;
+            --background-color: #f8fafc;
+            /* Light Blue/Gray */
+            --drawer-bg: white;
+            --text-color-dark: #1e293b;
+            --text-color-light: #475569;
+            --border-radius-lg: 1rem;
+            --border-radius-sm: 0.5rem;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+
+        .weight-input {
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+
+        .weight-input.error {
+            border-color: #ef4444;
+            box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
+        }
+
+        .weight-input.success {
+            border-color: #10b981;
+            box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+        }
+
+        /* Guide section animations */
+        #gradingGuide {
+            transition: all 0.3s ease;
+        }
+
+        /* Smooth modal transitions */
+        .modal {
+            transition: opacity 0.3s ease;
+        }
+
+        .modal.show {
+            opacity: 1;
+        }
+
+        .modal-content {
+            transition: transform 0.3s ease;
+        }
+
+        /* Primary Drawer Styling */
+        .primary-drawer {
+            background-color: var(--drawer-bg);
+            border-radius: var(--border-radius-lg);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            transition: all 0.2s ease-in-out;
+            margin-bottom: 16px;
+            overflow: hidden;
+            border: 1px solid #e2e8f0;
+        }
+
+        .drawer-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+            padding: 24px;
+            font-size: 1.125rem;
+            font-weight: 700;
+            color: var(--text-color-dark);
+            cursor: pointer;
+            background-color: var(--drawer-bg);
+            transition: background-color 0.15s;
+            border: none;
+            text-align: left;
+        }
+
+        .drawer-header:hover {
+            background-color: #f1f5f9;
+        }
+
+        /* Collapsible Content */
+        .drawer-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.25s ease-in-out;
+            padding: 0 24px;
+        }
+
+        .drawer-inner-content {
+            padding-bottom: 24px;
+            border-top: 1px solid #f1f5f9;
+            padding-top: 16px;
+        }
+
+        /* Icon Styling (Chevron) */
+        .chevron-icon {
+            width: 24px;
+            height: 24px;
+            transform: rotate(0deg);
+            transition: transform 0.25s;
+            color: var(--primary-color);
+        }
+
+        /* Rotates 180deg (pointing up) when drawer is expanded */
+        .drawer-header[aria-expanded="true"] .chevron-icon {
+            transform: rotate(180deg);
+        }
+
+        /* Nested Drawer Styling (Sub-Systems) */
+        .nested-container {
+            background-color: #f8fafc;
+            /* Lighter background */
+            padding: 16px;
+            border-radius: var(--border-radius-sm);
+            box-shadow: inset 0 2px 4px 0 rgba(0, 0, 0, 0.06);
+            margin-top: 16px;
+            margin-bottom: 16px;
+            border: 1px solid #e2e8f0;
+        }
+
+        .nested-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+            padding: 12px 0;
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: var(--text-color-light);
+            cursor: pointer;
+            background: none;
+            border: none;
+            text-align: left;
+            transition: color 0.15s;
+        }
+
+        .nested-header:hover {
+            color: var(--primary-color);
+        }
+
+        .nested-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.2s ease-in-out;
+            padding: 0;
+        }
+
+        .nested-inner-content {
+            padding: 4px 0 12px 0;
+            font-size: 0.75rem;
+            color: #64748b;
+        }
+
+        /* Nested Chevron (smaller and less prominent) */
+        .nested-header .chevron-icon {
+            width: 16px;
+            height: 16px;
+            color: #94a3b8;
+            transition: transform 0.2s;
+        }
+
+        /* Rotates 180deg (pointing up) when nested drawer is expanded */
+        .nested-header[aria-expanded="true"] .chevron-icon {
+            transform: rotate(180deg);
+        }
+
+        /* Dropdown Styling */
+        .category-select-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .category-select-group label {
+            font-weight: 600;
+            color: var(--text-color-light);
+            font-size: 0.9rem;
+        }
+
+        .category-select {
+            padding: 8px 12px;
+            border-radius: var(--border-radius-sm);
+            border: 1px solid #cbd5e1;
+            background-color: white;
+            font-size: 0.9rem;
+            cursor: pointer;
+            appearance: none;
+            /* Custom dropdown arrow using SVG data URI */
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='%234f46e5'%3E%3Cpath fill-rule='evenodd' d='M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z' clip-rule='evenodd' /%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 10px center;
+            background-size: 1em;
+        }
+
+        .category-select:focus {
+            border-color: var(--primary-color);
+            outline: none;
+            box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.2);
+        }
+
+        /* Modal Styling */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.6);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .modal-overlay.open {
+            display: flex;
+        }
+
+        .modal-content {
+            background-color: white;
+            padding: 30px;
+            border-radius: var(--border-radius-lg);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+            width: 90%;
+            max-width: 400px;
+            transform: translateY(-50px);
+            transition: transform 0.2s ease-out, opacity 0.2s ease-out;
+            opacity: 0;
+            border: 2px solid #e2e8f0;
+        }
+
+        .modal-overlay.open .modal-content {
+            transform: translateY(0);
+            opacity: 1;
+        }
+
+        .modal-content h3 {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: #1e293b;
+            margin-bottom: 15px;
+        }
+
+        .modal-content input[type="text"] {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #cbd5e1;
+            border-radius: var(--border-radius-sm);
+            margin-bottom: 20px;
+            font-size: 1rem;
+            background-color: white;
+            color: #1e293b;
+        }
+
+        .modal-content input[type="text"]:focus {
+            border-color: var(--primary-color);
+            outline: none;
+            box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.2);
+        }
+
+        .modal-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+
+        .modal-button {
+            padding: 10px 20px;
+            border-radius: var(--border-radius-sm);
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.15s, box-shadow 0.15s;
+            border: none;
+        }
+
+        .modal-button.cancel {
+            background-color: #e2e8f0;
+            color: #475569;
+        }
+
+        .modal-button.cancel:hover {
+            background-color: #cbd5e1;
+        }
+
+        .modal-button.confirm {
+            background-color: var(--primary-color);
+            color: white;
+            box-shadow: 0 4px 6px rgba(79, 70, 229, 0.3);
+        }
+
+        .modal-button.confirm:hover {
+            background-color: var(--primary-hover);
+        }
+
+        /* Builder Header Layout */
+        .builder-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 20px;
+            padding-bottom: 16px;
+            border-bottom: 2px solid #e2e8f0;
+        }
+
+        .builder-header-left {
+            flex: 1;
+        }
+
+        .builder-header-right {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .selected-class-display {
+            margin-top: 8px;
+        }
+
+        /* Read-only state styles */
+        .read-only input[type="text"],
+        .read-only input[type="number"],
+        .read-only select,
+        .read-only textarea {
+            background-color: #f8fafc !important;
+            border-color: #e2e8f0 !important;
+            color: #64748b !important;
+            cursor: not-allowed !important;
+            opacity: 0.7;
+        }
+
+        .read-only input[type="text"]:focus,
+        .read-only input[type="number"]:focus,
+        .read-only select:focus,
+        .read-only textarea:focus {
+            outline: none !important;
+            box-shadow: none !important;
+            border-color: #e2e8f0 !important;
+        }
+
+        .read-only button:not(#saveEditBtn):not(#addCategoryBtn) {
+            opacity: 0.5;
+            cursor: not-allowed !important;
+            pointer-events: none !important;
+        }
+
+        .read-only .drawer-header {
+            cursor: not-allowed !important;
+            background-color: #f8fafc !important;
+        }
+
+        .read-only .nested-header {
+            cursor: not-allowed !important;
+        }
+
+        /* Edit mode styles */
+        .edit-mode .read-only-overlay {
+            display: none;
+        }
+
+        /* Standardized Slim Button Styles */
+        .btn,
+        .nav-button {
+            padding: 6px 12px;
+            border-radius: var(--border-radius-sm);
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.15s, box-shadow 0.15s;
+            border: none;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.85rem;
+            min-height: 32px;
+            box-sizing: border-box;
+        }
+
+        .btn-primary,
+        .nav-button-primary {
+            background-color: var(--primary-color);
+            color: white;
+        }
+
+        .btn-primary:hover,
+        .nav-button-primary:hover {
+            background-color: var(--primary-hover);
+        }
+
+        .btn-secondary,
+        .nav-button-secondary {
+            background-color: #6b7280;
+            color: white;
+        }
+
+        .btn-secondary:hover,
+        .nav-button-secondary:hover {
+            background-color: #4b5563;
+        }
+
+        .btn-success {
+            background-color: #10b981;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background-color: #059669;
+        }
+
+        .btn-info {
+            background-color: #3b82f6;
+            color: white;
+        }
+
+        .btn-info:hover {
+            background-color: #2563eb;
+        }
+
+        .btn-danger {
+            background-color: #ef4444;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background-color: #dc2626;
+        }
+
+        /* Modal buttons */
+        .modal-button {
+            padding: 6px 12px;
+            border-radius: var(--border-radius-sm);
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.15s, box-shadow 0.15s;
+            border: none;
+            min-height: 32px;
+            box-sizing: border-box;
+            font-size: 0.85rem;
+        }
+
+        .modal-button.cancel {
+            background-color: #e2e8f0;
+            color: #475569;
+        }
+
+        .modal-button.cancel:hover {
+            background-color: #cbd5e1;
+        }
+
+        .modal-button.confirm {
+            background-color: var(--primary-color);
+            color: white;
+        }
+
+        .modal-button.confirm:hover {
+            background-color: var(--primary-hover);
+        }
+    </style>
+</head>
+
+<body class="bg-gray-50 min-h-screen">
+    <!-- Navigation -->
+    <nav class="nav-bar">
+        <div class="container">
+            <div class="nav-content">
+                <div class="nav-left">
+                    <h1 class="nav-title">
+                        <i class="fas fa-chart-line nav-icon"></i>
+                        Grade Structure Builder
+                    </h1>
+                </div>
+                <div class="nav-right">
+                    <a href="{{ url_for('instructor_dashboard') }}" class="nav-button nav-button-secondary">
+                        <i class="fas fa-arrow-left mr-2"></i>Back to Dashboard
+                    </a>
+                    <button id="previewBtn" class="nav-button nav-button-secondary">
+                        <i class="fas fa-eye mr-2"></i>Preview
+                    </button>
+                    <button id="exportBtn" class="nav-button nav-button-success">
+                        <i class="fas fa-download mr-2"></i>Export JSON
+                    </button>
+                    <button id="importBtn" class="nav-button nav-button-info">
+                        <i class="fas fa-upload mr-2"></i>Import JSON
+                    </button>
+                    <input type="file" id="importFile" accept=".json" class="file-input-hidden">
+                    <button id="saveBtn" class="nav-button nav-button-primary">
+                        <i class="fas fa-save mr-2"></i>Save Structure
+                    </button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container py-8">
+        <!-- Help Guide Section -->
+        <div class="help-guide-section mb-8">
+            <div class="guide-header mb-4">
+                <h2 class="guide-title">
+                    <i class="fas fa-question-circle guide-icon"></i>
+                    Grading Structure Guide
+                </h2>
+                <button id="toggleGuideBtn" class="guide-toggle-button">
+                    <i class="fas fa-chevron-down mr-1"></i>Show Guide
+                </button>
+            </div>
+
+            <div id="gradingGuide" class="space-y-6" style="display: none;">
+                <!-- How to Create Section -->
+                <div class="bg-white rounded-lg p-4 border border-blue-100">
+                    <h3 class="font-semibold text-gray-900 mb-3">
+                        <i class="fas fa-book-open text-blue-600 mr-2"></i>
+                        How to Create a Grading Structure
+                    </h3>
+                    <div class="space-y-3 text-sm text-gray-700">
+                        <div class="flex items-start space-x-3">
+                            <div
+                                class="bg-blue-100 text-blue-800 rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold mt-0.5">
+                                1</div>
+                            <div>
+                                <p class="font-medium text-gray-900">Select Your Class</p>
+                                <p>Choose the class you want to create a grading structure for from the dropdown menu.
+                                </p>
+                            </div>
+                        </div>
+                        <div class="flex items-start space-x-3">
+                            <div
+                                class="bg-blue-100 text-blue-800 rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold mt-0.5">
+                                2</div>
+                            <div>
+                                <p class="font-medium text-gray-900">Add Categories</p>
+                                <p>Click "Add Category" to create main grading sections (e.g., "Lecture", "Laboratory",
+                                    "Project").</p>
+                            </div>
+                        </div>
+                        <div class="flex items-start space-x-3">
+                            <div
+                                class="bg-blue-100 text-blue-800 rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold mt-0.5">
+                                3</div>
+                            <div>
+                                <p class="font-medium text-gray-900">Create Subcategories</p>
+                                <p>Within each category, add subcategories to organize related assessments (e.g.,
+                                    "Quizzes", "Exams", "Participation").</p>
+                            </div>
+                        </div>
+                        <div class="flex items-start space-x-3">
+                            <div
+                                class="bg-blue-100 text-blue-800 rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold mt-0.5">
+                                4</div>
+                            <div>
+                                <p class="font-medium text-gray-900">Add Assessments</p>
+                                <p>Within each subcategory, add individual assessments with their maximum scores (e.g.,
+                                    "Quiz 1 - 50 pts", "Midterm Exam - 100 pts").</p>
+                            </div>
+                        </div>
+                        <div class="flex items-start space-x-3">
+                            <div
+                                class="bg-blue-100 text-blue-800 rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold mt-0.5">
+                                5</div>
+                            <div>
+                                <p class="font-medium text-gray-900">Set Weights & Save</p>
+                                <p>Set percentage weights for categories/subcategories and click "Save Structure" when
+                                    complete.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Percentage Guide Section -->
+                <div class="bg-white rounded-lg p-4 border border-blue-100">
+                    <h3 class="font-semibold text-gray-900 mb-3">
+                        <i class="fas fa-percentage text-blue-600 mr-2"></i>
+                        Understanding Percentages
+                    </h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-gray-700">
+                        <div>
+                            <h4 class="font-medium text-gray-900 mb-2">Category Weights</h4>
+                            <ul class="space-y-1 text-xs">
+                                <li>• <strong>Main sections</strong> of your grading (Lecture: 60%, Lab: 40%)</li>
+                                <li>• <strong>Must total exactly 100%</strong> across all categories</li>
+                                <li>• <strong>Examples:</strong> Theory vs Practice, Individual vs Group work</li>
+                            </ul>
+                        </div>
+                        <div>
+                            <h4 class="font-medium text-gray-900 mb-2">Subcategory Weights</h4>
+                            <ul class="space-y-1 text-xs">
+                                <li>• <strong>Break down</strong> each category into components</li>
+                                <li>• <strong>Must total 100%</strong> within each category</li>
+                                <li>• <strong>Examples:</strong> Within "Lecture" - Quizzes: 40%, Exams: 60%</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Best Practices Section -->
+                <div class="bg-white rounded-lg p-4 border border-blue-100">
+                    <h3 class="font-semibold text-gray-900 mb-3">
+                        <i class="fas fa-lightbulb text-blue-600 mr-2"></i>
+                        Best Practices & Tips
+                    </h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-gray-700">
+                        <div>
+                            <h4 class="font-medium text-gray-900 mb-2">Structure Design</h4>
+                            <ul class="space-y-1 text-xs">
+                                <li>• <strong>Keep it simple:</strong> 2-4 main categories work best</li>
+                                <li>• <strong>Logical grouping:</strong> Group similar assessments together</li>
+                                <li>• <strong>Clear naming:</strong> Use descriptive names for categories</li>
+                                <li>• <strong>Balanced weights:</strong> Avoid extreme weight distributions</li>
+                            </ul>
+                        </div>
+                        <div>
+                            <h4 class="font-medium text-gray-900 mb-2">Assessment Planning</h4>
+                            <ul class="space-y-1 text-xs">
+                                <li>• <strong>Realistic scores:</strong> Set achievable maximum scores</li>
+                                <li>• <strong>Consistent scales:</strong> Use similar point values when possible</li>
+                                <li>• <strong>Clear descriptions:</strong> Add notes for complex assessments</li>
+                                <li>• <strong>Regular checkpoints:</strong> Include formative assessments</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Examples Section -->
+                <div class="bg-white rounded-lg p-4 border border-blue-100">
+                    <h3 class="font-semibold text-gray-900 mb-3">
+                        <i class="fas fa-examples text-blue-600 mr-2"></i>
+                        Example Structures
+                    </h3>
+                    <div class="space-y-3 text-sm text-gray-700">
+                        <div class="border-l-4 border-green-400 pl-4">
+                            <p class="font-medium text-gray-900">Programming Course</p>
+                            <p class="text-xs text-gray-600">Lecture (60%) + Laboratory (40%)</p>
+                        </div>
+                        <div class="border-l-4 border-purple-400 pl-4">
+                            <p class="font-medium text-gray-900">Mathematics Course</p>
+                            <p class="text-xs text-gray-600">Theory (50%) + Problem Sets (30%) + Exams (20%)</p>
+                        </div>
+                        <div class="border-l-4 border-orange-400 pl-4">
+                            <p class="font-medium text-gray-900">Project-Based Course</p>
+                            <p class="text-xs text-gray-600">Individual Work (40%) + Group Projects (35%) + Presentation
+                                (25%)</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Class Selection -->
+        <div class="form-section mb-8">
+            <h2 class="section-title">
+                <i class="fas fa-school section-icon"></i>
+                Select Class
+            </h2>
+            <div class="form-grid">
+                <div class="form-group">
+                    <label class="form-label">Class</label>
+                    <select id="classSelect" class="form-input">
+                        <option value="">Select a class...</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Structure Name</label>
+                    <input type="text" id="structureName" placeholder="e.g., CS101 Grading Structure"
+                        class="form-input">
+                </div>
+            </div>
+        </div>
+
+        <!-- Grade Structure Builder -->
+        <div class="builder-section">
+            <div class="builder-header">
+                <div class="builder-header-left">
+                    <h2 class="builder-title">
+                        <i class="fas fa-sitemap builder-icon"></i>
+                        Grade Structure
+                    </h2>
+                    <div id="selectedClassDisplay" class="selected-class-display"
+                        style="display: none; margin-top: 4px;">
+                        <span style="font-size: 0.9rem; color: var(--text-color-light); font-weight: 500;">
+                            Grade Structure for class: <span id="selectedClassName"
+                                style="color: var(--primary-color);"></span>
+                        </span>
+                    </div>
+                </div>
+                <div class="builder-header-right">
+                    <button id="saveEditBtn" class="btn btn-primary">
+                        <i class="fas fa-save mr-2"></i>Save Structure
+                    </button>
+                    <button id="addCategoryBtn" class="btn btn-secondary">
+                        <i class="fas fa-plus mr-2"></i>Add Category
+                    </button>
+                </div>
+            </div>
+
+            <!-- Weight Summary -->
+            <div class="weight-summary">
+                <div class="weight-display">
+                    <span class="weight-label">Total Weight:</span>
+                    <span id="totalWeight" class="weight-value">0%</span>
+                </div>
+                <div class="weight-progress-container">
+                    <div id="weightProgress" class="weight-progress-bar" style="width: 0%"></div>
+                </div>
+                <div id="weightError" class="weight-error hidden">
+                    <i class="fas fa-exclamation-triangle mr-1"></i>
+                    Total weight must equal 100%
+                </div>
+            </div>
+
+            <!-- Categories Container -->
+            <div id="categoriesContainer" class="categories-container">
+                <!-- Categories will be added here dynamically -->
+                <div class="empty-state">
+                    <i class="fas fa-inbox empty-icon"></i>
+                    <p class="empty-title">No categories added yet.</p>
+                    <p class="empty-subtitle">Click "Add Category" to start building your grade structure.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Preview Modal -->
+        <div id="previewModal" class="modal-overlay hidden">
+            <div class="modal-container">
+                <div class="modal-header">
+                    <h3 class="modal-title">Structure Preview</h3>
+                    <button id="closePreviewBtn" class="modal-close-btn">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div id="previewContent" class="preview-content">
+                        <!-- Preview content will be inserted here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Import Modal -->
+        <div id="importModal" class="modal-overlay hidden">
+            <div class="modal-container import-modal">
+                <div class="modal-header">
+                    <h3 class="modal-title">Import Structure</h3>
+                    <button id="closeImportBtn" class="modal-close-btn">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="import-modal-body">
+                    <div class="import-form-group">
+                        <label class="import-label">Select JSON File</label>
+                        <input type="file" id="importFileModal" accept=".json" class="import-file-input">
+                    </div>
+                    <div class="import-actions">
+                        <button id="cancelImportBtn" class="import-cancel-btn">
+                            Cancel
+                        </button>
+                        <button id="confirmImportBtn" class="import-confirm-btn">
+                            Import
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Custom Modal for Naming "Other" Category -->
+    <div id="categoryModal" class="modal-overlay">
+        <div class="modal-content">
+            <h3 class="modal-title">Name the new category:</h3>
+            <input type="text" id="categoryInput" placeholder="e.g., Attendance, Final Review">
+            <div class="modal-actions">
+                <button class="modal-button cancel" onclick="builder.cancelNameAction('categoryModal')">Cancel</button>
+                <button class="modal-button confirm" onclick="builder.confirmModal()">OK</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Custom Modal for Confirmation Dialog (If 'Other' is kept as name) -->
+    <div id="confirmModal" class="modal-overlay">
+        <div class="modal-content">
+            <h3 class="modal-title">No name provided. Proceed with category name "Other"?</h3>
+            <div class="modal-actions">
+                <button class="modal-button cancel" onclick="builder.cancelNameAction('confirmModal')">Cancel</button>
+                <button class="modal-button confirm" onclick="builder.confirmDefaultName()">OK</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Custom Modal for Custom Percentage Input -->
+    <div id="customPercentageModal" class="modal-overlay">
+        <div class="modal-content">
+            <h3 class="modal-title">Enter custom percentage:</h3>
+            <input type="number" id="customPercentageInput" placeholder="e.g., 7.5" min="0" max="100" step="0.1"
+                style="width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: var(--border-radius-sm); margin-bottom: 20px; font-size: 1rem; min-width: 120px;">
+            <div class="modal-actions">
+                <button class="modal-button cancel" onclick="builder.cancelCustomPercentage()">Cancel</button>
+                <button class="modal-button confirm" onclick="builder.confirmCustomPercentage()">OK</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript -->
+    <script>
+        // Tracks the <select> element that triggered the 'Other' modal
+        let currentDropdown = null;
+
+        class GradeStructureBuilder {
+            constructor() {
+                this.categories = [];
+                this.nextCategoryId = 1;
+                this.nextSubcategoryId = 1;
+                this.nextAssessmentId = 1;
+                this.selectedClassId = null;
+                this.selectedClassName = null;
+                this.isEditMode = true; // Start in edit mode
+                this.classes = []; // Store class information
+                this.openDrawers = new Set(); // Track open drawer states
+                this.currentWeightTarget = null; // Track which element triggered custom percentage modal
+
+                this.initializeEventListeners();
+                this.loadClasses();
+            }
+
+            initializeEventListeners() {
+                // Add category button
+                document.getElementById('addCategoryBtn').addEventListener('click', () => {
+                    if (this.isEditMode) {
+                        this.addCategory();
+                    }
+                });
+
+                // Save/Edit button
+                document.getElementById('saveEditBtn').addEventListener('click', () => {
+                    this.toggleEditMode();
+                });
+
+                // Save button (navbar)
+                document.getElementById('saveBtn').addEventListener('click', () => {
+                    this.saveStructure();
+                });
+
+                // Preview button
+                document.getElementById('previewBtn').addEventListener('click', () => {
+                    this.showPreview();
+                });
+
+                // Export button
+                document.getElementById('exportBtn').addEventListener('click', () => {
+                    this.exportStructure();
+                });
+
+                // Import button
+                document.getElementById('importBtn').addEventListener('click', () => {
+                    document.getElementById('importModal').classList.remove('hidden');
+                });
+
+                // Guide toggle functionality
+                document.getElementById('toggleGuideBtn').addEventListener('click', () => {
+                    const guide = document.getElementById('gradingGuide');
+                    const button = document.getElementById('toggleGuideBtn');
+                    const icon = button.querySelector('i');
+
+                    if (guide.style.display === 'none') {
+                        guide.style.display = 'block';
+                        button.innerHTML = '<i class="fas fa-chevron-up mr-1"></i>Hide Guide';
+                    } else {
+                        guide.style.display = 'none';
+                        button.innerHTML = '<i class="fas fa-chevron-down mr-1"></i>Show Guide';
+                    }
+                });
+
+                // Modal close buttons
+                document.getElementById('closePreviewBtn').addEventListener('click', () => {
+                    document.getElementById('previewModal').classList.add('hidden');
+                });
+
+                document.getElementById('closeImportBtn').addEventListener('click', () => {
+                    document.getElementById('importModal').classList.add('hidden');
+                });
+
+                document.getElementById('cancelImportBtn').addEventListener('click', () => {
+                    document.getElementById('importModal').classList.add('hidden');
+                });
+
+                // Import file handling
+                document.getElementById('importFileModal').addEventListener('change', (e) => {
+                    this.handleImportFile(e.target.files[0]);
+                });
+
+                // Custom percentage modal input handling
+                document.getElementById('customPercentageInput').addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        this.confirmCustomPercentage();
+                    }
+                });
+
+                // Class selection
+                document.getElementById('classSelect').addEventListener('change', (e) => {
+                    this.selectedClassId = e.target.value;
+                    if (this.selectedClassId) {
+                        // Find and set the selected class name
+                        const selectedClass = this.classes.find(cls => cls.id == this.selectedClassId);
+                        if (selectedClass) {
+                            this.selectedClassName = `${selectedClass.class_id} - ${selectedClass.course} ${selectedClass.section}`;
+                        }
+                        this.loadExistingStructure();
+                        this.updateSelectedClassDisplay();
+                    } else {
+                        this.selectedClassName = null;
+                        this.hideSelectedClassDisplay();
+                    }
+                });
+
+                // Click outside modals to close
+                document.getElementById('previewModal').addEventListener('click', (e) => {
+                    if (e.target === document.getElementById('previewModal')) {
+                        document.getElementById('previewModal').classList.add('hidden');
+                    }
+                });
+
+                document.getElementById('importModal').addEventListener('click', (e) => {
+                    if (e.target === document.getElementById('importModal')) {
+                        document.getElementById('importModal').classList.add('hidden');
+                    }
+                });
+
+                // Custom percentage modal click outside to close
+                document.getElementById('customPercentageModal').addEventListener('click', (e) => {
+                    if (e.target === document.getElementById('customPercentageModal')) {
+                        this.cancelCustomPercentage();
+                    }
+                });
+            }
+
+            async loadClasses() {
+                try {
+                    const response = await fetch('/api/instructor/classes');
+                    const data = await response.json();
+
+                    if (data.classes) {
+                        this.classes = data.classes; // Store class information
+                        const select = document.getElementById('classSelect');
+                        select.innerHTML = '<option value="">Select a class...</option>';
+
+                        data.classes.forEach(cls => {
+                            const option = document.createElement('option');
+                            option.value = cls.id;
+                            option.textContent = `${cls.class_id} - ${cls.course} ${cls.section}`;
+                            select.appendChild(option);
+                        });
+                    }
+                } catch (error) {
+                    console.error('Failed to load classes:', error);
+                }
+            }
+
+            addCategory(name = '', weight = 0) {
+                const categoryId = this.nextCategoryId++;
+                const category = {
+                    id: categoryId,
+                    name: name || `Category ${categoryId}`,
+                    weight: weight,
+                    position: this.categories.length,
+                    subcategories: []
+                };
+
+                this.categories.push(category);
+                this.renderCategories();
+                this.updateWeightDisplay();
+
+                // Debug logging
+                console.log(`Added category ${categoryId}, weight: ${weight}, total weight: ${this.categories.reduce((sum, cat) => sum + (parseFloat(cat.weight) || 0), 0)}`);
+            }
+
+            addSubcategory(categoryId, name = '', weight = 0) {
+                const category = this.categories.find(c => c.id === categoryId);
+                if (!category) return;
+
+                const subcategoryId = this.nextSubcategoryId++;
+                const subcategory = {
+                    id: subcategoryId,
+                    name: name || `Subcategory ${subcategoryId}`,
+                    weight: weight,
+                    position: category.subcategories.length,
+                    assessments: []
+                };
+
+                category.subcategories.push(subcategory);
+                this.renderCategories();
+                this.updateWeightDisplay();
+            }
+
+            addAssessment(subcategoryId, name = '', maxScore = 100) {
+                const category = this.categories.find(c =>
+                    c.subcategories.some(s => s.id === subcategoryId)
+                );
+                if (!category) return;
+
+                const subcategory = category.subcategories.find(s => s.id === subcategoryId);
+                if (!subcategory) return;
+
+                const assessmentId = this.nextAssessmentId++;
+                const assessment = {
+                    id: assessmentId,
+                    name: name || `Assessment ${assessmentId}`,
+                    maxScore: maxScore,
+                    position: subcategory.assessments.length
+                };
+
+                subcategory.assessments.push(assessment);
+                this.renderCategories();
+            }
+
+            removeCategory(categoryId) {
+                this.categories = this.categories.filter(c => c.id !== categoryId);
+                this.renderCategories();
+                this.updateWeightDisplay();
+            }
+
+            removeSubcategory(categoryId, subcategoryId) {
+                const category = this.categories.find(c => c.id === categoryId);
+                if (category) {
+                    category.subcategories = category.subcategories.filter(s => s.id !== subcategoryId);
+                    this.renderCategories();
+                    this.updateWeightDisplay();
+                }
+            }
+
+            removeAssessment(categoryId, subcategoryId, assessmentId) {
+                const category = this.categories.find(c => c.id === categoryId);
+                if (category) {
+                    const subcategory = category.subcategories.find(s => s.id === subcategoryId);
+                    if (subcategory) {
+                        subcategory.assessments = subcategory.assessments.filter(a => a.id !== assessmentId);
+                        this.renderCategories();
+                    }
+                }
+            }
+
+            updateCategory(categoryId, field, value) {
+                const category = this.categories.find(c => c.id === categoryId);
+                if (category) {
+                    category[field] = value;
+                    this.updateWeightDisplay();
+                }
+            }
+
+            updateSubcategory(categoryId, subcategoryId, field, value) {
+                const category = this.categories.find(c => c.id === categoryId);
+                if (category) {
+                    const subcategory = category.subcategories.find(s => s.id === subcategoryId);
+                    if (subcategory) {
+                        subcategory[field] = value;
+                        this.updateWeightDisplay();
+                    }
+                }
+            }
+
+            updateAssessment(categoryId, subcategoryId, assessmentId, field, value) {
+                const category = this.categories.find(c => c.id === categoryId);
+                if (category) {
+                    const subcategory = category.subcategories.find(s => s.id === subcategoryId);
+                    if (subcategory) {
+                        const assessment = subcategory.assessments.find(a => a.id === assessmentId);
+                        if (assessment) {
+                            assessment[field] = value;
+                        }
+                    }
+                }
+            }
+
+            updateWeightDisplay() {
+                const totalWeight = this.categories.reduce((sum, category) => sum + (parseFloat(category.weight) || 0), 0);
+                const totalWeightElement = document.getElementById('totalWeight');
+                const weightProgress = document.getElementById('weightProgress');
+                const weightError = document.getElementById('weightError');
+
+                totalWeightElement.textContent = `${Math.round(totalWeight)}%`;
+                weightProgress.style.width = `${Math.min(totalWeight, 100)}%`;
+
+                if (totalWeight === 100) {
+                    totalWeightElement.className = 'text-lg font-bold text-green-600';
+                    weightProgress.className = 'bg-green-600 h-2 rounded-full transition-all duration-300';
+                    weightError.classList.add('hidden');
+                } else if (totalWeight > 100) {
+                    totalWeightElement.className = 'text-lg font-bold text-red-600';
+                    weightProgress.className = 'bg-red-600 h-2 rounded-full transition-all duration-300';
+                    weightError.classList.remove('hidden');
+                } else {
+                    totalWeightElement.className = 'text-lg font-bold text-gray-900';
+                    weightProgress.className = 'bg-blue-600 h-2 rounded-full transition-all duration-300';
+                    if (totalWeight < 100 && this.categories.length > 0) {
+                        weightError.classList.remove('hidden');
+                    } else {
+                        weightError.classList.add('hidden');
+                    }
+                }
+            }
+
+            renderCategories() {
+                const container = document.getElementById('categoriesContainer');
+
+                if (this.categories.length === 0) {
+                    container.innerHTML = `
+                        <div class="empty-state">
+                            <i class="fas fa-inbox empty-icon"></i>
+                            <p class="empty-title">No categories added yet.</p>
+                            <p class="empty-subtitle">Click "Add Category" to start building your grade structure.</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                container.innerHTML = this.categories.map(category => `
+                    <div class="primary-drawer">
+                        <!-- Header/Button for Primary Drawer -->
+                        <button onclick="builder.toggleDrawer('content${category.id}')" aria-expanded="${this.openDrawers.has('content' + category.id)}" class="drawer-header">
+                            <span>${this.escapeHtml(category.name)}</span>
+                            <!-- Down Arrow Icon (rotates 180deg when open) -->
+                            <svg class="chevron-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
+                        </button>
+
+                        <!-- Collapsible Content for Primary Drawer -->
+                        <div id="content${category.id}" class="drawer-content primary-drawer-content">
+                            <div class="drawer-inner-content">
+
+                                <!-- Category Weight Dropdown -->
+                                <div class="category-weight-container" style="margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center;">
+                                    <label style="font-weight: 600; color: var(--text-color-light); font-size: 0.9rem;">Category Weight:</label>
+                                    <div style="display: flex; align-items: center; gap: 5px;">
+                                        <select class="category-weight-select" style="width: 110px; padding: 6px 8px; border-radius: var(--border-radius-sm); border: 1px solid #cbd5e1; font-size: 0.85rem;" onchange="builder.handleCategoryWeightChange(${category.id}, this)">
+                                            <option value="">Select %</option>
+                                            <!-- 5% increments from 5% to 100% -->
+                                            <option value="5" ${category.weight == 5 ? 'selected' : ''}>5%</option>
+                                            <option value="10" ${category.weight == 10 ? 'selected' : ''}>10%</option>
+                                            <option value="15" ${category.weight == 15 ? 'selected' : ''}>15%</option>
+                                            <option value="20" ${category.weight == 20 ? 'selected' : ''}>20%</option>
+                                            <option value="25" ${category.weight == 25 ? 'selected' : ''}>25%</option>
+                                            <option value="30" ${category.weight == 30 ? 'selected' : ''}>30%</option>
+                                            <option value="35" ${category.weight == 35 ? 'selected' : ''}>35%</option>
+                                            <option value="40" ${category.weight == 40 ? 'selected' : ''}>40%</option>
+                                            <option value="45" ${category.weight == 45 ? 'selected' : ''}>45%</option>
+                                            <option value="50" ${category.weight == 50 ? 'selected' : ''}>50%</option>
+                                            <option value="55" ${category.weight == 55 ? 'selected' : ''}>55%</option>
+                                            <option value="60" ${category.weight == 60 ? 'selected' : ''}>60%</option>
+                                            <option value="65" ${category.weight == 65 ? 'selected' : ''}>65%</option>
+                                            <option value="70" ${category.weight == 70 ? 'selected' : ''}>70%</option>
+                                            <option value="75" ${category.weight == 75 ? 'selected' : ''}>75%</option>
+                                            <option value="80" ${category.weight == 80 ? 'selected' : ''}>80%</option>
+                                            <option value="85" ${category.weight == 85 ? 'selected' : ''}>85%</option>
+                                            <option value="90" ${category.weight == 90 ? 'selected' : ''}>90%</option>
+                                            <option value="95" ${category.weight == 95 ? 'selected' : ''}>95%</option>
+                                            <option value="100" ${category.weight == 100 ? 'selected' : ''}>100%</option>
+                                            <option value="custom">Custom...</option>
+                                        </select>
+                                        <button class="btn btn-danger" onclick="builder.removeCategory(${category.id})" style="margin-left: 10px;">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <!-- Category Dropdown -->
+                                <div class="category-select-group">
+                                    <label for="category${category.id}">Main Category:</label>
+                                    <select id="category${category.id}" class="category-select" onchange="builder.handleCategoryChange(this)">
+                                        <option value="Lecture">Lecture</option>
+                                        <option value="Laboratory">Laboratory</option>
+                                        <option value="Project">Project</option>
+                                        <option value="Other">Other...</option>
+                                    </select>
+                                </div>
+
+                                <p style="color: var(--text-color-light); font-size: 0.9rem; margin-bottom: 16px;">This course is currently weighted as a Lecture-based class.</p>
+
+                                <!-- Inner Drawer Container (Nested Drawers - Subcategories) -->
+                                <div class="nested-container">
+                                    <h3 style="font-size: 0.85rem; font-weight: 700; color: #334155; margin-bottom: 8px; border-bottom: 1px solid #e2e8f0; padding-bottom: 8px;">Subcategories</h3>
+
+                                    <!-- Subcategories Header -->
+                                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                                        <button class="btn btn-success"
+                                                onclick="builder.addSubcategory(${category.id})">
+                                            <i class="fas fa-plus mr-1"></i>Add Subcategory
+                                        </button>
+                                    </div>
+
+                                    ${category.subcategories.length === 0 ? `
+                                        <div class="text-center py-8 text-gray-500 border-2 border-dashed border-gray-300 rounded-lg">
+                                            <i class="fas fa-folder-open text-3xl mb-2"></i>
+                                            <p>No subcategories added yet.</p>
+                                            <p class="text-sm">Add subcategories to organize your assessments.</p>
+                                        </div>
+                                    ` : `
+                                        <div class="space-y-4">
+                                            ${category.subcategories.map(subcategory => `
+                                                <div>
+                                                    <!-- Subcategory Header -->
+                                                    <button onclick="builder.toggleDrawer('content${category.id}-${subcategory.id}')" aria-expanded="${this.openDrawers.has('content' + category.id + '-' + subcategory.id)}" class="nested-header">
+                                                        <span>${this.escapeHtml(subcategory.name)}</span>
+                                                        <svg class="chevron-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
+                                                    </button>
+
+                                                    <!-- Subcategory Content -->
+                                                    <div id="content${category.id}-${subcategory.id}" class="nested-content">
+                                                        <div class="nested-inner-content">
+                                                            <!-- Subcategory Weight and Name Input -->
+                                                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                                                                <input type="text" value="${this.escapeHtml(subcategory.name)}"
+                                                                       class="font-medium text-gray-900 bg-transparent border-none focus:outline-none focus:ring-2 focus:ring-blue-500 rounded px-2 py-1 flex-1"
+                                                                       onchange="builder.updateSubcategory(${category.id}, ${subcategory.id}, 'name', this.value)"
+                                                                       style="margin-right: 10px;">
+                                                                <div style="display: flex; align-items: center; gap: 5px;">
+                                                                    <select class="subcategory-weight-select" style="width: 90px; padding: 4px 6px; border-radius: var(--border-radius-sm); border: 1px solid #cbd5e1; font-size: 0.8rem;" onchange="builder.handleSubcategoryWeightChange(${category.id}, ${subcategory.id}, this)">
+                                                                        <option value="">Select %</option>
+                                                                        <!-- 5% increments from 5% to 100% -->
+                                                                        <option value="5" ${subcategory.weight == 5 ? 'selected' : ''}>5%</option>
+                                                                        <option value="10" ${subcategory.weight == 10 ? 'selected' : ''}>10%</option>
+                                                                        <option value="15" ${subcategory.weight == 15 ? 'selected' : ''}>15%</option>
+                                                                        <option value="20" ${subcategory.weight == 20 ? 'selected' : ''}>20%</option>
+                                                                        <option value="25" ${subcategory.weight == 25 ? 'selected' : ''}>25%</option>
+                                                                        <option value="30" ${subcategory.weight == 30 ? 'selected' : ''}>30%</option>
+                                                                        <option value="35" ${subcategory.weight == 35 ? 'selected' : ''}>35%</option>
+                                                                        <option value="40" ${subcategory.weight == 40 ? 'selected' : ''}>40%</option>
+                                                                        <option value="45" ${subcategory.weight == 45 ? 'selected' : ''}>45%</option>
+                                                                        <option value="50" ${subcategory.weight == 50 ? 'selected' : ''}>50%</option>
+                                                                        <option value="55" ${subcategory.weight == 55 ? 'selected' : ''}>55%</option>
+                                                                        <option value="60" ${subcategory.weight == 60 ? 'selected' : ''}>60%</option>
+                                                                        <option value="65" ${subcategory.weight == 65 ? 'selected' : ''}>65%</option>
+                                                                        <option value="70" ${subcategory.weight == 70 ? 'selected' : ''}>70%</option>
+                                                                        <option value="75" ${subcategory.weight == 75 ? 'selected' : ''}>75%</option>
+                                                                        <option value="80" ${subcategory.weight == 80 ? 'selected' : ''}>80%</option>
+                                                                        <option value="85" ${subcategory.weight == 85 ? 'selected' : ''}>85%</option>
+                                                                        <option value="90" ${subcategory.weight == 90 ? 'selected' : ''}>90%</option>
+                                                                        <option value="95" ${subcategory.weight == 95 ? 'selected' : ''}>95%</option>
+                                                                        <option value="100" ${subcategory.weight == 100 ? 'selected' : ''}>100%</option>
+                                                                        <option value="custom">Custom...</option>
+                                                                    </select>
+                                                                    <button class="btn btn-danger" onclick="builder.removeSubcategory(${category.id}, ${subcategory.id})">
+                                                                        <i class="fas fa-trash"></i>
+                                                                    </button>
+                                                                </div>
+                                                            </div>
+
+                                                            <!-- Assessments Section -->
+                                                            <div style="margin-top: 12px;">
+                                                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                                                                    <span style="font-size: 0.8rem; font-weight: 600; color: #64748b;">Assessments</span>
+                                                                    <button class="btn btn-info"
+                                                                            onclick="builder.addAssessment(${subcategory.id})">
+                                                                        <i class="fas fa-plus mr-1"></i>Add Assessment
+                                                                    </button>
+                                                                </div>
+
+                                                                ${subcategory.assessments.length === 0 ? `
+                                                                    <div class="text-center py-4 text-gray-500 border border-dashed border-gray-300 rounded">
+                                                                        <p class="text-sm">No assessments added yet.</p>
+                                                                    </div>
+                                                                ` : `
+                                                                    <div style="display: flex; flex-direction: column; gap: 8px;">
+                                                                        ${subcategory.assessments.map(assessment => `
+                                                                            <div style="display: flex; align-items: center; gap: 8px; padding: 8px; background-color: #f8fafc; border-radius: 6px;">
+                                                                                <input type="text" value="${this.escapeHtml(assessment.name)}"
+                                                                                       class="flex-1 text-sm bg-transparent border-none focus:outline-none focus:ring-1 focus:ring-blue-500 rounded px-2 py-1"
+                                                                                       onchange="builder.updateAssessment(${category.id}, ${subcategory.id}, ${assessment.id}, 'name', this.value)">
+                                                                                <input type="number" value="${assessment.maxScore}" min="0" step="0.1"
+                                                                                       class="w-24 text-sm border border-gray-300 rounded px-2 py-1 focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                                                                                       placeholder="Max Score"
+                                                                                       style="min-width: 100px;"
+                                                                                       onchange="builder.updateAssessment(${category.id}, ${subcategory.id}, ${assessment.id}, 'maxScore', parseFloat(this.value) || 0)">
+                                                                                <button class="btn btn-danger" onclick="builder.removeAssessment(${category.id}, ${subcategory.id}, ${assessment.id})">
+                                                                                    <i class="fas fa-trash text-sm"></i>
+                                                                                </button>
+                                                                            </div>
+                                                                        `).join('')}
+                                                                    </div>
+                                                                `}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            `).join('')}
+                                        </div>
+                                    `}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+
+                // Restore drawer states after rendering
+                this.restoreDrawerStates();
+            }
+
+            restoreDrawerStates() {
+                // Small delay to ensure DOM is updated
+                setTimeout(() => {
+                    this.openDrawers.forEach(contentId => {
+                        const content = document.getElementById(contentId);
+                        const button = document.querySelector(`[onclick="builder.toggleDrawer('${contentId}')"]`);
+
+                        if (content && button) {
+                            // Set the expanded state
+                            button.setAttribute('aria-expanded', 'true');
+
+                            // Apply the visual expansion
+                            content.style.maxHeight = 'none';
+
+                            // Rotate the chevron icon
+                            const icon = button.querySelector('.chevron-icon');
+                            if (icon) {
+                                icon.style.transform = 'rotate(180deg)';
+                            }
+                        }
+                    });
+                }, 50);
+            }
+
+
+            escapeHtml(text) {
+                const div = document.createElement('div');
+                div.textContent = text;
+                return div.innerHTML;
+            }
+
+            /**
+             * Toggles the collapse/expand state of a drawer.
+             * Uses scrollHeight for smooth transition via max-height.
+             */
+            toggleDrawer(contentId) {
+                const content = document.getElementById(contentId);
+                const button = document.querySelector(`[onclick="builder.toggleDrawer('${contentId}')"]`);
+
+                if (!content || !button) {
+                    console.error("Drawer elements not found for ID:", contentId);
+                    return;
+                }
+
+                const isExpanded = button.getAttribute('aria-expanded') === 'true';
+                const isPrimary = !contentId.includes('-');
+
+                const setState = (element, expand) => {
+                    const targetButton = element.previousElementSibling;
+                    if (!targetButton) return;
+
+                    const targetIcon = targetButton.querySelector('.chevron-icon');
+
+                    if (expand) {
+                        targetButton.setAttribute('aria-expanded', 'true');
+                        element.style.maxHeight = element.scrollHeight + "px";
+                        this.openDrawers.add(contentId);
+
+                        // Allow content growth after transition completes
+                        setTimeout(() => {
+                            if (targetButton.getAttribute('aria-expanded') === 'true') {
+                                element.style.maxHeight = 'none';
+                            }
+                        }, 300); // Matches CSS transition time + buffer
+
+                        if (targetIcon) {
+                            targetIcon.style.transform = 'rotate(180deg)';
+                        }
+                    } else {
+                        targetButton.setAttribute('aria-expanded', 'false');
+                        this.openDrawers.delete(contentId);
+
+                        // Force reflow for smooth closing transition
+                        if (element.style.maxHeight === 'none') {
+                            element.style.maxHeight = element.scrollHeight + "px";
+                        }
+                        requestAnimationFrame(() => {
+                            element.style.maxHeight = '0px';
+                        });
+
+                        if (targetIcon) {
+                            targetIcon.style.transform = 'rotate(0deg)';
+                        }
+                    }
+                };
+
+                if (isExpanded) {
+                    // CLOSING
+                    setState(content, false);
+                } else {
+                    // OPENING
+                    if (isPrimary) {
+                        // Close all other primary drawers (Accordion behavior)
+                        document.querySelectorAll('.primary-drawer-content').forEach(otherContent => {
+                            if (otherContent.id !== contentId && otherContent.previousElementSibling.getAttribute('aria-expanded') === 'true') {
+                                setState(otherContent, false);
+                            }
+                        });
+                    }
+                    setState(content, true);
+                }
+            }
+
+            /**
+             * Handles the change event for the category dropdown.
+             */
+            handleCategoryChange(selectElement) {
+                if (selectElement.value === 'Other') {
+                    currentDropdown = selectElement;
+                    this.showModal('categoryModal', 'Name the new category:');
+                } else {
+                    console.log(`Category set to: ${selectElement.value}`);
+                }
+            }
+
+            /**
+             * Shows a custom modal dialog.
+             */
+            showModal(modalId, titleText) {
+                const modalOverlay = document.getElementById(modalId);
+                const modalTitle = modalOverlay.querySelector('.modal-title');
+                const inputField = modalOverlay.querySelector('input[type="text"]');
+
+                modalTitle.textContent = titleText;
+
+                if (inputField) {
+                    inputField.value = ''; // Clear previous input
+                }
+
+                modalOverlay.classList.add('open');
+                if (inputField) {
+                    inputField.focus();
+                }
+            }
+
+            /**
+             * Hides the custom modal dialog.
+             */
+            hideModal(modalId) {
+                document.getElementById(modalId).classList.remove('open');
+            }
+
+            /**
+             * Executes the 'OK' action from the Category Naming modal.
+             */
+            confirmModal() {
+                const inputField = document.getElementById('categoryInput');
+                const newCategoryName = inputField.value.trim();
+
+                if (newCategoryName === '') {
+                    // If no name is provided, show confirmation dialog
+                    this.hideModal('categoryModal');
+                    this.showConfirmationDialog();
+                } else {
+                    // Name provided, add new option and set as selected
+                    this.addNewCategory(newCategoryName);
+                    this.hideModal('categoryModal');
+                    currentDropdown = null; // Operation complete
+                }
+            }
+
+            /**
+             * Shows a custom confirmation dialog.
+             */
+            showConfirmationDialog() {
+                this.showModal('confirmModal', 'No name provided. Proceed with category name "Other"?');
+            }
+
+            /**
+             * Handles the confirmation dialog OK action.
+             * Adds 'Other' as the category name.
+             */
+            confirmDefaultName() {
+                this.addNewCategory('Other');
+                this.hideModal('confirmModal');
+                currentDropdown = null; // Operation complete
+            }
+
+            /**
+             * Handles the confirmation/naming dialog cancel action.
+             * Reverts the dropdown selection to the first option ('Lecture').
+             */
+            cancelNameAction(modalId) {
+                if (currentDropdown) {
+                    // Revert selection to the first option (Lecture)
+                    currentDropdown.value = currentDropdown.options[0].value;
+                    console.log("Category selection reverted to default.");
+                }
+                this.hideModal(modalId);
+
+                // If we're canceling the confirmation, we need to ensure the main modal is also gone
+                if (modalId === 'confirmModal') {
+                    this.hideModal('categoryModal');
+                }
+                currentDropdown = null; // Operation cancelled
+            }
+
+            /**
+             * Adds the new category name to the current dropdown and selects it.
+             */
+            addNewCategory(name) {
+                if (currentDropdown) {
+                    // 1. Check if option already exists
+                    let option = Array.from(currentDropdown.options).find(opt => opt.value === name);
+
+                    if (!option) {
+                        // 2. If it doesn't exist, create and append the new option
+                        option = document.createElement('option');
+                        option.value = name;
+                        option.textContent = name;
+                        currentDropdown.appendChild(option);
+                    }
+
+                    // 3. Select the new option
+                    currentDropdown.value = name;
+                    console.log(`New category added and set: ${name}`);
+                }
+            }
+
+            /**
+             * Handles category weight dropdown changes.
+             */
+            handleCategoryWeightChange(categoryId, selectElement) {
+                if (selectElement.value === 'custom') {
+                    this.currentWeightTarget = { type: 'category', categoryId: categoryId, selectElement: selectElement };
+                    this.showCustomPercentageModal();
+                } else if (selectElement.value) {
+                    this.updateCategory(categoryId, 'weight', parseFloat(selectElement.value));
+                }
+            }
+
+            /**
+             * Handles subcategory weight dropdown changes.
+             */
+            handleSubcategoryWeightChange(categoryId, subcategoryId, selectElement) {
+                if (selectElement.value === 'custom') {
+                    this.currentWeightTarget = { type: 'subcategory', categoryId: categoryId, subcategoryId: subcategoryId, selectElement: selectElement };
+                    this.showCustomPercentageModal();
+                } else if (selectElement.value) {
+                    this.updateSubcategory(categoryId, subcategoryId, 'weight', parseFloat(selectElement.value));
+                }
+            }
+
+            /**
+             * Shows the custom percentage modal.
+             */
+            showCustomPercentageModal() {
+                const modal = document.getElementById('customPercentageModal');
+                const input = document.getElementById('customPercentageInput');
+                input.value = '';
+                modal.classList.add('open');
+                input.focus();
+            }
+
+            /**
+             * Hides the custom percentage modal.
+             */
+            hideCustomPercentageModal() {
+                document.getElementById('customPercentageModal').classList.remove('open');
+            }
+
+            /**
+             * Confirms the custom percentage input.
+             */
+            confirmCustomPercentage() {
+                const input = document.getElementById('customPercentageInput');
+                const percentage = parseFloat(input.value);
+
+                if (isNaN(percentage) || percentage < 0 || percentage > 100) {
+                    alert('Please enter a valid percentage between 0 and 100.');
+                    return;
+                }
+
+                if (this.currentWeightTarget) {
+                    if (this.currentWeightTarget.type === 'category') {
+                        this.updateCategory(this.currentWeightTarget.categoryId, 'weight', percentage);
+                        // Update the dropdown to show the custom value
+                        const customOption = document.createElement('option');
+                        customOption.value = percentage;
+                        customOption.textContent = percentage + '%';
+                        customOption.selected = true;
+
+                        // Replace the custom option
+                        const select = this.currentWeightTarget.selectElement;
+                        const existingCustom = select.querySelector('option[value="custom"]');
+                        if (existingCustom) {
+                            existingCustom.remove();
+                        }
+                        select.appendChild(customOption);
+                    } else if (this.currentWeightTarget.type === 'subcategory') {
+                        this.updateSubcategory(this.currentWeightTarget.categoryId, this.currentWeightTarget.subcategoryId, 'weight', percentage);
+                        // Update the dropdown to show the custom value
+                        const customOption = document.createElement('option');
+                        customOption.value = percentage;
+                        customOption.textContent = percentage + '%';
+                        customOption.selected = true;
+
+                        // Replace the custom option
+                        const select = this.currentWeightTarget.selectElement;
+                        const existingCustom = select.querySelector('option[value="custom"]');
+                        if (existingCustom) {
+                            existingCustom.remove();
+                        }
+                        select.appendChild(customOption);
+                    }
+                }
+
+                this.hideCustomPercentageModal();
+                this.currentWeightTarget = null;
+            }
+
+            /**
+             * Cancels the custom percentage input.
+             */
+            cancelCustomPercentage() {
+                // Reset the dropdown to first option
+                if (this.currentWeightTarget && this.currentWeightTarget.selectElement) {
+                    this.currentWeightTarget.selectElement.value = '';
+                }
+                this.hideCustomPercentageModal();
+                this.currentWeightTarget = null;
+            }
+
+            updateSelectedClassDisplay() {
+                if (this.selectedClassId && this.selectedClassName) {
+                    const display = document.getElementById('selectedClassDisplay');
+                    const nameElement = document.getElementById('selectedClassName');
+
+                    if (display && nameElement) {
+                        nameElement.textContent = this.selectedClassName;
+                        display.style.display = 'block';
+                    }
+                }
+            }
+
+            hideSelectedClassDisplay() {
+                const display = document.getElementById('selectedClassDisplay');
+                if (display) {
+                    display.style.display = 'none';
+                }
+            }
+
+            toggleEditMode() {
+                this.isEditMode = !this.isEditMode;
+                const builderSection = document.querySelector('.builder-section');
+                const saveEditBtn = document.getElementById('saveEditBtn');
+
+                if (this.isEditMode) {
+                    // Switch to Save mode
+                    this.enableEditMode();
+                    saveEditBtn.innerHTML = '<i class="fas fa-save mr-2"></i>Save Structure';
+                    saveEditBtn.className = 'btn btn-primary';
+                } else {
+                    // Switch to Edit mode
+                    this.enableReadOnlyMode();
+                    saveEditBtn.innerHTML = '<i class="fas fa-edit mr-2"></i>Edit Structure';
+                    saveEditBtn.className = 'btn btn-success';
+                }
+            }
+
+            enableEditMode() {
+                const builderSection = document.querySelector('.builder-section');
+
+                // Remove read-only class
+                builderSection.classList.remove('read-only');
+
+                // Re-enable all inputs
+                const inputs = builderSection.querySelectorAll('input[type="text"], input[type="number"], select, textarea');
+                inputs.forEach(input => {
+                    input.disabled = false;
+                    input.style.cursor = 'text';
+                });
+
+                // Re-enable buttons (except save/edit button)
+                const buttons = builderSection.querySelectorAll('button:not(#saveEditBtn)');
+                buttons.forEach(button => {
+                    button.disabled = false;
+                    button.style.opacity = '1';
+                    button.style.cursor = 'pointer';
+                });
+
+                // Re-enable drawer interactions
+                const drawers = builderSection.querySelectorAll('.drawer-header, .nested-header');
+                drawers.forEach(drawer => {
+                    drawer.style.cursor = 'pointer';
+                    drawer.style.backgroundColor = '';
+                });
+            }
+
+            enableReadOnlyMode() {
+                const builderSection = document.querySelector('.builder-section');
+
+                // Add read-only class
+                builderSection.classList.add('read-only');
+
+                // Disable all inputs
+                const inputs = builderSection.querySelectorAll('input[type="text"], input[type="number"], select, textarea');
+                inputs.forEach(input => {
+                    input.disabled = true;
+                });
+
+                // Disable buttons (except save/edit button)
+                const buttons = builderSection.querySelectorAll('button:not(#saveEditBtn)');
+                buttons.forEach(button => {
+                    button.disabled = true;
+                });
+
+                // Disable drawer interactions
+                const drawers = builderSection.querySelectorAll('.drawer-header, .nested-header');
+                drawers.forEach(drawer => {
+                    drawer.style.cursor = 'not-allowed';
+                });
+            }
+
+            async saveStructure() {
+                if (!this.selectedClassId) {
+                    alert('Please select a class first.');
+                    return;
+                }
+
+                const structureName = document.getElementById('structureName').value.trim();
+                if (!structureName) {
+                    alert('Please enter a structure name.');
+                    return;
+                }
+
+                const totalWeight = this.categories.reduce((sum, category) => sum + (parseFloat(category.weight) || 0), 0);
+                if (totalWeight !== 100) {
+                    alert('Total weight must equal 100% before saving.');
+                    return;
+                }
+
+                try {
+                    const structure = {
+                        name: structureName,
+                        categories: this.categories.map(category => ({
+                            name: category.name,
+                            weight: category.weight,
+                            subcategories: category.subcategories.map(subcategory => ({
+                                name: subcategory.name,
+                                weight: subcategory.weight,
+                                assessments: subcategory.assessments.map(assessment => ({
+                                    name: assessment.name,
+                                    maxScore: assessment.maxScore
+                                }))
+                            }))
+                        }))
+                    };
+
+                    const response = await fetch('/api/grade-structure', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            class_id: this.selectedClassId,
+                            structure_name: structureName,
+                            structure_json: JSON.stringify(structure)
+                        })
+                    });
+
+                    const data = await response.json();
+
+                    if (data.success) {
+                        alert('Grade structure saved successfully!');
+                    } else {
+                        alert('Failed to save structure: ' + data.error);
+                    }
+                } catch (error) {
+                    console.error('Save error:', error);
+                    alert('Failed to save structure. Please try again.');
+                }
+            }
+
+            async loadExistingStructure() {
+                if (!this.selectedClassId) return;
+
+                try {
+                    const response = await fetch(`/api/grade-structure/${this.selectedClassId}`);
+                    const data = await response.json();
+
+                    if (data.success && data.structure) {
+                        const structure = JSON.parse(data.structure.structure_json);
+                        document.getElementById('structureName').value = data.structure.structure_name;
+
+                        // Clear existing categories
+                        this.categories = [];
+
+                        // Load categories from structure
+                        if (structure.categories) {
+                            structure.categories.forEach(catData => {
+                                const category = this.addCategory(catData.name, catData.weight);
+
+                                if (catData.subcategories) {
+                                    catData.subcategories.forEach(subData => {
+                                        this.addSubcategory(category.id, subData.name, subData.weight);
+
+                                        if (subData.assessments) {
+                                            subData.assessments.forEach(assData => {
+                                                this.addAssessment(category.subcategories[category.subcategories.length - 1].id, assData.name, assData.maxScore);
+                                            });
+                                        }
+                                    });
+                                }
+                            });
+                        }
+                    }
+                } catch (error) {
+                    console.error('Failed to load existing structure:', error);
+                }
+            }
+
+            showPreview() {
+                const structure = {
+                    name: document.getElementById('structureName').value,
+                    categories: this.categories
+                };
+
+                const previewContent = document.getElementById('previewContent');
+                previewContent.innerHTML = this.generatePreviewHTML(structure);
+
+                document.getElementById('previewModal').classList.remove('hidden');
+            }
+
+            generatePreviewHTML(structure) {
+                if (this.categories.length === 0) {
+                    return '<p class="text-gray-500 text-center py-8">No structure to preview.</p>';
+                }
+
+                return `
+                    <div class="space-y-4">
+                        <h3 class="text-lg font-semibold text-gray-900">${this.escapeHtml(structure.name)}</h3>
+                        ${this.categories.map(category => `
+                            <div class="border border-gray-200 rounded-lg p-4">
+                                <h4 class="font-semibold text-gray-900 mb-2">
+                                    ${this.escapeHtml(category.name)} (${category.weight}%)
+                                </h4>
+                                ${category.subcategories.map(subcategory => `
+                                    <div class="ml-4 mb-3">
+                                        <h5 class="font-medium text-gray-800 mb-1">
+                                            ${this.escapeHtml(subcategory.name)} (${subcategory.weight}%)
+                                        </h5>
+                                        <div class="ml-4 space-y-1">
+                                            ${subcategory.assessments.map(assessment => `
+                                                <div class="text-sm text-gray-600">
+                                                    • ${this.escapeHtml(assessment.name)} (Max: ${assessment.maxScore} pts)
+                                                </div>
+                                            `).join('')}
+                                        </div>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+            }
+
+            exportStructure() {
+                if (this.categories.length === 0) {
+                    alert('No structure to export.');
+                    return;
+                }
+
+                const structure = {
+                    name: document.getElementById('structureName').value,
+                    categories: this.categories
+                };
+
+                const blob = new Blob([JSON.stringify(structure, null, 2)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `grade-structure-${Date.now()}.json`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            }
+
+            async handleImportFile(file) {
+                try {
+                    const text = await file.text();
+                    const structure = JSON.parse(text);
+
+                    // Validate structure format
+                    if (!structure.categories || !Array.isArray(structure.categories)) {
+                        alert('Invalid structure file format.');
+                        return;
+                    }
+
+                    // Clear existing categories
+                    this.categories = [];
+
+                    // Load categories from imported structure
+                    structure.categories.forEach(catData => {
+                        const category = this.addCategory(catData.name, catData.weight);
+
+                        if (catData.subcategories) {
+                            catData.subcategories.forEach(subData => {
+                                this.addSubcategory(category.id, subData.name, subData.weight);
+
+                                if (subData.assessments) {
+                                    subData.assessments.forEach(assData => {
+                                        this.addAssessment(category.subcategories[category.subcategories.length - 1].id, assData.name, assData.maxScore);
+                                    });
+                                }
+                            });
+                        }
+                    });
+
+                    document.getElementById('importModal').classList.add('hidden');
+                    alert('Structure imported successfully!');
+
+                } catch (error) {
+                    console.error('Import error:', error);
+                    alert('Failed to import structure. Please check the file format.');
+                }
+            }
+        }
+
+        // Initialize the builder when page loads
+        let builder;
+        document.addEventListener('DOMContentLoaded', () => {
+            builder = new GradeStructureBuilder();
+            window.builder = builder; // Make it globally available
+        });
+    </script>
+</body>
+
+</html>

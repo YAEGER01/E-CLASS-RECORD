@@ -1,0 +1,953 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <title>Grade Sheet</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f5f5f5;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 30px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Header Section */
+        .header {
+            text-align: center;
+            margin-bottom: 8px;
+        }
+
+        .school-logo {
+            width: 45px;
+            height: 45px;
+            object-fit: contain;
+            margin-bottom: 2px;
+        }
+
+        .header-text {
+            font-size: 10px;
+            line-height: 1.2;
+            margin-bottom: 1px;
+        }
+
+        .header-text strong {
+            font-weight: bold;
+        }
+
+        .title {
+            font-size: 14px;
+            font-weight: bold;
+            color: #000;
+            margin-top: 5px;
+            letter-spacing: 1px;
+        }
+
+        /* Course Information Section */
+        .course-info {
+            display: flex;
+            margin-bottom: 8px;
+            gap: 20px;
+        }
+
+        .grading-scale {
+            flex: 0 0 200px;
+        }
+
+        .scale-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 9px;
+            border: 0.5px solid #666;
+        }
+
+        .scale-table thead {
+            background-color: #f0f0f0;
+        }
+
+        .scale-table th {
+            border: 0.5px solid #666;
+            padding: 4px;
+            text-align: center;
+            font-weight: bold;
+        }
+
+        .scale-table td {
+            border: 0.5px solid #666;
+            padding: 3px 6px;
+            text-align: center;
+        }
+
+        .scale-table td:first-child {
+            font-weight: bold;
+        }
+
+        .course-details {
+            flex: 1;
+        }
+
+        .detail-row {
+            margin-bottom: 4px;
+            font-size: 10px;
+            line-height: 1.4;
+        }
+
+        .detail-label {
+            display: inline-block;
+            width: 120px;
+            font-weight: normal;
+        }
+
+        .detail-value {
+            font-weight: bold;
+        }
+
+        /* Students Section */
+        .students-section {
+            margin-bottom: 20px;
+        }
+
+        .students-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 10px;
+            table-layout: fixed;
+        }
+
+        .students-table thead {
+            background-color: #f0f0f0;
+            font-weight: normal;
+        }
+
+        .students-table th,
+        .students-table td {
+            border: 0.5px solid #666;
+            padding: 3px 2px;
+            text-align: left;
+            vertical-align: middle;
+        }
+        
+        /* Highlighting for INC and FAILED grades */
+        .grade-inc {
+            background-color: #ffff00 !important; /* Yellow */
+            font-weight: bold;
+        }
+        
+        .grade-failed {
+            background-color: #ff0000 !important; /* Red */
+            color: white !important;
+            font-weight: bold;
+        }
+
+        /* Column widths for 8-column layout */
+        .students-table th:nth-child(1),
+        .students-table td:nth-child(1),
+        .students-table th:nth-child(5),
+        .students-table td:nth-child(5) {
+            width: 11%;
+            text-align: center;
+        }
+
+        .students-table th:nth-child(2),
+        .students-table td:nth-child(2),
+        .students-table th:nth-child(6),
+        .students-table td:nth-child(6) {
+            width: 27%;
+            text-align: center;
+        }
+
+        .students-table th:nth-child(3),
+        .students-table td:nth-child(3),
+        .students-table th:nth-child(7),
+        .students-table td:nth-child(7) {
+            width: 8%;
+            text-align: center;
+        }
+
+        .students-table th:nth-child(4),
+        .students-table td:nth-child(4),
+        .students-table th:nth-child(8),
+        .students-table td:nth-child(8) {
+            width: 10%;
+            text-align: center;
+        }
+
+        /* Footer Note */
+        .note {
+            font-size: 7.5px;
+            color: #000;
+            margin-top: 8px;
+            line-height: 1.2;
+            font-style: italic;
+        }
+
+        /* Summary Section */
+        .summary-section {
+            margin-top: 10px;
+            margin-bottom: 10px;
+            page-break-inside: avoid;
+        }
+
+        .summary-box {
+            border: 2px solid #000;
+            padding: 12px;
+        }
+
+        .summary-box h2 {
+            text-align: center;
+            font-size: 13px;
+            margin-bottom: 12px;
+            text-decoration: underline;
+            font-weight: bold;
+        }
+
+        .summary-content {
+            display: flex;
+            justify-content: space-between;
+            gap: 40px;
+        }
+
+        .summary-left,
+        .summary-right {
+            flex: 1;
+        }
+
+        .summary-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 10px;
+        }
+
+        .summary-value {
+            font-weight: bold;
+            min-width: 50px;
+            border-bottom: 1px solid #000;
+            text-align: center;
+            padding: 0 10px;
+        }
+
+        /* Signatures Section */
+        .signatures-section {
+            margin-bottom: 15px;
+            margin-top: 15px;
+            page-break-inside: avoid;
+        }
+
+        .signature-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            gap: 40px;
+            page-break-inside: avoid;
+        }
+
+        .signature-item {
+            flex: 1;
+            text-align: center;
+        }
+
+        .sig-label {
+            display: block;
+            font-size: 10px;
+            margin-bottom: 25px;
+            text-align: left;
+        }
+
+        .sig-name {
+            font-weight: bold;
+            font-size: 11px;
+            padding-bottom: 2px;
+            border-bottom: 2px solid #000;
+            margin-bottom: 4px;
+            display: inline-block;
+            min-width: 240px;
+        }
+
+        .sig-title {
+            font-size: 9px;
+            color: #000;
+            margin-top: 2px;
+        }
+
+        /* Footer */
+        .footer {
+            border-top: 2px solid #000;
+            padding-top: 8px;
+            font-size: 8px;
+            color: #000;
+            margin-top: 15px;
+        }
+
+        .footer p {
+            margin-bottom: 5px;
+        }
+
+        /* Print Styles */
+        @media print {
+            @page {
+                size: A4 portrait;
+                margin: 0.15cm;
+            }
+            
+            body {
+                background-color: white;
+                padding: 0;
+                margin: 0;
+            }
+            
+            .container {
+                box-shadow: none;
+                padding: 1px;
+                max-width: 100%;
+                margin: 0;
+                page-break-after: avoid;
+                page-break-inside: auto;
+            }
+
+            .no-print {
+                display: none !important;
+            }
+            
+            html {
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+            
+            /* Header - ultra minimal */
+            .school-logo {
+                width: 32px;
+                height: 32px;
+                margin-bottom: 0px;
+            }
+            
+            .header {
+                margin-bottom: 0px;
+            }
+            
+            .header-text {
+                font-size: 6.5px;
+                line-height: 0.8;
+                margin-bottom: 0px;
+            }
+            
+            .title {
+                font-size: 9.5px;
+                margin-top: 0px;
+                letter-spacing: 0.1px;
+            }
+            
+            /* Course info - ultra minimal */
+            .course-info {
+                margin-bottom: 0.5px;
+                gap: 5px;
+            }
+            
+            .grading-scale {
+                flex: 0 0 135px;
+            }
+            
+            .scale-table {
+                font-size: 6px;
+            }
+            
+            .scale-table th,
+            .scale-table td {
+                padding: 0.3px 1.5px;
+            }
+            
+            .detail-row {
+                margin-bottom: 0px;
+                font-size: 6.5px;
+                line-height: 0.9;
+            }
+            
+            .detail-label {
+                width: 75px;
+            }
+            
+            /* Students table - EXTREMELY compact */
+            .students-section {
+                margin-bottom: 0.5px;
+            }
+            
+            .students-table {
+                font-size: 5.5px;
+                line-height: 0.85;
+            }
+            
+            .students-table th,
+            .students-table td {
+                padding: 0.2px 0.7px;
+                line-height: 0.85;
+            }
+            
+            .note {
+                font-size: 5px;
+                margin-top: 0.5px;
+                line-height: 0.9;
+            }
+            
+            /* Summary - EXTREMELY compact */
+            .summary-section {
+                margin-top: 1px;
+                margin-bottom: 1px;
+            }
+            
+            .summary-box {
+                padding: 2.5px;
+                border: 0.5px solid #000;
+            }
+            
+            .summary-box h2 {
+                font-size: 7.5px;
+                margin-bottom: 2px;
+            }
+            
+            .summary-item {
+                margin-bottom: 1px;
+                font-size: 6px;
+            }
+            
+            .summary-value {
+                min-width: 22px;
+                font-size: 6px;
+            }
+            
+            /* Signatures - EXTREMELY compact */
+            .signatures-section {
+                margin-top: 1.5px;
+                margin-bottom: 1px;
+            }
+            
+            .signature-row {
+                margin-bottom: 4.5px;
+                gap: 10px;
+            }
+            
+            .sig-label {
+                font-size: 5.5px;
+                margin-bottom: 5.5px;
+            }
+            
+            .sig-name {
+                font-size: 6.5px;
+                min-width: 115px;
+                border-bottom: 0.5px solid #000;
+                padding-bottom: 0px;
+            }
+            
+            .sig-title {
+                font-size: 5px;
+                margin-top: 0.3px;
+            }
+            
+            /* Footer - EXTREMELY compact */
+            .footer {
+                margin-top: 1px;
+                padding-top: 1px;
+                border-top: 0.5px solid #000;
+                font-size: 5px;
+            }
+            
+            .footer p {
+                margin-bottom: 0.3px;
+            }
+        }
+
+        /* Print/Download Buttons */
+        .print-button {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 10px 20px;
+            background-color: #4a90e2;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            z-index: 9999;
+            pointer-events: auto;
+        }
+
+        .print-button:hover {
+            background-color: #357abd;
+        }
+
+        .download-button {
+            position: fixed;
+            top: 70px;
+            right: 20px;
+            padding: 10px 20px;
+            background-color: #28a745;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            z-index: 9999;
+            pointer-events: auto;
+        }
+
+        .download-button:hover {
+            background-color: #218838;
+        }
+
+        .edit-signatures-button {
+            position: fixed;
+            top: 120px;
+            right: 20px;
+            padding: 10px 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            z-index: 9999;
+            transition: transform 0.2s;
+            pointer-events: auto;
+        }
+
+        .edit-signatures-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+        }
+
+        .edit-signatures-button:active {
+            transform: translateY(0);
+        }
+    </style>
+</head>
+<body>
+    <button onclick="window.print()" class="print-button no-print">🖨️ Print</button>
+    <button onclick="downloadGradeSheet()" class="download-button no-print">📥 Download</button>
+    <button id="edit-signatures-btn" class="edit-signatures-button no-print">✏️ Edit Signatures</button>
+    
+    <script>
+        function downloadGradeSheet() {
+            const element = document.querySelector('.container');
+            const opt = {
+                margin: [0.25, 0.25, 0.25, 0.25],
+                filename: 'Grade_Sheet_' + Date.now() + '.pdf',
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: { 
+                    scale: 2,
+                    useCORS: true,
+                    letterRendering: true,
+                    logging: false,
+                    scrollY: -window.scrollY,
+                    scrollX: 0,
+                    windowWidth: document.documentElement.scrollWidth,
+                    windowHeight: document.documentElement.scrollHeight
+                },
+                jsPDF: { 
+                    unit: 'in', 
+                    format: 'a4', 
+                    orientation: 'portrait',
+                    compress: true
+                },
+                pagebreak: { mode: ['css', 'legacy'], avoid: ['.signature-row', '.summary-section'] }
+            };
+            
+            // Force a reflow before generating PDF
+            element.style.display = 'none';
+            element.offsetHeight; // trigger reflow
+            element.style.display = '';
+            
+            html2pdf().set(opt).from(element).save();
+        }
+    </script>
+    
+    <div class="container">
+        <!-- Header Section -->
+        <div class="header">
+            <img src="{{ url_for('static', filename='images/isu.png') }}" alt="ISU Logo" class="school-logo">
+            <div class="header-text"><strong>Republic of the Philippines</strong></div>
+            <div class="header-text"><strong>Isabela State University</strong></div>
+            <div class="header-text"><strong>Cauayan City, Isabela</strong></div>
+            <h1 class="title">GRADE SHEET</h1>
+        </div>
+
+        <!-- Course Information -->
+        <div class="course-info">
+            <div class="grading-scale">
+                <table class="scale-table">
+                    <thead>
+                        <tr>
+                            <th>Grade</th>
+                            <th>Equivalent</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr><td>1.0</td><td>98-100</td></tr>
+                        <tr><td>1.25</td><td>95-97</td></tr>
+                        <tr><td>1.5</td><td>92-94</td></tr>
+                        <tr><td>1.75</td><td>89-91</td></tr>
+                        <tr><td>2.0</td><td>86-88</td></tr>
+                        <tr><td>2.25</td><td>83-85</td></tr>
+                        <tr><td>2.5</td><td>80-82</td></tr>
+                        <tr><td>2.75</td><td>77-79</td></tr>
+                        <tr><td>3.0</td><td>75-76</td></tr>
+                        <tr><td>INC</td><td>Incomplete</td></tr>
+                        <tr><td>DRP</td><td>Dropped</td></tr>
+                        <tr><td>5.0</td><td>Below 75 (Failure)</td></tr>
+                    </tbody>
+                </table>
+            </div>
+            
+            <div class="course-details">
+                <div class="detail-row">
+                    <span class="detail-label">Instructor</span>
+                    <span class="detail-value">{{ class_info.instructor_name }}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Subject Code</span>
+                    <span class="detail-value">{{ class_info.subject_code }}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Description</span>
+                    <span class="detail-value">{{ class_info.subject }}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Units</span>
+                    <span class="detail-value">{{ class_info.units if class_info.units else 'N/A' }}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Period</span>
+                    <span class="detail-value">{{ period if period else 'FIRST SEMESTER, 2025-2026' }}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Date</span>
+                    <span class="detail-value">{{ current_date }}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Class/Section</span>
+                    <span class="detail-value">{{ class_info.class_section }}</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Students Table -->
+        <div class="students-section">
+            <table class="students-table">
+                <thead>
+                    <tr>
+                        <th>School ID</th>
+                        <th>NAME OF STUDENTS</th>
+                        <th>Grade</th>
+                        <th>Remarks</th>
+                        <th>School ID</th>
+                        <th>NAME OF STUDENTS</th>
+                        <th>Grade</th>
+                        <th>Remarks</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% set min_rows = 30 %}
+                    {% set rows_needed = ((students|length + 1) // 2) %}
+                    {% set total_rows = [rows_needed, min_rows]|max %}
+                    
+                    {% for i in range(total_rows) %}
+                    <tr>
+                        {% if i < students|length %}
+                        <td>{{ students[i].school_id if students[i].school_id else '' }}</td>
+                        <td>{{ students[i].name }}</td>
+                        <td class="{% if students[i].equivalent == 'INC' %}grade-inc{% elif students[i].equivalent == '5.0' or students[i].equivalent == 'DRP' %}grade-failed{% endif %}">{{ students[i].equivalent if students[i].equivalent else '' }}</td>
+                        <td class="{% if students[i].equivalent == 'INC' %}grade-inc{% elif students[i].equivalent == '5.0' or students[i].equivalent == 'DRP' or students[i].remarks == 'FAILED' or students[i].remarks == 'DROPPED' %}grade-failed{% endif %}">{{ students[i].remarks if students[i].remarks else '' }}</td>
+                        {% else %}
+                        <td></td>
+                        <td></td>
+                        <td></td>
+                        <td></td>
+                        {% endif %}
+                        
+                        {% set second_idx = i + total_rows %}
+                        {% if second_idx < students|length %}
+                        <td>{{ students[second_idx].school_id if students[second_idx].school_id else '' }}</td>
+                        <td>{{ students[second_idx].name }}</td>
+                        <td class="{% if students[second_idx].equivalent == 'INC' %}grade-inc{% elif students[second_idx].equivalent == '5.0' or students[second_idx].equivalent == 'DRP' %}grade-failed{% endif %}">{{ students[second_idx].equivalent if students[second_idx].equivalent else '' }}</td>
+                        <td class="{% if students[second_idx].equivalent == 'INC' %}grade-inc{% elif students[second_idx].equivalent == '5.0' or students[second_idx].equivalent == 'DRP' or students[second_idx].remarks == 'FAILED' or students[second_idx].remarks == 'DROPPED' %}grade-failed{% endif %}">{{ students[second_idx].remarks if students[second_idx].remarks else '' }}</td>
+                        {% else %}
+                        <td></td>
+                        <td></td>
+                        <td></td>
+                        <td></td>
+                        {% endif %}
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            
+            <div class="note">
+                Note: It must be TYPEWRITTEN & PROPERLY ALPHABETIZED. Erasures made herein is invalid. Instructor/Professor concerned should initial any change or erasures made.
+            </div>
+        </div>
+
+        <!-- Summary Section -->
+        <div class="summary-section">
+            <div class="summary-box">
+                <h2>SUMMARY</h2>
+                <div class="summary-content">
+                    <div class="summary-left">
+                        <div class="summary-item">
+                            <span>Total number of students enrolled:</span>
+                            <span class="summary-value">{{ summary.total if summary else '0' }}</span>
+                        </div>
+                        <div class="summary-item">
+                            <span>Number of students passed:</span>
+                            <span class="summary-value">{{ summary.passed if summary else '0' }}</span>
+                        </div>
+                    </div>
+                    <div class="summary-right">
+                        <div class="summary-item">
+                            <span>Number of students with Inc.:</span>
+                            <span class="summary-value">{{ summary.incomplete if summary else '0' }}</span>
+                        </div>
+                        <div class="summary-item">
+                            <span>Number of students failed/dropped:</span>
+                            <span class="summary-value">{{ summary.failed if summary else '0' }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Signatures Section -->
+        <div class="signatures-section">
+            <div class="signature-row">
+                <div class="signature-item">
+                    <span class="sig-label">Submitted by:</span>
+                    <div class="sig-name">{{ signatures.submitted_by_name if signatures else '' }}</div>
+                    <div class="sig-title">{{ signatures.submitted_by_title if signatures else '' }}</div>
+                </div>
+                <div class="signature-item">
+                    <span class="sig-label">Checked by:</span>
+                    <div class="sig-name">{{ signatures.checked_by_name if signatures else '' }}</div>
+                    <div class="sig-title">{{ signatures.checked_by_title if signatures else '' }}</div>
+                </div>
+            </div>
+            
+            <div class="signature-row">
+                <div class="signature-item">
+                    <span class="sig-label">Countersigned by:</span>
+                    <div class="sig-name">{{ signatures.countersigned_by_name if signatures else '' }}</div>
+                    <div class="sig-title">{{ signatures.countersigned_by_title if signatures else '' }}</div>
+                </div>
+                <div class="signature-item">
+                    <span class="sig-label">Noted by:</span>
+                    <div class="sig-name">{{ signatures.noted_by_name if signatures else '' }}</div>
+                    <div class="sig-title">{{ signatures.noted_by_title if signatures else '' }}</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="footer">
+            <p>Date Submitted: ___________________</p>
+            <p>ISUCIN-ARA-GSF-015</p>
+            <p>Effectivity: April 10, 2019</p>
+            <p>Revision: 0</p>
+        </div>
+    </div>
+
+    <!-- SweetAlert2 for Signature Editing -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11.7.32/dist/sweetalert2.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.7.32/dist/sweetalert2.all.min.js"></script>
+
+    <script>
+        const classId = {{ class_id }};
+        
+        async function openSignaturesModal() {
+            if (typeof Swal === 'undefined') {
+                alert('SweetAlert2 is not loaded. Please refresh the page.');
+                return;
+            }
+            
+            try {
+                // Fetch current signatures
+                const response = await fetch(`/api/reports/grade-sheet/${classId}/signatures`);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const signatures = await response.json();
+
+                Swal.fire({
+                    title: '<div style="display: flex; align-items: center; gap: 12px; justify-content: center;"><span style="font-size: 32px;">✏️</span><span style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-weight: 700; font-size: 24px;">Edit Grade Sheet Signatures</span></div>',
+                    html: `
+                        <style>
+                            .sig-form-group {
+                                background: #f8fafc;
+                                padding: 16px;
+                                border-radius: 10px;
+                                margin-bottom: 14px;
+                                border: 2px solid #e5e7eb;
+                            }
+                            .sig-form-label {
+                                display: block;
+                                font-weight: 700;
+                                color: #374151;
+                                margin-bottom: 10px;
+                                font-size: 15px;
+                                text-align: left;
+                            }
+                            .sig-form-input {
+                                width: 100%;
+                                padding: 10px 12px;
+                                border: 2px solid #d1d5db;
+                                border-radius: 6px;
+                                font-size: 14px;
+                                box-sizing: border-box;
+                                margin-bottom: 8px;
+                            }
+                            .sig-form-input:focus {
+                                outline: none;
+                                border-color: #667eea;
+                                box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+                            }
+                            .sig-form-sublabel {
+                                font-size: 12px;
+                                color: #6b7280;
+                                margin-bottom: 6px;
+                                text-align: left;
+                            }
+                        </style>
+                        <div style="max-height: 500px; overflow-y: auto; padding: 10px;">
+                            <div class="sig-form-group">
+                                <label class="sig-form-label">📝 Submitted by</label>
+                                <div class="sig-form-sublabel">Name:</div>
+                                <input type="text" id="submitted_by_name" class="sig-form-input" value="${signatures.submitted_by_name || ''}" placeholder="e.g., JUAN DELA CRUZ">
+                                <div class="sig-form-sublabel">Title:</div>
+                                <input type="text" id="submitted_by_title" class="sig-form-input" value="${signatures.submitted_by_title || ''}" placeholder="e.g., Assistant Professor IV">
+                            </div>
+
+                            <div class="sig-form-group">
+                                <label class="sig-form-label">✅ Checked by</label>
+                                <div class="sig-form-sublabel">Name:</div>
+                                <input type="text" id="checked_by_name" class="sig-form-input" value="${signatures.checked_by_name || ''}" placeholder="e.g., MARIA SANTOS">
+                                <div class="sig-form-sublabel">Title:</div>
+                                <input type="text" id="checked_by_title" class="sig-form-input" value="${signatures.checked_by_title || ''}" placeholder="e.g., Chair, BSIT">
+                            </div>
+
+                            <div class="sig-form-group">
+                                <label class="sig-form-label">📜 Countersigned by</label>
+                                <div class="sig-form-sublabel">Name:</div>
+                                <input type="text" id="countersigned_by_name" class="sig-form-input" value="${signatures.countersigned_by_name || ''}" placeholder="e.g., PEDRO REYES">
+                                <div class="sig-form-sublabel">Title:</div>
+                                <input type="text" id="countersigned_by_title" class="sig-form-input" value="${signatures.countersigned_by_title || ''}" placeholder="e.g., College Secretary">
+                            </div>
+
+                            <div class="sig-form-group">
+                                <label class="sig-form-label">👨‍💼 Noted by</label>
+                                <div class="sig-form-sublabel">Name:</div>
+                                <input type="text" id="noted_by_name" class="sig-form-input" value="${signatures.noted_by_name || ''}" placeholder="e.g., JOSE GARCIA">
+                                <div class="sig-form-sublabel">Title:</div>
+                                <input type="text" id="noted_by_title" class="sig-form-input" value="${signatures.noted_by_title || ''}" placeholder="e.g., Dean, CCSICT">
+                            </div>
+                        </div>
+                    `,
+                    width: 650,
+                    showCancelButton: true,
+                    confirmButtonText: '💾 Save Signatures',
+                    cancelButtonText: '✕ Cancel',
+                    confirmButtonColor: '#667eea',
+                    cancelButtonColor: '#9ca3af',
+                    preConfirm: () => {
+                        return {
+                            submitted_by_name: document.getElementById('submitted_by_name').value.trim(),
+                            submitted_by_title: document.getElementById('submitted_by_title').value.trim(),
+                            checked_by_name: document.getElementById('checked_by_name').value.trim(),
+                            checked_by_title: document.getElementById('checked_by_title').value.trim(),
+                            countersigned_by_name: document.getElementById('countersigned_by_name').value.trim(),
+                            countersigned_by_title: document.getElementById('countersigned_by_title').value.trim(),
+                            noted_by_name: document.getElementById('noted_by_name').value.trim(),
+                            noted_by_title: document.getElementById('noted_by_title').value.trim()
+                        };
+                    }
+                }).then(async (result) => {
+                    if (result.isConfirmed) {
+                        try {
+                            const saveResponse = await fetch(`/api/reports/grade-sheet/${classId}/signatures`, {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json'
+                                },
+                                body: JSON.stringify(result.value)
+                            });
+
+                            if (saveResponse.ok) {
+                                Swal.fire({
+                                    icon: 'success',
+                                    title: 'Saved!',
+                                    text: 'Signatures updated successfully. Reloading page...',
+                                    timer: 1500,
+                                    showConfirmButton: false
+                                }).then(() => {
+                                    location.reload();
+                                });
+                            } else {
+                                const errorData = await saveResponse.json();
+                                throw new Error(errorData.error || 'Failed to save signatures');
+                            }
+                        } catch (error) {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Error',
+                                text: 'Failed to save signatures: ' + error.message
+                            });
+                        }
+                    }
+                });
+            } catch (error) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'Failed to load signatures: ' + error.message
+                });
+            }
+        }
+        
+        // Add event listener to button
+        document.addEventListener('DOMContentLoaded', function() {
+            const btn = document.getElementById('edit-signatures-btn');
+            if (btn) {
+                btn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    openSignaturesModal();
+                });
+                
+                // Add hover effect
+                btn.addEventListener('mouseenter', function() {
+                    this.style.transform = 'translateY(-2px)';
+                });
+                btn.addEventListener('mouseleave', function() {
+                    this.style.transform = 'translateY(0)';
+                            });
+            }
+        });
+    </script>
+</body>
+</html>

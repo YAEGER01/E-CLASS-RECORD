@@ -53,8 +53,15 @@ class LoginLimiter:
         except Exception as e:
             logger.error(f"Error creating login_tracker table: {str(e)}")
 
-    def is_blocked(self, username, ip_address):
-        """Check if a user/IP combination is currently blocked."""
+    def is_blocked(self, username, ip_address, user_role=None):
+        """Check if a user/IP combination is currently blocked.
+
+        Args:
+            username: The username to check
+            ip_address: The IP address to check
+            user_role: Optional role to filter by (admin, instructor, student).
+                       If None, checks all roles for this username/IP.
+        """
         try:
             self._ensure_table_exists()
 
@@ -62,10 +69,17 @@ class LoginLimiter:
             cursor = db.cursor()
             now = int(time.time())
 
-            cursor.execute(
-                "SELECT attempts, is_blocked, last_attempt_at FROM login_tracker WHERE username = %s AND ip_address = %s",
-                (username, ip_address),
-            )
+            # Build query based on whether role is provided
+            if user_role:
+                cursor.execute(
+                    "SELECT attempts, is_blocked, last_attempt_at FROM login_tracker WHERE username = %s AND ip_address = %s AND user_role = %s",
+                    (username, ip_address, user_role),
+                )
+            else:
+                cursor.execute(
+                    "SELECT attempts, is_blocked, last_attempt_at FROM login_tracker WHERE username = %s AND ip_address = %s",
+                    (username, ip_address),
+                )
             result = cursor.fetchone()
             cursor.close()
 
@@ -79,7 +93,7 @@ class LoginLimiter:
             time_passed = now - last_attempt
 
             if time_passed >= self.lock_duration:
-                self._reset_attempts(username, ip_address)
+                self._reset_attempts(username, ip_address, user_role)
                 return False, 0
 
             remaining = self.lock_duration - time_passed
@@ -92,15 +106,28 @@ class LoginLimiter:
             logger.error(f"Traceback: {traceback.format_exc()}")
             return False, 0
 
-    def _reset_attempts(self, username, ip_address):
-        """Reset failed attempts after lock expires."""
+    def _reset_attempts(self, username, ip_address, user_role=None):
+        """Reset failed attempts after lock expires.
+
+        Args:
+            username: The username to reset
+            ip_address: The IP address to reset
+            user_role: Optional role to filter by. If None, resets all for this username/IP.
+        """
         try:
             db = self._get_db()
             cursor = db.cursor()
-            cursor.execute(
-                "DELETE FROM login_tracker WHERE username = %s AND ip_address = %s",
-                (username, ip_address),
-            )
+
+            if user_role:
+                cursor.execute(
+                    "DELETE FROM login_tracker WHERE username = %s AND ip_address = %s AND user_role = %s",
+                    (username, ip_address, user_role),
+                )
+            else:
+                cursor.execute(
+                    "DELETE FROM login_tracker WHERE username = %s AND ip_address = %s",
+                    (username, ip_address),
+                )
             db.commit()
             cursor.close()
         except Exception as e:
@@ -162,24 +189,49 @@ class LoginLimiter:
 
             logger.error(f"Traceback: {traceback.format_exc()}")
 
-    def process_success(self, username, ip_address):
-        """Reset failed attempts on successful login."""
+    def process_success(self, username, ip_address, user_role=None):
+        """Reset failed attempts on successful login.
+
+        Args:
+            username: The username that logged in successfully
+            ip_address: The IP address
+            user_role: Optional role to filter by. If None, resets all for this username/IP.
+        """
         try:
             db = self._get_db()
             cursor = db.cursor()
-            cursor.execute(
-                "DELETE FROM login_tracker WHERE username = %s AND ip_address = %s",
-                (username, ip_address),
-            )
+
+            if user_role:
+                cursor.execute(
+                    "DELETE FROM login_tracker WHERE username = %s AND ip_address = %s AND user_role = %s",
+                    (username, ip_address, user_role),
+                )
+            else:
+                cursor.execute(
+                    "DELETE FROM login_tracker WHERE username = %s AND ip_address = %s",
+                    (username, ip_address),
+                )
             db.commit()
             cursor.close()
-            logger.info(f"Reset failed attempts for user {username}")
+            logger.info(
+                f"Reset failed attempts for user {username} (role: {user_role})"
+            )
         except Exception as e:
             logger.error(f"Error resetting attempts on success: {str(e)}")
 
-    def check_rate_limit(self, username, ip_address):
-        """Check if user is rate limited before processing login."""
-        is_blocked, remaining = self.is_blocked(username, ip_address)
+    def check_rate_limit(self, username, ip_address, user_role=None):
+        """Check if user is rate limited before processing login.
+
+        Args:
+            username: The username to check
+            ip_address: The IP address to check
+            user_role: Optional role to filter by (admin, instructor, student).
+                       If provided, rate limiting is role-specific.
+
+        Returns:
+            tuple: (is_allowed: bool, message: str, remaining_seconds: int)
+        """
+        is_blocked, remaining = self.is_blocked(username, ip_address, user_role)
 
         if is_blocked:
             minutes = remaining // 60

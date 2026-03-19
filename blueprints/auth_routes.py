@@ -54,7 +54,7 @@ def check_rate_limit(username, role):
     limiter = get_login_limiter()
     ip_address = get_client_ip()
 
-    allowed, message, remaining = limiter.check_rate_limit(username, ip_address)
+    allowed, message, remaining = limiter.check_rate_limit(username, ip_address, role)
     return allowed, message
 
 
@@ -166,7 +166,9 @@ def admin_login():
             return redirect(url_for("auth.admin_login"))
 
         # Check rate limit before processing
-        allowed, message, remaining = limiter.check_rate_limit(school_id, client_ip)
+        allowed, message, remaining = limiter.check_rate_limit(
+            school_id, client_ip, role
+        )
         if not allowed:
             set_session_lock(remaining)
             flash(message, "error")
@@ -187,7 +189,9 @@ def admin_login():
             logger.warning(f"Admin login failed: User {school_id} not found")
             # Record failed attempt
             limiter.process_fail(school_id, client_ip, role)
-            allowed, message, remaining = limiter.check_rate_limit(school_id, client_ip)
+            allowed, message, remaining = limiter.check_rate_limit(
+                school_id, client_ip, role
+            )
             if not allowed:
                 set_session_lock(remaining)
                 flash(message, "error")
@@ -202,7 +206,9 @@ def admin_login():
             logger.warning(f"Admin login failed: Invalid password for user {school_id}")
             # Record failed attempt
             limiter.process_fail(school_id, client_ip, role)
-            allowed, message, remaining = limiter.check_rate_limit(school_id, client_ip)
+            allowed, message, remaining = limiter.check_rate_limit(
+                school_id, client_ip, role
+            )
             if not allowed:
                 set_session_lock(remaining)
                 flash(message, "error")
@@ -217,7 +223,9 @@ def admin_login():
             logger.warning(f"Admin login failed: Role mismatch for user {school_id}")
             # Record failed attempt
             limiter.process_fail(school_id, client_ip, role)
-            allowed, message, remaining = limiter.check_rate_limit(school_id, client_ip)
+            allowed, message, remaining = limiter.check_rate_limit(
+                school_id, client_ip, role
+            )
             if not allowed:
                 set_session_lock(remaining)
                 flash(message, "error")
@@ -235,7 +243,7 @@ def admin_login():
 
         logger.info(f"Admin {school_id} logged in successfully")
         # Reset failed attempts on successful login
-        limiter.process_success(school_id, client_ip)
+        limiter.process_success(school_id, client_ip, role)
         session.pop("admin_login_locked_until", None)
         return redirect(url_for("dashboard.admin_dashboard"))
 
@@ -361,7 +369,9 @@ def instructor_login():
             return redirect(url_for("auth.instructor_login"))
 
         # Check rate limit before processing
-        allowed, message, remaining = limiter.check_rate_limit(school_id, client_ip)
+        allowed, message, remaining = limiter.check_rate_limit(
+            school_id, client_ip, role
+        )
         if not allowed:
             set_session_lock(remaining)
             flash(message, "error")
@@ -384,7 +394,9 @@ def instructor_login():
             logger.warning(f"Instructor login failed: User {school_id} not found")
             # Record failed attempt
             limiter.process_fail(school_id, client_ip, role)
-            allowed, message, remaining = limiter.check_rate_limit(school_id, client_ip)
+            allowed, message, remaining = limiter.check_rate_limit(
+                school_id, client_ip, role
+            )
             if not allowed:
                 set_session_lock(remaining)
                 flash(message, "error")
@@ -401,7 +413,9 @@ def instructor_login():
             )
             # Record failed attempt
             limiter.process_fail(school_id, client_ip, role)
-            allowed, message, remaining = limiter.check_rate_limit(school_id, client_ip)
+            allowed, message, remaining = limiter.check_rate_limit(
+                school_id, client_ip, role
+            )
             if not allowed:
                 set_session_lock(remaining)
                 flash(message, "error")
@@ -418,7 +432,9 @@ def instructor_login():
             )
             # Record failed attempt
             limiter.process_fail(school_id, client_ip, role)
-            allowed, message, remaining = limiter.check_rate_limit(school_id, client_ip)
+            allowed, message, remaining = limiter.check_rate_limit(
+                school_id, client_ip, role
+            )
             if not allowed:
                 set_session_lock(remaining)
                 flash(message, "error")
@@ -446,7 +462,9 @@ def instructor_login():
             )
             # Record failed attempt (suspended accounts still count as failed attempts)
             limiter.process_fail(school_id, client_ip, role)
-            allowed, message, remaining = limiter.check_rate_limit(school_id, client_ip)
+            allowed, message, remaining = limiter.check_rate_limit(
+                school_id, client_ip, role
+            )
             if not allowed:
                 set_session_lock(remaining)
                 flash(message, "error")
@@ -476,7 +494,7 @@ def instructor_login():
 
         logger.info(f"Instructor {school_id} logged in successfully")
         # Reset failed attempts on successful login
-        limiter.process_success(school_id, client_ip)
+        limiter.process_success(school_id, client_ip, role)
         session.pop("instructor_login_locked_until", None)
         return redirect(url_for("dashboard.instructor_dashboard"))
 
@@ -570,7 +588,9 @@ def student_login():
             f"Too many failed attempts. Please try again in {minutes}m {seconds}s",
             "error",
         )
-        return redirect(url_for("auth.student_login", locked=1, seconds=remaining_seconds))
+        return redirect(
+            url_for("auth.student_login", locked=1, seconds=remaining_seconds)
+        )
 
     ip_remaining = get_ip_lock_remaining()
 
@@ -598,7 +618,9 @@ def student_login():
             return redirect(url_for("auth.student_login"))
 
         # Check rate limit before processing
-        allowed, message, remaining = limiter.check_rate_limit(school_id, client_ip)
+        allowed, message, remaining = limiter.check_rate_limit(
+            school_id, client_ip, role
+        )
         if not allowed:
             set_session_lock(remaining)
             flash(message, "error")
@@ -619,11 +641,15 @@ def student_login():
             logger.warning(f"Student login failed: User {school_id} not found")
             # Record failed attempt
             limiter.process_fail(school_id, client_ip, role)
-            allowed, message, remaining = limiter.check_rate_limit(school_id, client_ip)
+            allowed, message, remaining = limiter.check_rate_limit(
+                school_id, client_ip, role
+            )
             if not allowed:
                 set_session_lock(remaining)
                 flash(message, "error")
-                return redirect(url_for("auth.student_login", locked=1, seconds=remaining))
+                return redirect(
+                    url_for("auth.student_login", locked=1, seconds=remaining)
+                )
             flash("Invalid student credentials.", "error")
             return redirect(url_for("auth.student_login"))
 
@@ -634,11 +660,15 @@ def student_login():
             )
             # Record failed attempt
             limiter.process_fail(school_id, client_ip, role)
-            allowed, message, remaining = limiter.check_rate_limit(school_id, client_ip)
+            allowed, message, remaining = limiter.check_rate_limit(
+                school_id, client_ip, role
+            )
             if not allowed:
                 set_session_lock(remaining)
                 flash(message, "error")
-                return redirect(url_for("auth.student_login", locked=1, seconds=remaining))
+                return redirect(
+                    url_for("auth.student_login", locked=1, seconds=remaining)
+                )
             flash("Invalid student credentials.", "error")
             return redirect(url_for("auth.student_login"))
 
@@ -647,11 +677,15 @@ def student_login():
             logger.warning(f"Student login failed: Role mismatch for user {school_id}")
             # Record failed attempt
             limiter.process_fail(school_id, client_ip, role)
-            allowed, message, remaining = limiter.check_rate_limit(school_id, client_ip)
+            allowed, message, remaining = limiter.check_rate_limit(
+                school_id, client_ip, role
+            )
             if not allowed:
                 set_session_lock(remaining)
                 flash(message, "error")
-                return redirect(url_for("auth.student_login", locked=1, seconds=remaining))
+                return redirect(
+                    url_for("auth.student_login", locked=1, seconds=remaining)
+                )
             flash("Invalid student credentials.", "error")
             return redirect(url_for("auth.student_login"))
 
@@ -663,11 +697,15 @@ def student_login():
             )
             # Record failed attempt
             limiter.process_fail(school_id, client_ip, role)
-            allowed, message, remaining = limiter.check_rate_limit(school_id, client_ip)
+            allowed, message, remaining = limiter.check_rate_limit(
+                school_id, client_ip, role
+            )
             if not allowed:
                 set_session_lock(remaining)
                 flash(message, "error")
-                return redirect(url_for("auth.student_login", locked=1, seconds=remaining))
+                return redirect(
+                    url_for("auth.student_login", locked=1, seconds=remaining)
+                )
             flash(
                 "Your account is pending approval by the administrator. You will receive an email notification once your account is approved.",
                 "error",
@@ -679,11 +717,15 @@ def student_login():
             )
             # Record failed attempt
             limiter.process_fail(school_id, client_ip, role)
-            allowed, message, remaining = limiter.check_rate_limit(school_id, client_ip)
+            allowed, message, remaining = limiter.check_rate_limit(
+                school_id, client_ip, role
+            )
             if not allowed:
                 set_session_lock(remaining)
                 flash(message, "error")
-                return redirect(url_for("auth.student_login", locked=1, seconds=remaining))
+                return redirect(
+                    url_for("auth.student_login", locked=1, seconds=remaining)
+                )
             flash(
                 "Your account registration was not approved. Please contact the administrator for more information.",
                 "error",
@@ -695,11 +737,15 @@ def student_login():
             )
             # Record failed attempt
             limiter.process_fail(school_id, client_ip, role)
-            allowed, message, remaining = limiter.check_rate_limit(school_id, client_ip)
+            allowed, message, remaining = limiter.check_rate_limit(
+                school_id, client_ip, role
+            )
             if not allowed:
                 set_session_lock(remaining)
                 flash(message, "error")
-                return redirect(url_for("auth.student_login", locked=1, seconds=remaining))
+                return redirect(
+                    url_for("auth.student_login", locked=1, seconds=remaining)
+                )
             flash(
                 "Your account has been suspended. Please contact the administrator.",
                 "error",
@@ -714,7 +760,7 @@ def student_login():
 
         logger.info(f"Student {school_id} logged in successfully")
         # Reset failed attempts on successful login
-        limiter.process_success(school_id, client_ip)
+        limiter.process_success(school_id, client_ip, role)
         session.pop("student_login_locked_until", None)
         return redirect(url_for("dashboard.student_dashboard"))
 

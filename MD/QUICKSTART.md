@@ -41,7 +41,7 @@ python create_admin\create_admin.py
 Default admin credentials:
 
 - Username: `admin001`
-- Password: `Admin123!`
+- Password: from `.env` (`DEFAULT_ADMIN_PASSWORD`)
 
 ## Running the Application
 

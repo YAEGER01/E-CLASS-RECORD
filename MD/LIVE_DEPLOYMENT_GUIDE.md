@@ -1,6 +1,7 @@
 # 🚀 LIVE Deployment Guide - E-Class Record System
 
 ## Table of Contents
+
 1. [Password Reset Feature Setup](#password-reset-feature-setup)
 2. [Email Configuration for LIVE Environment](#email-configuration-for-live)
 3. [Database Migration](#database-migration)
@@ -16,6 +17,7 @@
 ### ✅ What Was Implemented
 
 The forgot password feature is now **fully functional** with:
+
 - ✅ Email-based password reset for **Students** and **Instructors**
 - ✅ Secure token generation (32-byte URL-safe tokens)
 - ✅ 1-hour token expiration for security
@@ -56,11 +58,12 @@ CREATE TABLE IF NOT EXISTS password_reset_tokens (
 ### Option 1: Gmail (Current Setup - For Testing/Small Scale)
 
 **Current Configuration (Development):**
+
 ```python
 SMTP_SERVER = "smtp.gmail.com"
 SMTP_PORT = 587
-SENDER_EMAIL = "programmingproject06@gmail.com"
-SENDER_PASSWORD = "kttb wlay puqu mwup"  # App Password
+SENDER_EMAIL = "your-email@example.com"
+SENDER_PASSWORD = "your_app_password_here"
 ```
 
 **⚠️ CRITICAL: For LIVE Production, DO NOT hardcode credentials!**
@@ -68,10 +71,12 @@ SENDER_PASSWORD = "kttb wlay puqu mwup"  # App Password
 ### Option 2: Gmail with Environment Variables (Recommended for Small-Medium Scale)
 
 **1. Enable 2-Factor Authentication on your Gmail:**
+
 - Go to: https://myaccount.google.com/security
 - Enable "2-Step Verification"
 
 **2. Generate App Password:**
+
 - Go to: https://myaccount.google.com/apppasswords
 - Select "Mail" and "Windows Computer"
 - Copy the 16-character password (e.g., `abcd efgh ijkl mnop`)
@@ -92,8 +97,8 @@ SENDER_NAME=E-Class Record System - ISU Cauayan
 The code already uses `os.getenv()`, so it will automatically read from environment variables:
 
 ```python
-self.sender_email = os.getenv("SENDER_EMAIL", "programmingproject06@gmail.com")
-self.sender_password = os.getenv("SENDER_PASSWORD", "kttb wlay puqu mwup")
+self.sender_email = os.getenv("SENDER_EMAIL")
+self.sender_password = os.getenv("SENDER_PASSWORD")
 ```
 
 **5. Install python-dotenv:**
@@ -114,12 +119,14 @@ load_dotenv()  # Load .env file
 ### Option 3: University Email Server (Best for Production)
 
 **Contact your ISU IT Department for:**
+
 - SMTP server address (e.g., `mail.isu.edu.ph`)
 - SMTP port (usually 587 or 465)
 - Authentication credentials
 - Sending limits and policies
 
 **Example Configuration:**
+
 ```bash
 SMTP_SERVER=mail.isu.edu.ph
 SMTP_PORT=587
@@ -133,6 +140,7 @@ SENDER_NAME=E-Class Record System - ISU Cauayan
 For production systems with many users, consider professional email services:
 
 #### **SendGrid** (Free: 100 emails/day, Paid: $19.95/month for 50k emails)
+
 ```bash
 SMTP_SERVER=smtp.sendgrid.net
 SMTP_PORT=587
@@ -141,6 +149,7 @@ SENDER_PASSWORD=your_sendgrid_api_key
 ```
 
 #### **Mailgun** (Free: 5,000 emails/month)
+
 ```bash
 SMTP_SERVER=smtp.mailgun.org
 SMTP_PORT=587
@@ -149,6 +158,7 @@ SENDER_PASSWORD=your_mailgun_smtp_password
 ```
 
 #### **Amazon SES** (Free: 62,000 emails/month if hosted on AWS)
+
 ```bash
 SMTP_SERVER=email-smtp.us-east-1.amazonaws.com
 SMTP_PORT=587
@@ -163,16 +173,19 @@ SENDER_PASSWORD=your_ses_smtp_password
 ### Why This Matters
 
 Password reset links use `url_for(..., _external=True)` which generates full URLs:
+
 - Development: `http://localhost:5000/reset-password/token123`
 - Production: `https://eclass.isu.edu.ph/reset-password/token123`
 
 ### Setting Up Your Domain
 
 **1. Purchase/Use University Domain**
+
 - Option A: Use subdomain: `eclass.isu.edu.ph`
 - Option B: Buy custom domain: `isueclassrecord.com`
 
 **2. Point Domain to Your Server**
+
 - Get server IP address
 - Create A Record in DNS settings
 - Wait for DNS propagation (5-60 minutes)
@@ -180,6 +193,7 @@ Password reset links use `url_for(..., _external=True)` which generates full URL
 **3. Install SSL Certificate (HTTPS)**
 
 **Option A: Let's Encrypt (FREE):**
+
 ```bash
 # Install Certbot
 sudo apt install certbot python3-certbot-nginx
@@ -189,6 +203,7 @@ sudo certbot --nginx -d eclass.isu.edu.ph
 ```
 
 **Option B: Cloudflare (FREE + CDN + DDoS Protection):**
+
 1. Sign up at cloudflare.com
 2. Add your domain
 3. Update nameservers
@@ -257,6 +272,7 @@ print(secrets.token_hex(32))
 ### 1. **NEVER Commit Sensitive Data**
 
 Add to `.gitignore`:
+
 ```
 .env
 .env.production
@@ -337,6 +353,7 @@ Add to cron:
 ### Before Going Live:
 
 #### Email Testing
+
 - [ ] Test with Gmail account
 - [ ] Test with student university email
 - [ ] Test with instructor university email
@@ -346,6 +363,7 @@ Add to cron:
 - [ ] Test used token rejection
 
 #### Functionality Testing
+
 - [ ] Student can request password reset
 - [ ] Instructor can request password reset
 - [ ] Invalid email shows generic message (security)
@@ -357,6 +375,7 @@ Add to cron:
 - [ ] New password works for login
 
 #### Security Testing
+
 - [ ] HTTPS enabled (padlock icon in browser)
 - [ ] Session cookies are secure
 - [ ] SQL injection protection (test with ' OR '1'='1)
@@ -366,6 +385,7 @@ Add to cron:
 - [ ] Expired token shows proper error
 
 #### Performance Testing
+
 - [ ] Page load time < 2 seconds
 - [ ] Email sends within 10 seconds
 - [ ] Database queries optimized
@@ -378,11 +398,13 @@ Add to cron:
 ### Option 1: Traditional VPS Hosting
 
 **Providers:**
+
 - DigitalOcean: $6/month
 - Linode: $5/month
 - Vultr: $6/month
 
 **Setup:**
+
 ```bash
 # Install dependencies
 sudo apt update
@@ -408,6 +430,7 @@ gunicorn -w 4 -b 0.0.0.0:8000 app:app
 ### Option 2: PythonAnywhere (Easiest for Beginners)
 
 **FREE Plan Available!**
+
 1. Sign up at pythonanywhere.com
 2. Upload your code
 3. Configure web app
@@ -452,6 +475,7 @@ if not app.debug:
 ### 2. Email Delivery Monitoring
 
 Check email logs regularly:
+
 ```bash
 tail -f /var/log/mail.log
 ```
@@ -460,7 +484,7 @@ tail -f /var/log/mail.log
 
 ```sql
 -- Check password reset usage
-SELECT 
+SELECT
     role,
     COUNT(*) as total_requests,
     SUM(used) as used_tokens,
@@ -477,11 +501,13 @@ GROUP BY role;
 ### Email Not Sending
 
 **1. Check SMTP credentials:**
+
 ```bash
 python3 -c "from utils.email_service import email_service; print('Email configured:', bool(email_service.sender_email))"
 ```
 
 **2. Test Gmail connection:**
+
 ```python
 import smtplib
 server = smtplib.SMTP('smtp.gmail.com', 587)
@@ -491,6 +517,7 @@ print("Success!")
 ```
 
 **3. Check firewall:**
+
 ```bash
 sudo ufw allow 587/tcp
 ```
@@ -498,11 +525,13 @@ sudo ufw allow 587/tcp
 ### Reset Link Not Working
 
 **1. Check token in database:**
+
 ```sql
 SELECT * FROM password_reset_tokens WHERE token = 'your_token_here';
 ```
 
 **2. Verify URL generation:**
+
 ```python
 # In Flask shell
 from flask import url_for
@@ -513,6 +542,7 @@ with app.test_request_context():
 ### HTTPS Issues
 
 **1. Force HTTPS redirect in Nginx:**
+
 ```nginx
 server {
     listen 80;
@@ -526,10 +556,12 @@ server {
 ## Support & Contacts
 
 ### ISU IT Support
+
 - Email: it@isu.edu.ph
 - Phone: (078) XXX-XXXX
 
 ### Email Service Providers Support
+
 - Gmail: https://support.google.com/mail
 - SendGrid: https://support.sendgrid.com
 - Mailgun: https://www.mailgun.com/support
@@ -539,6 +571,7 @@ server {
 ## Summary Checklist
 
 ### Pre-Launch:
+
 - [ ] Run database migration for password_reset_tokens
 - [ ] Configure production email credentials
 - [ ] Set up environment variables
@@ -551,6 +584,7 @@ server {
 - [ ] Create admin documentation
 
 ### Post-Launch:
+
 - [ ] Monitor email delivery rates
 - [ ] Check error logs daily (first week)
 - [ ] Verify backup system working

@@ -52,7 +52,6 @@ A comprehensive academic grade management system with real-time updates, automat
    ```
 
 4. **Configure database**
-
    - Create MySQL database: `e_class_record`
    - Update `.env` file with your database credentials:
      ```
@@ -76,7 +75,7 @@ A comprehensive academic grade management system with real-time updates, automat
    ```
    Default credentials:
    - Username: `admin001`
-   - Password: `Admin123!`
+   - Password: from `.env` (`DEFAULT_ADMIN_PASSWORD`)
 
 ### Running the Application
 

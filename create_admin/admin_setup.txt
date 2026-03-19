@@ -9,11 +9,11 @@ READY-MADE ADMIN ACCOUNT
 Use this pre-configured admin account for testing:
 
 Username: admin001
-Password: Admin123!
+Password: (set in .env as DEFAULT_ADMIN_PASSWORD)
 Role: admin
 
-Direct Login URL:
-http://127.0.0.1:5000/admin-login?role=admin&username=admin001&password=Admin123!
+Login URL:
+http://127.0.0.1:5000/adminlogin
 
 HOW TO CREATE ADMIN ACCOUNTS MANUALLY
 =====================================
@@ -27,6 +27,7 @@ Create a file called `create_admin.py` in your project directory:
 from app import app, db
 from models import User
 from werkzeug.security import generate_password_hash
+import os
 
 def create_admin():
     with app.app_context():
@@ -38,14 +39,14 @@ def create_admin():
 
         # Create new admin
         admin = User(school_id='admin001', role='admin')
-        admin.set_password('Admin123!')
+            admin.set_password(os.getenv('DEFAULT_ADMIN_PASSWORD', 'CHANGE_ME'))
 
         db.session.add(admin)
         db.session.commit()
 
         print("Admin account created successfully!")
         print("Username: admin001")
-        print("Password: Admin123!")
+            print("Password: set from DEFAULT_ADMIN_PASSWORD (.env)")
 
 if __name__ == "__main__":
     create_admin()
@@ -59,7 +60,7 @@ Method 2: Using Flask Shell
 
 1. Start your Flask application
 2. Open a new terminal and run:
-   python -c "from app import app, db; from models import User; admin = User(school_id='admin001', role='admin'); admin.set_password('Admin123!'); app.app_context().push(); db.session.add(admin); db.session.commit(); print('Admin created!')"
+   python -c "import os; from app import app, db; from models import User; admin = User(school_id='admin001', role='admin'); admin.set_password(os.getenv('DEFAULT_ADMIN_PASSWORD', 'CHANGE_ME')); app.app_context().push(); db.session.add(admin); db.session.commit(); print('Admin created!')"
 
 Method 3: Direct Database Insertion
 ------------------------------------
@@ -105,7 +106,7 @@ TESTING THE ADMIN ACCOUNT
 
 3. Use the direct login URL or enter credentials manually:
    Username: admin001
-   Password: Admin123!
+   Password: use DEFAULT_ADMIN_PASSWORD from .env
 
 4. You should be redirected to the admin dashboard
 

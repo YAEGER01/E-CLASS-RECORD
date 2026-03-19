@@ -28,7 +28,7 @@ load_dotenv()
 connection = pymysql.connect(
     host=os.getenv("DB_HOST", "localhost"),
     user=os.getenv("DB_USER", "root"),
-    password=os.getenv("DB_PASSWORD", "new_password"),
+    password=os.getenv("DB_PASSWORD", ""),
     database=os.getenv("DB_NAME", "e_class_record"),
     cursorclass=pymysql.cursors.DictCursor,
 )
@@ -68,7 +68,7 @@ def login_required(f):
 
 
 app = Flask(__name__)
-app.secret_key = "dev-secret-key-change-in-production"
+app.secret_key = os.getenv("SECRET_KEY", "dev-only-change-me")
 
 
 @app.route("/")

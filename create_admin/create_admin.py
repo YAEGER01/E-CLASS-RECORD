@@ -9,18 +9,35 @@ import sys
 import tkinter as tk
 from tkinter import messagebox, ttk
 from werkzeug.security import generate_password_hash
+from dotenv import load_dotenv
 
 # Add parent directory to path to import db_conn
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+load_dotenv(
+    os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), ".env")
+)
+
+DEFAULT_ADMIN_USERNAME = os.getenv("DEFAULT_ADMIN_USERNAME", "admin001")
+DEFAULT_ADMIN_PASSWORD = os.getenv("DEFAULT_ADMIN_PASSWORD")
+
 from utils.db_conn import get_db_connection
 
 
 def create_admin():
     """Create the default admin account using PyMySQL."""
+    if not DEFAULT_ADMIN_PASSWORD:
+        messagebox.showerror(
+            "Missing Configuration",
+            "DEFAULT_ADMIN_PASSWORD is not set in .env. Please set it before creating the default admin.",
+        )
+        return
+
     try:
         with get_db_connection().cursor() as cursor:
             # Check if admin already exists
-            cursor.execute("SELECT * FROM users WHERE school_id = %s", ("admin001",))
+            cursor.execute(
+                "SELECT * FROM users WHERE school_id = %s", (DEFAULT_ADMIN_USERNAME,)
+            )
             existing_admin = cursor.fetchone()
 
             if existing_admin:
@@ -34,10 +51,10 @@ def create_admin():
                 return
 
             # Create admin user
-            password_hash = generate_password_hash("Admin123!")
+            password_hash = generate_password_hash(DEFAULT_ADMIN_PASSWORD)
             cursor.execute(
                 "INSERT INTO users (school_id, password_hash, role) VALUES (%s, %s, %s)",
-                ("admin001", password_hash, "admin"),
+                (DEFAULT_ADMIN_USERNAME, password_hash, "admin"),
             )
 
         get_db_connection().commit()
@@ -46,11 +63,11 @@ def create_admin():
             "Success",
             "Default admin account created!\n\n"
             "👤 ACCOUNT DETAILS:\n"
-            "Username: admin001\n"
-            "Password: Admin123!\n"
+            f"Username: {DEFAULT_ADMIN_USERNAME}\n"
+            "Password: [from DEFAULT_ADMIN_PASSWORD in .env]\n"
             "Role: admin\n\n"
-            "🔗 DIRECT LOGIN URL:\n"
-            "http://127.0.0.1:5000/admin-login?role=admin&username=admin001&password=Admin123!",
+            "🔗 LOGIN URL:\n"
+            "http://127.0.0.1:5000/adminlogin",
         )
     except Exception as e:
         get_db_connection().rollback()
@@ -118,10 +135,10 @@ def open_custom_admin_form():
                 "Custom admin created!\n\n"
                 f"👤 ACCOUNT DETAILS:\n"
                 f"Username: {school_id}\n"
-                f"Password: {password}\n"
+                "Password: [hidden for security]\n"
                 f"Role: admin\n\n"
-                "🔗 DIRECT LOGIN URL:\n"
-                f"http://127.0.0.1:5000/admin-login?role=admin&username={school_id}&password={password}",
+                "🔗 LOGIN URL:\n"
+                "http://127.0.0.1:5000/adminlogin",
             )
             form.destroy()
         except Exception as e:

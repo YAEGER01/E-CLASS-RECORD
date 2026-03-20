@@ -8,18 +8,9 @@ from dotenv import load_dotenv
 # Configure logging for database operations
 logger = logging.getLogger(__name__)
 
-# Hardcoded credentials.
-# WARNING: These are secrets stored in source. Do NOT commit to public repos.
-# For development on localhost, default to the local environment so the
-# application doesn't attempt to use the online/hardcoded production DB.
-HARDCODE_ENVIRONMENT = "local"
-# The following online credentials are commented out while developing on localhost
-# HARDCODE_ONLINE_DB_HOST = "localhost"
-# HARDCODE_ONLINE_DB_NAME = "Issuedclassrecord_e_class_record"
-# HARDCODE_ONLINE_DB_PORT = 3306
-# HARDCODE_ONLINE_DB_PASSWORD = "Disguisedtoast1234!"
-# HARDCODE_ONLINE_DB_USER = "Issuedclassrecord_142joe"
-HARDCODE_SECRET_KEY = "dev-secret-key-change-in-production"
+# =============================================================================
+# SECURITY NOTE: All secrets should be stored in .env file, never in source code!
+# =============================================================================
 
 
 class DatabaseConnection:
@@ -37,8 +28,8 @@ class DatabaseConnection:
         logger.info("Environment variables loaded from .env file")
 
         # Determine database configuration based on environment
-        # Use hardcoded ENVIRONMENT as default (overridable by actual env)
-        environment = os.getenv("ENVIRONMENT", HARDCODE_ENVIRONMENT).lower()
+        # All credentials must come from environment variables
+        environment = os.getenv("ENVIRONMENT", "local").lower()
         logger.info(f"Database environment: {environment}")
 
         if environment == "local":
@@ -48,12 +39,12 @@ class DatabaseConnection:
             db_password = os.getenv("LOCAL_DB_PASSWORD")
             db_name = os.getenv("LOCAL_DB_NAME")
         elif environment == "production" or environment == "online":
-            # Prefer environment variables, fall back to hardcoded values
-            db_host = os.getenv("ONLINE_DB_HOST", HARDCODE_ONLINE_DB_HOST)
-            db_port = os.getenv("ONLINE_DB_PORT", str(HARDCODE_ONLINE_DB_PORT))
-            db_user = os.getenv("ONLINE_DB_USER", HARDCODE_ONLINE_DB_USER)
-            db_password = os.getenv("ONLINE_DB_PASSWORD", HARDCODE_ONLINE_DB_PASSWORD)
-            db_name = os.getenv("ONLINE_DB_NAME", HARDCODE_ONLINE_DB_NAME)
+            # Production credentials from environment variables
+            db_host = os.getenv("ONLINE_DB_HOST")
+            db_port = os.getenv("ONLINE_DB_PORT")
+            db_user = os.getenv("ONLINE_DB_USER")
+            db_password = os.getenv("ONLINE_DB_PASSWORD")
+            db_name = os.getenv("ONLINE_DB_NAME")
         else:
             raise ValueError(
                 f"Invalid ENVIRONMENT value: {environment}. Must be 'local' or 'production'/'online'"
@@ -65,10 +56,11 @@ class DatabaseConnection:
         )
         app.config["SQLALCHEMY_DATABASE_URI"] = db_uri
         app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
-        # Ensure SECRET_KEY is set on the app (hardcoded default)
-        app.config.setdefault(
-            "SECRET_KEY", os.getenv("SECRET_KEY", HARDCODE_SECRET_KEY)
-        )
+        # SECRET_KEY must be set from environment variable
+        secret_key = os.getenv("SECRET_KEY")
+        if not secret_key:
+            raise ValueError("SECRET_KEY environment variable is required!")
+        app.config["SECRET_KEY"] = secret_key
 
         # Connection pool settings to handle connection timeouts
         app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
@@ -228,26 +220,29 @@ def get_db_connection():
             logger.info("Environment variables loaded from .env file")
 
             # Determine database configuration based on environment
-            environment = os.getenv("ENVIRONMENT", HARDCODE_ENVIRONMENT).lower()
+            environment = os.getenv("ENVIRONMENT", "local").lower()
             logger.info(f"Database environment: {environment}")
 
             if environment == "local":
                 db_host = os.getenv("LOCAL_DB_HOST", "localhost")
                 db_port = int(os.getenv("LOCAL_DB_PORT", "3306"))
                 db_user = os.getenv("LOCAL_DB_USER", "root")
-                db_password = os.getenv("LOCAL_DB_PASSWORD", "loleris1234")
+                db_password = os.getenv("LOCAL_DB_PASSWORD")
                 db_name = os.getenv("LOCAL_DB_NAME", "e_class_record")
             elif environment == "production" or environment == "online":
-                db_host = os.getenv("ONLINE_DB_HOST", HARDCODE_ONLINE_DB_HOST)
-                db_port = int(os.getenv("ONLINE_DB_PORT", str(HARDCODE_ONLINE_DB_PORT)))
-                db_user = os.getenv("ONLINE_DB_USER", HARDCODE_ONLINE_DB_USER)
-                db_password = os.getenv(
-                    "ONLINE_DB_PASSWORD", HARDCODE_ONLINE_DB_PASSWORD
-                )
-                db_name = os.getenv("ONLINE_DB_NAME", HARDCODE_ONLINE_DB_NAME)
+                db_host = os.getenv("ONLINE_DB_HOST")
+                db_port = int(os.getenv("ONLINE_DB_PORT", "3306"))
+                db_user = os.getenv("ONLINE_DB_USER")
+                db_password = os.getenv("ONLINE_DB_PASSWORD")
+                db_name = os.getenv("ONLINE_DB_NAME")
             else:
                 raise ValueError(
                     f"Invalid ENVIRONMENT value: {environment}. Must be 'local' or 'production'/'online'"
+                )
+
+            if not db_password:
+                raise ValueError(
+                    f"{environment.upper()}_DB_PASSWORD environment variable is required for {environment} environment"
                 )
 
             # Import PyMySQL lazily

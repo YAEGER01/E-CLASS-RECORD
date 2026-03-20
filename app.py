@@ -21,6 +21,7 @@ from flask_socketio import SocketIO, emit, join_room, leave_room
 
 # Load environment variables from .env file
 from dotenv import load_dotenv
+
 load_dotenv()
 
 # Create Flask app
@@ -96,33 +97,40 @@ def login_required(f):
 
 
 # Use the same Flask app instance; set secret key
-# IMPORTANT: Change these in production!
-app.secret_key = os.environ.get('SECRET_KEY', 'dev-secret-key-change-in-production')
+# IMPORTANT: SECRET_KEY must be set via environment variable!
+secret_key = os.environ.get("SECRET_KEY")
+if not secret_key:
+    raise ValueError(
+        "SECRET_KEY environment variable is required! Please set it in .env file."
+    )
+app.secret_key = secret_key
 
 # Production Configuration
 # Set these environment variables in cPanel or use .env file
-FLASK_ENV = os.environ.get('FLASK_ENV', 'development')
-PRODUCTION_DOMAIN = os.environ.get('PRODUCTION_DOMAIN', None)  # e.g., 'eclass.isu.edu.ph' or 'yourdomain.com'
+FLASK_ENV = os.environ.get("FLASK_ENV", "development")
+PRODUCTION_DOMAIN = os.environ.get(
+    "PRODUCTION_DOMAIN", None
+)  # e.g., 'eclass.isu.edu.ph' or 'yourdomain.com'
 
-if FLASK_ENV == 'production' and PRODUCTION_DOMAIN:
+if FLASK_ENV == "production" and PRODUCTION_DOMAIN:
     # Production settings
-    app.config['SERVER_NAME'] = PRODUCTION_DOMAIN
-    app.config['PREFERRED_URL_SCHEME'] = 'https'
-    app.config['SESSION_COOKIE_SECURE'] = True
-    app.config['SESSION_COOKIE_HTTPONLY'] = True
-    app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
-    app.config['TEMPLATES_AUTO_RELOAD'] = False
-    app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 31536000  # 1 year for static files
+    app.config["SERVER_NAME"] = PRODUCTION_DOMAIN
+    app.config["PREFERRED_URL_SCHEME"] = "https"
+    app.config["SESSION_COOKIE_SECURE"] = True
+    app.config["SESSION_COOKIE_HTTPONLY"] = True
+    app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
+    app.config["TEMPLATES_AUTO_RELOAD"] = False
+    app.config["SEND_FILE_MAX_AGE_DEFAULT"] = 31536000  # 1 year for static files
     logger.info(f"Production mode enabled for domain: {PRODUCTION_DOMAIN}")
 else:
     # Development settings
-    app.config['TEMPLATES_AUTO_RELOAD'] = True
-    app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0
+    app.config["TEMPLATES_AUTO_RELOAD"] = True
+    app.config["SEND_FILE_MAX_AGE_DEFAULT"] = 0
     logger.info("Development mode enabled")
 
 # Initialize CSRF protection - disable by default, enable per-route
 csrf = CSRFProtect(app)
-app.config["WTF_CSRF_CHECK_DEFAULT"] = False
+app.config["WTF_CSRF_CHECK_DEFAULT"] = True
 
 # Initialize SocketIO
 socketio = SocketIO(app, cors_allowed_origins="*")
@@ -419,7 +427,7 @@ def cleanup_db(exception=None):
 def get_equivalent(final_grade) -> str:
     """
     ISU (Isabela State University) official grading system:
-    
+
     Percent Equivalent → Grade
     98-100   → 1.00
     95-97    → 1.25
@@ -566,6 +574,4 @@ if __name__ == "__main__":
     use_reloader = os.environ.get("WERKZEUG_RUN_MAIN") != "true"
 
     # Run the app
-    socketio.run(
-        app, host="0.0.0.0", port=5000, debug=True, use_reloader=use_reloader
-    )
+    socketio.run(app, host="0.0.0.0", port=5000, debug=True, use_reloader=use_reloader)

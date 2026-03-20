@@ -274,22 +274,24 @@ def _generate_class_codes():
     return class_code, join_code[:6]
 
 
-@instructor_bp.route("/api/classes/<int:class_id>/students/<int:student_id>/dropped", methods=["POST"])
+@instructor_bp.route(
+    "/api/classes/<int:class_id>/students/<int:student_id>/dropped", methods=["POST"]
+)
 @login_required
 def update_student_dropped_status(class_id, student_id):
     """Update the dropped status for a student in a class."""
     instructor_id, err = _require_instructor()
     if err:
         return err
-    
+
     # Verify instructor owns this class
     if not _instructor_owns_class(class_id, session.get("user_id")):
         return jsonify({"error": "forbidden"}), 403
-    
+
     try:
         data = request.get_json(silent=True) or {}
         is_dropped = data.get("is_dropped", False)
-        
+
         conn = get_db_connection()
         try:
             with conn.cursor() as cursor:
@@ -300,9 +302,9 @@ def update_student_dropped_status(class_id, student_id):
                     SET is_dropped = %s 
                     WHERE class_id = %s AND student_id = %s
                     """,
-                    (1 if is_dropped else 0, class_id, student_id)
+                    (1 if is_dropped else 0, class_id, student_id),
                 )
-                
+
                 # If marking as dropped, also update released_grades if they exist
                 if is_dropped:
                     cursor.execute(
@@ -311,9 +313,9 @@ def update_student_dropped_status(class_id, student_id):
                         SET equivalent = 'DRP', remarks = 'DROPPED'
                         WHERE class_id = %s AND student_id = %s
                         """,
-                        (class_id, student_id)
+                        (class_id, student_id),
                     )
-                
+
             conn.commit()
             return jsonify({"success": True, "is_dropped": is_dropped}), 200
         except Exception as e:
@@ -588,7 +590,9 @@ def create_class():
 
                 if data.get("classType") not in ["MINOR", "MAJOR", "MAJOR_LAB"]:
                     return (
-                        jsonify({"error": "classType must be MINOR, MAJOR, or MAJOR_LAB"}),
+                        jsonify(
+                            {"error": "classType must be MINOR, MAJOR, or MAJOR_LAB"}
+                        ),
                         400,
                     )
 
@@ -615,8 +619,8 @@ def create_class():
 
                 cursor.execute(
                     """INSERT INTO classes
-                    (instructor_id, class_type, year, semester, course, subject, subject_code, units, track, section, class_code, join_code)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)""",
+                    (instructor_id, class_type, year, semester, course, subject, subject_code, units, track, section, schedule, class_code, join_code)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)""",
                     (
                         instructor["id"],
                         data["classType"],
@@ -628,6 +632,7 @@ def create_class():
                         data.get("units"),
                         data["track"],
                         section,
+                        data.get("schedule") or "TBA",
                         class_code,
                         join_code,
                     ),
@@ -645,10 +650,12 @@ def create_class():
                 if semester_str and "1st" in semester_str.lower()
                 else ("2" if semester_str and "2nd" in semester_str.lower() else "1")
             )
-            subject_code = data.get('subjectCode', '')
-            subject = data.get('subject', '')
-            track = data.get('track', '')
-            subject_part = f" ({subject_code} - {subject})" if subject_code and subject else ""
+            subject_code = data.get("subjectCode", "")
+            subject = data.get("subject", "")
+            track = data.get("track", "")
+            subject_part = (
+                f" ({subject_code} - {subject})" if subject_code and subject else ""
+            )
             computed_class_id = f"{formatted_year}-{formatted_semester} {data['course']} {section}-{track}{subject_part}"
 
             logger.info(
@@ -732,9 +739,15 @@ def update_class(class_id):
                         return jsonify({"error": f"{field} is required"}), 400
 
                 # Validate classType if provided
-                if data.get("classType") and data.get("classType") not in ["MINOR", "MAJOR", "MAJOR_LAB"]:
+                if data.get("classType") and data.get("classType") not in [
+                    "MINOR",
+                    "MAJOR",
+                    "MAJOR_LAB",
+                ]:
                     return (
-                        jsonify({"error": "classType must be MINOR, MAJOR, or MAJOR_LAB"}),
+                        jsonify(
+                            {"error": "classType must be MINOR, MAJOR, or MAJOR_LAB"}
+                        ),
                         400,
                     )
 
@@ -751,7 +764,7 @@ def update_class(class_id):
 
                 cursor.execute(
                     """UPDATE classes SET class_type=%s, year=%s, semester=%s,
-                    course=%s, subject=%s, subject_code=%s, units=%s, track=%s, section=%s, updated_at=NOW()
+                    course=%s, subject=%s, subject_code=%s, units=%s, track=%s, section=%s, schedule=%s, updated_at=NOW()
                     WHERE id = %s""",
                     (
                         data.get("classType") or cls.get("class_type"),
@@ -763,6 +776,7 @@ def update_class(class_id):
                         data.get("units"),
                         data["track"],
                         section,
+                        data.get("schedule") or cls.get("schedule") or "TBA",
                         class_id,
                     ),
                 )
@@ -780,10 +794,12 @@ def update_class(class_id):
             if semester_str and "1st" in semester_str.lower()
             else ("2" if semester_str and "2nd" in semester_str.lower() else "1")
         )
-        subject_code = data.get('subjectCode', '')
-        subject = data.get('subject', '')
-        track = data.get('track', '')
-        subject_part = f" ({subject_code} - {subject})" if subject_code and subject else ""
+        subject_code = data.get("subjectCode", "")
+        subject = data.get("subject", "")
+        track = data.get("track", "")
+        subject_part = (
+            f" ({subject_code} - {subject})" if subject_code and subject else ""
+        )
         computed_class_id = f"{formatted_year}-{formatted_semester} {data['course']} {section}-{track}{subject_part}"
 
         logger.info(f"Instructor {session.get('school_id')} updated class {class_id}")
@@ -850,29 +866,40 @@ def delete_class(class_id):
 
                 # Delete all related records first to avoid foreign key constraint errors
                 # Order is critical due to FK constraints
-                
+
                 # 1. Delete released grades (references grade_snapshots)
-                cursor.execute("DELETE FROM released_grades WHERE class_id = %s", (class_id,))
-                
+                cursor.execute(
+                    "DELETE FROM released_grades WHERE class_id = %s", (class_id,)
+                )
+
                 # 2. Delete grade snapshots (references classes)
-                cursor.execute("DELETE FROM grade_snapshots WHERE class_id = %s", (class_id,))
-                
+                cursor.execute(
+                    "DELETE FROM grade_snapshots WHERE class_id = %s", (class_id,)
+                )
+
                 # 3. Delete professor calculation overrides (if table exists)
                 try:
-                    cursor.execute("DELETE FROM professor_calculation_overrides WHERE class_id = %s", (class_id,))
+                    cursor.execute(
+                        "DELETE FROM professor_calculation_overrides WHERE class_id = %s",
+                        (class_id,),
+                    )
                 except Exception:
                     pass  # Table might not exist
-                
+
                 # 4. Delete student enrollments
-                cursor.execute("DELETE FROM student_classes WHERE class_id = %s", (class_id,))
-                
+                cursor.execute(
+                    "DELETE FROM student_classes WHERE class_id = %s", (class_id,)
+                )
+
                 # 5. Delete grade structures and related data (cascade will handle everything)
                 # student_scores -> grade_assessments -> grade_subcategories -> grade_categories -> grade_structures
-                cursor.execute("DELETE FROM grade_structures WHERE class_id = %s", (class_id,))
-                
+                cursor.execute(
+                    "DELETE FROM grade_structures WHERE class_id = %s", (class_id,)
+                )
+
                 # 6. Finally delete the class itself
                 cursor.execute("DELETE FROM classes WHERE id = %s", (class_id,))
-                
+
             conn.commit()
 
             logger.info(
@@ -881,9 +908,7 @@ def delete_class(class_id):
             return jsonify({"message": "Class deleted successfully"}), 200
         except Exception as inner_e:
             conn.rollback()
-            logger.error(
-                f"Inner exception deleting class {class_id}: {str(inner_e)}"
-            )
+            logger.error(f"Inner exception deleting class {class_id}: {str(inner_e)}")
             return jsonify({"error": f"Database error: {str(inner_e)}"}), 500
     except Exception as e:
         if conn:
@@ -937,10 +962,12 @@ def get_class_members(class_id):
                     else "1"
                 )
             )
-            subject_code = class_obj.get('subject_code', '')
-            subject = class_obj.get('subject', '')
-            track = class_obj.get('track', '')
-            subject_part = f" ({subject_code} - {subject})" if subject_code and subject else ""
+            subject_code = class_obj.get("subject_code", "")
+            subject = class_obj.get("subject", "")
+            track = class_obj.get("track", "")
+            subject_part = (
+                f" ({subject_code} - {subject})" if subject_code and subject else ""
+            )
             class_obj["class_id"] = (
                 f"{formatted_year}-{formatted_semester} {class_obj['course']} {class_obj['section']}-{track}{subject_part}"
             )
@@ -1135,15 +1162,16 @@ def gradebuilder_entry():
 def gradebuilder_v2():
     if session.get("role") != "instructor":
         return render_template("unauthorized.html", message="Access denied.")
-    
+
     # Get class_id from URL parameter (works with gibberized URLs)
     # First try request.args, then fall back to parsing QUERY_STRING from environ
-    class_id = request.args.get('class_id', None)
-    if not class_id and request.environ.get('QUERY_STRING'):
+    class_id = request.args.get("class_id", None)
+    if not class_id and request.environ.get("QUERY_STRING"):
         from urllib.parse import parse_qs
-        qs_dict = parse_qs(request.environ['QUERY_STRING'])
-        class_id = qs_dict.get('class_id', [None])[0]
-    
+
+        qs_dict = parse_qs(request.environ["QUERY_STRING"])
+        class_id = qs_dict.get("class_id", [None])[0]
+
     # Render the Grade Builder v2 page for instructors
     return render_template("gradebuilder_v2.html", preselect_class_id=class_id)
 
@@ -1188,10 +1216,12 @@ def release_grades():
                         else "1"
                     )
                 )
-                subject_code = cls.get('subject_code', '')
-                subject = cls.get('subject', '')
-                track = cls.get('track', '')
-                subject_part = f" ({subject_code} - {subject})" if subject_code and subject else ""
+                subject_code = cls.get("subject_code", "")
+                subject = cls.get("subject", "")
+                track = cls.get("track", "")
+                subject_part = (
+                    f" ({subject_code} - {subject})" if subject_code and subject else ""
+                )
                 computed_class_id = f"{formatted_year}-{formatted_semester} {cls['course']} {cls['section']}-{track}{subject_part}"
 
                 instructor_classes.append(
@@ -1341,8 +1371,12 @@ def api_get_release_grades(class_id):
             class_row = cursor.fetchone()
             if not class_row:
                 return jsonify({"error": "class_not_found"}), 404
-            
-            class_type = (class_row.get("class_type") if isinstance(class_row, dict) else class_row[0]) or "MAJOR"
+
+            class_type = (
+                class_row.get("class_type")
+                if isinstance(class_row, dict)
+                else class_row[0]
+            ) or "MAJOR"
 
             # Get all assessment columns for the grade structure of this class
             cursor.execute(
@@ -1361,29 +1395,39 @@ def api_get_release_grades(class_id):
                 WHERE gs.class_id = %s
                 ORDER BY gc.name, gs_sub.name, ga.position
                 """,
-                (class_id,)
+                (class_id,),
             )
-            
+
             assessment_rows = cursor.fetchall() or []
-            
+
             # Build groups structure
             groups = {}
             for row in assessment_rows:
                 assessment_id = row.get("id") if isinstance(row, dict) else row[0]
-                max_score = float(row.get("max_score") if isinstance(row, dict) else row[1])
-                category = str(row.get("category_name") if isinstance(row, dict) else row[3] or "").upper()
-                subcategory = str(row.get("subcategory_name") if isinstance(row, dict) else row[4] or "")
-                weight = float((row.get("weight") if isinstance(row, dict) else row[5]) or 0)
-                
+                max_score = float(
+                    row.get("max_score") if isinstance(row, dict) else row[1]
+                )
+                category = str(
+                    row.get("category_name") if isinstance(row, dict) else row[3] or ""
+                ).upper()
+                subcategory = str(
+                    row.get("subcategory_name")
+                    if isinstance(row, dict)
+                    else row[4] or ""
+                )
+                weight = float(
+                    (row.get("weight") if isinstance(row, dict) else row[5]) or 0
+                )
+
                 group_key = f"{category}::{subcategory}"
                 if group_key not in groups:
                     groups[group_key] = {
                         "ids": [],
                         "maxes": [],
                         "maxTotal": 0.0,
-                        "subweight": weight
+                        "subweight": weight,
                     }
-                
+
                 groups[group_key]["ids"].append(int(assessment_id))
                 groups[group_key]["maxes"].append(max_score)
                 groups[group_key]["maxTotal"] += max_score
@@ -1413,12 +1457,12 @@ def api_get_release_grades(class_id):
             )
 
             student_rows = cursor.fetchall() or []
-            
+
             # Build students array with scores
             students_for_compute = []
             for row in student_rows:
                 student_id = row.get("student_id") if isinstance(row, dict) else row[0]
-                
+
                 # Get scores for this student
                 cursor.execute(
                     """
@@ -1434,28 +1478,40 @@ def api_get_release_grades(class_id):
                         WHERE gs.class_id = %s
                     )
                     """,
-                    (student_id, class_id)
+                    (student_id, class_id),
                 )
-                
+
                 score_rows = cursor.fetchall() or []
                 scores = {}
                 for score_row in score_rows:
-                    aid = int(score_row.get("assessment_id") if isinstance(score_row, dict) else score_row[0])
-                    score = score_row.get("score") if isinstance(score_row, dict) else score_row[1]
+                    aid = int(
+                        score_row.get("assessment_id")
+                        if isinstance(score_row, dict)
+                        else score_row[0]
+                    )
+                    score = (
+                        score_row.get("score")
+                        if isinstance(score_row, dict)
+                        else score_row[1]
+                    )
                     scores[str(aid)] = float(score) if score is not None else None
-                
-                students_for_compute.append({
-                    "student_id": int(student_id),
-                    "scores": scores
-                })
+
+                students_for_compute.append(
+                    {"student_id": int(student_id), "scores": scores}
+                )
 
             # Call the same compute logic used by grade input
-            from blueprints.compute_routes import compute_major_grade, compute_minor_grade
-            
-            logger.info(f"Computing grades for class {class_id}: {len(students_for_compute)} students, {len(groups)} groups")
+            from blueprints.compute_routes import (
+                compute_major_grade,
+                compute_minor_grade,
+            )
+
+            logger.info(
+                f"Computing grades for class {class_id}: {len(students_for_compute)} students, {len(groups)} groups"
+            )
             logger.info(f"Groups: {list(groups.keys())}")
             logger.info(f"Class type: {class_type}")
-            
+
             # Compute grades based on class type
             summaries = {}
             if class_type.upper() == "MINOR":
@@ -1467,8 +1523,10 @@ def api_get_release_grades(class_id):
                 for sid, data in results.items():
                     if "_summary" in data:
                         summaries[sid] = data["_summary"]
-            
-            logger.info(f"Computation complete. Results for {len(results)} students, {len(summaries)} summaries")
+
+            logger.info(
+                f"Computation complete. Results for {len(results)} students, {len(summaries)} summaries"
+            )
 
             # Build response with student info and computed grades
             students = []
@@ -1488,7 +1546,7 @@ def api_get_release_grades(class_id):
                 is_released = status_value == "released"
                 released_value = _col(row, "released_at", 6)
                 is_dropped = bool(_col(row, "is_dropped", 7) or 0)
-                
+
                 # Build student name
                 if first_name and last_name:
                     student_name = (
@@ -1498,35 +1556,43 @@ def api_get_release_grades(class_id):
                     )
                 else:
                     student_name = school_id or f"Student {student_id}"
-                
+
                 # If student is dropped, set grade to DRP immediately
                 if is_dropped:
                     equivalent = "DRP"
                     remarks = "DROPPED"
                     final_grade = None
-                    
+
                     if released_value and isinstance(released_value, datetime):
                         released_date = released_value.strftime("%Y-%m-%d")
-                    elif released_value and isinstance(released_value, str) and released_value:
+                    elif (
+                        released_value
+                        and isinstance(released_value, str)
+                        and released_value
+                    ):
                         released_date = released_value
                     else:
                         released_date = None
-                    
-                    students.append({
-                        "id": student_id,
-                        "name": student_name,
-                        "school_id": school_id,
-                        "final_grade": final_grade,
-                        "equivalent": equivalent,
-                        "remarks": remarks,
-                        "is_released": is_released,
-                        "released_date": released_date,
-                    })
+
+                    students.append(
+                        {
+                            "id": student_id,
+                            "name": student_name,
+                            "school_id": school_id,
+                            "final_grade": final_grade,
+                            "equivalent": equivalent,
+                            "remarks": remarks,
+                            "is_released": is_released,
+                            "released_date": released_date,
+                        }
+                    )
                     continue
 
                 # Get computed grade from summaries (handle both int and string keys)
-                summary = summaries.get(student_id) or summaries.get(str(student_id), {})
-                
+                summary = summaries.get(student_id) or summaries.get(
+                    str(student_id), {}
+                )
+
                 # Get the TOTAL GRADE (final_grade from summary)
                 final_grade = summary.get("final_grade")
                 if final_grade is not None:
@@ -1534,31 +1600,33 @@ def api_get_release_grades(class_id):
                         final_grade = round(float(final_grade), 2)
                     except:
                         final_grade = None
-                
+
                 # Check if student has missing scores in ANY assessment category
                 student_scores = {}
                 for student_data in students_for_compute:
                     if student_data.get("student_id") == student_id:
                         student_scores = student_data.get("scores", {})
                         break
-                
+
                 # Check for missing/blank scores in ANY subcategory - collect ALL missing items
                 missing_subcategories = []
                 for group_key, group_data in groups.items():
                     # Extract subcategory name from group_key (format: "CATEGORY::Subcategory")
-                    subcategory_name = group_key.split("::")[-1] if "::" in group_key else group_key
-                    
+                    subcategory_name = (
+                        group_key.split("::")[-1] if "::" in group_key else group_key
+                    )
+
                     # Check if any assessment in this subcategory is missing
                     has_missing = False
                     for assessment_id in group_data.get("ids", []):
                         score_value = student_scores.get(str(assessment_id))
-                        if score_value is None or str(score_value).strip() == '':
+                        if score_value is None or str(score_value).strip() == "":
                             has_missing = True
                             break
-                    
+
                     if has_missing:
                         missing_subcategories.append(subcategory_name)
-                
+
                 # Calculate equivalent (letter grade) from final grade
                 # If student has incomplete requirements, set equivalent to INC
                 if missing_subcategories:
@@ -1599,7 +1667,10 @@ def api_get_release_grades(class_id):
                 remarks = "PASSED"
                 if missing_subcategories:
                     # Create comma-separated list of abbreviations
-                    abbreviations = [abbreviate_assessment(subcat) for subcat in missing_subcategories]
+                    abbreviations = [
+                        abbreviate_assessment(subcat)
+                        for subcat in missing_subcategories
+                    ]
                     remarks = ", ".join(abbreviations)
                 elif equivalent == "INC":
                     remarks = "INCOMPLETE"
@@ -1639,6 +1710,7 @@ def api_get_release_grades(class_id):
     except Exception as e:
         logger.error(f"Failed to load release grades for class {class_id}: {str(e)}")
         import traceback
+
         logger.error(traceback.format_exc())
         return jsonify({"error": "server_error", "message": str(e)}), 500
 
@@ -1666,8 +1738,10 @@ def _compose_student_display_name(first_name, last_name, middle_name, fallback):
 
 
 def _finalize_snapshot_and_store_release(cursor, class_id, student_ids, released_by):
-    logger.info(f"_finalize_snapshot_and_store_release called: class_id={class_id}, student_ids={student_ids}, released_by={released_by}")
-    
+    logger.info(
+        f"_finalize_snapshot_and_store_release called: class_id={class_id}, student_ids={student_ids}, released_by={released_by}"
+    )
+
     ids = _coerce_student_ids(student_ids)
     if not ids:
         return {"success": False, "error": "no_valid_student_ids"}
@@ -1679,8 +1753,10 @@ def _finalize_snapshot_and_store_release(cursor, class_id, student_ids, released
     class_row = cursor.fetchone()
     if not class_row:
         return {"success": False, "error": "class_not_found"}
-    
-    class_type = (class_row.get("class_type") if isinstance(class_row, dict) else class_row[0]) or "MAJOR"
+
+    class_type = (
+        class_row.get("class_type") if isinstance(class_row, dict) else class_row[0]
+    ) or "MAJOR"
 
     # Get all assessment columns for the grade structure of this class
     cursor.execute(
@@ -1699,29 +1775,33 @@ def _finalize_snapshot_and_store_release(cursor, class_id, student_ids, released
         WHERE gs.class_id = %s
         ORDER BY gc.name, gs_sub.name, ga.position
         """,
-        (class_id,)
+        (class_id,),
     )
-    
+
     assessment_rows = cursor.fetchall() or []
-    
+
     # Build groups structure
     groups = {}
     for row in assessment_rows:
         assessment_id = row.get("id") if isinstance(row, dict) else row[0]
         max_score = float(row.get("max_score") if isinstance(row, dict) else row[1])
-        category = str(row.get("category_name") if isinstance(row, dict) else row[3] or "").upper()
-        subcategory = str(row.get("subcategory_name") if isinstance(row, dict) else row[4] or "")
+        category = str(
+            row.get("category_name") if isinstance(row, dict) else row[3] or ""
+        ).upper()
+        subcategory = str(
+            row.get("subcategory_name") if isinstance(row, dict) else row[4] or ""
+        )
         weight = float((row.get("weight") if isinstance(row, dict) else row[5]) or 0)
-        
+
         group_key = f"{category}::{subcategory}"
         if group_key not in groups:
             groups[group_key] = {
                 "ids": [],
                 "maxes": [],
                 "maxTotal": 0.0,
-                "subweight": weight
+                "subweight": weight,
             }
-        
+
         groups[group_key]["ids"].append(int(assessment_id))
         groups[group_key]["maxes"].append(max_score)
         groups[group_key]["maxTotal"] += max_score
@@ -1729,7 +1809,7 @@ def _finalize_snapshot_and_store_release(cursor, class_id, student_ids, released
     # Build students array with scores for computation
     students_for_compute = []
     placeholders = ",".join(["%s"] * len(ids))
-    
+
     # Get student profiles
     cursor.execute(
         f"""
@@ -1775,26 +1855,31 @@ def _finalize_snapshot_and_store_release(cursor, class_id, student_ids, released
                 WHERE gs.class_id = %s
             )
             """,
-            (student_id, class_id)
+            (student_id, class_id),
         )
-        
+
         score_rows = cursor.fetchall() or []
         scores = {}
         for score_row in score_rows:
-            aid = int(score_row.get("assessment_id") if isinstance(score_row, dict) else score_row[0])
-            score = score_row.get("score") if isinstance(score_row, dict) else score_row[1]
+            aid = int(
+                score_row.get("assessment_id")
+                if isinstance(score_row, dict)
+                else score_row[0]
+            )
+            score = (
+                score_row.get("score") if isinstance(score_row, dict) else score_row[1]
+            )
             scores[str(aid)] = float(score) if score is not None else None
-        
-        students_for_compute.append({
-            "student_id": int(student_id),
-            "scores": scores
-        })
+
+        students_for_compute.append({"student_id": int(student_id), "scores": scores})
 
     # Call the same compute logic used by grade input
     from blueprints.compute_routes import compute_major_grade, compute_minor_grade
-    
-    logger.info(f"Computing grades for release: class {class_id}, {len(students_for_compute)} students, {len(groups)} groups")
-    
+
+    logger.info(
+        f"Computing grades for release: class {class_id}, {len(students_for_compute)} students, {len(groups)} groups"
+    )
+
     # Compute grades based on class type
     summaries = {}
     if class_type.upper() == "MINOR":
@@ -1806,21 +1891,20 @@ def _finalize_snapshot_and_store_release(cursor, class_id, student_ids, released
         for sid, data in results.items():
             if "_summary" in data:
                 summaries[sid] = data["_summary"]
-    
-    logger.info(f"Computation complete for release. Results for {len(results)} students, {len(summaries)} summaries")
+
+    logger.info(
+        f"Computation complete for release. Results for {len(results)} students, {len(summaries)} summaries"
+    )
 
     logger.info(f"About to create snapshot for class {class_id}")
 
     # Create a minimal snapshot entry for backward compatibility
     now = datetime.now()
     released_at_value = now
-    
+
     # Create snapshot with computed grades
-    snapshot_data = {
-        "students": [],
-        "computed_at": now.isoformat()
-    }
-    
+    snapshot_data = {"students": [], "computed_at": now.isoformat()}
+
     for sid in ids:
         summary = summaries.get(sid) or summaries.get(str(sid), {})
         final_grade = summary.get("final_grade")
@@ -1829,33 +1913,41 @@ def _finalize_snapshot_and_store_release(cursor, class_id, student_ids, released
                 final_grade = round(float(final_grade), 2)
             except:
                 final_grade = None
-        
-        snapshot_data["students"].append({
-            "student_id": sid,
-            "final_grade": final_grade,
-            "computed": summary
-        })
-    
+
+        snapshot_data["students"].append(
+            {"student_id": sid, "final_grade": final_grade, "computed": summary}
+        )
+
     # Insert snapshot
     cursor.execute(
         "SELECT COALESCE(MAX(version), 0) + 1 FROM grade_snapshots WHERE class_id = %s",
-        (class_id,)
+        (class_id,),
     )
     next_version = cursor.fetchone()
-    next_version = next_version[0] if isinstance(next_version, tuple) else next_version.get("COALESCE(MAX(version), 0) + 1", 1)
-    
+    next_version = (
+        next_version[0]
+        if isinstance(next_version, tuple)
+        else next_version.get("COALESCE(MAX(version), 0) + 1", 1)
+    )
+
     cursor.execute(
         "INSERT INTO grade_snapshots (class_id, version, status, snapshot_json, created_by, released_at) VALUES (%s, %s, 'final', %s, %s, %s)",
-        (class_id, next_version, json.dumps(snapshot_data), released_by, now)
+        (class_id, next_version, json.dumps(snapshot_data), released_by, now),
     )
-    
+
     # Get the inserted snapshot_id using LAST_INSERT_ID()
     cursor.execute("SELECT LAST_INSERT_ID() as id")
     snapshot_row = cursor.fetchone()
-    snapshot_id = snapshot_row.get("id") if isinstance(snapshot_row, dict) else snapshot_row[0] if snapshot_row else None
-    
-    logger.info(f"Created snapshot {snapshot_id} for class {class_id}, version {next_version}")
-    
+    snapshot_id = (
+        snapshot_row.get("id")
+        if isinstance(snapshot_row, dict)
+        else snapshot_row[0] if snapshot_row else None
+    )
+
+    logger.info(
+        f"Created snapshot {snapshot_id} for class {class_id}, version {next_version}"
+    )
+
     if not snapshot_id or snapshot_id == 0:
         logger.error(f"Failed to get snapshot_id after insert for class {class_id}")
         return {"success": False, "error": "failed_to_create_snapshot"}
@@ -1863,7 +1955,7 @@ def _finalize_snapshot_and_store_release(cursor, class_id, student_ids, released
     # Insert/update released grades with LIVE computed values
     for sid in ids:
         profile = profile_map.get(sid, {})
-        
+
         # Check if student is dropped
         cursor.execute(
             """
@@ -1871,24 +1963,30 @@ def _finalize_snapshot_and_store_release(cursor, class_id, student_ids, released
             FROM student_classes 
             WHERE class_id = %s AND student_id = %s
             """,
-            (class_id, sid)
+            (class_id, sid),
         )
         dropped_row = cursor.fetchone()
         is_student_dropped = False
         if dropped_row:
-            is_student_dropped = bool(dropped_row.get("is_dropped") if isinstance(dropped_row, dict) else dropped_row[0])
-        
+            is_student_dropped = bool(
+                dropped_row.get("is_dropped")
+                if isinstance(dropped_row, dict)
+                else dropped_row[0]
+            )
+
         # If student is dropped, set grade to DRP and skip computation
         if is_student_dropped:
-            grade_payload = json.dumps({
-                "student_id": sid,
-                "final_grade": None,
-                "equivalent": "DRP",
-                "computed": {}
-            })
-            
+            grade_payload = json.dumps(
+                {
+                    "student_id": sid,
+                    "final_grade": None,
+                    "equivalent": "DRP",
+                    "computed": {},
+                }
+            )
+
             logger.info(f"Student {sid} is DROPPED, setting DRP grade")
-            
+
             try:
                 cursor.execute(
                     """
@@ -1935,13 +2033,15 @@ def _finalize_snapshot_and_store_release(cursor, class_id, student_ids, released
                 )
                 logger.info(f"Successfully set DROPPED grade for student {sid}")
             except Exception as insert_error:
-                logger.error(f"Failed to insert DROPPED grade for student {sid}: {insert_error}")
+                logger.error(
+                    f"Failed to insert DROPPED grade for student {sid}: {insert_error}"
+                )
                 raise
             continue  # Skip normal grade computation for dropped students
-        
+
         # Get computed grade from summaries (handle both int and string keys)
         summary = summaries.get(sid) or summaries.get(str(sid), {})
-        
+
         # Get the TOTAL GRADE (final_grade from summary)
         final_grade = summary.get("final_grade")
         if final_grade is not None:
@@ -1949,33 +2049,37 @@ def _finalize_snapshot_and_store_release(cursor, class_id, student_ids, released
                 final_grade = round(float(final_grade), 2)
             except:
                 final_grade = None
-        
+
         # Check if student has missing scores in ANY subcategory - collect ALL missing items
         student_scores = {}
         for student_data in students_for_compute:
             if student_data.get("student_id") == sid:
                 student_scores = student_data.get("scores", {})
                 break
-        
+
         # Check for missing/blank scores in ANY subcategory
         missing_subcategories = []
         for group_key, group_data in groups.items():
             # Extract subcategory name from group_key (format: "CATEGORY::Subcategory")
-            subcategory_name = group_key.split("::")[-1] if "::" in group_key else group_key
-            
+            subcategory_name = (
+                group_key.split("::")[-1] if "::" in group_key else group_key
+            )
+
             # Check if any assessment in this subcategory is missing
             has_missing = False
             for assessment_id in group_data.get("ids", []):
                 score_value = student_scores.get(str(assessment_id))
                 # If score is None or blank, mark as incomplete
-                if score_value is None or str(score_value).strip() == '':
+                if score_value is None or str(score_value).strip() == "":
                     has_missing = True
-                    logger.info(f"Student {sid} missing score for assessment {assessment_id} in {group_key}")
+                    logger.info(
+                        f"Student {sid} missing score for assessment {assessment_id} in {group_key}"
+                    )
                     break
-            
+
             if has_missing:
                 missing_subcategories.append(subcategory_name)
-        
+
         # Calculate equivalent (letter grade) from final grade
         # If student has missing assessments, set equivalent to INC regardless of grade
         if missing_subcategories:
@@ -2003,12 +2107,14 @@ def _finalize_snapshot_and_store_release(cursor, class_id, student_ids, released
                 equivalent = "5.0"
         else:
             equivalent = "N/A"
-        
+
         # Calculate remarks based on missing assessments or grade
         remarks = "PASSED"
         if missing_subcategories:
             # Create comma-separated list of abbreviations
-            abbreviations = [abbreviate_assessment(subcat) for subcat in missing_subcategories]
+            abbreviations = [
+                abbreviate_assessment(subcat) for subcat in missing_subcategories
+            ]
             remarks = ", ".join(abbreviations)
         elif equivalent == "INC":
             remarks = "INCOMPLETE"
@@ -2025,7 +2131,7 @@ def _finalize_snapshot_and_store_release(cursor, class_id, student_ids, released
                     remarks = "PASSED"
             except:
                 pass
-        
+
         overall_percentage = summary.get("overall_percentage")
         try:
             overall_percentage = (
@@ -2035,16 +2141,20 @@ def _finalize_snapshot_and_store_release(cursor, class_id, student_ids, released
             )
         except Exception:
             overall_percentage = None
-        
-        # Create grade payload from summary
-        grade_payload = json.dumps({
-            "student_id": sid,
-            "final_grade": final_grade,
-            "equivalent": equivalent,
-            "computed": summary
-        })
 
-        logger.info(f"About to INSERT released_grades for student {sid}: snapshot_id={snapshot_id}, final_grade={final_grade}, equivalent={equivalent}, remarks={remarks}")
+        # Create grade payload from summary
+        grade_payload = json.dumps(
+            {
+                "student_id": sid,
+                "final_grade": final_grade,
+                "equivalent": equivalent,
+                "computed": summary,
+            }
+        )
+
+        logger.info(
+            f"About to INSERT released_grades for student {sid}: snapshot_id={snapshot_id}, final_grade={final_grade}, equivalent={equivalent}, remarks={remarks}"
+        )
 
         try:
             cursor.execute(
@@ -2094,9 +2204,13 @@ def _finalize_snapshot_and_store_release(cursor, class_id, student_ids, released
                     released_at_value,
                 ),
             )
-            logger.info(f"Successfully inserted/updated released_grades for student {sid}")
+            logger.info(
+                f"Successfully inserted/updated released_grades for student {sid}"
+            )
         except Exception as insert_error:
-            logger.error(f"Failed to insert released_grades for student {sid}: {insert_error}")
+            logger.error(
+                f"Failed to insert released_grades for student {sid}: {insert_error}"
+            )
             raise
 
     return {
@@ -2173,7 +2287,7 @@ def api_toggle_student_release(student_id):
                             400,
                         )
                     released_at_value = release_result.get("released_at")
-                    
+
                     # Send email notification to student
                     try:
                         # Get student details
@@ -2186,10 +2300,10 @@ def api_toggle_student_release(student_id):
                             JOIN released_grades rg ON rg.student_id = s.id AND rg.class_id = %s
                             WHERE s.id = %s
                             """,
-                            (class_id, student_id)
+                            (class_id, student_id),
                         )
                         student_info = cursor.fetchone()
-                        
+
                         # Get class details
                         cursor.execute(
                             """
@@ -2200,31 +2314,37 @@ def api_toggle_student_release(student_id):
                             LEFT JOIN personal_info pi_inst ON i.personal_info_id = pi_inst.id
                             WHERE c.id = %s
                             """,
-                            (class_id,)
+                            (class_id,),
                         )
                         class_info = cursor.fetchone()
-                        
-                        if student_info and class_info and student_info.get('email'):
+
+                        if student_info and class_info and student_info.get("email"):
                             student_name = f"{student_info['first_name']} {student_info['last_name']}"
                             instructor_name = None
-                            if class_info.get('inst_first') and class_info.get('inst_last'):
+                            if class_info.get("inst_first") and class_info.get(
+                                "inst_last"
+                            ):
                                 instructor_name = f"{class_info['inst_first']} {class_info['inst_last']}"
-                            
+
                             email_service.send_grade_release_email(
-                                student_email=student_info['email'],
+                                student_email=student_info["email"],
                                 student_name=student_name,
-                                subject_name=class_info['subject'] or 'Subject',
-                                course=class_info['course'],
-                                section=class_info['section'],
-                                final_grade=float(student_info['final_grade']),
-                                equivalent=student_info['equivalent'],
-                                instructor_name=instructor_name
+                                subject_name=class_info["subject"] or "Subject",
+                                course=class_info["course"],
+                                section=class_info["section"],
+                                final_grade=float(student_info["final_grade"]),
+                                equivalent=student_info["equivalent"],
+                                instructor_name=instructor_name,
                             )
-                            logger.info(f"Grade release email sent to {student_info['email']}")
+                            logger.info(
+                                f"Grade release email sent to {student_info['email']}"
+                            )
                     except Exception as email_error:
-                        logger.error(f"Failed to send grade release email: {str(email_error)}")
+                        logger.error(
+                            f"Failed to send grade release email: {str(email_error)}"
+                        )
                         # Don't fail the request if email fails
-                        
+
                 else:
                     _update_released_grade_status(
                         cursor, class_id, [student_id], "hidden"
@@ -2329,7 +2449,7 @@ def api_bulk_toggle_release():
                             ),
                             400,
                         )
-                    
+
                     # Send email notifications to all students
                     try:
                         # Get class details
@@ -2342,14 +2462,20 @@ def api_bulk_toggle_release():
                             LEFT JOIN personal_info pi_inst ON i.personal_info_id = pi_inst.id
                             WHERE c.id = %s
                             """,
-                            (class_id,)
+                            (class_id,),
                         )
                         class_info = cursor.fetchone()
-                        
+
                         instructor_name = None
-                        if class_info and class_info.get('inst_first') and class_info.get('inst_last'):
-                            instructor_name = f"{class_info['inst_first']} {class_info['inst_last']}"
-                        
+                        if (
+                            class_info
+                            and class_info.get("inst_first")
+                            and class_info.get("inst_last")
+                        ):
+                            instructor_name = (
+                                f"{class_info['inst_first']} {class_info['inst_last']}"
+                            )
+
                         # Get all student details with their grades
                         placeholders = ",".join(["%s"] * len(student_ids))
                         cursor.execute(
@@ -2361,35 +2487,41 @@ def api_bulk_toggle_release():
                             JOIN released_grades rg ON rg.student_id = s.id AND rg.class_id = %s
                             WHERE s.id IN ({placeholders})
                             """,
-                            [class_id] + student_ids
+                            [class_id] + student_ids,
                         )
                         students = cursor.fetchall()
-                        
+
                         # Send emails to each student
                         email_count = 0
                         for student in students:
-                            if student.get('email'):
+                            if student.get("email"):
                                 try:
                                     student_name = f"{student['first_name']} {student['last_name']}"
                                     email_service.send_grade_release_email(
-                                        student_email=student['email'],
+                                        student_email=student["email"],
                                         student_name=student_name,
-                                        subject_name=class_info['subject'] or 'Subject',
-                                        course=class_info['course'],
-                                        section=class_info['section'],
-                                        final_grade=float(student['final_grade']),
-                                        equivalent=student['equivalent'],
-                                        instructor_name=instructor_name
+                                        subject_name=class_info["subject"] or "Subject",
+                                        course=class_info["course"],
+                                        section=class_info["section"],
+                                        final_grade=float(student["final_grade"]),
+                                        equivalent=student["equivalent"],
+                                        instructor_name=instructor_name,
                                     )
                                     email_count += 1
                                 except Exception as e:
-                                    logger.error(f"Failed to send email to {student.get('email')}: {str(e)}")
-                        
-                        logger.info(f"Sent {email_count} grade release emails for class {class_id}")
+                                    logger.error(
+                                        f"Failed to send email to {student.get('email')}: {str(e)}"
+                                    )
+
+                        logger.info(
+                            f"Sent {email_count} grade release emails for class {class_id}"
+                        )
                     except Exception as email_error:
-                        logger.error(f"Failed to send bulk grade release emails: {str(email_error)}")
+                        logger.error(
+                            f"Failed to send bulk grade release emails: {str(email_error)}"
+                        )
                         # Don't fail the request if emails fail
-                        
+
                 else:
                     _update_released_grade_status(
                         cursor, class_id, student_ids, "hidden"
@@ -3200,10 +3332,10 @@ def instructor_class_grades(class_id: int):
                 last_name = e.get("last_name") or ""
                 school_id = e.get("school_id") or ""
                 is_dropped = e.get("is_dropped") or 0
-                
+
                 # Format middle initial
                 middle_initial = middle_name[0] + "." if middle_name else ""
-                
+
                 if first_name and last_name:
                     if middle_initial:
                         student_name = f"{last_name}, {first_name} {middle_initial}"
@@ -5117,9 +5249,11 @@ def api_instructor_grades_overview():
         )
         return jsonify({"error": "Failed to load grades overview"}), 500
 
+
 # ==========================================
 # STUDENT CLASS JOIN REQUEST MANAGEMENT
 # ==========================================
+
 
 @instructor_bp.route(
     "/instructor/class/<int:class_id>/pending-join-requests",
@@ -5158,32 +5292,40 @@ def get_pending_join_requests(class_id):
                 WHERE sc.class_id = %s AND sc.status = 'pending'
                 ORDER BY sc.joined_at ASC
                 """,
-                (class_id,)
+                (class_id,),
             )
             requests = cursor.fetchall()
 
             pending_requests = []
             for req in requests:
                 full_name = f"{req['last_name']}, {req['first_name']}"
-                if req.get('middle_name'):
+                if req.get("middle_name"):
                     full_name += f" {req['middle_name']}"
 
-                pending_requests.append({
-                    "request_id": req["request_id"],
-                    "student_id": req["student_id"],
-                    "school_id": req["school_id"],
-                    "full_name": full_name,
-                    "first_name": req["first_name"],
-                    "middle_name": req.get("middle_name", ""),
-                    "last_name": req["last_name"],
-                    "email": req["email"],
-                    "course": req["course"],
-                    "year_level": req["year_level"],
-                    "student_section": req["student_section"],
-                    "requested_at": req["joined_at"].strftime("%Y-%m-%d %H:%M:%S") if req.get("joined_at") else None,
-                })
+                pending_requests.append(
+                    {
+                        "request_id": req["request_id"],
+                        "student_id": req["student_id"],
+                        "school_id": req["school_id"],
+                        "full_name": full_name,
+                        "first_name": req["first_name"],
+                        "middle_name": req.get("middle_name", ""),
+                        "last_name": req["last_name"],
+                        "email": req["email"],
+                        "course": req["course"],
+                        "year_level": req["year_level"],
+                        "student_section": req["student_section"],
+                        "requested_at": (
+                            req["joined_at"].strftime("%Y-%m-%d %H:%M:%S")
+                            if req.get("joined_at")
+                            else None
+                        ),
+                    }
+                )
 
-            logger.info(f"Instructor retrieved {len(pending_requests)} pending join requests for class {class_id}")
+            logger.info(
+                f"Instructor retrieved {len(pending_requests)} pending join requests for class {class_id}"
+            )
             return jsonify({"success": True, "requests": pending_requests})
 
     except Exception as e:
@@ -5207,8 +5349,7 @@ def approve_join_request(request_id):
         with conn.cursor() as cursor:
             # Get instructor ID
             cursor.execute(
-                "SELECT id FROM instructors WHERE user_id = %s",
-                (session["user_id"],)
+                "SELECT id FROM instructors WHERE user_id = %s", (session["user_id"],)
             )
             instructor = cursor.fetchone()
             if not instructor:
@@ -5225,7 +5366,7 @@ def approve_join_request(request_id):
                 JOIN personal_info pi ON s.personal_info_id = pi.id
                 WHERE sc.id = %s AND sc.status = 'pending'
                 """,
-                (request_id,)
+                (request_id,),
             )
             join_request = cursor.fetchone()
 
@@ -5246,19 +5387,21 @@ def approve_join_request(request_id):
                     rejection_reason = NULL
                 WHERE id = %s
                 """,
-                (instructor["id"], request_id)
+                (instructor["id"], request_id),
             )
 
             conn.commit()
 
             # Send approval email
             try:
-                student_name = f"{join_request['first_name']} {join_request['last_name']}"
-                
+                student_name = (
+                    f"{join_request['first_name']} {join_request['last_name']}"
+                )
+
                 # Get instructor name
                 cursor.execute(
                     "SELECT pi.first_name, pi.last_name FROM instructors i JOIN personal_info pi ON i.personal_info_id = pi.id WHERE i.id = %s",
-                    (instructor["id"],)
+                    (instructor["id"],),
                 )
                 instructor_info = cursor.fetchone()
                 instructor_name = None
@@ -5266,13 +5409,14 @@ def approve_join_request(request_id):
                     instructor_name = f"{instructor_info['first_name']} {instructor_info['last_name']}"
 
                 email_service.send_class_join_approval_email(
-                    student_email=join_request['email'],
+                    student_email=join_request["email"],
                     student_name=student_name,
-                    class_name=join_request['class_code'] or f"Class {join_request['class_id']}",
-                    subject_name=join_request['subject'] or 'Subject',
-                    course=join_request['course'],
-                    section=join_request['section'],
-                    instructor_name=instructor_name
+                    class_name=join_request["class_code"]
+                    or f"Class {join_request['class_id']}",
+                    subject_name=join_request["subject"] or "Subject",
+                    course=join_request["course"],
+                    section=join_request["section"],
+                    instructor_name=instructor_name,
                 )
                 logger.info(f"Approval email sent to {join_request['email']}")
             except Exception as email_error:
@@ -5280,12 +5424,16 @@ def approve_join_request(request_id):
 
             # Emit live update
             try:
-                emit_live_version_update(int(join_request['class_id']))
+                emit_live_version_update(int(join_request["class_id"]))
             except Exception as _e:
                 logger.warning(f"Emit after approve join failed: {_e}")
 
-            logger.info(f"Instructor {session.get('school_id')} approved join request {request_id}")
-            return jsonify({"success": True, "message": "Join request approved successfully"})
+            logger.info(
+                f"Instructor {session.get('school_id')} approved join request {request_id}"
+            )
+            return jsonify(
+                {"success": True, "message": "Join request approved successfully"}
+            )
 
     except Exception as e:
         try:
@@ -5315,8 +5463,7 @@ def reject_join_request(request_id):
         with conn.cursor() as cursor:
             # Get instructor ID
             cursor.execute(
-                "SELECT id FROM instructors WHERE user_id = %s",
-                (session["user_id"],)
+                "SELECT id FROM instructors WHERE user_id = %s", (session["user_id"],)
             )
             instructor = cursor.fetchone()
             if not instructor:
@@ -5333,7 +5480,7 @@ def reject_join_request(request_id):
                 JOIN personal_info pi ON s.personal_info_id = pi.id
                 WHERE sc.id = %s AND sc.status = 'pending'
                 """,
-                (request_id,)
+                (request_id,),
             )
             join_request = cursor.fetchone()
 
@@ -5352,19 +5499,21 @@ def reject_join_request(request_id):
                     rejection_reason = %s
                 WHERE id = %s
                 """,
-                (rejection_reason if rejection_reason else None, request_id)
+                (rejection_reason if rejection_reason else None, request_id),
             )
 
             conn.commit()
 
             # Send rejection email
             try:
-                student_name = f"{join_request['first_name']} {join_request['last_name']}"
-                
+                student_name = (
+                    f"{join_request['first_name']} {join_request['last_name']}"
+                )
+
                 # Get instructor name
                 cursor.execute(
                     "SELECT pi.first_name, pi.last_name FROM instructors i JOIN personal_info pi ON i.personal_info_id = pi.id WHERE i.id = %s",
-                    (instructor["id"],)
+                    (instructor["id"],),
                 )
                 instructor_info = cursor.fetchone()
                 instructor_name = None
@@ -5372,20 +5521,23 @@ def reject_join_request(request_id):
                     instructor_name = f"{instructor_info['first_name']} {instructor_info['last_name']}"
 
                 email_service.send_class_join_rejection_email(
-                    student_email=join_request['email'],
+                    student_email=join_request["email"],
                     student_name=student_name,
-                    class_name=join_request['class_code'] or f"Class {join_request['class_id']}",
-                    subject_name=join_request['subject'] or 'Subject',
-                    course=join_request['course'],
-                    section=join_request['section'],
+                    class_name=join_request["class_code"]
+                    or f"Class {join_request['class_id']}",
+                    subject_name=join_request["subject"] or "Subject",
+                    course=join_request["course"],
+                    section=join_request["section"],
                     rejection_reason=rejection_reason if rejection_reason else None,
-                    instructor_name=instructor_name
+                    instructor_name=instructor_name,
                 )
                 logger.info(f"Rejection email sent to {join_request['email']}")
             except Exception as email_error:
                 logger.error(f"Failed to send rejection email: {str(email_error)}")
 
-            logger.info(f"Instructor {session.get('school_id')} rejected join request {request_id}")
+            logger.info(
+                f"Instructor {session.get('school_id')} rejected join request {request_id}"
+            )
             return jsonify({"success": True, "message": "Join request rejected"})
 
     except Exception as e:
@@ -5411,8 +5563,7 @@ def get_pending_join_requests_count():
     try:
         with get_db_connection().cursor() as cursor:
             cursor.execute(
-                "SELECT id FROM instructors WHERE user_id = %s",
-                (session["user_id"],)
+                "SELECT id FROM instructors WHERE user_id = %s", (session["user_id"],)
             )
             instructor = cursor.fetchone()
             if not instructor:
@@ -5425,7 +5576,7 @@ def get_pending_join_requests_count():
                 JOIN classes c ON sc.class_id = c.id
                 WHERE c.instructor_id = %s AND sc.status = 'pending'
                 """,
-                (instructor["id"],)
+                (instructor["id"],),
             )
             result = cursor.fetchone()
             count = result["count"] if result else 0

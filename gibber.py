@@ -11,10 +11,22 @@ except Exception:
 
 
 def _get_secret() -> str:
+    """Get the SECRET_KEY from Flask app config. Raises error if not found."""
     try:
-        return current_app.config.get("SECRET_KEY") or current_app.secret_key
+        secret = current_app.config.get("SECRET_KEY")
+        if secret:
+            return secret
+        # Try the app's secret_key attribute
+        secret = current_app.secret_key
+        if secret:
+            return secret
+        # No secret found - raise an error
+        raise ValueError("SECRET_KEY not configured! Set it in .env file.")
     except RuntimeError:
-        return "dev-secret-key-change-in-production"
+        # This happens when Flask app is not running
+        raise ValueError(
+            "Cannot get SECRET_KEY: Flask app not initialized. Set SECRET_KEY in .env file."
+        )
 
 
 def _get_serializer() -> URLSafeTimedSerializer:

@@ -8,10 +8,47 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/instructorlogin.css') }}">
-  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
   <style>
-
+    .timer-display {
+      background: #fee2e2;
+      border: 1px solid #fecaca;
+      color: #dc2626;
+      padding: 12px 16px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      text-align: center;
+      font-weight: 500;
+    }
+    .timer-display i {
+      margin-right: 8px;
+    }
+    .locked-ui {
+      opacity: 0.6;
+      pointer-events: none;
+    }
+    .locked-ui input {
+      background: #f3f4f6;
+    }
+    .btn:disabled {
+      opacity: 0.75;
+      cursor: not-allowed !important;
+      background-color: #9ca3af !important;
+      pointer-events: none;
+      transform: none !important;
+      box-shadow: none !important;
+    }
+    .btn:disabled:hover {
+      background-color: #9ca3af !important;
+      transform: none !important;
+    }
+    .btn.locked {
+      opacity: 0.75;
+      cursor: not-allowed !important;
+      background-color: #9ca3af !important;
+      pointer-events: none;
+    }
   </style>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 </head>
 
 <body>
@@ -30,17 +67,27 @@
         Communication Technology</p>
     </div>
 
-    {% with messages = get_flashed_messages(with_categories=true) %}
-      {% if messages %}
-        {% for category, message in messages %}
-          <div id="errorContainer" style="display: none;">{{ message }}</div>
-        {% endfor %}
+    {% set flashed_messages = get_flashed_messages(with_categories=true) %}
+    {% set lock_state = namespace(from_message=false) %}
+    {% for category, message in flashed_messages %}
+      {% if 'Too many failed attempts' in message %}
+        {% set lock_state.from_message = true %}
       {% endif %}
-    {% endwith %}
+    {% endfor %}
 
-    <form id="loginForm" class="form" method="POST">
+    {% if flashed_messages %}
+      {% for category, message in flashed_messages %}
+        {% if loop.last %}
+          <div id="errorContainer" style="display: none;">{{ message }}</div>
+        {% endif %}
+      {% endfor %}
+    {% endif %}
+
+    <form id="loginForm" class="form" method="POST" data-locked="{{ 1 if locked else 0 }}" data-lock-seconds="{{ seconds | default(0) | int }}">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
       <input type="hidden" name="role" value="instructor">
+
+      <div id="timer-display" class="timer-display" style="display: none;"></div>
 
       <div class="form-row">
         <label for="username">Faculty Email or Employee ID</label>
@@ -63,28 +110,12 @@
       </div>
 
       <div class="form-row flex-between">
-
         <a href="{{ url_for('auth.forgot_password') }}" class="link">Forgot Password?</a>
       </div>
 
-      <button type="submit" class="btn primary" id="loginBtn">
+      <button type="submit" class="btn primary{% if locked or lock_state.from_message %} locked{% endif %}" id="loginBtn" {% if locked or lock_state.from_message %}disabled{% endif %}>
         <i class="fas fa-sign-in-alt"></i> Faculty Sign In
       </button>
-      <!--
-      <div class="divider"></div>
-
-      <ul class="demo-list">
-        <li onclick="fillCredentials('faculty@isu.edu.ph', 'faculty123')">
-          <strong>faculty@isu.edu.ph</strong> <span>faculty123</span>
-        </li>
-        <li onclick="fillCredentials('prof.santos', 'prof123')">
-          <strong>prof.santos</strong> <span>prof123</span>
-        </li>
-        <li onclick="fillCredentials('instructor.cruz', 'inst123')">
-          <strong>instructor.cruz</strong> <span>inst123</span>
-        </li>
-      </ul>
-    -->
     </form>
 
     <div class="footer">
@@ -92,11 +123,114 @@
       <p class="footer-text">
         Comprehensive teaching tools for managing classes and tracking student progress.
       </p>
-
     </div>
   </div>
 
   <script>
+    // Check for locked status from URL parameters
+    const urlParams = new URLSearchParams(window.location.search);
+    const lockDurationRegex = /(\d+)m\s*(\d+)s/i;
+    const LOCK_STORAGE_KEY = 'instructorLoginLockUntil';
+    const errorContainer = document.getElementById('errorContainer');
+    const loginForm = document.getElementById('loginForm');
+    const loginBtn = document.getElementById('loginBtn');
+    const serverLocked = loginForm.dataset.locked === '1';
+    const serverLockSeconds = parseInt(loginForm.dataset.lockSeconds || '0', 10);
+    let isLocked = serverLocked || urlParams.get('locked') === '1';
+    let lockSeconds = serverLockSeconds > 0 ? serverLockSeconds : parseInt(urlParams.get('seconds') || '0', 10);
+    const errorMessageText = errorContainer ? errorContainer.textContent.trim() : '';
+    const nowSeconds = Math.floor(Date.now() / 1000);
+    let storedLockUntil = 0;
+    const originalBtnText = '<i class="fas fa-sign-in-alt"></i> Faculty Sign In';
+    const originalBtnType = loginBtn ? (loginBtn.getAttribute('type') || 'submit') : 'submit';
+
+    function setFormInteractionLocked(locked) {
+      const inputs = loginForm.querySelectorAll('input, button:not(#loginBtn)');
+      inputs.forEach(input => {
+        input.disabled = locked;
+      });
+    }
+
+    function applyHardLockState(remainingSeconds) {
+      if (!loginBtn) {
+        return;
+      }
+
+      loginBtn.disabled = true;
+      loginBtn.setAttribute('type', 'button');
+      loginBtn.classList.add('locked');
+      loginBtn.style.cursor = 'not-allowed';
+
+      if (Number.isFinite(remainingSeconds) && remainingSeconds > 0) {
+        const mins = Math.floor(remainingSeconds / 60);
+        const secs = remainingSeconds % 60;
+        loginBtn.innerHTML = `<i class="fas fa-lock"></i> Try again in ${mins}m ${secs}s`;
+      }
+
+      setFormInteractionLocked(true);
+    }
+
+    function applyHardUnlockState() {
+      if (!loginBtn) {
+        return;
+      }
+
+      loginBtn.disabled = false;
+      loginBtn.setAttribute('type', originalBtnType);
+      loginBtn.classList.remove('locked');
+      loginBtn.style.cursor = 'pointer';
+      loginBtn.innerHTML = originalBtnText;
+      loginBtn.onclick = null;
+      loginBtn.onmousedown = null;
+      setFormInteractionLocked(false);
+    }
+
+    try {
+      storedLockUntil = parseInt(localStorage.getItem(LOCK_STORAGE_KEY) || '0', 10);
+    } catch (e) {
+      storedLockUntil = 0;
+    }
+
+    // Simple fallback: lock whenever the backend lock phrase is present.
+    if (!isLocked && errorMessageText.toLowerCase().includes('too many failed attempts')) {
+      isLocked = true;
+      const lockMatch = errorMessageText.match(lockDurationRegex);
+      if (lockMatch) {
+        lockSeconds = (parseInt(lockMatch[1], 10) * 60) + parseInt(lockMatch[2], 10);
+      }
+    }
+
+    // Browser persistence fallback: keep lock active across refresh/back/navigation.
+    if (Number.isFinite(storedLockUntil) && storedLockUntil > nowSeconds) {
+      const storedRemaining = storedLockUntil - nowSeconds;
+      isLocked = true;
+      lockSeconds = lockSeconds > 0 ? Math.max(lockSeconds, storedRemaining) : storedRemaining;
+    }
+
+    if (isLocked && (!Number.isFinite(lockSeconds) || lockSeconds <= 0)) {
+      // Fallback only. Keep this in sync with utils/rate_limiter.py lock_duration.
+      lockSeconds = 240; // 4 minutes
+    }
+
+    if (isLocked) {
+      try {
+        const lockUntil = nowSeconds + lockSeconds;
+        localStorage.setItem(LOCK_STORAGE_KEY, String(lockUntil));
+      } catch (e) {
+        // Ignore storage errors and continue with server-driven lock.
+      }
+    } else if (Number.isFinite(storedLockUntil) && storedLockUntil > 0 && storedLockUntil <= nowSeconds) {
+      try {
+        localStorage.removeItem(LOCK_STORAGE_KEY);
+      } catch (e) {
+        // Ignore storage errors.
+      }
+    }
+
+    if (isLocked) {
+      applyHardLockState(lockSeconds);
+    }
+
     // Toggle password visibility
     document.getElementById('togglePass').addEventListener('click', function () {
       const passwordInput = document.getElementById('password');
@@ -113,33 +247,57 @@
       }
     });
 
-    // Fill demo credentials
-    function fillCredentials(username, password) {
-      document.getElementById('username').value = username;
-      document.getElementById('password').value = password;
-
-      // Add a subtle animation to indicate the fields were filled
-      const inputs = [document.getElementById('username'), document.getElementById('password')];
-      inputs.forEach(input => {
-        input.style.transform = 'scale(1.02)';
-        input.style.borderColor = 'var(--instructor-primary)';
-        setTimeout(() => {
-          input.style.transform = 'scale(1)';
-          input.style.borderColor = 'var(--gray-100)';
-        }, 200);
-      });
-    }
-
-    // Form submission handler
-    document.getElementById('loginForm').addEventListener('submit', function (e) {
-      const loginBtn = document.getElementById('loginBtn');
+    // Form submission handler - prevent submit if locked
+    loginForm.addEventListener('submit', function (e) {
+      // If locked, don't allow any form submission
+      if (isLocked) {
+        e.preventDefault();
+        e.stopPropagation();
+        e.stopImmediatePropagation();
+        return false;
+      }
 
       // Show loading state
       loginBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Authenticating...';
       loginBtn.disabled = true;
 
       // Let the form submit normally - Flask will handle authentication
-      // The page will redirect or show error based on authentication result
+    }, true);
+
+    // Hard-block button clicks while locked.
+    loginBtn.addEventListener('click', function (e) {
+      if (isLocked) {
+        e.preventDefault();
+        e.stopPropagation();
+        e.stopImmediatePropagation();
+        return false;
+      }
+    }, true);
+
+    // Hard-block Enter key submits while locked.
+    loginForm.addEventListener('keydown', function (e) {
+      if (isLocked && e.key === 'Enter') {
+        e.preventDefault();
+        e.stopPropagation();
+        return false;
+      }
+    }, true);
+
+    // Re-apply lock when restoring from browser history cache.
+    window.addEventListener('pageshow', function () {
+      let lockUntil = 0;
+      try {
+        lockUntil = parseInt(localStorage.getItem(LOCK_STORAGE_KEY) || '0', 10);
+      } catch (e) {
+        lockUntil = 0;
+      }
+
+      const currentSeconds = Math.floor(Date.now() / 1000);
+      if (Number.isFinite(lockUntil) && lockUntil > currentSeconds) {
+        isLocked = true;
+        lockSeconds = lockUntil - currentSeconds;
+        applyHardLockState(lockSeconds);
+      }
     });
 
     // Add smooth transitions on page load
@@ -154,10 +312,64 @@
         container.style.transform = 'translateY(0)';
       }, 100);
 
-      // Check for error message and show SweetAlert
-      const errorContainer = document.getElementById('errorContainer');
+      // Handle locked state FIRST - show countdown timer in button
+      // This takes priority over error messages
+      if (isLocked) {
+        applyHardLockState(lockSeconds);
+
+        // Also prevent any clicks on the button
+        loginBtn.onclick = function(e) {
+          e.preventDefault();
+          e.stopPropagation();
+          return false;
+        };
+
+        // Prevent mousedown as well
+        loginBtn.onmousedown = function(e) {
+          e.preventDefault();
+          e.stopPropagation();
+          return false;
+        };
+
+        let timeLeft = lockSeconds;
+
+        // Update button text immediately
+        const mins = Math.floor(timeLeft / 60);
+        const secs = timeLeft % 60;
+        loginBtn.innerHTML = `<i class="fas fa-lock"></i> Try again in ${mins}m ${secs}s`;
+
+        // High-precision countdown
+        const countdown = setInterval(() => {
+          timeLeft--;
+
+          // Update button text in real-time
+          const mins = Math.floor(timeLeft / 60);
+          const secs = timeLeft % 60;
+          loginBtn.innerHTML = `<i class="fas fa-lock"></i> Try again in ${mins}m ${secs}s`;
+
+          if (timeLeft <= 0) {
+            clearInterval(countdown);
+            try {
+              localStorage.removeItem(LOCK_STORAGE_KEY);
+            } catch (e) {
+              // Ignore storage errors.
+            }
+            isLocked = false;
+            // Re-enable the button and inputs
+            applyHardUnlockState();
+            // Auto-refresh the page to remove locked parameter
+            window.location.href = window.location.pathname;
+          }
+        }, 1000);
+
+        // Don't show error modal if locked
+        return;
+      }
+
+      // Check for error message and show SweetAlert (only if NOT locked)
       if (errorContainer && errorContainer.textContent.trim()) {
         const errorMessage = errorContainer.textContent.trim();
+
         Swal.fire({
           icon: 'error',
           title: 'Login Failed',

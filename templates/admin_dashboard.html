@@ -1747,43 +1747,54 @@
                     } else {
                         const errorMsg = data.error || 'Failed to load pending registrations';
                         console.error('API Error:', errorMsg);
-                        document.getElementById('pendingRegistrationsContent').innerHTML = 
-                            `<div style="padding: 20px;">
-                                <p style="color: #ef4444; font-weight: bold;">Failed to load pending registrations</p>
-                                <p style="color: #6b7280; font-size: 13px; margin-top: 10px;">Error: ${errorMsg}</p>
-                                <p style="color: #6b7280; font-size: 13px; margin-top: 10px;">
-                                    <strong>Possible reasons:</strong><br>
-                                    1. Database migration not run yet<br>
-                                    2. Missing database columns (approval_status, account_status)<br>
-                                    3. Database connection issue
-                                </p>
-                                <p style="color: #3b82f6; font-size: 13px; margin-top: 15px;">
-                                    Run the SQL migration: <code>db/add_student_approval_status.sql</code>
-                                </p>
-                            </div>`;
+                        const contentEl = document.getElementById('pendingRegistrationsContent');
+                        if (contentEl) {
+                            contentEl.innerHTML = 
+                                `<div style="padding: 20px;">
+                                    <p style="color: #ef4444; font-weight: bold;">Failed to load pending registrations</p>
+                                    <p style="color: #6b7280; font-size: 13px; margin-top: 10px;">Error: ${errorMsg}</p>
+                                    <p style="color: #6b7280; font-size: 13px; margin-top: 10px;">
+                                        <strong>Possible reasons:</strong><br>
+                                        1. Database migration not run yet<br>
+                                        2. Missing database columns (approval_status, account_status)<br>
+                                        3. Database connection issue
+                                    </p>
+                                    <p style="color: #3b82f6; font-size: 13px; margin-top: 15px;">
+                                        Run the SQL migration: <code>db/add_student_approval_status.sql</code>
+                                    </p>
+                                </div>`;
+                        }
                     }
                 })
                 .catch(error => {
                     console.error('Error loading pending registrations:', error);
-                    document.getElementById('pendingRegistrationsContent').innerHTML = 
-                        `<div style="padding: 20px;">
-                            <p style="color: #ef4444; font-weight: bold;">Error loading data</p>
-                            <p style="color: #6b7280; font-size: 13px; margin-top: 10px;">Error: ${error.message}</p>
-                            <p style="color: #6b7280; font-size: 13px; margin-top: 10px;">
-                                <strong>Common issues:</strong><br>
-                                1. Database migration not executed<br>
-                                2. Server error - check Flask console logs<br>
-                                3. Network/connection error
-                            </p>
-                            <p style="color: #3b82f6; font-size: 13px; margin-top: 15px;">
-                                <strong>To fix:</strong> Run the SQL migration file in <code>db/add_student_approval_status.sql</code>
-                            </p>
-                        </div>`;
+                    const contentEl = document.getElementById('pendingRegistrationsContent');
+                    if (contentEl) {
+                        contentEl.innerHTML = 
+                            `<div style="padding: 20px;">
+                                <p style="color: #ef4444; font-weight: bold;">Error loading data</p>
+                                <p style="color: #6b7280; font-size: 13px; margin-top: 10px;">Error: ${error.message}</p>
+                                <p style="color: #6b7280; font-size: 13px; margin-top: 10px;">
+                                    <strong>Common issues:</strong><br>
+                                    1. Database migration not executed<br>
+                                    2. Server error - check Flask console logs<br>
+                                    3. Network/connection error
+                                </p>
+                                <p style="color: #3b82f6; font-size: 13px; margin-top: 15px;">
+                                    <strong>To fix:</strong> Run the SQL migration file in <code>db/add_student_approval_status.sql</code>
+                                </p>
+                            </div>`;
+                    }
                 });
         }
 
         function displayPendingRegistrations(students) {
             const content = document.getElementById('pendingRegistrationsContent');
+            
+            if (!content) {
+                console.warn('Pending registrations content element not found - modal may have been closed');
+                return;
+            }
             
             if (students.length === 0) {
                 content.innerHTML = `
@@ -1859,7 +1870,8 @@
                     return fetch(`/admin/approve-registration/${studentId}`, {
                         method: 'POST',
                         headers: {
-                            'Content-Type': 'application/json'
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': csrfToken
                         }
                     })
                     .then(response => response.json())
@@ -1884,8 +1896,16 @@
                         showConfirmButton: false
                     });
                     // Reload the pending registrations list
-                    loadPendingRegistrations();
-                    loadPendingRegistrationsCount();
+                    try {
+                        loadPendingRegistrations();
+                    } catch (e) {
+                        console.warn('Could not reload pending registrations - modal may be closed:', e);
+                    }
+                    try {
+                        loadPendingRegistrationsCount();
+                    } catch (e) {
+                        console.warn('Could not reload pending count:', e);
+                    }
                 }
             });
         }
@@ -2129,7 +2149,8 @@
                     return fetch(`/admin/reject-registration/${studentId}`, {
                         method: 'POST',
                         headers: {
-                            'Content-Type': 'application/json'
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': csrfToken
                         },
                         body: JSON.stringify({ reason: reason })
                     })
@@ -2169,8 +2190,16 @@
                         timerProgressBar: true
                     });
                     // Reload the pending registrations list
-                    loadPendingRegistrations();
-                    loadPendingRegistrationsCount();
+                    try {
+                        loadPendingRegistrations();
+                    } catch (e) {
+                        console.warn('Could not reload pending registrations - modal may be closed:', e);
+                    }
+                    try {
+                        loadPendingRegistrationsCount();
+                    } catch (e) {
+                        console.warn('Could not reload pending count:', e);
+                    }
                 }
             });
         }

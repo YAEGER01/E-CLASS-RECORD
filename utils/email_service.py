@@ -15,8 +15,8 @@ class EmailNotificationService:
         # Email configuration - can be stored in environment variables or config
         self.smtp_server = os.getenv("SMTP_SERVER", "smtp.gmail.com")
         self.smtp_port = int(os.getenv("SMTP_PORT", "587"))
-        self.sender_email = os.getenv("SENDER_EMAIL", "programmingproject06@gmail.com")
-        self.sender_password = os.getenv("SENDER_PASSWORD", "kttb wlay puqu mwup")
+        self.sender_email = os.getenv("SENDER_EMAIL")
+        self.sender_password = os.getenv("SENDER_PASSWORD")
         self.sender_name = os.getenv(
             "SENDER_NAME", "E-Class Record System - ISU Cauayan"
         )
@@ -403,9 +403,7 @@ class EmailNotificationService:
         </html>
         """
 
-        reason_plain = (
-            f"\nReason: {rejection_reason}\n" if rejection_reason else "\n"
-        )
+        reason_plain = f"\nReason: {rejection_reason}\n" if rejection_reason else "\n"
 
         text_body = f"""
         E-Class Record System - Registration Update
@@ -460,7 +458,11 @@ class EmailNotificationService:
             grade_color = "#f59e0b"  # Orange for other
             grade_icon = "📊"
 
-        instructor_text = f"<p style='margin: 10px 0; color: #6b7280;'><strong>Instructor:</strong> {instructor_name}</p>" if instructor_name else ""
+        instructor_text = (
+            f"<p style='margin: 10px 0; color: #6b7280;'><strong>Instructor:</strong> {instructor_name}</p>"
+            if instructor_name
+            else ""
+        )
 
         html_body = f"""
         <!DOCTYPE html>
@@ -598,7 +600,11 @@ class EmailNotificationService:
         """Send email notification when student's class join request is approved"""
         subject = f"✅ Your Request to Join {subject_name} Has Been Approved!"
 
-        instructor_text = f"<p style='margin: 10px 0; color: #6b7280;'><strong>Instructor:</strong> {instructor_name}</p>" if instructor_name else ""
+        instructor_text = (
+            f"<p style='margin: 10px 0; color: #6b7280;'><strong>Instructor:</strong> {instructor_name}</p>"
+            if instructor_name
+            else ""
+        )
 
         html_body = f"""
         <!DOCTYPE html>
@@ -737,14 +743,22 @@ class EmailNotificationService:
         """Send email notification when student's class join request is rejected"""
         subject = f"❌ Your Request to Join {subject_name} Was Not Approved"
 
-        instructor_text = f"<p style='margin: 10px 0; color: #6b7280;'><strong>Instructor:</strong> {instructor_name}</p>" if instructor_name else ""
-        reason_html = f"""
+        instructor_text = (
+            f"<p style='margin: 10px 0; color: #6b7280;'><strong>Instructor:</strong> {instructor_name}</p>"
+            if instructor_name
+            else ""
+        )
+        reason_html = (
+            f"""
         <div style="background: #fee2e2; padding: 15px; border-radius: 8px; border-left: 4px solid #ef4444; margin: 20px 0;">
             <p style="margin: 0; color: #991b1b;">
                 <strong>📝 Reason:</strong> {rejection_reason}
             </p>
         </div>
-        """ if rejection_reason else ""
+        """
+            if rejection_reason
+            else ""
+        )
 
         html_body = f"""
         <!DOCTYPE html>

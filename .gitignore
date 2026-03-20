@@ -1,54 +1,60 @@
-# Ignore environment files and secrets
+# ==================================================
+# Environment Files and Secrets
+# ==================================================
 .env
 .env.*
+!.env.example
+secrets.py
+*.pem
+*.key
+*.crt
+*.p12
+*.pfx
 
-# Byte-compiled / caches
+
+# ==================================================
+# Python / Virtual Environments
+# ==================================================
 __pycache__/
 *.py[cod]
+*.pyc
+*$py.class
 
-# Virtual environments
+.venv/
 venv/
 env/
-/.venv/
-
-# IDE/editor folders
-.vscode/
-.idea/
-
-# Pytest cache
-.pytest_cache/
-
-# Database files
-*.sqlite3
-*.db
-
-# Logs
-*.log
-
-# macOS
-.DS_Store
-
-# Ignore local uploads and user data
-static/uploads/
-
-# Prevent accidentally committing secrets file if present
-# (Note: .gitignore can't remove already-committed files or secrets from history)
-secrets.py
-instance/
-# Environments
-.env
-.venv
-env/
-venv/
 ENV/
 env.bak/
 venv.bak/
 
-# Byte-compiled / optimized / DLL files
-__pycache__/
 
+# ==================================================
+# Tooling Caches
+# ==================================================
 .pytest_cache/
-
-# Flask stuff:
-instance/
+.mypy_cache/
+.ruff_cache/
 .webassets-cache
+
+
+# ==================================================
+# Runtime / Logs / Local Data
+# ==================================================
+instance/
+static/uploads/
+*.sqlite3
+*.db
+*.log
+app.log
+cookies.txt
+kalat/acc.txt
+
+
+# ==================================================
+# Editor / OS
+# ==================================================
+.vscode/
+.idea/
+.qodo/
+.DS_Store
+Thumbs.db

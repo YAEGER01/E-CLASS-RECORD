@@ -1444,34 +1444,46 @@
                 showLoaderOnConfirm: true,
                 preConfirm: async () => {
                     try {
+                        console.log('Approving request:', requestId, 'CSRF Token:', csrfToken);
                         const response = await fetch(`/instructor/join-request/${requestId}/approve`, {
                             method: 'POST',
-                            headers: { 'Content-Type': 'application/json' }
+                            credentials: 'same-origin',
+                            headers: { 
+                                'Content-Type': 'application/json',
+                                'X-CSRFToken': csrfToken
+                            }
                         });
+                        console.log('Response status:', response.status);
                         const data = await response.json();
-                        if (!data.success) {
+                        if (!response.ok || !data.success) {
                             throw new Error(data.error || 'Failed to approve request');
                         }
                         return data;
                     } catch (error) {
+                        console.error('Approve error:', error);
                         Swal.showValidationMessage(`Error: ${error.message}`);
+                        return false;
                     }
                 },
                 allowOutsideClick: () => !Swal.isLoading()
             });
 
-            if (result.isConfirmed) {
+            if (result && result.isConfirmed) {
                 Swal.fire({
                     icon: 'success',
                     title: 'Approved!',
                     text: `${studentName} has been approved and can now access the class.`,
-                    timer: 3000,
+                    timer: 2000,
                     showConfirmButton: false
                 });
                 
-                // Reload the pending requests
+                // Reload the pending requests immediately
                 const classId = document.getElementById('studentMgmtClassSelect').value;
-                loadPendingJoinRequests(classId);
+                if (classId) {
+                    // Force refresh the pending requests
+                    await loadPendingJoinRequests(classId);
+                }
+                // Also update the count
                 loadPendingRequestsCount();
             }
         }
@@ -1519,17 +1531,24 @@
                 preConfirm: async () => {
                     const reason = document.getElementById('rejectionReason').value.trim();
                     try {
+                        console.log('Rejecting request:', requestId, 'CSRF Token:', csrfToken);
                         const response = await fetch(`/instructor/join-request/${requestId}/reject`, {
                             method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
+                            credentials: 'same-origin',
+                            headers: { 
+                                'Content-Type': 'application/json',
+                                'X-CSRFToken': csrfToken
+                            },
                             body: JSON.stringify({ reason: reason || null })
                         });
+                        console.log('Response status:', response.status);
                         const data = await response.json();
                         if (!data.success) {
                             throw new Error(data.error || 'Failed to reject request');
                         }
                         return data;
                     } catch (error) {
+                        console.error('Reject error:', error);
                         Swal.showValidationMessage(`Error: ${error.message}`);
                     }
                 },

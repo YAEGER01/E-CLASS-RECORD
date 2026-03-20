@@ -29,6 +29,14 @@ def register_socketio_handlers(socketio: SocketIO):
         # No-op; could add logging if needed
         pass
 
+    @socketio.on("join_ip_room")
+    def _on_join_ip_room(data):
+        """Join an IP-based room for lockout notifications."""
+        ip_address = (data or {}).get("ip_address")
+        if ip_address:
+            join_room(ip_address)
+            _logger.info(f"Client joined IP room: {ip_address}")
+
     @socketio.on("subscribe_live_version")
     def _on_subscribe_live_version(data):
         try:

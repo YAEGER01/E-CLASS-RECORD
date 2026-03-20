@@ -1023,6 +1023,70 @@ class EmailNotificationService:
 
         return self.send_email(recipient_email, subject, html_body, text_body)
 
+    def send_mfa_code_email(
+        self,
+        recipient_email: str,
+        recipient_name: str,
+        code: str,
+        expiry_minutes: int,
+        role: str,
+    ) -> bool:
+        """Send an MFA one-time code for login verification."""
+        subject = "Your MFA Verification Code - E-Class Record"
+
+        html_body = f"""
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        </head>
+        <body style="margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #f4f6f8;">
+            <table width="100%" cellpadding="0" cellspacing="0" style="padding: 24px; background-color: #f4f6f8;">
+                <tr>
+                    <td align="center">
+                        <table width="560" cellpadding="0" cellspacing="0" style="background: #ffffff; border-radius: 10px; overflow: hidden;">
+                            <tr>
+                                <td style="background: #1f4d7a; color: #ffffff; text-align: center; padding: 24px;">
+                                    <h2 style="margin: 0;">Multi-Factor Authentication</h2>
+                                    <p style="margin: 8px 0 0 0; font-size: 14px;">E-Class Record System</p>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td style="padding: 24px; color: #1f2937;">
+                                    <p>Hello <strong>{recipient_name}</strong>,</p>
+                                    <p>Use this one-time code to finish signing in to your <strong>{role}</strong> account:</p>
+                                    <p style="text-align: center; margin: 24px 0;">
+                                        <span style="display: inline-block; font-size: 30px; letter-spacing: 8px; font-weight: bold; background: #eef2ff; color: #1f4d7a; padding: 14px 20px; border-radius: 8px;">{code}</span>
+                                    </p>
+                                    <p style="margin: 0;">This code expires in <strong>{expiry_minutes} minute(s)</strong>.</p>
+                                    <p style="margin-top: 18px; font-size: 13px; color: #6b7280;">If you did not attempt to sign in, you can ignore this email and consider changing your password.</p>
+                                </td>
+                            </tr>
+                        </table>
+                    </td>
+                </tr>
+            </table>
+        </body>
+        </html>
+        """
+
+        text_body = f"""
+        E-Class Record System - MFA Verification Code
+
+        Hello {recipient_name},
+
+        Use this one-time code to finish signing in to your {role} account:
+
+        {code}
+
+        This code expires in {expiry_minutes} minute(s).
+
+        If you did not attempt to sign in, please ignore this email.
+        """
+
+        return self.send_email(recipient_email, subject, html_body, text_body)
+
 
 # Create a singleton instance
 email_service = EmailNotificationService()

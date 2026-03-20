@@ -49,6 +49,9 @@
     }
   </style>
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  {% if captcha_enabled %}
+  <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+  {% endif %}
 </head>
 
 <body>
@@ -112,6 +115,12 @@
       <div class="form-row flex-between">
         <a href="{{ url_for('auth.forgot_password') }}" class="link">Forgot Password?</a>
       </div>
+
+      {% if captcha_enabled %}
+      <div class="form-row" style="display: flex; justify-content: center;">
+        <div class="cf-turnstile" data-sitekey="{{ cf_turnstile_site_key }}"></div>
+      </div>
+      {% endif %}
 
       <button type="submit" class="btn primary{% if locked or lock_state.from_message %} locked{% endif %}" id="loginBtn" {% if locked or lock_state.from_message %}disabled{% endif %}>
         <i class="fas fa-sign-in-alt"></i> Faculty Sign In

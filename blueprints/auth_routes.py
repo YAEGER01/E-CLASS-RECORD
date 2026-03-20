@@ -2,7 +2,14 @@ import logging
 import os
 import secrets
 import time
+import ipaddress
+import hashlib
+import hmac
+import json
+import urllib.parse
+import urllib.request
 from datetime import datetime, timedelta
+from itsdangerous import BadSignature, URLSafeSerializer
 from flask import (
     Blueprint,
     render_template,
@@ -18,6 +25,7 @@ from werkzeug.utils import secure_filename
 from utils.db_conn import get_db_connection
 from utils.email_service import email_service
 from utils.rate_limiter import get_login_limiter
+from utils.auth_utils import validate_password_policy
 from functools import wraps
 
 logger = logging.getLogger(__name__)
@@ -35,14 +43,422 @@ def allowed_file(filename):
 auth_bp = Blueprint("auth", __name__)
 
 
+def _get_int_env(name: str, default: int) -> int:
+    raw = (os.environ.get(name) or "").strip()
+    if not raw:
+        return default
+    try:
+        return max(1, int(raw))
+    except Exception:
+        logger.warning(f"Invalid integer for {name}: {raw!r}. Using default {default}")
+        return default
+
+
+def _get_bool_env(name: str, default: bool) -> bool:
+    raw = (os.environ.get(name) or "").strip().lower()
+    if not raw:
+        return default
+    if raw in {"1", "true", "yes", "on"}:
+        return True
+    if raw in {"0", "false", "no", "off"}:
+        return False
+    logger.warning(f"Invalid boolean for {name}: {raw!r}. Using default {default}")
+    return default
+
+
+def _get_mfa_required_roles() -> set[str]:
+    configured = (os.environ.get("MFA_REQUIRED_ROLES") or "admin,instructor").strip()
+    roles = {r.strip().lower() for r in configured.split(",") if r.strip()}
+    return roles or {"admin", "instructor"}
+
+
+MFA_ENABLED = os.environ.get("MFA_ENABLED", "false").strip().lower() in {
+    "1",
+    "true",
+    "yes",
+    "on",
+}
+MFA_REQUIRED_ROLES = _get_mfa_required_roles()
+MFA_CODE_TTL_SECONDS = _get_int_env("MFA_CODE_TTL_SECONDS", 300)
+MFA_MAX_ATTEMPTS = _get_int_env("MFA_MAX_ATTEMPTS", 5)
+MFA_RESEND_COOLDOWN_SECONDS = _get_int_env("MFA_RESEND_COOLDOWN_SECONDS", 30)
+MFA_TRUST_DEVICE_ENABLED = _get_bool_env("MFA_TRUST_DEVICE_ENABLED", True)
+MFA_TRUST_DAYS = _get_int_env("MFA_TRUST_DAYS", 14)
+MFA_TRUST_COOKIE_NAME = (
+    os.environ.get("MFA_TRUST_COOKIE_NAME") or "mfa_trust_token"
+).strip() or "mfa_trust_token"
+MFA_TRUST_BIND_USER_AGENT = _get_bool_env("MFA_TRUST_BIND_USER_AGENT", True)
+
+CAPTCHA_ENABLED = os.environ.get("CAPTCHA_ENABLED", "false").strip().lower() in {
+    "1",
+    "true",
+    "yes",
+    "on",
+}
+CF_TURNSTILE_SITE_KEY = (os.environ.get("CF_TURNSTILE_SITE_KEY") or "").strip()
+CF_TURNSTILE_SECRET_KEY = (os.environ.get("CF_TURNSTILE_SECRET_KEY") or "").strip()
+CAPTCHA_FAIL_OPEN_DEVELOPMENT = os.environ.get(
+    "CAPTCHA_FAIL_OPEN_DEVELOPMENT", "true"
+).strip().lower() in {"1", "true", "yes", "on"}
+
+
+def _captcha_is_enforced() -> bool:
+    return CAPTCHA_ENABLED and bool(CF_TURNSTILE_SITE_KEY and CF_TURNSTILE_SECRET_KEY)
+
+
+@auth_bp.app_context_processor
+def inject_captcha_context():
+    return {
+        "captcha_enabled": _captcha_is_enforced(),
+        "cf_turnstile_site_key": CF_TURNSTILE_SITE_KEY,
+    }
+
+
+def _verify_turnstile_for_current_request(flow_name: str):
+    if not _captcha_is_enforced():
+        return True, ""
+
+    token = (request.form.get("cf-turnstile-response") or "").strip()
+    if not token:
+        return False, "Please complete the CAPTCHA challenge."
+
+    payload = urllib.parse.urlencode(
+        {
+            "secret": CF_TURNSTILE_SECRET_KEY,
+            "response": token,
+            "remoteip": get_client_ip(),
+        }
+    ).encode("utf-8")
+
+    req = urllib.request.Request(
+        "https://challenges.cloudflare.com/turnstile/v0/siteverify",
+        data=payload,
+        method="POST",
+        headers={"Content-Type": "application/x-www-form-urlencoded"},
+    )
+
+    try:
+        with urllib.request.urlopen(req, timeout=8) as response:
+            result = json.loads(response.read().decode("utf-8"))
+    except Exception as e:
+        logger.error(f"Turnstile verification error for {flow_name}: {e}")
+        is_dev = os.environ.get("FLASK_ENV", "development") != "production"
+        if is_dev and CAPTCHA_FAIL_OPEN_DEVELOPMENT:
+            logger.warning(f"Turnstile fail-open in development for {flow_name}.")
+            return True, ""
+        return False, "CAPTCHA service unavailable. Please try again."
+
+    if result.get("success"):
+        return True, ""
+
+    error_codes = result.get("error-codes") or []
+    logger.warning(
+        f"Turnstile verification failed for {flow_name}: {','.join(error_codes)}"
+    )
+    return False, "CAPTCHA verification failed. Please try again."
+
+
+def _role_login_endpoint(role: str) -> str:
+    if role == "admin":
+        return "auth.admin_login"
+    if role == "instructor":
+        return "auth.instructor_login"
+    return "auth.login"
+
+
+def _is_mfa_required(role: str) -> bool:
+    return MFA_ENABLED and role in MFA_REQUIRED_ROLES
+
+
+def _get_mfa_trust_serializer() -> URLSafeSerializer | None:
+    secret = (os.environ.get("SECRET_KEY") or "").strip()
+    if not secret:
+        return None
+    return URLSafeSerializer(secret_key=secret, salt="mfa-trust-cookie-v1")
+
+
+def _mfa_user_agent_fingerprint() -> str:
+    user_agent = (request.headers.get("User-Agent") or "").strip()
+    if not user_agent:
+        return ""
+    return hashlib.sha256(user_agent.encode("utf-8")).hexdigest()[:24]
+
+
+def _has_valid_mfa_trust_cookie(user_id: int, role: str) -> bool:
+    if not MFA_TRUST_DEVICE_ENABLED:
+        logger.debug("MFA trust device disabled")
+        return False
+
+    raw_token = (request.cookies.get(MFA_TRUST_COOKIE_NAME) or "").strip()
+    if not raw_token:
+        logger.debug(f"No trust cookie found (looking for {MFA_TRUST_COOKIE_NAME})")
+        return False
+
+    logger.debug(f"Found trust cookie for user_id={user_id}, role={role}")
+
+    serializer = _get_mfa_trust_serializer()
+    if serializer is None:
+        logger.warning("MFA trust serializer is None (SECRET_KEY not set)")
+        return False
+
+    try:
+        payload = serializer.loads(raw_token)
+        logger.debug(f"Trust cookie deserialized: {payload}")
+    except BadSignature:
+        logger.warning("Trust cookie failed signature verification")
+        return False
+    except Exception as e:
+        logger.warning(f"Trust cookie deserialization error: {e}")
+        return False
+
+    try:
+        payload_user_id = int(payload.get("uid") or 0)
+        payload_exp = int(payload.get("exp") or 0)
+    except Exception as e:
+        logger.warning(f"Trust cookie payload extraction error: {e}")
+        return False
+
+    if payload_user_id != int(user_id):
+        logger.debug(f"Trust cookie user_id mismatch: {payload_user_id} != {user_id}")
+        return False
+    if (payload.get("role") or "") != role:
+        logger.debug(f"Trust cookie role mismatch: {payload.get('role')} != {role}")
+        return False
+
+    now = int(time.time())
+    if payload_exp <= now:
+        logger.debug(f"Trust cookie expired: {payload_exp} <= {now}")
+        return False
+
+    if MFA_TRUST_BIND_USER_AGENT:
+        expected_ua = payload.get("ua") or ""
+        current_ua = _mfa_user_agent_fingerprint()
+        if not expected_ua or expected_ua != current_ua:
+            logger.debug(
+                f"Trust cookie UA binding failed: {expected_ua} != {current_ua}"
+            )
+            return False
+
+    logger.info(
+        f"Trust cookie validated successfully for user_id={user_id}, role={role}"
+    )
+    return True
+
+
+def _set_mfa_trust_cookie(response, user_id: int, role: str):
+    if not MFA_TRUST_DEVICE_ENABLED:
+        logger.debug("MFA trust device disabled, skipping cookie")
+        return
+
+    serializer = _get_mfa_trust_serializer()
+    if serializer is None:
+        logger.warning(
+            "Cannot set trust cookie: serializer is None (SECRET_KEY not set)"
+        )
+        return
+
+    max_age = max(1, MFA_TRUST_DAYS) * 24 * 60 * 60
+    payload = {
+        "uid": int(user_id),
+        "role": role,
+        "exp": int(time.time()) + max_age,
+    }
+    if MFA_TRUST_BIND_USER_AGENT:
+        payload["ua"] = _mfa_user_agent_fingerprint()
+
+    token = serializer.dumps(payload)
+    logger.info(
+        f"Setting MFA trust cookie for user_id={user_id}, role={role}, max_age={max_age}s, ua_binding={MFA_TRUST_BIND_USER_AGENT}"
+    )
+    response.set_cookie(
+        MFA_TRUST_COOKIE_NAME,
+        token,
+        max_age=max_age,
+        httponly=True,
+        secure=request.is_secure,
+        samesite="Lax",
+        path="/",
+    )
+
+
+def _mask_email(email: str) -> str:
+    if not email or "@" not in email:
+        return "***"
+    local, domain = email.split("@", 1)
+    if len(local) <= 2:
+        local_mask = "*" * len(local)
+    else:
+        local_mask = local[0] + ("*" * (len(local) - 2)) + local[-1]
+    return f"{local_mask}@{domain}"
+
+
+def _hash_mfa_code(code: str) -> str:
+    return hashlib.sha256(code.encode("utf-8")).hexdigest()
+
+
+def _generate_mfa_code() -> str:
+    return f"{secrets.randbelow(1000000):06d}"
+
+
+def _get_user_email_for_mfa(user_id: int, role: str) -> str | None:
+    try:
+        with get_db_connection().cursor() as cursor:
+            if role == "instructor":
+                cursor.execute(
+                    """
+                    SELECT pi.email
+                    FROM instructors i
+                    JOIN personal_info pi ON i.personal_info_id = pi.id
+                    WHERE i.user_id = %s
+                    LIMIT 1
+                    """,
+                    (user_id,),
+                )
+                row = cursor.fetchone()
+                return row.get("email") if row else None
+
+            if role == "student":
+                cursor.execute(
+                    """
+                    SELECT pi.email
+                    FROM students s
+                    JOIN personal_info pi ON s.personal_info_id = pi.id
+                    WHERE s.user_id = %s
+                    LIMIT 1
+                    """,
+                    (user_id,),
+                )
+                row = cursor.fetchone()
+                return row.get("email") if row else None
+
+            if role == "admin":
+                # Admin accounts may also be represented in instructors table.
+                cursor.execute(
+                    """
+                    SELECT pi.email
+                    FROM instructors i
+                    JOIN personal_info pi ON i.personal_info_id = pi.id
+                    WHERE i.user_id = %s
+                    LIMIT 1
+                    """,
+                    (user_id,),
+                )
+                row = cursor.fetchone()
+                return row.get("email") if row else None
+    except Exception as e:
+        logger.error(
+            f"Failed to resolve MFA email for user_id={user_id}, role={role}: {e}"
+        )
+
+    return None
+
+
+def _create_mfa_challenge(user: dict, role: str, next_endpoint: str):
+    if not _is_mfa_required(role):
+        return None
+
+    if _has_valid_mfa_trust_cookie(int(user["id"]), role):
+        logger.info(
+            f"Skipping MFA challenge for trusted device user_id={user['id']} role={role}"
+        )
+        return None
+
+    email = _get_user_email_for_mfa(user["id"], role)
+    if not email:
+        flash(
+            "MFA is required for this account, but no email is configured. Please contact an administrator.",
+            "error",
+        )
+        return redirect(url_for(_role_login_endpoint(role)))
+
+    code = _generate_mfa_code()
+    sent = email_service.send_mfa_code_email(
+        recipient_email=email,
+        recipient_name=user.get("school_id", "User"),
+        code=code,
+        expiry_minutes=max(1, MFA_CODE_TTL_SECONDS // 60),
+        role=role,
+    )
+    if not sent:
+        flash(
+            "Unable to deliver MFA code at the moment. Please try again.",
+            "error",
+        )
+        return redirect(url_for(_role_login_endpoint(role)))
+
+    now = int(time.time())
+    session["mfa_pending"] = {
+        "user_id": int(user["id"]),
+        "school_id": user.get("school_id"),
+        "role": role,
+        "email": email,
+        "code_hash": _hash_mfa_code(code),
+        "expires_at": now + MFA_CODE_TTL_SECONDS,
+        "attempts_left": MFA_MAX_ATTEMPTS,
+        "last_sent_at": now,
+        "next_endpoint": next_endpoint,
+    }
+    return redirect(url_for("auth.mfa_verify"))
+
+
+def _complete_mfa_login(pending: dict):
+    role = pending.get("role")
+    user_id = pending.get("user_id")
+    school_id = pending.get("school_id")
+
+    session.pop("mfa_pending", None)
+    session["user_id"] = user_id
+    session["school_id"] = school_id
+    session["role"] = role
+    session.permanent = True
+
+    if role == "instructor":
+        try:
+            with get_db_connection().cursor() as cursor:
+                cursor.execute(
+                    "SELECT id FROM instructors WHERE user_id = %s", (user_id,)
+                )
+                instr = cursor.fetchone()
+                if instr:
+                    session["instructor_id"] = instr["id"]
+        except Exception as e:
+            logger.error(f"Failed to resolve instructor_id during MFA completion: {e}")
+
+    next_endpoint = pending.get("next_endpoint") or "home"
+    return redirect(url_for(next_endpoint))
+
+
+def _get_pending_mfa() -> dict | None:
+    pending = session.get("mfa_pending")
+    if not isinstance(pending, dict):
+        return None
+    required = {
+        "user_id",
+        "school_id",
+        "role",
+        "email",
+        "code_hash",
+        "expires_at",
+        "attempts_left",
+        "next_endpoint",
+    }
+    if not required.issubset(set(pending.keys())):
+        session.pop("mfa_pending", None)
+        return None
+    return pending
+
+
 def get_client_ip():
-    """Get the client's IP address from request, handling proxies."""
-    # Check for forwarded header (when behind a proxy)
-    forwarded_for = request.headers.get("X-Forwarded-For")
-    if forwarded_for:
-        # Take the first IP in the chain
-        return forwarded_for.split(",")[0].strip()
-    return request.remote_addr or "127.0.0.1"
+    """Get the client's IP from normalized request context.
+
+    Forwarded headers are only trusted when ProxyFix is enabled in app.py.
+    """
+    raw_ip = request.remote_addr or request.environ.get("REMOTE_ADDR") or "127.0.0.1"
+    try:
+        return str(ipaddress.ip_address(raw_ip))
+    except ValueError:
+        logger.warning(f"Invalid client IP address received: {raw_ip!r}")
+        return "127.0.0.1"
 
 
 def check_rate_limit(username, role):
@@ -147,6 +563,13 @@ def admin_login():
         school_id = request.form.get("username", "").strip()
         password = request.form.get("password", "")
 
+        captcha_ok, captcha_message = _verify_turnstile_for_current_request(
+            "admin_login"
+        )
+        if not captcha_ok:
+            flash(captcha_message, "error")
+            return redirect(url_for("auth.admin_login"))
+
         logger.info(
             f"Admin login attempt for school ID: {school_id} from IP: {client_ip}"
         )
@@ -236,16 +659,25 @@ def admin_login():
             flash("Invalid admin credentials.", "error")
             return redirect(url_for("auth.admin_login"))
 
-        # Login successful
+        logger.info(f"Admin {school_id} logged in successfully")
+        # Reset failed attempts on successful login
+        limiter.process_success(school_id, client_ip, role)
+        session.pop("admin_login_locked_until", None)
+
+        mfa_redirect = _create_mfa_challenge(
+            user,
+            role,
+            "dashboard.admin_dashboard",
+        )
+        if mfa_redirect is not None:
+            return mfa_redirect
+
+        # Login successful (no MFA required)
         session["user_id"] = user["id"]
         session["school_id"] = user["school_id"]
         session["role"] = user["role"]
         session.permanent = True
 
-        logger.info(f"Admin {school_id} logged in successfully")
-        # Reset failed attempts on successful login
-        limiter.process_success(school_id, client_ip, role)
-        session.pop("admin_login_locked_until", None)
         return redirect(url_for("dashboard.admin_dashboard"))
 
     logger.info("Admin login page accessed")
@@ -349,6 +781,13 @@ def instructor_login():
     if request.method == "POST":
         school_id = request.form.get("username", "").strip()
         password = request.form.get("password", "")
+
+        captcha_ok, captcha_message = _verify_turnstile_for_current_request(
+            "instructor_login"
+        )
+        if not captcha_ok:
+            flash(captcha_message, "error")
+            return redirect(url_for("auth.instructor_login"))
 
         logger.info(
             f"Instructor login attempt for school ID: {school_id} from IP: {client_ip}"
@@ -478,7 +917,20 @@ def instructor_login():
             )
             return redirect(url_for("auth.instructor_login"))
 
-        # Login successful
+        logger.info(f"Instructor {school_id} logged in successfully")
+        # Reset failed attempts on successful login
+        limiter.process_success(school_id, client_ip, role)
+        session.pop("instructor_login_locked_until", None)
+
+        mfa_redirect = _create_mfa_challenge(
+            user,
+            role,
+            "dashboard.instructor_dashboard",
+        )
+        if mfa_redirect is not None:
+            return mfa_redirect
+
+        # Login successful (no MFA required)
         session["user_id"] = user["id"]
         session["school_id"] = user["school_id"]
         session["role"] = user["role"]
@@ -493,10 +945,6 @@ def instructor_login():
             if instr:
                 session["instructor_id"] = instr["id"]
 
-        logger.info(f"Instructor {school_id} logged in successfully")
-        # Reset failed attempts on successful login
-        limiter.process_success(school_id, client_ip, role)
-        session.pop("instructor_login_locked_until", None)
         return redirect(url_for("dashboard.instructor_dashboard"))
 
     logger.info("Instructor login page accessed")
@@ -598,6 +1046,13 @@ def student_login():
     if request.method == "POST":
         school_id = request.form.get("username", "").strip()
         password = request.form.get("password", "")
+
+        captcha_ok, captcha_message = _verify_turnstile_for_current_request(
+            "student_login"
+        )
+        if not captcha_ok:
+            flash(captcha_message, "error")
+            return redirect(url_for("auth.student_login"))
 
         logger.info(
             f"Student login attempt for school ID: {school_id} from IP: {client_ip}"
@@ -787,6 +1242,114 @@ def student_login():
     )
 
 
+@auth_bp.route("/mfa-verify", methods=["GET", "POST"], endpoint="mfa_verify")
+def mfa_verify():
+    pending = _get_pending_mfa()
+    if not pending:
+        flash("No pending MFA challenge. Please log in again.", "error")
+        return redirect(url_for("auth.login"))
+
+    now = int(time.time())
+    expires_at = int(pending.get("expires_at") or 0)
+    remaining_seconds = max(0, expires_at - now)
+
+    if remaining_seconds <= 0:
+        session.pop("mfa_pending", None)
+        flash("Your MFA code has expired. Please log in again.", "error")
+        return redirect(url_for(_role_login_endpoint(pending.get("role", ""))))
+
+    if request.method == "POST":
+        action = (request.form.get("action") or "verify").strip().lower()
+        remember_device_checked = (
+            request.form.get("remember_device") or ""
+        ).strip().lower() in {"1", "true", "yes", "on"}
+
+        captcha_ok, captcha_message = _verify_turnstile_for_current_request(
+            "mfa_verify"
+        )
+        if not captcha_ok:
+            flash(captcha_message, "error")
+            return redirect(url_for("auth.mfa_verify"))
+
+        if action == "resend":
+            last_sent_at = int(pending.get("last_sent_at") or 0)
+            cooldown_left = max(0, MFA_RESEND_COOLDOWN_SECONDS - (now - last_sent_at))
+            if cooldown_left > 0:
+                flash(
+                    f"Please wait {cooldown_left} seconds before requesting another code.",
+                    "error",
+                )
+            else:
+                code = _generate_mfa_code()
+                sent = email_service.send_mfa_code_email(
+                    recipient_email=pending["email"],
+                    recipient_name=pending.get("school_id", "User"),
+                    code=code,
+                    expiry_minutes=max(1, MFA_CODE_TTL_SECONDS // 60),
+                    role=pending.get("role", "user"),
+                )
+                if sent:
+                    pending["code_hash"] = _hash_mfa_code(code)
+                    pending["expires_at"] = now + MFA_CODE_TTL_SECONDS
+                    pending["last_sent_at"] = now
+                    session["mfa_pending"] = pending
+                    flash("A new MFA code has been sent to your email.", "success")
+                else:
+                    flash("Unable to send a new code. Please try again.", "error")
+
+            return redirect(url_for("auth.mfa_verify"))
+
+        code = (request.form.get("code") or "").strip()
+        if not code or not code.isdigit():
+            flash("Enter the 6-digit code from your email.", "error")
+            return redirect(url_for("auth.mfa_verify"))
+
+        attempts_left = int(pending.get("attempts_left") or MFA_MAX_ATTEMPTS)
+        if attempts_left <= 0:
+            session.pop("mfa_pending", None)
+            flash("Too many invalid MFA attempts. Please log in again.", "error")
+            return redirect(url_for(_role_login_endpoint(pending.get("role", ""))))
+
+        if not hmac.compare_digest(_hash_mfa_code(code), pending.get("code_hash", "")):
+            attempts_left -= 1
+            pending["attempts_left"] = attempts_left
+            session["mfa_pending"] = pending
+            if attempts_left <= 0:
+                session.pop("mfa_pending", None)
+                flash("Too many invalid MFA attempts. Please log in again.", "error")
+                return redirect(url_for(_role_login_endpoint(pending.get("role", ""))))
+
+            flash(f"Invalid code. {attempts_left} attempt(s) remaining.", "error")
+            return redirect(url_for("auth.mfa_verify"))
+
+        response = _complete_mfa_login(pending)
+        if remember_device_checked:
+            logger.info(f"User checked 'Remember this device' - setting trust cookie")
+            try:
+                _set_mfa_trust_cookie(
+                    response,
+                    int(pending.get("user_id") or 0),
+                    str(pending.get("role") or ""),
+                )
+            except Exception as e:
+                logger.warning(f"Failed to set MFA trust cookie: {e}")
+        else:
+            logger.debug("User did not check 'Remember this device'")
+        return response
+
+    return render_template(
+        "mfa_verify.html",
+        masked_email=_mask_email(pending.get("email", "")),
+        remaining_seconds=remaining_seconds,
+        role=pending.get("role"),
+        attempts_left=pending.get("attempts_left"),
+        resend_cooldown=MFA_RESEND_COOLDOWN_SECONDS,
+        mfa_trust_enabled=MFA_TRUST_DEVICE_ENABLED,
+        mfa_trust_days=MFA_TRUST_DAYS,
+        remember_device_checked=True,
+    )
+
+
 # Route: GET "/logout"
 # Used by: Logout links/buttons in various templates; session timeouts may redirect here
 # Purpose: Clear session and return user to home page.
@@ -795,21 +1358,21 @@ def logout():
     user_id = session.get("user_id")
     school_id = session.get("school_id")
     user_role = session.get("user_role", "unknown")
-    
+
     # Log the logout action
     logger.info(f"User {school_id} (ID: {user_id}) logged out as {user_role}")
-    
+
     # Completely clear the session
     session.clear()
-    
+
     # Create response object to add headers that prevent browser caching
     response = redirect(url_for("home"))
-    
+
     # Add cache-control headers to prevent back button access to authenticated pages
     response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
     response.headers["Pragma"] = "no-cache"
     response.headers["Expires"] = "0"
-    
+
     return response
 
 
@@ -820,6 +1383,11 @@ def logout():
 def register():
     if request.method == "POST":
         logger.info("Registration form submitted")
+
+        captcha_ok, captcha_message = _verify_turnstile_for_current_request("register")
+        if not captcha_ok:
+            flash(captcha_message, "error")
+            return render_template("register.html")
 
         first_name = request.form.get("firstName", "").strip()
         last_name = request.form.get("lastName", "").strip()
@@ -881,10 +1449,13 @@ def register():
             errors.append("Last name is required")
         # School ID is required and must match format YY-NNNNN where YY is 21-26
         import re
+
         if not school_id:
             errors.append("School ID is required")
-        elif not re.match(r'^(21|22|23|24|25|26)-\d{5}$', school_id):
-            errors.append("Invalid School ID format. Use YY-NNNNN (e.g., 22-12345) where YY is 21-26")
+        elif not re.match(r"^(21|22|23|24|25|26)-\d{5}$", school_id):
+            errors.append(
+                "Invalid School ID format. Use YY-NNNNN (e.g., 22-12345) where YY is 21-26"
+            )
         if not email:
             errors.append("Email is required")
         if not course:
@@ -899,14 +1470,9 @@ def register():
             errors.append("Passwords do not match")
 
         # Password strength validation
-        if len(password) < 6:
-            errors.append("Password must be at least 6 characters long")
-        if not any(c.isupper() for c in password):
-            errors.append("Password must contain at least one uppercase letter")
-        if not any(c.islower() for c in password):
-            errors.append("Password must contain at least one lowercase letter")
-        if not any(c.isdigit() for c in password):
-            errors.append("Password must contain at least one number")
+        errors.extend(
+            validate_password_policy(password, school_id=school_id, email=email)
+        )
 
         if errors:
             for error in errors:
@@ -1054,6 +1620,13 @@ def register():
 def forgot_password():
     """Display forgot password page and handle email submission"""
     if request.method == "POST":
+        captcha_ok, captcha_message = _verify_turnstile_for_current_request(
+            "forgot_password"
+        )
+        if not captcha_ok:
+            flash(captcha_message, "error")
+            return render_template("forgot_password.html")
+
         email = request.form.get("email", "").strip().lower()
         role = request.form.get("role", "").strip().lower()
 
@@ -1176,8 +1749,10 @@ def reset_password(token):
             flash("Passwords do not match.", "error")
             return render_template("reset_password.html", token=token)
 
-        if len(new_password) < 6:
-            flash("Password must be at least 6 characters long.", "error")
+        policy_errors = validate_password_policy(new_password)
+        if policy_errors:
+            for err in policy_errors:
+                flash(err, "error")
             return render_template("reset_password.html", token=token)
 
         try:

@@ -19,8 +19,71 @@ load_dotenv(
 
 DEFAULT_ADMIN_USERNAME = os.getenv("DEFAULT_ADMIN_USERNAME", "admin001")
 DEFAULT_ADMIN_PASSWORD = os.getenv("DEFAULT_ADMIN_PASSWORD")
+DEFAULT_ADMIN_EMAIL = os.getenv("DEFAULT_ADMIN_EMAIL", "programmingproject06@gmail.com")
+DEFAULT_ADMIN_FIRST_NAME = os.getenv("DEFAULT_ADMIN_FIRST_NAME", "System")
+DEFAULT_ADMIN_LAST_NAME = os.getenv("DEFAULT_ADMIN_LAST_NAME", "Administrator")
+DEFAULT_ADMIN_DEPARTMENT = os.getenv("DEFAULT_ADMIN_DEPARTMENT", "Administration")
 
 from utils.db_conn import get_db_connection
+
+
+def _ensure_admin_email_profile(cursor, user_id, admin_email):
+    """Ensure admin has instructor/personal_info linkage with an email for MFA."""
+    cursor.execute(
+        """
+        SELECT i.id AS instructor_id, i.personal_info_id, pi.email
+        FROM instructors i
+        LEFT JOIN personal_info pi ON i.personal_info_id = pi.id
+        WHERE i.user_id = %s
+        LIMIT 1
+        """,
+        (user_id,),
+    )
+    instructor_row = cursor.fetchone()
+
+    if instructor_row and instructor_row.get("personal_info_id"):
+        personal_info_id = instructor_row["personal_info_id"]
+        current_email = (instructor_row.get("email") or "").strip()
+        if not current_email:
+            cursor.execute(
+                "UPDATE personal_info SET email = %s WHERE id = %s",
+                (admin_email, personal_info_id),
+            )
+            return admin_email
+        return current_email
+
+    cursor.execute(
+        """
+        INSERT INTO personal_info (first_name, last_name, email)
+        VALUES (%s, %s, %s)
+        """,
+        (DEFAULT_ADMIN_FIRST_NAME, DEFAULT_ADMIN_LAST_NAME, admin_email),
+    )
+    personal_info_id = cursor.lastrowid
+
+    if instructor_row and instructor_row.get("instructor_id"):
+        cursor.execute(
+            """
+            UPDATE instructors
+            SET personal_info_id = %s, department = COALESCE(department, %s)
+            WHERE id = %s
+            """,
+            (
+                personal_info_id,
+                DEFAULT_ADMIN_DEPARTMENT,
+                instructor_row["instructor_id"],
+            ),
+        )
+    else:
+        cursor.execute(
+            """
+            INSERT INTO instructors (user_id, personal_info_id, department, status)
+            VALUES (%s, %s, %s, 'active')
+            """,
+            (user_id, personal_info_id, DEFAULT_ADMIN_DEPARTMENT),
+        )
+
+    return admin_email
 
 
 def create_admin():
@@ -41,12 +104,19 @@ def create_admin():
             existing_admin = cursor.fetchone()
 
             if existing_admin:
+                linked_email = _ensure_admin_email_profile(
+                    cursor,
+                    existing_admin["id"],
+                    DEFAULT_ADMIN_EMAIL,
+                )
+                get_db_connection().commit()
                 messagebox.showwarning(
                     "Admin Exists",
                     "Admin already exists!\n\n"
                     f"Username: {existing_admin['school_id']}\n"
                     f"Role: {existing_admin['role']}\n"
-                    f"Created: {existing_admin['created_at']}",
+                    f"Created: {existing_admin['created_at']}\n"
+                    f"Email (for MFA): {linked_email}",
                 )
                 return
 
@@ -55,6 +125,13 @@ def create_admin():
             cursor.execute(
                 "INSERT INTO users (school_id, password_hash, role) VALUES (%s, %s, %s)",
                 (DEFAULT_ADMIN_USERNAME, password_hash, "admin"),
+            )
+            admin_user_id = cursor.lastrowid
+
+            linked_email = _ensure_admin_email_profile(
+                cursor,
+                admin_user_id,
+                DEFAULT_ADMIN_EMAIL,
             )
 
         get_db_connection().commit()
@@ -65,7 +142,8 @@ def create_admin():
             "👤 ACCOUNT DETAILS:\n"
             f"Username: {DEFAULT_ADMIN_USERNAME}\n"
             "Password: [from DEFAULT_ADMIN_PASSWORD in .env]\n"
-            "Role: admin\n\n"
+            "Role: admin\n"
+            f"Email: {linked_email}\n\n"
             "🔗 LOGIN URL:\n"
             "http://127.0.0.1:5000/adminlogin",
         )
@@ -78,7 +156,7 @@ def open_custom_admin_form():
     """Open a window for custom admin creation."""
     form = tk.Toplevel(root)
     form.title("Create Custom Admin")
-    form.geometry("400x300")
+    form.geometry("420x360")
     form.resizable(False, False)
 
     # Labels + Entries
@@ -94,10 +172,16 @@ def open_custom_admin_form():
     confirm_entry = tk.Entry(form, show="*", width=30)
     confirm_entry.pack()
 
+    tk.Label(form, text="Email:").pack(pady=5)
+    email_entry = tk.Entry(form, width=30)
+    email_entry.insert(0, DEFAULT_ADMIN_EMAIL)
+    email_entry.pack()
+
     def create_custom_admin():
         school_id = school_id_entry.get().strip()
         password = password_entry.get().strip()
         confirm_password = confirm_entry.get().strip()
+        admin_email = email_entry.get().strip() or DEFAULT_ADMIN_EMAIL
 
         if not school_id:
             messagebox.showerror("Error", "School ID cannot be empty")
@@ -107,6 +191,9 @@ def open_custom_admin_form():
             return
         if password != confirm_password:
             messagebox.showerror("Error", "Passwords do not match")
+            return
+        if "@" not in admin_email:
+            messagebox.showerror("Error", "Please enter a valid email address")
             return
 
         try:
@@ -127,6 +214,13 @@ def open_custom_admin_form():
                     "INSERT INTO users (school_id, password_hash, role) VALUES (%s, %s, %s)",
                     (school_id, password_hash, "admin"),
                 )
+                admin_user_id = cursor.lastrowid
+
+                linked_email = _ensure_admin_email_profile(
+                    cursor,
+                    admin_user_id,
+                    admin_email,
+                )
 
             get_db_connection().commit()
 
@@ -136,7 +230,8 @@ def open_custom_admin_form():
                 f"👤 ACCOUNT DETAILS:\n"
                 f"Username: {school_id}\n"
                 "Password: [hidden for security]\n"
-                f"Role: admin\n\n"
+                f"Role: admin\n"
+                f"Email: {linked_email}\n\n"
                 "🔗 LOGIN URL:\n"
                 "http://127.0.0.1:5000/adminlogin",
             )

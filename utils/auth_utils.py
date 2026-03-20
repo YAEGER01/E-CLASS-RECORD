@@ -1,10 +1,81 @@
 import logging
+import os
 from functools import wraps
 from flask import session, flash, redirect, url_for, request, jsonify
 
 from utils.db_conn import get_db_connection
 
 logger = logging.getLogger(__name__)
+
+_COMMON_WEAK_PASSWORDS = {
+    "password",
+    "password123",
+    "admin",
+    "admin123",
+    "qwerty",
+    "qwerty123",
+    "123456",
+    "12345678",
+    "123456789",
+    "letmein",
+    "welcome",
+    "iloveyou",
+}
+
+
+def get_password_min_length(default: int = 12) -> int:
+    """Get minimum password length from environment with sane bounds."""
+    raw = (os.environ.get("PASSWORD_MIN_LENGTH") or "").strip()
+    if not raw:
+        return default
+    try:
+        value = int(raw)
+    except Exception:
+        logger.warning(
+            f"Invalid PASSWORD_MIN_LENGTH value: {raw!r}. Using default {default}."
+        )
+        return default
+
+    # Do not allow weak minimums.
+    return max(8, value)
+
+
+def validate_password_policy(
+    password: str,
+    school_id: str | None = None,
+    email: str | None = None,
+) -> list[str]:
+    """Validate a password against the application's baseline policy."""
+    errors: list[str] = []
+    min_length = get_password_min_length()
+
+    if not password:
+        return ["Password is required"]
+
+    if len(password) < min_length:
+        errors.append(f"Password must be at least {min_length} characters long")
+    if not any(c.isupper() for c in password):
+        errors.append("Password must contain at least one uppercase letter")
+    if not any(c.islower() for c in password):
+        errors.append("Password must contain at least one lowercase letter")
+    if not any(c.isdigit() for c in password):
+        errors.append("Password must contain at least one number")
+
+    password_lower = password.lower()
+    if password_lower in _COMMON_WEAK_PASSWORDS:
+        errors.append("Password is too common. Choose a less predictable password")
+
+    if school_id:
+        normalized_school_id = "".join(ch for ch in school_id.lower() if ch.isalnum())
+        if normalized_school_id and normalized_school_id in password_lower:
+            errors.append("Password must not contain your school ID")
+
+    if email and "@" in email:
+        local_part = email.split("@", 1)[0].strip().lower()
+        if len(local_part) >= 3 and local_part in password_lower:
+            errors.append("Password must not contain your email name")
+
+    return errors
 
 
 def login_required(f):
@@ -37,6 +108,7 @@ def login_required(f):
 
 def role_required(allowed_roles):
     """Decorator to ensure the user has one of the allowed roles."""
+
     def decorator(f):
         @wraps(f)
         def decorated_function(*args, **kwargs):

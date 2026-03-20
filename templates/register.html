@@ -10,6 +10,9 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- SweetAlert2 CSS -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11.7.32/dist/sweetalert2.min.css">
+    {% if captcha_enabled %}
+    <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+    {% endif %}
 </head>
 
 <body>
@@ -287,6 +290,11 @@
                         </div>
 
                         <div class="submit-section">
+                            {% if captcha_enabled %}
+                            <div style="display: flex; justify-content: center; margin-bottom: 14px;">
+                                <div class="cf-turnstile" data-sitekey="{{ cf_turnstile_site_key }}"></div>
+                            </div>
+                            {% endif %}
                             <button type="submit" class="submit-btn">
                                 Create Account
                             </button>

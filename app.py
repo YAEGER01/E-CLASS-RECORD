@@ -6,6 +6,7 @@ import uuid
 import hashlib
 import random
 import json
+import re
 from datetime import datetime
 from flask import (
     Flask,
@@ -18,6 +19,7 @@ from flask import (
     jsonify,
 )
 from flask_socketio import SocketIO, emit, join_room, leave_room
+from werkzeug.middleware.proxy_fix import ProxyFix
 
 # Load environment variables from .env file
 from dotenv import load_dotenv
@@ -48,24 +50,143 @@ from utils.live import (
     _grouped_cache_put,
 )
 
-# Setup logging (console + file)
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
 
-# Ensure a file handler writes to app.log
-_root_logger = logging.getLogger()
-_has_file = any(isinstance(h, logging.FileHandler) for h in _root_logger.handlers)
-if not _has_file:
-    try:
-        file_handler = logging.FileHandler(
-            os.path.join(os.getcwd(), "app.log"), encoding="utf-8"
-        )
-        formatter = logging.Formatter("%(levelname)s:%(name)s:%(message)s")
-        file_handler.setFormatter(formatter)
-        _root_logger.addHandler(file_handler)
-        _root_logger.info("File logging initialized: app.log")
-    except Exception as e:
-        _root_logger.warning(f"Could not initialize file logging: {e}")
+def _env_flag(name: str, default: bool) -> bool:
+    raw = (os.environ.get(name) or "").strip().lower()
+    if not raw:
+        return default
+    return raw in {"1", "true", "yes", "on"}
+
+
+class _TerminalNoiseFilter(logging.Filter):
+    """Suppress high-volume request logs that hide meaningful events."""
+
+    def __init__(self, hide_static_requests: bool = True):
+        super().__init__()
+        self.hide_static_requests = hide_static_requests
+
+    def filter(self, record: logging.LogRecord) -> bool:
+        if record.name != "werkzeug":
+            return True
+
+        msg = record.getMessage()
+
+        # Keep terminal output focused on app/auth flow instead of static asset churn.
+        if self.hide_static_requests and "GET /static/" in msg:
+            return False
+
+        if '"GET /favicon.ico HTTP/1.1" 404' in msg:
+            return False
+
+        return True
+
+
+class _PrettyConsoleFormatter(logging.Formatter):
+    _ANSI_RESET = "\033[0m"
+    _ANSI = {
+        "DEBUG": "\033[37m",
+        "INFO": "\033[36m",
+        "WARNING": "\033[33m",
+        "ERROR": "\033[31m",
+        "CRITICAL": "\033[41m\033[37m",
+    }
+
+    def __init__(self, use_color: bool = True):
+        super().__init__()
+        self.use_color = use_color
+
+    @staticmethod
+    def _extract_request_summary(message: str):
+        match = re.search(r'"([A-Z]+) ([^ ]+) HTTP/[^"]+" (\d{3})', message)
+        if not match:
+            return None
+        method, path, status = match.groups()
+        return method, path, status
+
+    def _colorize(self, level: str, text: str) -> str:
+        if not self.use_color:
+            return text
+        color = self._ANSI.get(level)
+        if not color:
+            return text
+        return f"{color}{text}{self._ANSI_RESET}"
+
+    def format(self, record: logging.LogRecord) -> str:
+        timestamp = datetime.fromtimestamp(record.created).strftime("%H:%M:%S")
+        level = f"{record.levelname:<8}"
+        logger_name = f"{record.name:<24.24}"
+        message = record.getMessage()
+
+        if record.name == "werkzeug":
+            req = self._extract_request_summary(message)
+            if req:
+                method, path, status = req
+                message = f"[REQ] {method:<6} {path} -> {status}"
+
+        line = f"[{timestamp}] [{level}] [{logger_name}] {message}"
+        return self._colorize(record.levelname, line)
+
+
+def _configure_logging():
+    root_logger = logging.getLogger()
+    root_logger.setLevel(logging.INFO)
+
+    pretty_console = _env_flag("LOG_PRETTY_CONSOLE", True)
+    use_color = _env_flag("LOG_COLOR", True)
+    hide_static_requests = _env_flag("LOG_HIDE_STATIC_REQUESTS", True)
+
+    # Remove only unmanaged console handlers to avoid duplicate lines after reload.
+    for handler in list(root_logger.handlers):
+        if isinstance(handler, logging.StreamHandler) and not isinstance(
+            handler, logging.FileHandler
+        ):
+            if not getattr(handler, "_eclass_managed", False):
+                root_logger.removeHandler(handler)
+
+    managed_console_exists = any(
+        isinstance(h, logging.StreamHandler)
+        and not isinstance(h, logging.FileHandler)
+        and getattr(h, "_eclass_managed", False)
+        for h in root_logger.handlers
+    )
+
+    if not managed_console_exists:
+        console_handler = logging.StreamHandler()
+        console_handler._eclass_managed = True  # type: ignore[attr-defined]
+        console_handler.addFilter(_TerminalNoiseFilter(hide_static_requests))
+        if pretty_console:
+            console_handler.setFormatter(_PrettyConsoleFormatter(use_color=use_color))
+        else:
+            console_handler.setFormatter(
+                logging.Formatter("%(levelname)s:%(name)s:%(message)s")
+            )
+        root_logger.addHandler(console_handler)
+
+    app_log_path = os.path.join(os.getcwd(), "app.log")
+    file_handler_exists = any(
+        isinstance(h, logging.FileHandler)
+        and os.path.abspath(getattr(h, "baseFilename", ""))
+        == os.path.abspath(app_log_path)
+        for h in root_logger.handlers
+    )
+
+    if not file_handler_exists:
+        try:
+            file_handler = logging.FileHandler(app_log_path, encoding="utf-8")
+            file_handler.setFormatter(
+                logging.Formatter(
+                    "%(asctime)s | %(levelname)-8s | %(name)s | %(message)s",
+                    datefmt="%Y-%m-%d %H:%M:%S",
+                )
+            )
+            root_logger.addHandler(file_handler)
+            root_logger.info("File logging initialized: app.log")
+        except Exception as e:
+            root_logger.warning(f"Could not initialize file logging: {e}")
+
+
+_configure_logging()
+logger = logging.getLogger(__name__)
 
 
 # Helper function to generate class codes
@@ -105,6 +226,40 @@ if not secret_key:
     )
 app.secret_key = secret_key
 
+
+def _get_int_env(name: str, default: int = 0) -> int:
+    raw = os.environ.get(name, str(default)).strip()
+    try:
+        value = int(raw)
+        return value if value >= 0 else default
+    except Exception:
+        logger.warning(f"Invalid integer for {name}: {raw!r}. Using default {default}.")
+        return default
+
+
+def _get_bool_env(name: str, default: bool = False) -> bool:
+    raw = (os.environ.get(name) or "").strip().lower()
+    if not raw:
+        return default
+    return raw in {"1", "true", "yes", "on"}
+
+
+# Trust forwarded headers only when explicitly configured behind a reverse proxy.
+TRUSTED_PROXY_HOPS = _get_int_env("TRUSTED_PROXY_HOPS", 0)
+app.config["TRUSTED_PROXY_HOPS"] = TRUSTED_PROXY_HOPS
+
+if TRUSTED_PROXY_HOPS > 0:
+    app.wsgi_app = ProxyFix(
+        app.wsgi_app,
+        x_for=TRUSTED_PROXY_HOPS,
+        x_proto=TRUSTED_PROXY_HOPS,
+        x_host=TRUSTED_PROXY_HOPS,
+        x_port=TRUSTED_PROXY_HOPS,
+    )
+    logger.info(f"ProxyFix enabled with TRUSTED_PROXY_HOPS={TRUSTED_PROXY_HOPS}")
+else:
+    logger.info("ProxyFix disabled (TRUSTED_PROXY_HOPS=0)")
+
 # Production Configuration
 # Set these environment variables in cPanel or use .env file
 FLASK_ENV = os.environ.get("FLASK_ENV", "development")
@@ -128,12 +283,58 @@ else:
     app.config["SEND_FILE_MAX_AGE_DEFAULT"] = 0
     logger.info("Development mode enabled")
 
+SECURITY_HEADERS_ENABLED = _get_bool_env("SECURITY_HEADERS_ENABLED", True)
+CSP_REPORT_ONLY = _get_bool_env("CSP_REPORT_ONLY", False)
+CONTENT_SECURITY_POLICY = os.environ.get(
+    "CONTENT_SECURITY_POLICY",
+    "default-src 'self'; "
+    "base-uri 'self'; "
+    "frame-ancestors 'none'; "
+    "frame-src 'self' https://challenges.cloudflare.com; "
+    "child-src 'self' https://challenges.cloudflare.com; "
+    "form-action 'self'; "
+    "object-src 'none'; "
+    "script-src 'self' 'unsafe-inline' 'unsafe-eval' https:; "
+    "style-src 'self' 'unsafe-inline' https:; "
+    "img-src 'self' data: blob: https:; "
+    "font-src 'self' data: https:; "
+    "connect-src 'self' https: http: ws: wss:",
+)
+
 # Initialize CSRF protection - disable by default, enable per-route
 csrf = CSRFProtect(app)
 app.config["WTF_CSRF_CHECK_DEFAULT"] = True
 
+
+# Restrict Socket.IO origins to a trusted allowlist.
+# Configure via SOCKET_ALLOWED_ORIGINS="https://example.com,https://app.example.com"
+def _get_socket_allowed_origins():
+    configured = (os.environ.get("SOCKET_ALLOWED_ORIGINS") or "").strip()
+    if configured:
+        origins = [origin.strip() for origin in configured.split(",") if origin.strip()]
+        if origins:
+            return origins
+
+    if FLASK_ENV == "production" and PRODUCTION_DOMAIN:
+        domain = PRODUCTION_DOMAIN.strip()
+        if domain.startswith("http://") or domain.startswith("https://"):
+            return [domain]
+        return [f"https://{domain}"]
+
+    # Safe local defaults for development.
+    return [
+        "http://localhost:5000",
+        "http://127.0.0.1:5000",
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+    ]
+
+
+SOCKET_ALLOWED_ORIGINS = _get_socket_allowed_origins()
+
 # Initialize SocketIO
-socketio = SocketIO(app, cors_allowed_origins="*")
+socketio = SocketIO(app, cors_allowed_origins=SOCKET_ALLOWED_ORIGINS)
+logger.info(f"Socket.IO CORS allowlist active: {SOCKET_ALLOWED_ORIGINS}")
 
 # Initialize live helpers and register Socket.IO handlers
 initialize_live(socketio, logger)
@@ -356,40 +557,62 @@ def auto_gibber_redirect():
 @app.after_request
 def set_cache_control_headers(response):
     """
-    Set cache-control headers for all responses to prevent browser caching of 
-    authenticated pages. This ensures that users cannot access dashboards via 
+    Set cache-control headers for all responses to prevent browser caching of
+    authenticated pages. This ensures that users cannot access dashboards via
     browser back button after logging out.
     """
     path = request.path
-    
+
+    if SECURITY_HEADERS_ENABLED:
+        csp_header_name = (
+            "Content-Security-Policy-Report-Only"
+            if CSP_REPORT_ONLY
+            else "Content-Security-Policy"
+        )
+        response.headers[csp_header_name] = CONTENT_SECURITY_POLICY
+        response.headers["X-Frame-Options"] = "DENY"
+        response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["Permissions-Policy"] = (
+            "camera=(), microphone=(), geolocation=(), payment=(), usb=()"
+        )
+        response.headers["Cross-Origin-Opener-Policy"] = "same-origin"
+
+        if FLASK_ENV == "production" and request.is_secure:
+            response.headers["Strict-Transport-Security"] = (
+                "max-age=31536000; includeSubDomains"
+            )
+
     # List of protected routes that should not be cached
     protected_paths = [
-        '/dashboard',
-        '/instructor',
-        '/student',
-        '/admin',
-        '/api/instructor',
-        '/api/student',
-        '/api/admin'
+        "/dashboard",
+        "/instructor",
+        "/student",
+        "/admin",
+        "/api/instructor",
+        "/api/student",
+        "/api/admin",
     ]
-    
+
     # Check if user is authenticated by looking for user_id in session
-    is_authenticated = 'user_id' in session
-    
+    is_authenticated = "user_id" in session
+
     # For authenticated users on protected pages, set no-cache headers
     if is_authenticated and any(path.startswith(p) for p in protected_paths):
-        response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0, private"
+        response.headers["Cache-Control"] = (
+            "no-store, no-cache, must-revalidate, max-age=0, private"
+        )
         response.headers["Pragma"] = "no-cache"
         response.headers["Expires"] = "0"
-    
+
     # For public pages, allow normal caching but still set private
-    elif path.startswith('/static'):
+    elif path.startswith("/static"):
         # Static files can be cached
         pass
     else:
         # Other pages should have limited caching
         response.headers["Cache-Control"] = "public, max-age=3600"
-    
+
     return response
 
 

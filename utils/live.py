@@ -1,12 +1,75 @@
 import logging
 import hashlib
 from datetime import datetime
+from flask import request, session
 from flask_socketio import emit, join_room, leave_room, SocketIO
 from utils.db_conn import get_db_connection
 
 
 _socketio: SocketIO | None = None
 _logger = logging.getLogger(__name__)
+_ALLOWED_SOCKET_ROLES = {"admin", "instructor", "student"}
+
+
+def _get_socket_identity():
+    try:
+        return session.get("user_id"), session.get("role")
+    except Exception:
+        return None, None
+
+
+def _get_socket_ip():
+    try:
+        return request.remote_addr or "unknown"
+    except Exception:
+        return "unknown"
+
+
+def _is_socket_authenticated():
+    user_id, role = _get_socket_identity()
+    return bool(user_id and role in _ALLOWED_SOCKET_ROLES)
+
+
+def _can_access_class(user_id: int, role: str, class_id: int) -> bool:
+    if not user_id or not class_id:
+        return False
+
+    try:
+        with get_db_connection().cursor() as cursor:
+            if role == "admin":
+                return True
+
+            if role == "instructor":
+                cursor.execute(
+                    """
+                    SELECT 1
+                    FROM classes c
+                    JOIN instructors i ON c.instructor_id = i.id
+                    WHERE c.id = %s AND i.user_id = %s
+                    LIMIT 1
+                    """,
+                    (class_id, user_id),
+                )
+                return bool(cursor.fetchone())
+
+            if role == "student":
+                cursor.execute(
+                    """
+                    SELECT 1
+                    FROM student_classes sc
+                    JOIN students s ON sc.student_id = s.id
+                    WHERE sc.class_id = %s AND s.user_id = %s AND sc.status = 'approved'
+                    LIMIT 1
+                    """,
+                    (class_id, user_id),
+                )
+                return bool(cursor.fetchone())
+    except Exception as e:
+        _logger.error(
+            f"Socket authorization lookup failed for user_id={user_id}, class_id={class_id}: {e}"
+        )
+
+    return False
 
 
 def initialize_live(socketio: SocketIO, logger: logging.Logger | None = None):
@@ -22,7 +85,13 @@ def register_socketio_handlers(socketio: SocketIO):
 
     @socketio.on("connect")
     def _on_connect():
-        emit("connected", {"message": "connected"})
+        user_id, role = _get_socket_identity()
+        if not _is_socket_authenticated():
+            _logger.warning(
+                f"Rejected unauthenticated Socket.IO connection from {_get_socket_ip()}"
+            )
+            return False
+        emit("connected", {"message": "connected", "role": role, "user_id": user_id})
 
     @socketio.on("disconnect")
     def _on_disconnect():
@@ -32,39 +101,72 @@ def register_socketio_handlers(socketio: SocketIO):
     @socketio.on("join_ip_room")
     def _on_join_ip_room(data):
         """Join an IP-based room for lockout notifications."""
-        ip_address = (data or {}).get("ip_address")
-        if ip_address:
+        # Never trust client-provided IP for room selection.
+        ip_address = _get_socket_ip()
+        if ip_address and ip_address != "unknown":
             join_room(ip_address)
             _logger.info(f"Client joined IP room: {ip_address}")
 
     @socketio.on("subscribe_live_version")
     def _on_subscribe_live_version(data):
+        user_id, role = _get_socket_identity()
+        if not _is_socket_authenticated():
+            emit("error", {"message": "authentication_required"})
+            return
+
         try:
             class_id = int((data or {}).get("class_id"))
         except Exception:
             emit("error", {"message": "invalid class_id"})
             return
+
+        if not _can_access_class(user_id, role, class_id):
+            emit("error", {"message": "forbidden_class_access"})
+            return
+
         join_room(f"class-{class_id}")
         version = get_cached_class_live_version(class_id)
         emit("live_version", {"class_id": class_id, "version": version})
 
     @socketio.on("unsubscribe_live_version")
     def _on_unsubscribe_live_version(data):
+        user_id, role = _get_socket_identity()
+        if not _is_socket_authenticated():
+            return
+
         try:
             class_id = int((data or {}).get("class_id"))
         except Exception:
             return
+
+        if not _can_access_class(user_id, role, class_id):
+            return
+
         leave_room(f"class-{class_id}")
 
     # Live grade edit broadcast: clients emit 'grade_edit' with { class_id, student_id, assessment_id, score }
     @socketio.on("grade_edit")
     def _on_grade_edit(data):
+        user_id, role = _get_socket_identity()
+        if not _is_socket_authenticated():
+            emit("error", {"message": "authentication_required"})
+            return
+
+        if role not in {"instructor", "admin"}:
+            emit("error", {"message": "forbidden"})
+            return
+
         try:
             payload = data or {}
             class_id = int(payload.get("class_id"))
         except Exception:
             emit("error", {"message": "invalid grade_edit payload"})
             return
+
+        if not _can_access_class(user_id, role, class_id):
+            emit("error", {"message": "forbidden_class_access"})
+            return
+
         # Broadcast to other clients in the same class room (do not echo back to sender)
         try:
             emit("grade_update", payload, room=f"class-{class_id}", include_self=False)

@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MFA Verification</title>
+    {% if captcha_enabled %}
+    <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" async defer></script>
+    {% endif %}
+    <style>
+        body {
+            margin: 0;
+            min-height: 100vh;
+            font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(180deg, #f2f7ff 0%, #e7effa 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #1f2937;
+        }
+        .card {
+            width: 100%;
+            max-width: 460px;
+            background: #ffffff;
+            border-radius: 14px;
+            box-shadow: 0 12px 30px rgba(15, 23, 42, 0.12);
+            padding: 28px;
+            box-sizing: border-box;
+        }
+        h1 {
+            margin: 0 0 10px 0;
+            font-size: 24px;
+            color: #153b66;
+        }
+        p {
+            margin: 8px 0;
+            line-height: 1.4;
+        }
+        .meta {
+            color: #4b5563;
+            font-size: 14px;
+        }
+        .code-input {
+            width: 100%;
+            box-sizing: border-box;
+            margin-top: 14px;
+            padding: 14px;
+            border: 1px solid #c8d5e6;
+            border-radius: 8px;
+            font-size: 24px;
+            text-align: center;
+            letter-spacing: 8px;
+            font-weight: 700;
+            color: #153b66;
+        }
+        .actions {
+            margin-top: 18px;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .remember-row {
+            margin-top: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+            color: #4b5563;
+        }
+        .remember-row input {
+            width: 16px;
+            height: 16px;
+        }
+        button {
+            border: none;
+            border-radius: 8px;
+            padding: 10px 14px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+        .btn-primary {
+            background: #1f4d7a;
+            color: #ffffff;
+            flex: 1 1 180px;
+        }
+        .btn-secondary {
+            background: #e8eef7;
+            color: #1f4d7a;
+            flex: 1 1 180px;
+        }
+        .flash {
+            margin-top: 10px;
+            padding: 10px 12px;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+        .flash.error {
+            background: #fde8e8;
+            color: #9b1c1c;
+            border: 1px solid #f8b4b4;
+        }
+        .flash.success {
+            background: #e8f9ee;
+            color: #0d6832;
+            border: 1px solid #9be8bf;
+        }
+        .footer {
+            margin-top: 14px;
+            font-size: 12px;
+            color: #6b7280;
+            text-align: center;
+        }
+        .btn-back {
+            background: #f3f4f6;
+            color: #374151;
+            font-size: 14px;
+            padding: 8px 12px;
+            margin-top: 14px;
+            width: 100%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+        .btn-back:hover {
+            background: #e5e7eb;
+        }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h1>Verify Your Login</h1>
+        <p class="meta">A one-time code was sent to <strong>{{ masked_email }}</strong>.</p>
+        <p class="meta">Role: <strong>{{ role|capitalize }}</strong></p>
+        <p class="meta">Code expires in <strong id="countdown">{{ remaining_seconds }}</strong> seconds.</p>
+        <p class="meta">Attempts left: <strong>{{ attempts_left }}</strong></p>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="flash {{ category }}">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <form method="POST" action="{{ url_for('auth.mfa_verify') }}" autocomplete="off" id="verifyForm">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+            <input type="hidden" name="action" value="verify"/>
+            <input
+                class="code-input"
+                type="text"
+                name="code"
+                inputmode="numeric"
+                pattern="[0-9]{6}"
+                maxlength="6"
+                placeholder="000000"
+                required
+            />
+            {% if mfa_trust_enabled %}
+            <label class="remember-row" for="remember-device">
+                <input
+                    id="remember-device"
+                    type="checkbox"
+                    name="remember_device"
+                    value="1"
+                    {% if remember_device_checked %}checked{% endif %}
+                />
+                <span>Remember this device for {{ mfa_trust_days }} day{% if mfa_trust_days != 1 %}s{% endif %}</span>
+            </label>
+            {% endif %}
+            {% if captcha_enabled %}
+            <div class="actions" style="justify-content: center;">
+                <div id="verify-turnstile"></div>
+            </div>
+            {% endif %}
+            <div class="actions">
+                <button class="btn-primary" type="submit">Verify and Continue</button>
+            </div>
+        </form>
+
+        <div>
+            {% if captcha_enabled %}
+            <div class="actions" style="justify-content: center; display: none;" id="resendCaptchaRow">
+                <div id="resend-turnstile"></div>
+            </div>
+            <p class="meta" id="resendCaptchaHint" style="display: none;">Complete CAPTCHA to resend code.</p>
+            {% endif %}
+            <div class="actions">
+                <button class="btn-secondary" type="button" id="resendBtn">Resend Code</button>
+            </div>
+        </div>
+
+        <button class="btn-back" type="button" id="backBtn" title="Go back to previous page">
+            <span>← Back</span>
+        </button>
+        <p class="footer">If you did not request this code, change your password immediately.</p>
+    </div>
+
+    <script>
+        (function () {
+            var el = document.getElementById('countdown');
+            if (!el) return;
+            var seconds = parseInt(el.textContent || '0', 10);
+            if (isNaN(seconds)) seconds = 0;
+            setInterval(function () {
+                if (seconds > 0) seconds -= 1;
+                el.textContent = String(seconds);
+            }, 1000);
+        })();
+
+        (function () {
+            if (!document.getElementById('verify-turnstile')) return;
+
+            var verifyForm = document.getElementById('verifyForm');
+            var resendBtn = document.getElementById('resendBtn');
+            var resendCaptchaRow = document.getElementById('resendCaptchaRow');
+            var resendCaptchaHint = document.getElementById('resendCaptchaHint');
+            var verifyWidgetId = null;
+            var resendWidgetId = null;
+            var retryCount = 0;
+            var resendAttempts = 0;
+            var resendCooldownActive = false;
+
+            function getCaptchaToken(containerId) {
+                if (!containerId) return '';
+                var container = document.getElementById(containerId);
+                if (!container) return '';
+                var tokenInput = container.querySelector('input[name="cf-turnstile-response"]');
+                return tokenInput ? (tokenInput.value || '').trim() : '';
+            }
+
+            function renderWidgetsWhenReady() {
+                if (!window.turnstile) {
+                    retryCount += 1;
+                    if (retryCount <= 40) {
+                        setTimeout(renderWidgetsWhenReady, 100);
+                    }
+                    return;
+                }
+
+                if (verifyWidgetId === null) {
+                    verifyWidgetId = window.turnstile.render('#verify-turnstile', {
+                        sitekey: '{{ cf_turnstile_site_key }}'
+                    });
+                }
+            }
+
+            function showResendCaptcha() {
+                if (!resendCaptchaRow) return;
+                resendCaptchaRow.style.display = 'flex';
+                if (resendCaptchaHint) {
+                    resendCaptchaHint.style.display = 'block';
+                    resendCaptchaHint.textContent = 'Complete CAPTCHA to resend code.';
+                }
+
+                if (window.turnstile && resendWidgetId === null) {
+                    resendWidgetId = window.turnstile.render('#resend-turnstile', {
+                        sitekey: '{{ cf_turnstile_site_key }}'
+                    });
+                }
+            }
+
+            function calculateCooldownSeconds() {
+                // 1st resend is free (0 seconds)
+                // 2nd resend: 120 seconds (2 minutes)
+                // 3rd resend: 150 seconds (2:30)
+                // 4th resend: 180 seconds (3:00)
+                // Pattern: 120 + (attempts - 1) * 30
+                if (resendAttempts === 0) {
+                    return 0;
+                }
+                return 120 + (resendAttempts - 1) * 30;
+            }
+
+            function formatSeconds(totalSeconds) {
+                var mins = Math.floor(totalSeconds / 60);
+                var secs = totalSeconds % 60;
+                return mins + ':' + (secs < 10 ? '0' : '') + secs;
+            }
+
+            function startResendCooldown(cooldownSeconds) {
+                if (cooldownSeconds === 0) {
+                    // First resend is free, no cooldown
+                    return;
+                }
+
+                resendCooldownActive = true;
+                resendBtn.disabled = true;
+                resendBtn.style.opacity = '0.5';
+                resendBtn.style.cursor = 'not-allowed';
+
+                var remaining = cooldownSeconds;
+
+                function updateCooldown() {
+                    if (remaining > 0) {
+                        var formatted = formatSeconds(remaining);
+                        resendBtn.textContent = 'Resend in ' + formatted;
+                        remaining -= 1;
+                        setTimeout(updateCooldown, 1000);
+                    } else {
+                        // Cooldown complete
+                        resendCooldownActive = false;
+                        resendBtn.disabled = false;
+                        resendBtn.style.opacity = '1';
+                        resendBtn.style.cursor = 'pointer';
+                        resendBtn.textContent = 'Resend Code';
+                    }
+                }
+
+                updateCooldown();
+            }
+
+            if (resendBtn) {
+                resendBtn.addEventListener('click', function (event) {
+                    event.preventDefault();
+
+                    if (resendCooldownActive) {
+                        return;
+                    }
+
+                    // First click: show CAPTCHA
+                    if (resendWidgetId === null && resendAttempts === 0) {
+                        showResendCaptcha();
+                        resendBtn.textContent = 'Submit Resend';
+                        return;
+                    }
+
+                    // Resend button clicked (CAPTCHA already shown)
+                    if (!getCaptchaToken('resend-turnstile')) {
+                        if (resendCaptchaHint) {
+                            resendCaptchaHint.style.display = 'block';
+                            resendCaptchaHint.textContent = 'Please complete CAPTCHA first.';
+                        }
+                        return;
+                    }
+
+                    // Increment resend counter and calculate cooldown
+                    resendAttempts += 1;
+                    var cooldownSecs = calculateCooldownSeconds();
+
+                    // Submit via fetch to avoid form resubmit warning
+                    var csrfToken = verifyForm.querySelector('input[name="csrf_token"]').value;
+                    var captchaToken = getCaptchaToken('resend-turnstile');
+
+                    var formData = new FormData();
+                    formData.append('csrf_token', csrfToken);
+                    formData.append('action', 'resend');
+                    formData.append('cf-turnstile-response', captchaToken);
+
+                    fetch('{{ url_for("auth.mfa_verify") }}', {
+                        method: 'POST',
+                        body: formData
+                    })
+                    .then(function (response) {
+                        return response.text();
+                    })
+                    .then(function (html) {
+                        // Reload page to show success message and reset form
+                        location.reload();
+                    })
+                    .catch(function (error) {
+                        console.error('Resend failed:', error);
+                        if (resendCaptchaHint) {
+                            resendCaptchaHint.style.display = 'block';
+                            resendCaptchaHint.textContent = 'Error: Could not resend code. Please try again.';
+                        }
+                    });
+
+                    // Start cooldown immediately (don't wait for server response)
+                    startResendCooldown(cooldownSecs);
+                });
+            }
+
+            if (verifyForm) {
+                verifyForm.addEventListener('submit', function (event) {
+                    if (!getCaptchaToken('verify-turnstile')) {
+                        event.preventDefault();
+                    }
+                });
+            }
+
+            renderWidgetsWhenReady();
+        })();
+
+        // Back button handler
+        (function () {
+            var backBtn = document.getElementById('backBtn');
+            if (backBtn) {
+                backBtn.addEventListener('click', function () {
+                    window.history.back();
+                });
+            }
+        })();
+    </script>
+</body>
+</html>

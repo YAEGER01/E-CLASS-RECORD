@@ -5,7 +5,7 @@ from flask import Blueprint, request, jsonify, session
 from werkzeug.security import generate_password_hash
 
 from utils.db_conn import get_db_connection
-from utils.auth_utils import login_required
+from utils.auth_utils import login_required, validate_password_policy
 from utils.email_service import email_service
 
 logger = logging.getLogger(__name__)
@@ -77,6 +77,9 @@ def create_instructor():
         confirm_password = data.get("confirmPassword", "")
         if password != confirm_password:
             errors.append("Passwords do not match")
+        errors.extend(
+            validate_password_policy(password, school_id=school_id, email=email)
+        )
 
         # Ensure the ID suffix follows 3 digits for INS-### format
         if (
@@ -784,10 +787,14 @@ def get_instructor_classes(instructor_id):
                             else "1"
                         )
                     )
-                    subject_code = cls.get('subject_code', '')
-                    subject = cls.get('subject', '')
-                    track = cls.get('track', '')
-                    subject_part = f" ({subject_code} - {subject})" if subject_code and subject else ""
+                    subject_code = cls.get("subject_code", "")
+                    subject = cls.get("subject", "")
+                    track = cls.get("track", "")
+                    subject_part = (
+                        f" ({subject_code} - {subject})"
+                        if subject_code and subject
+                        else ""
+                    )
                     class_display_id = f"{formatted_year}-{formatted_semester} {cls.get('course') or ''} {cls.get('section') or ''}-{track}{subject_part}"
 
                     # Normalize created_at to string
@@ -1369,10 +1376,12 @@ def get_grade_release_monitoring():
                         else "1"
                     )
                 )
-                subject_code = cls.get('subject_code', '')
-                subject = cls.get('subject', '')
-                track = cls.get('track', '')
-                subject_part = f" ({subject_code} - {subject})" if subject_code and subject else ""
+                subject_code = cls.get("subject_code", "")
+                subject = cls.get("subject", "")
+                track = cls.get("track", "")
+                subject_part = (
+                    f" ({subject_code} - {subject})" if subject_code and subject else ""
+                )
                 class_display_id = f"{formatted_year}-{formatted_semester} {cls.get('course') or ''} {cls.get('section') or ''}-{track}{subject_part}"
 
                 # Calculate ungraded students for this class
@@ -1436,13 +1445,16 @@ def get_grade_release_monitoring():
             500,
         )
 
+
 # ============================================================================
 # STUDENT REGISTRATION APPROVAL MANAGEMENT
 # ============================================================================
 
 
 @admin_bp.route(
-    "/admin/pending-registrations", methods=["GET"], endpoint="get_pending_registrations"
+    "/admin/pending-registrations",
+    methods=["GET"],
+    endpoint="get_pending_registrations",
 )
 @login_required
 def get_pending_registrations():
@@ -1569,9 +1581,7 @@ def approve_registration(student_id):
 
             if student["approval_status"] != "pending":
                 return (
-                    jsonify(
-                        {"error": "Student registration is not in pending status"}
-                    ),
+                    jsonify({"error": "Student registration is not in pending status"}),
                     400,
                 )
 
@@ -1674,9 +1684,7 @@ def reject_registration(student_id):
 
             if student["approval_status"] != "pending":
                 return (
-                    jsonify(
-                        {"error": "Student registration is not in pending status"}
-                    ),
+                    jsonify({"error": "Student registration is not in pending status"}),
                     400,
                 )
 
@@ -1686,13 +1694,15 @@ def reject_registration(student_id):
 
             # Delete student record (this will cascade delete related records if foreign keys are set)
             cursor.execute("DELETE FROM students WHERE id = %s", (student_id,))
-            
+
             # Delete user account
             cursor.execute("DELETE FROM users WHERE id = %s", (user_id,))
-            
+
             # Delete personal info
             if personal_info_id:
-                cursor.execute("DELETE FROM personal_info WHERE id = %s", (personal_info_id,))
+                cursor.execute(
+                    "DELETE FROM personal_info WHERE id = %s", (personal_info_id,)
+                )
 
         get_db_connection().commit()
 

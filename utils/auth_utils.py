@@ -35,6 +35,33 @@ def login_required(f):
     return decorated_function
 
 
+def role_required(allowed_roles):
+    """Decorator to ensure the user has one of the allowed roles."""
+    def decorator(f):
+        @wraps(f)
+        def decorated_function(*args, **kwargs):
+            if "user_id" not in session:
+                # Handle unauthenticated access
+                if request and getattr(request, "path", "").startswith("/api/"):
+                    return jsonify({"error": "Authentication required"}), 401
+                flash("Please log in to access this page.", "error")
+                return redirect(url_for("auth.login"))
+
+            user_role = session.get("role")
+            if user_role not in allowed_roles:
+                # Handle unauthorized access
+                if request and getattr(request, "path", "").startswith("/api/"):
+                    return jsonify({"error": "Access denied"}), 403
+                flash("You do not have permission to access this page.", "error")
+                return redirect(url_for("auth.login"))
+
+            return f(*args, **kwargs)
+
+        return decorated_function
+
+    return decorator
+
+
 def log_admin_action(action, resource_type, resource_id=None, details=None):
     """Log an admin action to the audit_logs table."""
     try:

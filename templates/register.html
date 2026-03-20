@@ -6,6 +6,8 @@
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <title>E-Class Record System - Register</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/register-page.css') }}">
+    <!-- Font Awesome CSS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- SweetAlert2 CSS -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11.7.32/dist/sweetalert2.min.css">
 </head>
@@ -22,7 +24,9 @@
         <div class="registration-card"> 
             <header class="header">
                 <div class="brand">
-                    <div class="brand-logo">🎓</div>
+                    <div class="brand-logo">
+                        <img src="/static/images/isu.png" alt="ISU Logo" class="isu-logo" />
+                    </div>
                     <div class="brand-info">
                         <h1>E-CLASS RECORD SYSTEM</h1>
                         <p>Isabela State University - Cauayan | CCSICT</p>
@@ -85,10 +89,10 @@
                                     School ID <span class="required-mark">*</span>
                                 </label>
                                 <div class="input-group">
-                                    <input id="schoolId" name="schoolId" type="text" placeholder="e.g. 2019-01234"
-                                        required value="{{ form_data.schoolId if form_data else '' }}" />
+                                    <input id="schoolId" name="schoolId" type="text" placeholder="e.g. 22-12345"
+                                        required value="{{ form_data.schoolId if form_data else '' }}" pattern="^(21|22|23|24|25|26)-\d{5}$" />
                                 </div>
-                                <div class="field-hint">Your official school ID number</div>
+                                <div class="field-hint">Format: YY-NNNNN (e.g., 22-12345, 23-15472) where YY is 21-26</div>
                             </div>
 
                             <div class="form-field">
@@ -188,7 +192,7 @@
 
                         <div class="photo-upload-section">
                             <div class="photo-header">
-                                <h3>📸 Photo Requirements</h3>
+                                <h3>Photo Requirements</h3>
                                 <p>Upload clear photos for verification</p>
                             </div>
 
@@ -208,7 +212,7 @@
                                         />
                                         <div class="photo-upload-zone" onclick="document.getElementById('idFront').click()">
                                             <div class="photo-preview" id="idFrontPreview" role="img" aria-label="ID Front preview">
-                                                <span class="preview-placeholder" aria-hidden="true">📄</span>
+                                                <span class="preview-placeholder" aria-hidden="true"></span>
                                             </div>
                                             <div class="upload-content">
                                                 <div class="photo-label">ID Front</div>
@@ -237,7 +241,7 @@
                                         />
                                         <div class="photo-upload-zone" onclick="document.getElementById('idBack').click()">
                                             <div class="photo-preview" id="idBackPreview" role="img" aria-label="ID Back preview">
-                                                <span class="preview-placeholder" aria-hidden="true">📄</span>
+                                                <span class="preview-placeholder" aria-hidden="true"></span>
                                             </div>
                                             <div class="upload-content">
                                                 <div class="photo-label">ID Back</div>
@@ -266,7 +270,7 @@
                                         />
                                         <div class="photo-upload-zone" onclick="document.getElementById('facePhoto').click()">
                                             <div class="photo-preview" id="facePhotoPreview" role="img" aria-label="Face Photo preview">
-                                                <span class="preview-placeholder" aria-hidden="true">👤</span>
+                                                <span class="preview-placeholder" aria-hidden="true"></span>
                                             </div>
                                             <div class="upload-content">
                                                 <div class="photo-label">Face Photo</div>
@@ -284,7 +288,7 @@
 
                         <div class="submit-section">
                             <button type="submit" class="submit-btn">
-                                🚀 Create Account
+                                Create Account
                             </button>
                         </div>
                     </form>
@@ -292,15 +296,21 @@
 
                 <div class="preview-section">
                     <div class="preview-card">
-                        <h3 class="preview-title">📋 Registration Preview</h3>
+                        <div class="preview-header">
+                            <h3 class="preview-title"><i class="fas fa-user"></i> Your Profile</h3>
+                            <p class="preview-subtitle">Real-time preview</p>
+                        </div>
 
                         <div class="student-preview">
-                            <div class="student-avatar" id="studentAvatar">👤</div>
-                            <div>
+                            <div class="student-avatar" id="studentAvatar"></div>
+                            <div class="student-preview-info">
                                 <div class="student-name" id="previewName">—</div>
                                 <div class="student-id" id="previewId">School ID: —</div>
+                                <div class="student-course" id="previewCourseInfo"></div>
                             </div>
                         </div>
+
+                        <div class="preview-divider"></div>
 
                         <div class="info-list">
                             <div class="info-item">
@@ -335,7 +345,7 @@
                     </div>
 
                     <div class="tips-section">
-                        <h4 class="tips-title">💡 Tips</h4>
+                        <h4 class="tips-title">Tips</h4>
                         <ul class="tips-list">
                             <li>Use a photo with plain background</li>
                             <li>Ensure ID text is readable</li>
@@ -468,13 +478,22 @@
         const formInputs = ['firstName', 'lastName', 'middleName', 'schoolId', 'course', 'track', 'yearLevel', 'section'];
 
         formInputs.forEach(inputId => {
-            document.getElementById(inputId).addEventListener('input', updatePreview);
+            const element = document.getElementById(inputId);
+            if (element) {
+                element.addEventListener('input', updatePreview);
+                element.addEventListener('change', updatePreview);
+            }
         });
 
+        // Initialize preview on page load with slight delay to ensure DOM is ready
+        setTimeout(() => {
+            updatePreview();
+        }, 100);
+
         function updatePreview() {
-            const firstName = document.getElementById('firstName').value;
-            const lastName = document.getElementById('lastName').value;
-            const middleName = document.getElementById('middleName').value;
+            const firstName = document.getElementById('firstName').value || document.getElementById('firstName').placeholder;
+            const lastName = document.getElementById('lastName').value || document.getElementById('lastName').placeholder;
+            const middleName = document.getElementById('middleName').value || document.getElementById('middleName').placeholder;
             const schoolId = document.getElementById('schoolId').value;
             const course = document.getElementById('course').value;
             const track = document.getElementById('track').value;
@@ -488,6 +507,20 @@
             }
             document.getElementById('previewName').textContent = fullName || '—';
             
+            // Update avatar with initials - with better display
+            let initials = '';
+            if (firstName && lastName) {
+                initials = (firstName.charAt(0) + lastName.charAt(0)).toUpperCase();
+            } else if (firstName) {
+                initials = firstName.charAt(0).toUpperCase();
+            } else if (lastName) {
+                initials = lastName.charAt(0).toUpperCase();
+            }
+            
+            const avatarElement = document.getElementById('studentAvatar');
+            avatarElement.textContent = initials;
+            avatarElement.style.fontSize = initials.length > 1 ? '14px' : '16px';
+            
             // Update individual name fields
             document.getElementById('previewLastName').textContent = lastName || '—';
             document.getElementById('previewFirstName').textContent = firstName || '—';
@@ -495,6 +528,16 @@
             
             document.getElementById('previewId').textContent =
                 schoolId ? `School ID: ${schoolId}` : 'School ID: —';
+            
+            // Update course info in preview
+            let courseInfo = '';
+            if (course && yearLevel) {
+                courseInfo = `${course} • ${yearLevel}${getOrdinalSuffix(yearLevel)} Year`;
+            } else if (course) {
+                courseInfo = course;
+            }
+            document.getElementById('previewCourseInfo').textContent = courseInfo;
+            
             document.getElementById('previewCourse').textContent = course || '—';
             document.getElementById('previewTrack').textContent = track || '—';
             document.getElementById('previewYear').textContent =
@@ -714,7 +757,7 @@
             const originalText = submitBtn.innerHTML;
 
             // Show loading state
-            submitBtn.innerHTML = '🚀 Creating Account...';
+            submitBtn.innerHTML = 'Creating Account...';
             submitBtn.style.opacity = '0.7';
             submitBtn.disabled = true;
 
@@ -790,7 +833,7 @@
         document.addEventListener('DOMContentLoaded', function() {
             Swal.fire({
                 icon: 'info',
-                title: '⏳ Registration Pending Approval',
+                title: 'Registration Pending Approval',
                 html: `
                     <div style="text-align: left; padding: 20px;">
                         <p style="font-size: 16px; margin-bottom: 15px;">
@@ -802,8 +845,8 @@
                                 You will receive an email notification at your registered email address once your account is:
                             </p>
                             <ul style="margin: 10px 0 0 20px; font-size: 14px;">
-                                <li>✅ <strong>Approved</strong> - You can then log in to the system</li>
-                                <li>❌ <strong>Not Approved</strong> - With information about the decision</li>
+                                <li><strong>Approved</strong> - You can then log in to the system</li>
+                                <li><strong>Not Approved</strong> - With information about the decision</li>
                             </ul>
                         </div>
                         <p style="font-size: 13px; color: #6b7280; margin-top: 15px;">
@@ -823,6 +866,34 @@
         {% endfor %}
         {% endif %}
         {% endwith %}
+
+        // School ID format validation
+        const schoolIdInput = document.getElementById('schoolId');
+        const schoolIdPattern = /^(21|22|23|24|25|26)-\d{5}$/;
+
+        if (schoolIdInput) {
+            schoolIdInput.addEventListener('blur', function() {
+                const value = this.value.trim();
+                if (value && !schoolIdPattern.test(value)) {
+                    this.setCustomValidity('Invalid format. Use YY-NNNNN (e.g., 22-12345) where YY is 21-26');
+                    this.reportValidity();
+                } else {
+                    this.setCustomValidity('');
+                }
+            });
+
+            schoolIdInput.addEventListener('input', function() {
+                if (this.value.trim()) {
+                    if (!schoolIdPattern.test(this.value)) {
+                        this.setCustomValidity('Invalid format. Use YY-NNNNN (e.g., 22-12345) where YY is 21-26');
+                    } else {
+                        this.setCustomValidity('');
+                    }
+                } else {
+                    this.setCustomValidity('');
+                }
+            });
+        }
     </script>
     <!-- SweetAlert2 JS -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.7.32/dist/sweetalert2.all.min.js"></script>

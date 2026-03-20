@@ -5,20 +5,307 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Student Dashboard - E-Class Record</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="{{ url_for('static', filename='js/swal.js') }}"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="{{ url_for('static', filename='js/socket.io.min.js') }}"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/student-dashboard.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/student-dashboard-traditional.css') }}">
 </head>
 
 <body>
-    <div class="header">
-        <div>
-            <h1>🎓 Student Dashboard</h1>
-            <p>Welcome, {{ user.personal_info.first_name }} {{ user.personal_info.last_name }} ({{ user.school_id }})!</p>
+    <div class="dashboard-wrapper">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-brand">
+                <img src="{{ url_for('static', filename='images/isu.png') }}" alt="ISU Logo" style="width: 40px; height: 40px; object-fit: contain;">
+                <div style="margin-left: 12px; color: #e6f6ea;">
+                    <div style="font-weight: 700; font-size: 14px; line-height: 1.2;">ISU</div>
+                    <div style="font-size: 11px; letter-spacing: 0.5px; margin-top: 2px;">E-CLASS RECORD</div>
+                </div>
+            </div>
+
+            <ul class="sidebar-menu">
+                <li><a href="#" onclick="switchSection('dashboard')" class="nav-link active" data-section="dashboard"><i class="fas fa-home"></i> Dashboard</a></li>
+                <li><a href="#" onclick="switchSection('classes')" class="nav-link" data-section="classes"><i class="fas fa-book-open"></i> My Classes</a></li>
+                <li><a href="#" onclick="switchSection('grades')" class="nav-link" data-section="grades"><i class="fas fa-chart-bar"></i> Grades</a></li>
+                <li><a href="#" onclick="switchSection('profile')" class="nav-link" data-section="profile"><i class="fas fa-cog"></i> Profile Settings</a></li>
+            </ul>
+
+            <div class="sidebar-footer">
+                <a href="{{ url_for('auth.logout') }}" class="logout-btn">
+                    <i class="fas fa-sign-out-alt"></i> Logout
+                </a>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <!-- Dashboard Section (Default) -->
+            <div id="dashboard-section" class="dashboard-content-section" style="display: block;">
+                <!-- Dashboard Header -->
+                <div class="dashboard-header">
+                    <div class="dashboard-header-left">
+                        <h1><i class="fas fa-tachometer-alt"></i> Dashboard</h1>
+                        <p>Welcome back to your academic portal</p>
+                    </div>
+                    <div class="dashboard-header-right">
+                        <div style="display: flex; align-items: center; gap: 20px; margin-bottom: 15px; flex-wrap: wrap;">
+                            <div style="text-align: right;">
+                                <div style="font-weight: 700; color: #071f18; font-size: 14px; letter-spacing: 0.5px;">ISU E-CLASS</div>
+                                <div style="font-size: 12px; color: #6b7280; letter-spacing: 0.5px; margin-top: 2px;">RECORD SYSTEM</div>
+                            </div>
+                            <img src="{{ url_for('static', filename='images/isu.png') }}" alt="ISU Logo" style="width: 50px; height: 50px; object-fit: contain;">
+                        </div>
+                        <div class="student-name">{{ user.personal_info.first_name }} {{ user.personal_info.last_name }}</div>
+                        <div class="student-id">ID: {{ user.school_id }}</div>
+                    </div>
+                </div>
+
+                <!-- Stats Cards -->
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-card-header">
+                            <span class="stat-card-title">Classes Enrolled</span>
+                            <div class="stat-card-icon"><i class="fas fa-book"></i></div>
+                        </div>
+                        <div class="stat-card-value" id="enrolledClassesCount">0</div>
+                        <div class="stat-card-footer"><i class="fas fa-arrow-up"></i> Active classes this semester</div>
+                    </div>
+
+                    <div class="stat-card">
+                        <div class="stat-card-header">
+                            <span class="stat-card-title">Missing Assessments</span>
+                            <div class="stat-card-icon"><i class="fas fa-exclamation-triangle"></i></div>
+                        </div>
+                        <div class="stat-card-value" id="missingAssessmentsCount">0</div>
+                        <div class="stat-card-footer"><i class="fas fa-exclamation-circle"></i> Need to be completed</div>
+                    </div>
+                </div>
+
+                <!-- Profile Section on Dashboard -->
+                <div class="dashboard-section">
+                    <div class="section-header">
+                        <span class="section-title"><i class="fas fa-user-circle"></i> Profile Information</span>
+                        <button onclick="editProfile()" class="section-action"><i class="fas fa-edit"></i> Edit Profile</button>
+                    </div>
+
+                    <div class="profile-section">
+                        <div>
+                            <img id="profilePhoto" src="{{ url_for('static', filename='images/isu.png') }}" alt="Profile Photo" class="profile-photo">
+                        </div>
+                        <div class="profile-info">
+                            <div class="profile-info-grid">
+                                <div class="profile-field">
+                                    <label>School ID</label>
+                                    <value>{{ user.school_id }}</value>
+                                </div>
+                                <div class="profile-field">
+                                    <label>First Name</label>
+                                    <value>{{ user.personal_info.first_name }}</value>
+                                </div>
+                                <div class="profile-field">
+                                    <label>Last Name</label>
+                                    <value>{{ user.personal_info.last_name }}</value>
+                                </div>
+                                <div class="profile-field">
+                                    <label>Email</label>
+                                    <value style="color: grey;">{{ user.personal_info.email or 'N/A' }}</value>
+                                </div>
+                                <div class="profile-field">
+                                    <label>Phone</label>
+                                    <value>{{ user.personal_info.phone or 'N/A' }}</value>
+                                </div>
+                                <div class="profile-field">
+                                    <label>Gender</label>
+                                    <value>{{ user.personal_info.gender or 'N/A' }}</value>
+                                </div>
+                                <div class="profile-field">
+                                    <label>Course</label>
+                                    <value>{{ user.student_profile.course }}</value>
+                                </div>
+                                <div class="profile-field">
+                                    <label>Year Level</label>
+                                    <value>{{ user.student_profile.year_level }}</value>
+                                </div>
+                                <div class="profile-field">
+                                    <label>Section</label>
+                                    <value>{{ user.student_profile.section }}</value>
+                                </div>
+                                <div class="profile-field">
+                                    <label>Track</label>
+                                    <value>{{ user.student_profile.track or 'N/A' }}</value>
+                                </div>
+                                <div class="profile-field">
+                                    <label>Birth Date</label>
+                                    <value>{{ user.personal_info.birth_date or 'N/A' }}</value>
+                                </div>
+                                <div class="profile-field">
+                                    <label>Address</label>
+                                    <value style="font-size: 12px;">{{ user.personal_info.address or 'N/A' }}</value>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Classes Section -->
+            <div id="classes-section" class="dashboard-content-section" style="display: none;">
+                <div class="dashboard-header">
+                    <div class="dashboard-header-left">
+                        <h1><i class="fas fa-book-open"></i> My Classes</h1>
+                        <p>Manage and view all your enrolled classes</p>
+                    </div>
+                </div>
+                
+                <div class="dashboard-section">
+                    <div class="section-header">
+                        <span class="section-title"><i class="fas fa-book-open"></i> Enrolled Classes</span>
+                        <button onclick="document.getElementById('joinClassModal').style.display='flex'" class="section-action"><i class="fas fa-plus"></i> Join Class</button>
+                    </div>
+                    <div id="classesContainer">
+                        <div class="loading-text"><i class="fas fa-spinner fa-pulse"></i> Loading classes...</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Grades Section -->
+            <div id="grades-section" class="dashboard-content-section" style="display: none;">
+                <div class="dashboard-header">
+                    <div class="dashboard-header-left">
+                        <h1><i class="fas fa-chart-bar"></i> Grades & Reports</h1>
+                        <p>View your academic performance</p>
+                    </div>
+                </div>
+                
+                <div class="dashboard-section">
+                    <div class="section-header">
+                        <span class="section-title"><i class="fas fa-chart-line"></i> My Grades & Reports</span>
+                        <a href="{{ url_for('student.student_classes') }}" class="section-action"><i class="fas fa-eye"></i> View Full Report</a>
+                    </div>
+                    <p style="color: #6b7280; margin-bottom: 15px;">View your academic performance across all enrolled classes.</p>
+                    <div id="gradesContainer">
+                        <div class="loading-text"><i class="fas fa-spinner fa-pulse"></i> Loading grades...</div>
+                    </div>
+                </div>
+            </div>
+
+
+            <!-- Profile Settings Section -->
+            <div id="profile-section" class="dashboard-content-section" style="display: none;">
+                <div class="dashboard-header">
+                    <div class="dashboard-header-left">
+                        <h1><i class="fas fa-cog"></i> Profile Settings</h1>
+                        <p>Manage your account information</p>
+                    </div>
+                </div>
+                
+                <div class="dashboard-section">
+                    <div class="section-header">
+                        <span class="section-title"><i class="fas fa-user-circle"></i> Profile Information</span>
+                        <button onclick="editProfile()" class="section-action"><i class="fas fa-edit"></i> Edit Profile</button>
+                    </div>
+
+                    <div class="profile-section">
+                        <div>
+                            <img id="profilePhoto2" src="{{ url_for('static', filename='images/isu.png') }}" alt="Profile Photo" class="profile-photo">
+                        </div>
+                        <div class="profile-info">
+                            <div class="profile-info-grid">
+                                <div class="profile-field">
+                                    <label>School ID</label>
+                                    <value>{{ user.school_id }}</value>
+                                </div>
+                                <div class="profile-field">
+                                    <label>First Name</label>
+                                    <value>{{ user.personal_info.first_name }}</value>
+                                </div>
+                                <div class="profile-field">
+                                    <label>Last Name</label>
+                                    <value>{{ user.personal_info.last_name }}</value>
+                                </div>
+                                <div class="profile-field">
+                                    <label>Email</label>
+                                    <value style="color: grey;">{{ user.personal_info.email or 'N/A' }}</value>
+                                </div>
+                                <div class="profile-field">
+                                    <label>Phone</label>
+                                    <value>{{ user.personal_info.phone or 'N/A' }}</value>
+                                </div>
+                                <div class="profile-field">
+                                    <label>Gender</label>
+                                    <value>{{ user.personal_info.gender or 'N/A' }}</value>
+                                </div>
+                                <div class="profile-field">
+                                    <label>Birth Date</label>
+                                    <value>{{ user.personal_info.birth_date or 'N/A' }}</value>
+                                </div>
+                                <div class="profile-field">
+                                    <label>Address</label>
+                                    <value style="font-size: 12px;">{{ user.personal_info.address or 'N/A' }}</value>
+                                </div>
+                                <div class="profile-field">
+                                    <label>Course</label>
+                                    <value>{{ user.student_profile.course }}</value>
+                                </div>
+                                <div class="profile-field">
+                                    <label>Year Level</label>
+                                    <value>{{ user.student_profile.year_level }}</value>
+                                </div>
+                                <div class="profile-field">
+                                    <label>Section</label>
+                                    <value>{{ user.student_profile.section }}</value>
+                                </div>
+                                <div class="profile-field">
+                                    <label>Track</label>
+                                    <value>{{ user.student_profile.track or 'N/A' }}</value>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
-        <a href="{{ url_for('auth.logout') }}" class="logout-btn">Logout</a>
+    </div>
+
+    <!-- Join Class Modal -->
+    <div id="joinClassModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:1000; align-items:center; justify-content:center; flex-direction:column;">
+        <div style="background:white; padding:30px; border-radius:12px; max-width:400px; width:90%; animation: slideDown 0.3s ease-out;">
+            <h2 style="margin-bottom:20px; color:#071f18;"><i class="fas fa-user-plus"></i> Join a Class</h2>
+            <div class="join-form">
+                <input type="text" id="joinCode" placeholder="Enter 6-digit join code" maxlength="6" class="join-input">
+                <button onclick="joinClass()" class="join-btn"><i class="fas fa-sign-in-alt"></i> Join</button>
+            </div>
+            <div id="joinMessage"></div>
+            <button onclick="document.getElementById('joinClassModal').style.display='none'" style="width:100%; padding:10px; margin-top:15px; background:#e5e7eb; border:none; border-radius:8px; cursor:pointer; font-weight:600;">Close</button>
+        </div>
+    </div>
+
+    <!-- Class Details Modal -->
+    <div id="classModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:1001; align-items:center; justify-content:center; overflow-y:auto; padding: 20px 0; flex-direction: column;">
+        <div style="background:white; padding:30px; border-radius:12px; max-width:500px; width:90%; margin: auto;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+                <h2 style="margin:0; color:#071f18;"><i class="fas fa-book"></i> Class Details</h2>
+                <button onclick="document.getElementById('classModal').style.display='none'" style="background:none; border:none; font-size:24px; cursor:pointer; color:#6b7280;">×</button>
+            </div>
+            <div id="classDetails">
+                <!-- Class details will be populated here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Notifications Modal -->
+    <div id="notificationsModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:1001; align-items:center; justify-content:center;">
+        <div style="background:white; padding:30px; border-radius:12px; max-width:600px; width:90%; max-height:80vh; overflow-y:auto;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+                <h2 style="margin:0; color:#071f18;"><i class="fas fa-bell"></i> All Notifications</h2>
+                <button onclick="document.getElementById('notificationsModal').style.display='none'" style="background:none; border:none; font-size:24px; cursor:pointer; color:#6b7280;">×</button>
+            </div>
+            <div id="notificationsModalBody">
+                <div class="loading-text"><i class="fas fa-spinner fa-pulse"></i> Loading...</div>
+            </div>
+        </div>
     </div>
 
     <!-- Auto-refresh indicators -->
@@ -26,660 +313,287 @@
     <div id="refreshTimestamp" class="refresh-timestamp">Last updated: Just now</div>
     <div id="connectionStatus" class="connection-status" title="Connection status"></div>
 
-    <div class="dashboard-grid">
-        <div class="card">
-            <div class="card-header">
-                <h3>📚 My Profile</h3>
-                <button onclick="editProfile()" id="editProfileBtn" class="edit-btn">✏️ Edit</button>
-            </div>
-
-            <div class="profile-content">
-                {% if user.student_profile.face_photo_path %}
-                <img id="profilePhoto" src="{{ url_for('static', filename=user.student_profile.face_photo_path) }}" data-default="{{ url_for('static', filename='images/default-profile.svg') }}" alt="Profile Photo" onerror="this.onerror=null;this.src=this.dataset.default;" class="profile-img">
-                {% elif user.student_profile.photo_path %}
-                <img id="profilePhoto" src="{{ url_for('static', filename=user.student_profile.photo_path) }}" data-default="{{ url_for('static', filename='images/default-profile.svg') }}" alt="Profile Photo" onerror="this.onerror=null;this.src=this.dataset.default;" class="profile-img">
-                {% elif user.student_profile.photo %}
-                <img id="profilePhoto" src="{{ url_for('static', filename=user.student_profile.photo) }}" data-default="{{ url_for('static', filename='images/default-profile.svg') }}" alt="Profile Photo" onerror="this.onerror=null;this.src=this.dataset.default;" class="profile-img">
-                {% elif user.student_profile.photo_url %}
-                <img id="profilePhoto" src="{{ user.student_profile.photo_url }}" data-default="{{ url_for('static', filename='images/default-profile.svg') }}" alt="Profile Photo" onerror="this.onerror=null;this.src=this.dataset.default;" class="profile-img">
-                {% else %}
-                <img id="profilePhoto" src="{{ url_for('static', filename='images/default-profile.svg') }}" data-default="{{ url_for('static', filename='images/default-profile.svg') }}" alt="Profile Photo" class="profile-img">
-                {% endif %}
-                <div class="profile-info">
-                    <p><strong>School ID:</strong> <span id="schoolIdSpan">{{ user.school_id }}</span></p>
-                    <p><strong>Course:</strong> <span id="courseSpan">{{ user.student_profile.course }}</span></p>
-                    <p><strong>Year Level:</strong> <span id="yearLevelSpan">{{ user.student_profile.year_level }}</span></p>
-                    <p><strong>Section:</strong> <span id="sectionSpan">{{ user.student_profile.section }}</span></p>
-                    {% if user.student_profile.track %}
-                    <p><strong>Track:</strong> <span id="trackSpan">{{ user.student_profile.track }}</span></p>
-                    {% else %}
-                    <p class="no-track"><em id="trackSpan">No track set</em></p>
-                    {% endif %}
-                </div>
-            </div>
-        </div>
-        <div class="card">
-            <div class="card-header">
-                <h3>🔔 Class Updates & Notifications</h3>
-                <div id="notificationCount" class="notification-badge">0</div>
-            </div>
-            <p>Stay updated with important notifications about your classes.</p>
-            <div id="classNotificationsList" class="notifications-list">
-                <div class="notifications-loading">
-                    <div class="spinner"></div> Loading notifications...
-                </div>
-            </div>
-            <button onclick="viewAllNotifications()" class="view-all-notifications-btn">📋 View All Updates</button>
-        </div>
-
-        <!-- Mobile Carousel for Join Classes -->
-        <div class="mobile-carousel join-classes-carousel">
-            <div class="carousel-header">
-                <h3>📚 Join & Manage Classes</h3>
-                <div class="carousel-controls">
-                    <button class="carousel-arrow carousel-prev" data-carousel="join-classes">‹</button>
-                    <button class="carousel-arrow carousel-next" data-carousel="join-classes">›</button>
-                </div>
-            </div>
-            <div class="carousel-container">
-                <div class="carousel-slides">
-                    <div class="carousel-slide">
-                        <div class="card">
-                            <h3>🚀 JOIN CLASS</h3>
-                            <p>Enter a class join code to enroll in a new class.</p>
-                            <div class="join-section">
-                                <input type="text" id="joinCodeMobile" placeholder="Enter 6-digit join code" maxlength="6">
-                                <button onclick="joinClass()" class="join-btn">🚀 Join Class</button>
-                            </div>
-                            <div id="joinMessageMobile"></div>
-                        </div>
-                    </div>
-                    <div class="carousel-slide">
-                        <div class="card" >
-                            <div class="classes-header">
-                                <div>
-                                    <h3>📚 Joined Classes</h3>
-                                    <p class="classes-subtitle">Your enrolled classes</p>
-                                </div>
-                                <div id="classCountMobile" class="class-count">0</div>
-                            </div>
-                            <div id="joinedClassesListMobile">
-                                <p class="loading-text">Loading classes...</p>
-                            </div>
-                            <button id="toggleClassesBtnMobile" onclick="toggleClassList()" class="toggle-btn">
-                                📖 View All Classes
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Desktop versions of Join Class and Joined Classes cards -->
-        <div class="desktop-card join-class-card">
-            <h3>🚀 JOIN CLASS</h3>
-            <p>Enter a class join code to enroll in a new class.</p>
-            <div class="join-section">
-                <input type="text" id="joinCodeDesktop" placeholder="Enter 6-digit join code" maxlength="6">
-                <button onclick="joinClass()" class="join-btn">🚀 Join Class</button>
-            </div>
-            <div id="joinMessageDesktop"></div>
-        </div>
-
-        <div class="desktop-card joined-classes-card">
-            <div class="classes-header">
-                <div>
-                    <h3>📚 Joined Classes</h3>
-                    <p class="classes-subtitle">Your enrolled classes</p>
-                </div>
-                <div id="classCountDesktop" class="class-count">0</div>
-            </div>
-            <div id="joinedClassesListDesktop">
-                <p class="loading-text">Loading classes...</p>
-            </div>
-            <button id="toggleClassesBtnDesktop" onclick="toggleClassList()" class="toggle-btn">
-                📖 View All Classes
-            </button>
-        </div>
-
-        <!-- WHAT IF card: quick access to limited instructor unified view -->
-        <div class="desktop-card whatif-card" style="display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:18px;">
-            <h3 style="margin:0; font-size:1.15rem;">WHAT IF???</h3>
-            <div style="font-size:72px; line-height:1; font-weight:700; color:#111827; margin:8px 0;">?</div>
-            <p style="color:#6b7280; margin:6px 0 12px 0;">Peek at the instructor's unified grade view (limited access).</p>
-            <div style="width:100%; max-width:360px; display:flex; justify-content:center;">
-                <button id="whatifOpenBtn" class="view-grades-btn" style="background:#2563eb; color:#fff; border:none; padding:10px 16px; border-radius:10px; cursor:pointer; font-weight:700;">Open WHAT IF</button>
-            </div>
-            <small id="whatifHelp" style="display:block; margin-top:8px; color:#9ca3af;">Only shows limited student view for enrolled classes.</small>
-        </div>
-
-        <!-- Mobile Carousel for Grades and Assessments -->
-        <div class="mobile-carousel grades-assessments-carousel">
-            <div class="carousel-header">
-                <h3>📊 Grades & Assessments</h3>
-                <div class="carousel-controls">
-                    <button class="carousel-arrow carousel-prev" data-carousel="grades-assessments">‹</button>
-                    <button class="carousel-arrow carousel-next" data-carousel="grades-assessments">›</button>
-                </div>
-            </div>
-            <div class="carousel-container">
-                <div class="carousel-slides">
-                    <div class="carousel-slide">
-                        <div class="card">
-                            <h3>📊 My Grades & Reports</h3>
-                            <p>View your grades and export reports.</p>
-                            <div class="grades-actions">
-                                <a href="{{ url_for('student.student_classes') }}" class="view-grades-btn">📊 View Grades</a>
-                                <!--button onclick="exportStudentReport()" class="export-btn">📄 Export Report</button-->
-                            </div>
-                        </div>
-                    </div>
-                    <div class="carousel-slide">
-                        <div class="card">
-                            <div class="card-header">
-                                <h3>⚠️ Missing Assessments</h3>
-                                <button id="missingAssessmentsToggle" onclick="toggleMissingAssessmentsDrawer()" class="toggle-drawer-btn">
-                                    📋 View Details
-                                </button>
-                            </div>
-                            <p>Track assessments that need to be completed across your classes.</p>
-                            <div id="missingAssessmentsSummary" class="missing-assessments-summary">
-                                <div class="summary-loading">
-                                    <div class="spinner"></div> Loading missing assessments...
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Desktop versions of Grades and Assessments cards -->
-        <div class="desktop-card grades-card">
-            <h3>📊 My Grades & Reports</h3>
-            <p>View your grades and reports.</p>
-            <div class="grades-actions">
-                <a href="{{ url_for('student.student_classes') }}" class="view-grades-btn">📊 View Grades</a>
-            </div>
-        </div>
-
-
-        <div class="desktop-card assessments-card">
-            <div class="card-header">
-                <h3>⚠️ Missing</h3>
-                <button id="missingAssessmentsToggle" onclick="toggleMissingAssessmentsDrawer()" class="toggle-drawer-btn">
-                    📋 View Details
-                </button>
-            </div>
-            <p>Track assessments that need to be completed across your classes.</p>
-            <div id="missingAssessmentsSummary" class="missing-assessments-summary">
-                <div class="summary-loading">
-                    <div class="spinner"></div> Loading missing assessments...
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Missing Assessments Drawer -->
-    <div id="missingAssessmentsDrawer" class="drawer-overlay">
-        <div class="drawer-content">
-            <div class="drawer-header">
-                <h3>📋 Missing Details</h3>
-                <button onclick="toggleMissingAssessmentsDrawer()" class="drawer-close-btn">✕</button>
-            </div>
-            <div id="missingAssessmentsContent" class="drawer-body">
-                <div class="drawer-loading">
-                    <div class="spinner"></div> Loading detailed assessment information...
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Notifications Modal -->
-    <div id="notificationsModal">
-        <div class="notifications-modal-content">
-            <div class="notifications-modal-header">
-                <h3>🔔 All Class Notifications</h3>
-                <button onclick="closeNotificationsModal()" class="modal-close-btn">✕</button>
-            </div>
-            <div id="notificationsModalBody" class="notifications-modal-body">
-                <div class="notifications-loading">
-                    <div class="spinner"></div> Loading all notifications...
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Class Details Modal -->
-    <div id="classModal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3 style="margin: 0; font-size: 20px; color: #1f2937;">📚 Class Details</h3>
-                <button onclick="closeModal()" class="modal-close-btn">✕</button>
-            </div>
-            <div id="classDetails" class="modal-body">
-                <!-- Class details will be populated here -->
-            </div>
-        </div>
-    </div>
-
 
 
     <template id="swal_edit_profile_template" hidden>
         <style>
             .swal-edit-profile {
-                width: min(760px, calc(100vw - 18px)) !important;
-                max-width: 760px !important;
-                height: clamp(520px, 75vh, 700px) !important;
+                width: min(800px, calc(100vw - 20px)) !important;
+                max-width: 800px !important;
+                height: auto !important;
+                max-height: 85vh !important;
                 padding: 0 !important;
-                border-radius: 20px !important;
+                border-radius: 16px !important;
                 display: flex !important;
                 flex-direction: column;
                 box-sizing: border-box;
-                backdrop-filter: blur(6px);
-                top: calc(3vh + 16px) !important;
-                margin: 16px auto !important;
-            }
-            @media (max-height: 640px) {
-                .swal-edit-profile {
-                    top: calc(2vh + 12px) !important;
-                    height: 88vh !important;
-                    max-height: 620px !important;
-                }
             }
             .swal-edit-scroll {
                 flex: 1;
                 overflow-y: auto;
-                padding: 24px 28px 36px;
+                padding: 30px;
                 box-sizing: border-box;
-                background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+                background: linear-gradient(135deg, #ffffff 0%, #f9fafb 100%);
             }
-            .swal-edit-scroll::-webkit-scrollbar { width: 6px; }
-            .swal-edit-scroll::-webkit-scrollbar-thumb { background: rgba(148,163,184,0.45); border-radius: 999px; }
-            .swal-edit-scroll::-webkit-scrollbar-track { background: transparent; }
+            .swal-edit-scroll::-webkit-scrollbar { width: 8px; }
+            .swal-edit-scroll::-webkit-scrollbar-thumb { background: #2ecc71; border-radius: 4px; }
+            .swal-edit-scroll::-webkit-scrollbar-track { background: #f1f5f9; }
             .swal-edit-actions {
                 position: sticky;
                 bottom: 0;
                 width: 100%;
                 margin: 0 !important;
-                padding: 14px 28px 24px;
-                background: linear-gradient(180deg, rgba(248,250,252,0.92) 0%, #e2e8f0 100%);
-                border-top: 1px solid #dbeafe;
+                padding: 20px 30px;
+                background: linear-gradient(180deg, rgba(255,255,255,0.95) 0%, #f9fafb 100%);
+                border-top: 1px solid #e5e7eb;
                 display: flex;
                 gap: 12px;
                 justify-content: flex-end;
-                z-index: 3;
             }
             .swal-edit-confirm,
             .swal-edit-cancel {
                 min-width: 120px;
-                border-radius: 10px;
+                border-radius: 8px;
                 font-weight: 600;
                 font-size: 0.95rem;
-                padding: 10px 18px;
-                border: 1.5px solid transparent;
-                transition: all 0.2s ease;
+                padding: 12px 24px;
+                border: none;
+                cursor: pointer;
+                transition: all 0.3s ease;
             }
             .swal-edit-confirm {
-                background: #16a34a;
-                color: #fff;
-                box-shadow: 0 8px 20px rgba(22,163,74,0.18);
+                background: linear-gradient(135deg, #2ecc71 0%, #16a34a 100%);
+                color: white;
+                box-shadow: 0 4px 12px rgba(46,204,113,0.3);
             }
             .swal-edit-confirm:hover {
-                background: #15803d;
-                box-shadow: 0 10px 26px rgba(22,163,74,0.22);
+                transform: translateY(-2px);
+                box-shadow: 0 6px 20px rgba(46,204,113,0.4);
             }
             .swal-edit-cancel {
-                background: #fff;
-                color: #0f172a;
-                border-color: #cbd5f5;
+                background: #f3f4f6;
+                color: #374155;
+                border: 1px solid #d1d5db;
             }
             .swal-edit-cancel:hover {
-                background: #f8fafc;
-                border-color: #94a3b8;
+                background: #e5e7eb;
             }
-            .swal-register-grid {
-                display: grid;
-                grid-template-columns: minmax(0, 260px) minmax(0, 1fr);
-                gap: 18px;
-                align-items: start;
-                max-width: 100%;
-                box-sizing: border-box;
+            .edit-form-section {
+                margin-bottom: 25px;
             }
-            .swal-register-left {
-                text-align: center;
-                background: rgba(241,245,249,0.6);
-                border-radius: 14px;
-                padding: 16px 12px;
-                border: 1px solid #e2e8f0;
+            .edit-form-section-title {
+                font-weight: 700;
+                font-size: 14px;
+                color: #071f18;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+                margin-bottom: 15px;
+                padding-bottom: 8px;
+                border-bottom: 2px solid #2ecc71;
             }
-            .swal-photo-zone {
-                border: 1.5px dashed #cbd5f5;
-                padding: 10px;
-                border-radius: 10px;
+            .profile-photo-container {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                margin-bottom: 25px;
+                padding: 20px;
+                background: #f0fdf4;
+                border-radius: 12px;
+                border: 2px solid #dcfce7;
+            }
+            .edit-photo-preview {
+                width: 140px;
+                height: 140px;
+                border-radius: 12px;
+                object-fit: cover;
+                border: 3px solid #2ecc71;
+                margin-bottom: 12px;
+                display: block;
+            }
+            .edit-photo-btn {
+                padding: 10px 20px;
+                background: #2ecc71;
+                color: white;
+                border: none;
+                border-radius: 8px;
                 cursor: pointer;
-                transition: border-color 0.2s ease, background 0.2s ease;
-                background: #fff;
+                font-weight: 600;
+                transition: all 0.3s ease;
             }
-            .swal-photo-zone:hover {
-                border-color: #16a34a;
+            .edit-photo-btn:hover {
+                background: #16a34a;
+                transform: translateY(-2px);
+            }
+            .edit-form-fields {
+                display: grid;
+                grid-template-columns: repeat(2, 1fr);
+                gap: 16px;
+            }
+            .edit-form-fields.full {
+                grid-template-columns: 1fr;
+            }
+            .edit-form-field {
+                display: flex;
+                flex-direction: column;
+            }
+            .edit-form-field label {
+                font-weight: 600;
+                font-size: 13px;
+                color: #374155;
+                margin-bottom: 6px;
+                text-transform: uppercase;
+                letter-spacing: 0.3px;
+            }
+            .edit-form-field input,
+            .edit-form-field select {
+                padding: 11px 12px;
+                border: 1.5px solid #d1d5db;
+                border-radius: 8px;
+                font-size: 14px;
+                font-family: inherit;
+                transition: all 0.2s ease;
+                background: white;
+            }
+            .edit-form-field input:focus,
+            .edit-form-field select:focus {
+                outline: none;
+                border-color: #2ecc71;
+                box-shadow: 0 0 0 3px rgba(46,204,113,0.1);
                 background: #f0fdf4;
             }
-            .swal-photo-preview {
-                width: 120px;
-                height: 120px;
-                object-fit: cover;
-                border-radius: 10px;
-                border: 1px solid #e2e8f0;
-                display: block;
-                margin: 0 auto 12px;
+            .edit-form-field input:disabled {
+                background: #f3f4f6;
+                color: #6b7280;
             }
-            .swal-field { margin-bottom: 10px; }
-            .swal-field label {
-                display: block;
-                font-size: 12px;
-                color: #334155;
-                margin-bottom: 4px;
-                font-weight: 600;
-                letter-spacing: 0.02em;
+            .edit-hr {
+                height: 1px;
+                background: linear-gradient(90deg, transparent, #d1d5db, transparent);
+                border: none;
+                margin: 20px 0;
             }
-            .swal-field input,
-            .swal-field select {
-                width: 100%;
-                padding: 9px 10px;
-                border-radius: 8px;
-                border: 1px solid #cbd5f5;
-                box-sizing: border-box;
-                font-size: 0.94rem;
-            }
-            .swal-field input:focus,
-            .swal-field select:focus {
-                outline: none;
-                border-color: #16a34a;
-                box-shadow: 0 0 0 3px rgba(22,163,74,0.15);
-            }
-            .swal-field-row {
-                display: flex;
-                gap: 10px;
-                flex-wrap: wrap;
-            }
-            .swal-field-row .swal-field { flex: 1 1 160px; min-width: 0; }
-            @media (max-width: 900px) {
-                .swal-edit-scroll {
-                    padding: 22px 22px 30px;
-                }
-                .swal-register-grid {
+            @media (max-width: 750px) {
+                .edit-form-fields {
                     grid-template-columns: 1fr;
                 }
-                .swal-register-left {
-                    order: -1;
-                    padding: 14px 10px;
-                }
-            }
-            @media (max-width: 620px) {
-                .swal-edit-profile {
-                    width: calc(100vw - 12px) !important;
-                    max-width: 560px !important;
-                    height: 92vh !important;
-                    max-height: none !important;
-                    top: calc(1.5vh + 12px) !important;
-                    margin: 12px auto !important;
-                }
                 .swal-edit-scroll {
-                    padding: 18px 16px 28px;
+                    padding: 20px;
                 }
                 .swal-edit-actions {
-                    padding: 12px 18px 18px;
+                    padding: 15px 20px;
                     flex-direction: column-reverse;
-                    align-items: stretch;
                 }
                 .swal-edit-confirm,
                 .swal-edit-cancel {
                     width: 100%;
                     min-width: 0;
                 }
-                .swal-register-left {
-                    padding: 12px 8px;
-                }
-                .swal-photo-preview {
-                    width: 104px;
-                    height: 104px;
-                }
-                .swal-field input,
-                .swal-field select {
-                    font-size: 0.92rem;
-                }
-            }
-            @media (max-width: 420px) {
-                .swal-edit-scroll {
-                    padding: 16px 12px 24px;
-                }
-                .swal-photo-preview {
-                    width: 96px;
-                    height: 96px;
-                }
-                .swal-photo-zone {
-                    padding: 8px;
-                }
-                .swal-field input,
-                .swal-field select {
-                    padding: 8px;
-                }
-                .swal-photo-select {
-                    font-size: 16px !important; /* Prevent zoom on iOS */
-                    padding: 12px 14px !important;
-                }
-                #photoUploadModal {
-                    padding: 8px !important;
-                    align-items: flex-start !important;
-                    justify-content: center !important;
-                    padding-top: 10vh !important;
-                }
-                #photoUploadModal > div {
-                    max-width: none !important;
-                    width: 92vw !important;
-                    max-height: 75vh !important;
-                    border-radius: 16px !important;
-                    padding: 20px !important;
-                }
-                #photoModalTitle {
-                    font-size: 16px !important;
-                    margin-bottom: 16px !important;
-                }
-                #photoPreviewContainer {
-                    width: 120px !important;
-                    height: 120px !important;
-                    margin: 0 auto 12px !important;
-                }
-                #photoPreviewPlaceholder {
-                    font-size: 11px !important;
-                }
-                #photoFileInput {
-                    font-size: 16px !important; /* Prevent zoom on iOS */
-                    width: 100% !important;
-                    padding: 10px !important;
-                    border-radius: 8px !important;
-                    margin-bottom: 16px !important;
-                }
-                .photo-change-btn {
-                    padding: 14px 18px !important;
-                    font-size: 15px !important;
-                    min-height: 48px !important; /* Ensure touch target is large enough */
-                }
-                #photoUploadModal button {
-                    padding: 12px 16px !important;
-                    font-size: 14px !important;
-                    border-radius: 8px !important;
-                    min-height: 44px !important;
-                }
-            }
-    
-            /* Responsive dashboard styles */
-            @media (max-width: 768px) {
-                body {
-                    padding: 10px;
-                }
-                .header {
-                    flex-direction: column;
-                    align-items: flex-start;
-                    gap: 10px;
-                }
-                .header h1 {
-                    font-size: 1.8rem;
-                }
-                .dashboard-grid {
-                    grid-template-columns: 1fr;
-                    gap: 15px;
-                }
-                .card {
-                    padding: 15px;
-                }
-                .card h3 {
-                    font-size: 1.1rem;
-                }
-                .card p {
-                    font-size: 0.9rem;
-                }
-                .join-btn {
-                    width: 100%;
-                    padding: 10px;
-                }
-                .nav-back a {
-                    padding: 6px 12px;
-                    font-size: 0.9rem;
-                }
-            }
-    
-            @media (max-width: 480px) {
-                .header h1 {
-                    font-size: 1.5rem;
-                }
-                .card {
-                    padding: 12px;
-                }
-                .card h3 {
-                    font-size: 1rem;
-                }
-                .class-item {
-                    padding: 8px;
-                    margin-bottom: 8px;
-                }
-                .class-item div:first-child {
-                    font-size: 0.9rem;
-                }
-                .class-item div:last-child {
-                    font-size: 0.8rem;
-                }
-                #joinCode {
-                    width: 100%;
-                    margin-bottom: 10px;
-                }
-                .join-btn {
-                    width: 100%;
-                }
             }
         </style>
 
         <div class="swal-edit-scroll">
-            <div class="swal-register-grid">
-            <div class="swal-register-left">
-                {% if user.student_profile.face_photo_path %}
-                <img id="swalPhotoPreview" src="{{ url_for('static', filename=user.student_profile.face_photo_path) }}" class="swal-photo-preview" alt="Face Preview" style="display:none;">
-                {% elif user.student_profile.face_photo_url %}
-                <img id="swalPhotoPreview" src="{{ user.student_profile.face_photo_url }}" class="swal-photo-preview" alt="Face Preview" style="display:none;">
-                {% else %}
-                <img id="swalPhotoPreview" src="{{ url_for('static', filename='images/default-profile.svg') }}" class="swal-photo-preview" alt="Face Preview" style="display:none;">
-                {% endif %}
-                <div style="display:flex; flex-direction:column; gap:12px;">
-                    <div style="display:flex; flex-direction:column; gap:8px; display:none;">
-                        <label style="font-weight:600; font-size:14px; color:#374155;">Change Photos:</label>
-                        <div style="display:flex; flex-direction:column; gap:8px;">
-                            <button type="button" onclick="openPhotoModal('profile')" class="photo-change-btn" style="width:100%; border-radius:12px; padding:12px 16px; font-weight:600; font-size:14px; background:linear-gradient(135deg, #667eea 0%, #764ba2 100%); border:none; color:#fff; cursor:pointer; transition:all 0.3s ease; box-shadow:0 4px 15px rgba(102,126,234,0.3);">📷 Change Profile Photo</button>
-
-                            <button type="button" onclick="openPhotoModal('id_front')" class="photo-change-btn" style="width:100%; border-radius:12px; padding:12px 16px; font-weight:600; font-size:14px; background:linear-gradient(135deg, #f97316 0%, #ea580c 100%); border:none; color:#fff; cursor:pointer; transition:all 0.3s ease; box-shadow:0 4px 15px rgba(249,115,22,0.3);">🆔 Change ID Front Photo</button>
-
-                            <button type="button" onclick="openPhotoModal('id_back')" class="photo-change-btn" style="width:100%; border-radius:12px; padding:12px 16px; font-weight:600; font-size:14px; background:linear-gradient(135deg, #10b981 0%, #059669 100%); border:none; color:#fff; cursor:pointer; transition:all 0.3s ease; box-shadow:0 4px 15px rgba(16,185,129,0.3);">🆔 Change ID Back Photo</button>
-                        </div>
+            <!-- Personal Information Section -->
+            <div class="edit-form-section">
+                <div class="edit-form-section-title"><i class="fas fa-user" style="color:#2ecc71; margin-right:8px;"></i> Personal Information</div>
+                <div class="edit-form-fields">
+                    <div class="edit-form-field">
+                        <label>First Name *</label>
+                        <input id="swalFirstName" type="text" value="{{ user.personal_info.first_name or '' }}" required>
                     </div>
-
-                    <!-- Hidden file inputs -->
-                    <input id="swalPhotoInput" type="file" accept="image/*" style="display:none;">
-                    <input id="swalIdFront" type="file" accept="image/*" style="display:none;">
-                    <input id="swalIdBack" type="file" accept="image/*" style="display:none;">
-
-                    <div id="swalIdFrontPreview" style="min-height:48px; border:1px solid #e2e8f0; border-radius:8px; padding:4px; background:#fafbfc; display:none;">{% if user.student_profile.id_front_path %}<img src="{{ url_for('static', filename=user.student_profile.id_front_path) }}" style="max-width:100%; height:auto; border-radius:6px;">{% else %}<div style="color:#9ca3af; font-size:12px; text-align:center; padding:8px;">No ID front photo uploaded</div>{% endif %}</div>
-
-                    <div id="swalIdBackPreview" style="min-height:48px; border:1px solid #e2e8f0; border-radius:8px; padding:4px; background:#fafbfc; display:none;">{% if user.student_profile.id_back_path %}<img src="{{ url_for('static', filename=user.student_profile.id_back_path) }}" style="max-width:100%; height:auto; border-radius:6px;">{% else %}<div style="color:#9ca3af; font-size:12px; text-align:center; padding:8px;">No ID back photo uploaded</div>{% endif %}</div>
-                </div>
-
-                <!-- Photo Upload Modal Template -->
-                <div id="photoUploadModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:20000; align-items:center; justify-content:center;">
-                    <div style="background:#fff; border-radius:16px; padding:24px; max-width:400px; width:90%; max-height:80vh; overflow-y:auto;">
-                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
-                            <h3 id="photoModalTitle" style="margin:0; font-size:18px; color:#374155;">Upload Photo</h3>
-                            <button onclick="closePhotoModal()" style="background:none; border:none; font-size:24px; cursor:pointer; color:#6b7280;">×</button>
-                        </div>
-
-                        <div style="text-align:center; margin-bottom:20px;">
-                            <div id="photoPreviewContainer" style="width:200px; height:200px; border:2px dashed #cbd5f5; border-radius:12px; margin:0 auto 16px; display:flex; align-items:center; justify-content:center; background:#f8fafc; overflow:hidden;">
-                                <div id="photoPreviewPlaceholder" style="color:#9ca3af; font-size:14px; text-align:center;">No image selected<br><span style="font-size:12px;">Click upload to select</span></div>
-                                <img id="photoPreviewImage" src="" style="display:none; width:100%; height:100%; object-fit:cover; border-radius:10px;">
-                            </div>
-                            <input type="file" id="photoFileInput" accept="image/*" style="display:block; margin:0 auto; padding:8px; border:1px solid #cbd5f5; border-radius:8px; width:100%; box-sizing:border-box;">
-                        </div>
-
-                        <div style="display:flex; gap:12px; justify-content:flex-end;">
-                            <button onclick="closePhotoModal()" style="padding:10px 20px; border:1px solid #cbd5f5; background:#fff; border-radius:8px; cursor:pointer;">Cancel</button>
-                            <button id="photoConfirmBtn" onclick="confirmPhotoUpload()" style="padding:10px 20px; background:#16a34a; color:#fff; border:none; border-radius:8px; cursor:pointer;" disabled>Upload</button>
-                        </div>
+                    <div class="edit-form-field">
+                        <label>Last Name *</label>
+                        <input id="swalLastName" type="text" value="{{ user.personal_info.last_name or '' }}" required>
+                    </div>
+                    <div class="edit-form-field">
+                        <label>Middle Name</label>
+                        <input id="swalMiddleName" type="text" value="{{ user.personal_info.middle_name or '' }}">
+                    </div>
+                    <div class="edit-form-field">
+                        <label>Email</label>
+                        <input id="swalEmail" type="email" value="{{ user.personal_info.email or '' }}" readonly>
+                    </div>
+                    <div class="edit-form-field">
+                        <label>Phone</label>
+                        <input id="swalPhone" type="tel" value="{{ user.personal_info.phone or 'N/A' }}">
+                    </div>
+                    <div class="edit-form-field">
+                        <label>Gender</label>
+                        <select id="swalGender">
+                            <option value="">Select</option>
+                            <option value="Male" {% if user.personal_info.gender=='Male' %}selected{% endif %}>Male</option>
+                            <option value="Female" {% if user.personal_info.gender=='Female' %}selected{% endif %}>Female</option>
+                            <option value="Other" {% if user.personal_info.gender=='Other' %}selected{% endif %}>Other</option>
+                        </select>
+                    </div>
+                    <div class="edit-form-field edit-form-fields">
+                        <label>Birth Date</label>
+                        <input id="swalBirthDate" type="date" value="{{ user.personal_info.birth_date or '' }}">
+                    </div>
+                    <div class="edit-form-field edit-form-fields">
+                        <label>Address</label>
+                        <input id="swalAddress" type="text" value="{{ user.personal_info.address or '' }}">
                     </div>
                 </div>
-
             </div>
-            <div>
-                <div class="swal-field"><label>First name</label><input id="swalFirstName" value="{{ user.personal_info.first_name or '' }}"></div>
-                <div class="swal-field"><label>Last name</label><input id="swalLastName" value="{{ user.personal_info.last_name or '' }}"></div>
-                <div class="swal-field"><label>Middle name</label><input id="swalMiddleName" value="{{ user.personal_info.middle_name or '' }}"></div>
-                <div class="swal-field"><label>Email</label><input id="swalEmail" value="{{ user.personal_info.email or '' }}"></div>
-                <div class="swal-field"><label>Phone</label><input id="swalPhone" value="{{ user.personal_info.phone or '' }}"></div>
-                <div class="swal-field"><label>Address</label><input id="swalAddress" value="{{ user.personal_info.address or '' }}"></div>
-                                <div class="swal-field-row">
-                                    <div class="swal-field"><label>Birth date</label><input id="swalBirthDate" value="{{ user.personal_info.birth_date or '' }}" placeholder="YYYY-MM-DD"></div>
-                                    <div class="swal-field"><label>Gender</label>
-                    <select id="swalGender">
-                      <option value="" {% if not user.personal_info.gender %}selected{% endif %}>Select</option>
-                      <option value="Male" {% if user.personal_info.gender=='Male' %}selected{% endif %}>Male</option>
-                      <option value="Female" {% if user.personal_info.gender=='Female' %}selected{% endif %}>Female</option>
-                      <option value="Other" {% if user.personal_info.gender=='Other' %}selected{% endif %}>Other</option>
-                    </select>
-                  </div>
-                </div>
-                                <div class="swal-field-row" style="margin-top:6px;">
-                                    <div class="swal-field"><label>Emergency name</label><input id="swalEmergName" value="{{ user.personal_info.emergency_contact_name or '' }}"></div>
-                                    <div class="swal-field"><label>Emergency phone</label><input id="swalEmergPhone" value="{{ user.personal_info.emergency_contact_phone or '' }}"></div>
-                </div>
 
-                <hr style="margin:10px 0; border-color:#eef2f7;">
+            <div class="edit-hr"></div>
 
-                <div class="swal-field"><label>School ID</label><input id="swalSchoolId" value="{{ user.school_id }}" disabled></div>
-                <div class="swal-field"><label>Course</label>
-                    <select id="swalCourse">
-                        <option value="">Select Course</option>
-                        <option value="BSIT" {% if user.student_profile.course=='BSIT' %}selected{% endif %}>BSIT</option>
-                        <option value="BSCS" {% if user.student_profile.course=='BSCS' %}selected{% endif %}>BSCS</option>
-                        <option value="BSIS" {% if user.student_profile.course=='BSIS' %}selected{% endif %}>BSIS</option>
-                        <option value="BSCpE" {% if user.student_profile.course=='BSCpE' %}selected{% endif %}>BSCpE</option>
-                        <option value="BSEMC" {% if user.student_profile.course=='BSEMC' %}selected{% endif %}>BSEMC</option>
-                    </select>
+            <!-- Emergency Contact Section -->
+            <div class="edit-form-section">
+                <div class="edit-form-section-title"><i class="fas fa-phone" style="color:#2ecc71; margin-right:8px;"></i> Emergency Contact</div>
+                <div class="edit-form-fields">
+                    <div class="edit-form-field">
+                        <label>Contact Name</label>
+                        <input id="swalEmergName" type="text" value="{{ user.personal_info.emergency_contact_name or '' }}">
+                    </div>
+                    <div class="edit-form-field">
+                        <label>Contact Phone</label>
+                        <input id="swalEmergPhone" type="tel" value="{{ user.personal_info.emergency_contact_phone or '' }}">
+                    </div>
                 </div>
-                                <div class="swal-field-row">
-                                    <div class="swal-field"><label>Year Level</label><select id="swalYearLevel"><option value="">Select</option><option value="1" {% if user.student_profile.year_level==1 or user.student_profile.year_level=='1' %}selected{% endif %}>1</option><option value="2" {% if user.student_profile.year_level==2 or user.student_profile.year_level=='2' %}selected{% endif %}>2</option><option value="3" {% if user.student_profile.year_level==3 or user.student_profile.year_level=='3' %}selected{% endif %}>3</option><option value="4" {% if user.student_profile.year_level==4 or user.student_profile.year_level=='4' %}selected{% endif %}>4</option></select></div>
-                                    <div class="swal-field"><label>Section</label><input id="swalSection" value="{{ user.student_profile.section or '' }}"></div>
+            </div>
+
+            <div class="edit-hr"></div>
+
+            <!-- Academic Information Section -->
+            <div class="edit-form-section">
+                <div class="edit-form-section-title"><i class="fas fa-graduation-cap" style="color:#2ecc71; margin-right:8px;"></i> Academic Information</div>
+                <div class="edit-form-fields">
+                    <div class="edit-form-field">
+                        <label>School ID</label>
+                        <input id="swalSchoolId" type="text" value="{{ user.school_id }}" disabled>
+                    </div>
+                    <div class="edit-form-field">
+                        <label>Course</label>
+                        <select id="swalCourse">
+                            <option value="">Select Course</option>
+                            <option value="BSIT" {% if user.student_profile.course=='BSIT' %}selected{% endif %}>BSIT</option>
+                            <option value="BSCS" {% if user.student_profile.course=='BSCS' %}selected{% endif %}>BSCS</option>
+                            <option value="BSIS" {% if user.student_profile.course=='BSIS' %}selected{% endif %}>BSIS</option>
+                            <option value="BSCpE" {% if user.student_profile.course=='BSCpE' %}selected{% endif %}>BSCpE</option>
+                            <option value="BSEMC" {% if user.student_profile.course=='BSEMC' %}selected{% endif %}>BSEMC</option>
+                        </select>
+                    </div>
+                    <div class="edit-form-field">
+                        <label>Year Level</label>
+                        <select id="swalYearLevel">
+                            <option value="">Select</option>
+                            <option value="1" {% if user.student_profile.year_level==1 or user.student_profile.year_level=='1' %}selected{% endif %}>1st Year</option>
+                            <option value="2" {% if user.student_profile.year_level==2 or user.student_profile.year_level=='2' %}selected{% endif %}>2nd Year</option>
+                            <option value="3" {% if user.student_profile.year_level==3 or user.student_profile.year_level=='3' %}selected{% endif %}>3rd Year</option>
+                            <option value="4" {% if user.student_profile.year_level==4 or user.student_profile.year_level=='4' %}selected{% endif %}>4th Year</option>
+                        </select>
+                    </div>
+                    <div class="edit-form-field">
+                        <label>Section</label>
+                        <input id="swalSection" type="text" value="{{ user.student_profile.section or '' }}">
+                    </div>
+                    <div class="edit-form-field">
+                        <label>Track</label>
+                        <input id="swalTrack" type="text" value="{{ user.student_profile.track or '' }}">
+                    </div>
                 </div>
-                <div class="swal-field"><label>Track</label><input id="swalTrack" value="{{ user.student_profile.track or '' }}"></div>
             </div>
         </div>
-                </div>
     </template>
 
     <style>
@@ -734,6 +648,11 @@
         @keyframes spin {
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
+        }
+
+        @keyframes slideDown {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
         }
 
         .spinner {
@@ -1110,9 +1029,178 @@
                 });
         }
 
+        // Function to switch between sections
+        function switchSection(sectionName) {
+            // Hide all sections
+            const allSections = document.querySelectorAll('.dashboard-content-section');
+            allSections.forEach(section => {
+                section.style.display = 'none';
+            });
+
+            // Show the selected section
+            const selectedSection = document.getElementById(sectionName + '-section');
+            if (selectedSection) {
+                selectedSection.style.display = 'block';
+                
+                // Load data for the section if needed
+                if (sectionName === 'classes') {
+                    loadJoinedClasses();
+                } else if (sectionName === 'grades') {
+                    loadGrades();
+                } else if (sectionName === 'notifications') {
+                    loadClassNotifications();
+                } else if (sectionName === 'dashboard') {
+                    loadJoinedClasses();
+                    loadMissingAssessmentsSummary();
+                    loadClassNotifications();
+                }
+            }
+
+            // Update active nav item
+            const navLinks = document.querySelectorAll('.sidebar-menu .nav-link');
+            navLinks.forEach(link => {
+                link.classList.remove('active');
+                if (link.getAttribute('data-section') === sectionName) {
+                    link.classList.add('active');
+                }
+            });
+
+            // Scroll to top
+            document.querySelector('.main-content').scrollTop = 0;
+        }
+
+        // Function to load grades
+        function loadGrades() {
+            const gradesContainer = document.getElementById('gradesContainer');
+            gradesContainer.innerHTML = '<div class="loading-text"><i class="fas fa-spinner fa-pulse"></i> Loading grades...</div>';
+
+            fetch('/api/student/analytics', {
+                credentials: 'same-origin'
+            })
+                .then(response => {
+                    if (response.status === 302 || response.redirected) {
+                        throw new Error('Authentication required. Please log in again.');
+                    }
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    if (!data.classes || data.classes.length === 0) {
+                        gradesContainer.innerHTML = '<div style="text-align: center; padding: 40px; color: #999;"><i class="fas fa-inbox" style="font-size: 32px; margin-bottom: 10px; display: block;"></i><p>No grades available yet</p></div>';
+                        return;
+                    }
+
+                    let html = '<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(350px, 1fr)); gap: 15px;">';
+                    
+                    data.classes.forEach(cls => {
+                        let finalGrade = 'TBA';
+                        let equivalent = '';
+                        if (cls.released_grades && cls.released_grades.length > 0) {
+                            finalGrade = cls.released_grades[0].final_grade;
+                            equivalent = cls.released_grades[0].equivalent || '';
+                            // If grade is explicitly null, mark as DRP (Dropped)
+                            if (finalGrade === null) {
+                                finalGrade = 'DRP';
+                            }
+                        }
+                        const gradeColor = (finalGrade === 'DRP' || finalGrade === 'TBA') ? '#999' : '#16a34a';
+                        const hasGrade = finalGrade && finalGrade !== 'TBA' && finalGrade !== 'DRP';
+                        const missingCount = cls.missing_assessments ? cls.missing_assessments.length : 0;
+                        
+                        html += `
+                            <div style="background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 12px; padding: 20px; border-top: 4px solid #2ecc71;">
+                                <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px;">
+                                    <div>
+                                        <div style="color: #071f18; font-weight: 700; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;">${cls.subject || 'SUBJECT'}</div>
+                                        <h3 style="margin: 0; color: #1f2937; font-size: 15px;"><i class="fas fa-book"></i> ${cls.class_name}</h3>
+                                    </div>
+                                    ${hasGrade ? `<div style="background: #dcfce7; padding: 6px 12px; border-radius: 6px; color: #15803d; font-weight: 600; font-size: 13px;">${equivalent || ''}</div>` : ''}
+                                </div>
+                                <div style="color: ${gradeColor}; font-size: 36px; font-weight: 700; margin: 12px 0; line-height: 1;">${finalGrade}</div>
+                                <div style="color: #6b7280; font-size: 12px; margin-bottom: 12px;">
+                                    ${missingCount > 0 ? `<div style="color: #dc3545;"><i class="fas fa-exclamation-triangle"></i> ${missingCount} missing assessment${missingCount !== 1 ? 's' : ''}</div>` : '<div style="color: #16a34a;"><i class="fas fa-check-circle"></i> All assessments completed</div>'}
+                                </div>
+                            </div>
+                        `;
+                    });
+                    
+                    html += '</div>';
+                    gradesContainer.innerHTML = html;
+                })
+                .catch(error => {
+                    console.error('Error loading grades:', error);
+                    gradesContainer.innerHTML = '<div style="text-align: center; padding: 40px; color: #dc3545;"><i class="fas fa-exclamation-circle" style="font-size: 32px; margin-bottom: 10px; display: block;"></i><p>Failed to load grades</p></div>';
+                });
+        }
+
+        // Function to load joined classes (new section-based layout)
+        function loadJoinedClassesNew() {
+            const classesContainer = document.getElementById('classesContainer');
+            classesContainer.innerHTML = '<div class="loading-text"><i class="fas fa-spinner fa-pulse"></i> Loading classes...</div>';
+
+            return fetch('/api/student/joined-classes', {
+                credentials: 'same-origin'
+            })
+                .then(response => {
+                    if (response.status === 302 || response.redirected) {
+                        throw new Error('Authentication required. Please log in again.');
+                    }
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    if (!data.classes || data.classes.length === 0) {
+                        classesContainer.innerHTML = '<div style="text-align: center; padding: 40px; color: #999;"><i class="fas fa-book-open" style="font-size: 32px; margin-bottom: 10px; display: block;"></i><p>No classes enrolled yet</p><button onclick="document.getElementById(\'joinClassModal\').style.display=\'flex\'" style="margin-top: 15px; padding: 10px 20px; background: linear-gradient(135deg, #071f18 0%, #0b2b20 100%); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600;">Join a Class</button></div>';
+                        return;
+                    }
+
+                    let html = '<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(350px, 1fr)); gap: 15px;">';
+                    
+                    data.classes.forEach(cls => {
+                        html += `
+                            <div style="background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 12px; padding: 20px; cursor: pointer; transition: all 0.3s ease; border-left: 4px solid #2ecc71; position: relative;" onclick="showClassDetails('${cls.id}')" style="hover: {box-shadow: 0 8px 24px rgba(0,0,0,0.1);}">
+                                <div style="color: #071f18; font-weight: 700; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px;"><i class="fas fa-tag"></i> ${cls.subject || 'SUBJECT'}</div>
+                                <h3 style="margin: 0 0 8px 0; color: #1f2937; font-size: 16px; font-weight: 600;"><i class="fas fa-book"></i> ${cls.class_id}</h3>
+                                <div style="color: #6b7280; font-size: 13px; margin-bottom: 12px;">
+                                    <div style="margin-bottom: 5px;"><i class="fas fa-user-tie"></i> ${cls.instructor_name || cls.instructor || 'Instructor TBA'}</div>
+                                    ${cls.schedule && cls.schedule !== 'TBA' ? `<div style="margin-bottom: 5px;"><i class="fas fa-clock"></i> ${cls.schedule}</div>` : ''}
+                                    ${cls.units ? `<div><i class="fas fa-layers"></i> ${cls.units} Units</div>` : ''}
+                                </div>
+
+                            </div>
+                        `;
+                    });
+                    
+                    html += '</div>';
+                    classesContainer.innerHTML = html;
+                    
+                    // Update the count on dashboard stats
+                    const countElement = document.getElementById('enrolledClassesCount');
+                    if (countElement) {
+                        countElement.textContent = data.classes.length;
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading classes:', error);
+                    classesContainer.innerHTML = '<div style="text-align: center; padding: 40px; color: #dc3545;"><i class="fas fa-exclamation-circle" style="font-size: 32px; margin-bottom: 10px; display: block;"></i><p>Failed to load classes</p></div>';
+                });
+        }
+
         // Function to load joined classes
         function loadJoinedClasses() {
-            // Get the correct elements based on screen size
+            // Check if we're using the new section-based layout
+            const classesContainerNew = document.getElementById('classesContainer');
+            
+            if (classesContainerNew) {
+                // Use new layout
+                return loadJoinedClassesNew();
+            }
+            
+            // Get the correct elements based on screen size (old layout)
             const isMobile = window.innerWidth <= 768;
             let listDiv = document.getElementById(isMobile ? 'joinedClassesListMobile' : 'joinedClassesListDesktop');
             let countDiv = document.getElementById(isMobile ? 'classCountMobile' : 'classCountDesktop');
@@ -1283,7 +1371,7 @@
                         </div>
                     `;
                         const modal = document.getElementById('classModal');
-                        modal.style.display = 'block';
+                        modal.style.display = 'flex';
                         setTimeout(() => modal.classList.add('active'), 10);
                     }
                 })
@@ -1497,21 +1585,6 @@
             }).then((result) => {
                 if (result && result.value && result.value.data) {
                     const res = result.value.data;
-                    const prof = res.profile || res;
-                    if (prof.course !== undefined) document.getElementById('courseSpan').textContent = prof.course;
-                    if (prof.year_level !== undefined) document.getElementById('yearLevelSpan').textContent = prof.year_level;
-                    if (prof.section !== undefined) document.getElementById('sectionSpan').textContent = prof.section;
-                    if (prof.track !== undefined) document.getElementById('trackSpan').textContent = prof.track || 'No track set';
-
-                    const profileImg = document.getElementById('profilePhoto');
-                    if (prof.photo_url || prof.face_photo_url) {
-                        profileImg.src = prof.photo_url || prof.face_photo_url;
-                    } else if (result.value.filesProvided && result.value.filesProvided.face_photo) {
-                        const localUrl = URL.createObjectURL(result.value.filesProvided.face_photo);
-                        profileImg.src = localUrl;
-                        profileImg.onload = () => URL.revokeObjectURL(localUrl);
-                    }
-
                     Swal.fire({ icon: 'success', title: 'Profile Updated', text: (res.message) ? res.message : 'Your profile has been updated', timer: 1200, showConfirmButton: false, toast: true, position: 'top', background: '#dcfce7', color: '#166534' });
                     // Refresh the page after a short delay so all changes (including uploaded photos)
                     // are reflected from the server and any cached blobs are cleared.
@@ -1636,18 +1709,15 @@
 
         // Function to load missing assessments summary
         function loadMissingAssessmentsSummary() {
-            // Get the correct element based on screen size
+            // Try to get the Grades section element
             const isMobile = window.innerWidth <= 768;
             const summaryDiv = isMobile ?
                 document.querySelector('.grades-assessments-carousel #missingAssessmentsSummary') :
                 document.querySelector('.desktop-card.assessments-card #missingAssessmentsSummary');
 
-            if (!summaryDiv) {
-                console.error('Could not find missing assessments summary element');
-                return;
+            if (summaryDiv) {
+                summaryDiv.innerHTML = '<div class="summary-loading"><div class="spinner"></div> Loading missing assessments...</div>';
             }
-
-            summaryDiv.innerHTML = '<div class="summary-loading"><div class="spinner"></div> Loading missing assessments...</div>';
 
             fetch('/api/student/analytics', {
                 credentials: 'same-origin'
@@ -1662,12 +1732,47 @@
                     return response.json();
                 })
                 .then(data => {
-                    renderMissingAssessmentsSummary(data, summaryDiv);
+                    if (summaryDiv) {
+                        renderMissingAssessmentsSummary(data, summaryDiv);
+                    } else {
+                        // Just update the dashboard stat card if we're on the dashboard
+                        updateMissingAssessmentsCount(data);
+                    }
                 })
                 .catch(error => {
                     console.error('Error loading missing assessments:', error);
-                    summaryDiv.innerHTML = '<div style="text-align: center; padding: 20px; color: #dc3545;"><div style="font-size: 32px; margin-bottom: 8px;">❌</div><p>Failed to load missing assessments</p></div>';
+                    if (summaryDiv) {
+                        summaryDiv.innerHTML = '<div style="text-align: center; padding: 20px; color: #dc3545;"><div style="font-size: 32px; margin-bottom: 8px;">❌</div><p>Failed to load missing assessments</p></div>';
+                    }
                 });
+        }
+
+        // Function to update the missing assessments count on the dashboard stat card
+        function updateMissingAssessmentsCount(data) {
+            const statCard = document.getElementById('missingAssessmentsCount');
+            if (!statCard) return;
+
+            if (!data.classes || data.classes.length === 0) {
+                statCard.textContent = '0';
+                return;
+            }
+
+            let totalMissing = 0;
+            data.classes.forEach(cls => {
+                let missingCount = 0;
+                if (cls.assessments && Array.isArray(cls.assessments)) {
+                    cls.assessments.forEach(assess => {
+                        if (assess.score === 0 || assess.score === null || assess.score === undefined || assess.score === "") {
+                            missingCount++;
+                        }
+                    });
+                } else if (cls.missing_assessments && Array.isArray(cls.missing_assessments)) {
+                    missingCount = cls.missing_assessments.length;
+                }
+                totalMissing += missingCount;
+            });
+
+            statCard.textContent = totalMissing;
         }
 
         // Function to render missing assessments summary
@@ -1729,6 +1834,12 @@
             ` + html;
 
             summaryDiv.innerHTML = html;
+
+            // Update the stat card counter with total missing assessments
+            const statCardCounter = document.getElementById('missingAssessmentsCount');
+            if (statCardCounter) {
+                statCardCounter.textContent = totalMissing;
+            }
         }
 
         // Function to toggle missing assessments drawer
@@ -1880,11 +1991,12 @@
         function renderClassNotifications(data) {
             const notificationsDiv = document.getElementById('classNotificationsList');
             const notificationCount = document.getElementById('notificationCount');
+            const notificationCountStat = document.getElementById('notificationCountStat');
 
             if (!data.classes || data.classes.length === 0) {
                 notificationsDiv.innerHTML = '<div class="no-notifications"><div>No classes enrolled</div></div>';
-                notificationCount.textContent = '0';
-                notificationCount.classList.add('zero');
+                if (notificationCount) notificationCount.textContent = '0';
+                if (notificationCountStat) notificationCountStat.textContent = '0';
                 return;
             }
 
@@ -1924,12 +2036,19 @@
             // Store all notifications for the modal
             allNotifications = notifications;
 
-            // Update notification count
-            notificationCount.textContent = totalNotifications;
-            if (totalNotifications === 0) {
-                notificationCount.classList.add('zero');
-            } else {
-                notificationCount.classList.remove('zero');
+            // Update notification count in both old and new layouts
+            if (notificationCount) {
+                notificationCount.textContent = totalNotifications;
+                if (totalNotifications === 0) {
+                    notificationCount.classList.add('zero');
+                } else {
+                    notificationCount.classList.remove('zero');
+                }
+            }
+            
+            // Update stats card notification count
+            if (notificationCountStat) {
+                notificationCountStat.textContent = totalNotifications;
             }
 
             // Render notifications
@@ -1937,15 +2056,15 @@
                 notificationsDiv.innerHTML = '<div class="no-notifications"><div>No new notifications</div><div style="font-size: 0.9rem; color: #999;">You\'re all caught up!</div></div>';
             } else {
                 let html = '';
-                notifications.slice(0, 5).forEach(notification => { // Show max 5 in card
+                notifications.forEach(notification => {
                     html += `
-                        <div class="notification-item ${notification.severity}" onclick="viewNotificationDetails('${notification.className}')">
-                            <div class="notification-header">
-                                <div class="notification-class">📚 ${notification.className}</div>
-                                <div class="notification-type ${notification.type}">${notification.type}</div>
+                        <div class="notification-item ${notification.severity}" style="background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 8px; padding: 15px; margin-bottom: 12px; cursor: pointer; border-left: 4px solid ${notification.severity === 'success' ? '#16a34a' : notification.severity === 'urgent' ? '#dc3545' : '#f59e0b'}; transition: all 0.3s ease;">
+                            <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 8px;">
+                                <div style="color: #1f2937; font-weight: 600; font-size: 14px;"><i class="fas fa-book"></i> ${notification.className}</div>
+                                <div style="background: ${notification.severity === 'success' ? '#dcfce7' : notification.severity === 'urgent' ? '#fee2e2' : '#fef3c7'}; color: ${notification.severity === 'success' ? '#166534' : notification.severity === 'urgent' ? '#991b1b' : '#92400e'}; font-size: 11px; padding: 4px 8px; border-radius: 4px; font-weight: 600; text-transform: uppercase;">${notification.type === 'assessment' ? '<i class="fas fa-exclamation-triangle"></i> Assessment' : '<i class="fas fa-check-circle"></i> Grade'}</div>
                             </div>
-                            <div class="notification-message">${notification.message}</div>
-                            <div class="notification-time">${notification.time}</div>
+                            <div style="color: #374151; font-size: 14px; margin-bottom: 8px;">${notification.message}</div>
+                            <div style="color: #9ca3af; font-size: 12px;">${notification.time}</div>
                         </div>
                     `;
                 });

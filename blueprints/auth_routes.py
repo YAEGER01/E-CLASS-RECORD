@@ -18,6 +18,7 @@ from werkzeug.utils import secure_filename
 from utils.db_conn import get_db_connection
 from utils.email_service import email_service
 from utils.rate_limiter import get_login_limiter
+from functools import wraps
 
 logger = logging.getLogger(__name__)
 
@@ -793,9 +794,23 @@ def student_login():
 def logout():
     user_id = session.get("user_id")
     school_id = session.get("school_id")
+    user_role = session.get("user_role", "unknown")
+    
+    # Log the logout action
+    logger.info(f"User {school_id} (ID: {user_id}) logged out as {user_role}")
+    
+    # Completely clear the session
     session.clear()
-    logger.info(f"User {school_id} (ID: {user_id}) logged out")
-    return redirect(url_for("home"))
+    
+    # Create response object to add headers that prevent browser caching
+    response = redirect(url_for("home"))
+    
+    # Add cache-control headers to prevent back button access to authenticated pages
+    response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+    response.headers["Pragma"] = "no-cache"
+    response.headers["Expires"] = "0"
+    
+    return response
 
 
 # Route: GET/POST "/register"
@@ -864,8 +879,12 @@ def register():
             errors.append("First name is required")
         if not last_name:
             errors.append("Last name is required")
+        # School ID is required and must match format YY-NNNNN where YY is 21-26
+        import re
         if not school_id:
             errors.append("School ID is required")
+        elif not re.match(r'^(21|22|23|24|25|26)-\d{5}$', school_id):
+            errors.append("Invalid School ID format. Use YY-NNNNN (e.g., 22-12345) where YY is 21-26")
         if not email:
             errors.append("Email is required")
         if not course:

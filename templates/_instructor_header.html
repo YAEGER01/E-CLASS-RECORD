@@ -8,11 +8,19 @@
     {% set _display_name = 'Guest' %}
 {% endif %}
 
+<!-- Font Awesome CSS -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
 <header class="main-header">
     <div class="header-container">
         <div class="header-brand">
-            <h1>E-Class Record</h1>
-            <span class="header-subtitle">{{ header_subtitle|default('Instructor') }}</span>
+            <div class="brand-logo-section">
+                <img src="/static/images/isu.png" alt="ISU Logo" class="brand-logo-img" />
+                <div class="brand-text">
+                    <h1>E-Class Record</h1>
+                    <span class="header-subtitle">{{ header_subtitle|default('Instructor') }}</span>
+                </div>
+            </div>
         </div>
 
         <button class="nav-toggle" aria-expanded="false" aria-label="Toggle navigation">
@@ -24,31 +32,31 @@
         <div class="header-nav">
             <nav class="main-nav" id="main-nav">
                 <a href="{{ url_for('dashboard.instructor_dashboard') }}" class="nav-link {% if _active == 'dashboard' %}active{% endif %}">
-                    <span class="nav-icon">🏠</span>
+                    <i class="fas fa-home"></i>
                     <span class="nav-text">Dashboard</span>
                 </a>
                 <a href="{{ url_for('instructor.instructor_classes') }}" class="nav-link {% if _active == 'classes' %}active{% endif %}">
-                    <span class="nav-icon">📚</span>
+                    <i class="fas fa-book"></i>
                     <span class="nav-text">Classes</span>
                 </a>
                 <a href="#" onclick="openStudentsView(); return false;" class="nav-link {% if _active == 'students' %}active{% endif %}">
-                    <span class="nav-icon">👥</span>
+                    <i class="fas fa-users"></i>
                     <span class="nav-text">Students</span>
                 </a>
                 <a href="{{ url_for('instructor.gradebuilder_v2') }}" class="nav-link {% if _active == 'gradebuilder' %}active{% endif %}">
-                    <span class="nav-icon">⚙️</span>
+                    <i class="fas fa-sliders-h"></i>
                     <span class="nav-text">Grade Builder</span>
                 </a>
                 <a href="{{ url_for('instructor.release_grades') }}" class="nav-link {% if _active == 'release_grades' %}active{% endif %}">
-                    <span class="nav-icon">🎯</span>
+                    <i class="fas fa-star"></i>
                     <span class="nav-text">Release Grades</span>
                 </a>
                 <a href="{{ url_for('instructor.instructor_statistics') }}" class="nav-link {% if _active == 'statistics' %}active{% endif %}">
-                    <span class="nav-icon">📊</span>
+                    <i class="fas fa-chart-bar"></i>
                     <span class="nav-text">Statistics</span>
                 </a>
                 <a href="#" onclick="openGradeSheetReport(); return false;" class="nav-link {% if _active == 'grade_sheet' %}active{% endif %}">
-                    <span class="nav-icon">📋</span>
+                    <i class="fas fa-file-alt"></i>
                     <span class="nav-text">Grade Sheet</span>
                 </a>
             </nav>
@@ -56,7 +64,6 @@
 
         <div class="header-user">
             <div class="user-info">
-                <div class="user-avatar">{{ (_uid_full[:2] if _uid_full else 'GU')|upper }}</div>
                 <div class="user-details">
                     <span class="user-name">{{ _display_name }}</span>
                     <span class="user-role">Instructor</span>

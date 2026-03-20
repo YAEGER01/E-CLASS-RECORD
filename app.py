@@ -352,6 +352,47 @@ def auto_gibber_redirect():
     return
 
 
+# --- Session & Cache-Control middleware to prevent unauthorized access after logout
+@app.after_request
+def set_cache_control_headers(response):
+    """
+    Set cache-control headers for all responses to prevent browser caching of 
+    authenticated pages. This ensures that users cannot access dashboards via 
+    browser back button after logging out.
+    """
+    path = request.path
+    
+    # List of protected routes that should not be cached
+    protected_paths = [
+        '/dashboard',
+        '/instructor',
+        '/student',
+        '/admin',
+        '/api/instructor',
+        '/api/student',
+        '/api/admin'
+    ]
+    
+    # Check if user is authenticated by looking for user_id in session
+    is_authenticated = 'user_id' in session
+    
+    # For authenticated users on protected pages, set no-cache headers
+    if is_authenticated and any(path.startswith(p) for p in protected_paths):
+        response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0, private"
+        response.headers["Pragma"] = "no-cache"
+        response.headers["Expires"] = "0"
+    
+    # For public pages, allow normal caching but still set private
+    elif path.startswith('/static'):
+        # Static files can be cached
+        pass
+    else:
+        # Other pages should have limited caching
+        response.headers["Cache-Control"] = "public, max-age=3600"
+    
+    return response
+
+
 @app.route("/g/<token>", methods=["GET", "HEAD", "POST"])
 def gib_route(token):
     max_age = app.config.get("GIBBER_MAX_AGE")

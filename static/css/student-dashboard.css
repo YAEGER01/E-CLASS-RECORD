@@ -49,17 +49,26 @@ body::before {
 }
 
 .header {
-  background: #fff;
+  background: linear-gradient(135deg, #071f18 0%, #0b2b20 100%);
   padding: 20px;
   border-radius: 16px;
   margin-bottom: 24px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 4px 12px rgba(7, 31, 24, 0.15);
   display: flex;
   justify-content: space-between;
   align-items: center;
   flex-wrap: wrap;
   transition: box-shadow 0.3s ease;
   animation: slideInDown 0.6s ease-out;
+  color: #e6f6ea;
+}
+
+.header h1 {
+  color: #e6f6ea;
+}
+
+.header p {
+  color: #b8e6d5;
 }
 
 @keyframes slideInDown {
@@ -136,10 +145,15 @@ body::before {
   padding: 20px;
   border-radius: 12px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-  border: 1px solid #e0e0e0;
-  transition: box-shadow 0.3s ease, transform 0.3s ease;
+  border: 2px solid #0b2b20;
+  transition: box-shadow 0.3s ease, transform 0.3s ease, border-color 0.3s ease;
   box-sizing: border-box;
   width: 100%;
+}
+
+.card:hover {
+  border-color: #1fa65a;
+  box-shadow: 0 8px 20px rgba(31, 166, 90, 0.15);
 }
 
 .card-header {
@@ -147,26 +161,32 @@ body::before {
   justify-content: space-between;
   align-items: center;
   margin-bottom: 12px;
+  background: linear-gradient(135deg, #0b2b20 0%, #041712 100%);
+  padding: 12px;
+  margin: -20px -20px 12px -20px;
+  border-radius: 10px 10px 0 0;
+  color: #e6f6ea;
 }
 
 .card-header h3 {
   margin: 0;
+  color: #e6f6ea;
 }
 
 .edit-btn {
-  background: #16a34a;
+  background: linear-gradient(135deg, #1fa65a 0%, #2ecc71 100%);
   color: #fff;
   border: none;
   padding: 8px 16px;
   border-radius: 8px;
   cursor: pointer;
   font-weight: 600;
-  box-shadow: 0 2px 6px rgba(22, 163, 74, 0.2);
+  box-shadow: 0 2px 6px rgba(31, 166, 90, 0.2);
   transition: all 0.2s ease;
 }
 .edit-btn:hover {
-  background: #15803d;
-  box-shadow: 0 4px 8px rgba(22, 163, 74, 0.3);
+  background: linear-gradient(135deg, #2ecc71 0%, #1fa65a 100%);
+  box-shadow: 0 4px 8px rgba(46, 204, 113, 0.3);
   transform: translateY(-1px);
 }
 
@@ -290,25 +310,25 @@ body::before {
 
 .view-grades-btn {
   display: inline-block;
-  background: #2563eb;
+  background: linear-gradient(135deg, #1fa65a 0%, #2ecc71 100%);
   color: #fff;
   padding: 10px 20px;
   border-radius: 8px;
   text-decoration: none;
   font-weight: 600;
   font-size: 14px;
-  box-shadow: 0 2px 6px rgba(37, 99, 235, 0.2);
+  box-shadow: 0 2px 6px rgba(31, 166, 90, 0.2);
   transition: all 0.2s ease;
 }
 
 .view-grades-btn:hover {
-  background: #1d4ed8;
-  box-shadow: 0 4px 8px rgba(37, 99, 235, 0.3);
-  transform: translateY(-1px);
+  background: linear-gradient(135deg, #2ecc71 0%, #1fa65a 100%);
+  box-shadow: 0 4px 8px rgba(46, 204, 113, 0.3);
+  transform: translateY(-2px);
 }
 
 .export-btn {
-  background: #16a34a;
+  background: linear-gradient(135deg, #1fa65a 0%, #2ecc71 100%);
   color: #fff;
   border: none;
   padding: 10px 20px;
@@ -316,18 +336,18 @@ body::before {
   cursor: pointer;
   font-weight: 600;
   font-size: 14px;
-  box-shadow: 0 2px 6px rgba(22, 163, 74, 0.2);
+  box-shadow: 0 2px 6px rgba(31, 166, 90, 0.2);
   transition: all 0.2s ease;
 }
 
 .export-btn:hover {
-  background: #15803d;
-  box-shadow: 0 4px 8px rgba(22, 163, 74, 0.3);
-  transform: translateY(-1px);
+  background: linear-gradient(135deg, #2ecc71 0%, #1fa65a 100%);
+  box-shadow: 0 4px 8px rgba(46, 204, 113, 0.3);
+  transform: translateY(-2px);
 }
 
 .logout-btn {
-  background: #16a34a;
+  background: linear-gradient(135deg, #1fa65a 0%, #2ecc71 100%);
   color: #fff;
   padding: 10px 20px;
   border: none;
@@ -336,17 +356,17 @@ body::before {
   text-decoration: none;
   font-weight: 600;
   font-size: 0.9rem;
-  box-shadow: 0 2px 6px rgba(22, 163, 74, 0.2);
+  box-shadow: 0 2px 6px rgba(31, 166, 90, 0.3);
   transition: all 0.2s ease;
 }
 .logout-btn:hover {
-  background: #15803d;
-  box-shadow: 0 4px 8px rgba(22, 163, 74, 0.3);
-  transform: translateY(-1px);
+  background: linear-gradient(135deg, #2ecc71 0%, #1fa65a 100%);
+  box-shadow: 0 4px 12px rgba(46, 204, 113, 0.4);
+  transform: translateY(-2px);
 }
 
 .join-btn {
-  background: #16a34a;
+  background: linear-gradient(135deg, #1fa65a 0%, #2ecc71 100%);
   color: #fff;
   padding: 12px 24px;
   border: none;
@@ -355,13 +375,13 @@ body::before {
   font-weight: 600;
   font-size: 15px;
   width: 100%;
-  box-shadow: 0 2px 6px rgba(22, 163, 74, 0.2);
+  box-shadow: 0 2px 6px rgba(31, 166, 90, 0.2);
   transition: all 0.2s ease;
 }
 .join-btn:hover {
-  background: #15803d;
-  box-shadow: 0 4px 8px rgba(22, 163, 74, 0.3);
-  transform: translateY(-1px);
+  background: linear-gradient(135deg, #2ecc71 0%, #1fa65a 100%);
+  box-shadow: 0 4px 8px rgba(46, 204, 113, 0.3);
+  transform: translateY(-2px);
 }
 .join-btn:disabled {
   opacity: 0.6;

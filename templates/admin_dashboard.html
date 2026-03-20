@@ -52,16 +52,16 @@
             <p>Welcome, Admin {{ user.school_id }}!</p>
         </div>
         <div class="header-actions">
-            <button onclick="createInstructor()" class="action-btn">👨‍🏫 Create Instructor</button>
+            <button onclick="createInstructor()" class="action-btn">Create Instructor</button>
             <a href="{{ url_for('auth.logout') }}" class="logout-btn">Logout</a>
         </div>
     </div>
 
     <div class="dashboard-grid">
         <div class="card">
-            <h3>👥 User Management</h3>
+            <h3>User Management</h3>
             <p>Manage all users, students, and instructors.</p>
-            <button onclick="createInstructor()" class="action-btn" style="margin-top: 15px;">👨‍🏫 Create
+            <button onclick="createInstructor()" class="action-btn" style="margin-top: 15px;">Create Instructor</button>
                 Instructor</button>
            
         </div>
@@ -79,13 +79,13 @@
                     Review and approve or reject student account registrations.
                 </p>
                 <button onclick="managePendingRegistrations()" class="action-btn" style="width: 100%; background: #f59e0b;">
-                    🔍 Review Registrations
+                    Review Registrations
                 </button>
             </div>
         </div>
 
         <div class="card" id="instructorsCard">
-            <h3>👨‍🏫 Added Instructors</h3>
+            <h3>Added Instructors</h3>
             <div id="instructorsAnalytics">
                 <div style="display: flex; justify-content: space-between; margin-bottom: 15px;">
                     <div>
@@ -113,7 +113,7 @@
 
 
         <div class="card">
-            <h3>📊 System Analytics</h3>
+            <h3>System Analytics</h3>
             <p>View instructor performance statistics and reports.</p>
             <p style="font-size: 12px; color: #6b7280; margin: 10px 0;">
                 Access detailed analytics for each instructor from the Instructor Management section.
@@ -121,14 +121,14 @@
         </div>
 
         <div class="card">
-            <h3>📚 Class Overview</h3>
+            <h3>Class Overview</h3>
             <p>Analyze class distribution, enrollment, and grading structure completion.</p>
-            <button onclick="openClassOverviewModal()" class="action-btn" style="margin-top: 15px;">📈 View Class Analytics</button>
+            <button onclick="openClassOverviewModal()" class="action-btn" style="margin-top: 15px;">View Class Analytics</button>
         </div>
 
         <div class="card" id="gradeReleaseCard">
             <div class="card-header" onclick="toggleGradeReleaseDrawer()">
-                <h3>📊 Grade Release Monitoring</h3>
+                <h3>Grade Release Monitoring</h3>
                 <span class="drawer-toggle" id="gradeReleaseToggle">▼</span>
             </div>
             <p>Monitor final grade releases across all classes and instructors.</p>
@@ -383,7 +383,7 @@
                             <!-- Account Information Section -->
                             <div class="form-section" style="background: linear-gradient(135deg, #fbbf2415 0%, #f59e0b15 100%); border-color: rgba(251, 191, 36, 0.3);">
                                 <h4 class="section-title" style="background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
-                                    <span style="font-size: 22px;">🔐</span>
+                                    <span style="font-size: 22px;"></span>
                                     <span>Account Information</span>
                                 </h4>
 
@@ -425,7 +425,7 @@
                             <!-- Professional Information Section -->
                             <div class="form-section" style="background: linear-gradient(135deg, #34d39915 0%, #10b98115 100%); border-color: rgba(52, 211, 153, 0.3);">
                                 <h4 class="section-title" style="background: linear-gradient(135deg, #34d399 0%, #10b981 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
-                                    <span style="font-size: 22px;">🎓</span>
+                                    <span style="font-size: 22px;"></span>
                                     <span>Professional Information</span>
                                 </h4>
 
@@ -492,7 +492,7 @@
 
                         if (p !== cp) {
                             matchMsg.style.color = '#ef4444';
-                            matchMsg.innerHTML = '❌ Passwords do not match';
+                            matchMsg.innerHTML = 'Passwords do not match';
                             return false;
                         }
 
@@ -896,12 +896,12 @@
                     <td>${instructor.created_at ? new Date(instructor.created_at).toLocaleDateString() : 'N/A'}</td>
                     <td style="text-align: center;">
                         <button onclick="viewInstructorDetails(${instructor.id})" class="action-btn-small btn-view" title="View Details">👁️</button>
-                        <button onclick="viewInstructorStats(${instructor.id}, '${instructor.name}')" class="action-btn-small btn-stats" title="View Statistics">📊</button>
+                        <button onclick="viewInstructorStats(${instructor.id}, '${instructor.name}')" class="action-btn-small btn-stats" title="View Statistics">Stats</button>
                         ${instructor.status === 'active'
                             ? `<button onclick="confirmAction('suspend', ${instructor.id}, '${instructor.name}')" class="action-btn-small btn-suspend" title="Suspend">⏸️</button>`
                             : `<button onclick="confirmAction('unsuspend', ${instructor.id}, '${instructor.name}')" class="action-btn-small btn-unsuspend" title="Unsuspend">▶️</button>`
                         }
-                        <button onclick="confirmAction('delete', ${instructor.id}, '${instructor.name}')" class="action-btn-small btn-delete" title="Delete">🗑️</button>
+                        <button onclick="confirmAction('delete', ${instructor.id}, '${instructor.name}')" class="action-btn-small btn-delete" title="Delete">Delete</button>
                     </td>
                 </tr>
             `).join('');
@@ -955,7 +955,7 @@
                     } else {
                         document.getElementById('instructorDetailsContent').innerHTML = `
                             <div style="text-align: center; padding: 20px; color: #dc2626;">
-                                <p>❌ Failed to load instructor details</p>
+                                <p>Failed to load instructor details</p>
                                 <p>${data.error}</p>
                             </div>
                         `;
@@ -965,7 +965,7 @@
                     console.error('Error loading instructor details:', error);
                     document.getElementById('instructorDetailsContent').innerHTML = `
                         <div style="text-align: center; padding: 20px; color: #dc2626;">
-                            <p>❌ Error loading instructor details</p>
+                            <p>Error loading instructor details</p>
                         </div>
                     `;
                 });
@@ -1021,7 +1021,7 @@
 
                 <!-- Professional Information Section -->
                 <div class="details-section">
-                    <h4>🎓 Professional Information</h4>
+                    <h4>Professional Information</h4>
                     <div class="details-grid">
                         <div class="detail-item">
                             <div class="detail-label">Department</div>
@@ -1044,7 +1044,7 @@
 
                 <!-- Account Information Section -->
                 <div class="details-section">
-                    <h4>🔐 Account Information</h4>
+                    <h4>Account Information</h4>
                     <div class="details-grid">
                         <div class="detail-item">
                             <div class="detail-label">School ID</div>
@@ -1071,7 +1071,7 @@
 
                 <!-- Statistics Section -->
                 <div class="details-section">
-                    <h4>📊 Statistics & Classes</h4>
+                    <h4>Statistics & Classes</h4>
                     <div class="stats-container">
                         <div class="stat-card">
                             <div class="stat-number">${instructor.statistics.total_classes}</div>
@@ -1100,7 +1100,7 @@
                         ? `<button onclick="confirmAction('suspend', ${instructor.id}, '${instructor.personal_info.first_name} ${instructor.personal_info.last_name}')" class="action-btn-small btn-suspend">⏸️ Suspend Account</button>`
                         : `<button onclick="confirmAction('unsuspend', ${instructor.id}, '${instructor.personal_info.first_name} ${instructor.personal_info.last_name}')" class="action-btn-small btn-unsuspend">▶️ Unsuspend Account</button>`
                     }
-                    <button onclick="confirmAction('delete', ${instructor.id}, '${instructor.personal_info.first_name} ${instructor.personal_info.last_name}')" class="action-btn-small btn-delete">🗑️ Delete Account</button>
+                    <button onclick="confirmAction('delete', ${instructor.id}, '${instructor.personal_info.first_name} ${instructor.personal_info.last_name}')" class="action-btn-small btn-delete">Delete Account</button>
                 </div>
             `;
 
@@ -1318,12 +1318,12 @@
                     buttonText: 'Suspend'
                 },
                 'unsuspend': {
-                    title: '✅ Unsuspend Instructor',
+                    title: 'Unsuspend Instructor',
                     message: `Are you sure you want to unsuspend "${instructorName}"? This will restore their access to all system features.`,
                     buttonText: 'Unsuspend'
                 },
                 'delete': {
-                    title: '🗑️ Delete Instructor',
+                    title: 'Delete Instructor',
                     message: `Are you sure you want to permanently delete "${instructorName}"? This action cannot be undone and will remove all associated data.`,
                     buttonText: 'Delete'
                 }
@@ -1491,7 +1491,7 @@
     <div id="instructorsModal" class="modal" style="display: none;">
         <div class="modal-content" style="width: 90%; max-width: 1200px; max-height: 80vh; overflow-y: auto;">
             <div class="modal-header">
-                <h3>👨‍🏫 Instructor Management</h3>
+                <h3>Instructor Management</h3>
                 <span class="close" onclick="closeInstructorsModal()">&times;</span>
             </div>
             <div class="modal-body">
@@ -1562,7 +1562,7 @@
     <div id="instructorDetailsModal" class="modal" style="display: none;">
         <div class="modal-content" style="width: 90%; max-width: 800px;">
             <div class="modal-header">
-                <h3 id="detailsModalTitle">👨‍🏫 Instructor Details</h3>
+                <h3 id="detailsModalTitle">Instructor Details</h3>
                 <span class="close" onclick="closeInstructorDetailsModal()">&times;</span>
             </div>
             <div class="modal-body" id="instructorDetailsContent">
@@ -1596,7 +1596,7 @@
     <div id="studentsModal" class="modal" style="display: none;">
         <div class="modal-content" style="width: 95%; max-width: 1200px;">
             <div class="modal-header">
-                <h3>👨‍🎓 Student Management</h3>
+                <h3>Student Management</h3>
                 <span class="close" onclick="closeStudentsModal()">&times;</span>
             </div>
             <div class="modal-body">
@@ -1652,7 +1652,7 @@
     <div id="analyticsModal" class="modal" style="display: none;">
         <div class="modal-content" style="width: 95%; max-width: 1200px; max-height: 90vh; overflow-y: auto;">
             <div class="modal-header">
-                <h3 id="analyticsModalTitle">📊 Instructor Analytics</h3>
+                <h3 id="analyticsModalTitle">Instructor Analytics</h3>
                 <span class="close" onclick="closeAnalyticsModal()">&times;</span>
             </div>
             <div class="modal-body" id="analyticsContent">
@@ -1668,7 +1668,7 @@
     <div id="classOverviewModal" class="modal" style="display: none;">
         <div class="modal-content" style="width: 95%; max-width: 1400px; max-height: 90vh; overflow-y: auto;">
             <div class="modal-header">
-                <h3>📚 Class Overview + Structure Analysis</h3>
+                <h3>Class Overview + Structure Analysis</h3>
                 <span class="close" onclick="closeClassOverviewModal()">&times;</span>
             </div>
             <div class="modal-body" id="classOverviewContent">
@@ -1799,7 +1799,7 @@
             if (students.length === 0) {
                 content.innerHTML = `
                     <div style="padding: 40px; text-align: center; color: #6b7280;">
-                        <div style="font-size: 48px; margin-bottom: 15px;">✅</div>
+                        <h3>Student Approved</h3>
                         <h3>No Pending Registrations</h3>
                         <p>All student registrations have been reviewed.</p>
                     </div>
@@ -1928,7 +1928,7 @@
             const noPhotoStyle = 'width: 100%; height: 250px; display: flex; flex-direction: column; align-items: center; justify-content: center; background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%); border-radius: 10px; border: 3px dashed #d1d5db; color: #9ca3af; font-size: 14px;';
             
             Swal.fire({
-                title: `<div style="color: #1f2937; font-size: 24px; font-weight: bold;">📋 Student Registration Details</div>`,
+                title: `<div style="color: #1f2937; font-size: 24px; font-weight: bold;">Student Registration Details</div>`,
                 html: `
                     <div style="text-align: left; padding: 20px; max-height: 600px; overflow-y: auto;">
                         <!-- Personal Information Section -->
@@ -1963,7 +1963,7 @@
                         <!-- Academic Information Section -->
                         <div style="background: #f9fafb; padding: 20px; border-radius: 10px; margin-bottom: 20px;">
                             <h3 style="margin: 0 0 15px 0; color: #1f2937; font-size: 18px; border-bottom: 2px solid #10b981; padding-bottom: 8px;">
-                                🎓 Academic Information
+                                Academic Information
                             </h3>
                             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
                                 <div>
@@ -1992,7 +1992,7 @@
                         <!-- Verification Photos Section -->
                         <div style="background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%); padding: 25px; border-radius: 12px; border: 3px solid #f59e0b; box-shadow: 0 4px 12px rgba(245, 158, 11, 0.2);">
                             <h3 style="margin: 0 0 15px 0; color: #92400e; font-size: 20px; border-bottom: 3px solid #f59e0b; padding-bottom: 10px; display: flex; align-items: center; gap: 10px;">
-                                <span style="font-size: 28px;">📸</span>
+                                <span style="font-size: 28px;"></span>
                                 <span>Verification Photos</span>
                             </h3>
                             <div style="background: rgba(146, 64, 14, 0.1); padding: 15px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid #f59e0b;">
@@ -2095,7 +2095,7 @@
 
         function rejectStudent(studentId, studentName) {
             Swal.fire({
-                title: '<span style="color: #dc2626; font-size: 24px; font-weight: bold;">❌ Reject Registration</span>',
+                title: '<span style="color: #dc2626; font-size: 24px; font-weight: bold;">Reject Registration</span>',
                 html: `
                     <div style="padding: 20px; text-align: left;">
                         <div style="background: #fef2f2; border-left: 4px solid #dc2626; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
@@ -2120,7 +2120,7 @@
                                 onblur="this.style.borderColor='#e5e7eb';">
                             </textarea>
                             <p style="margin: 8px 0 0 0; color: #6b7280; font-size: 12px;">
-                                💡 This reason will be included in the rejection email sent to the student.
+                                This reason will be included in the rejection email sent to the student.
                             </p>
                         </div>
                         
@@ -2335,7 +2335,7 @@
 
         function viewInstructorStats(instructorId, instructorName) {
             document.getElementById('analyticsModal').style.display = 'block';
-            document.getElementById('analyticsModalTitle').textContent = `📊 Statistics for ${instructorName}`;
+            document.getElementById('analyticsModalTitle').textContent = `Statistics for ${instructorName}`;
             loadInstructorStats(instructorId);
         }
 
@@ -2394,7 +2394,7 @@
                     } else {
                         document.getElementById('analyticsContent').innerHTML = `
                             <div style="text-align: center; padding: 40px; color: #dc2626;">
-                                <p>❌ Failed to load data</p>
+                                <p>Failed to load data</p>
                                 <p>${analyticsData.error || classesData.error || 'No data available for this instructor'}</p>
                             </div>
                         `;
@@ -2404,7 +2404,7 @@
                     console.error('Error loading analytics:', error);
                     document.getElementById('analyticsContent').innerHTML = `
                         <div style="text-align: center; padding: 40px; color: #dc2626;">
-                            <p>❌ Error loading analytics</p>
+                            <p>Error loading analytics</p>
                             <p style="font-size: 14px; color: #6b7280;">${error.message}</p>
                         </div>
                     `;
@@ -2437,7 +2437,7 @@
                 </div>
 
                 <div style="background: #f8fafc; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
-                    <h4 style="margin: 0 0 15px 0; color: #1f2937;">📊 Performance Overview</h4>
+                    <h4 style="margin: 0 0 15px 0; color: #1f2937;">Performance Overview</h4>
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
                         <div>
                             <h5 style="margin: 0 0 10px 0; color: #374151;">Instructor Details</h5>
@@ -2453,7 +2453,7 @@
                 </div>
 
                 <div style="background: white; padding: 20px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); margin-bottom: 20px;">
-                    <h4 style="margin: 0 0 15px 0; color: #1f2937;">📈 Detailed Metrics</h4>
+                    <h4 style="margin: 0 0 15px 0; color: #1f2937;">Detailed Metrics</h4>
                     <div style="overflow-x: auto;">
                         <table style="width: 100%; border-collapse: collapse;">
                             <thead>
@@ -2491,7 +2491,7 @@
 
                 <!-- Classes and Students Card -->
                 <div style="background: white; padding: 20px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
-                    <h4 style="margin: 0 0 15px 0; color: #1f2937;">📚 Classes & Students</h4>
+                    <h4 style="margin: 0 0 15px 0; color: #1f2937;">Classes & Students</h4>
                     ${classes.length > 0 ? classes.map(cls => `
                         <div style="background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 8px; padding: 15px; margin-bottom: 15px;">
                             <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px; border-bottom: 2px solid #e5e7eb; padding-bottom: 10px;">
@@ -2658,7 +2658,7 @@
                     ` : `
                         <div style="margin-top: 12px; padding: 8px; background: rgba(16, 185, 129, 0.1); border-radius: 8px; border-left: 3px solid #10b981;">
                             <small style="color: #065f46; font-weight: 600;">
-                                ✅ Grades released on ${new Date(cls.release_date).toLocaleDateString()}
+                                Grades released on ${new Date(cls.release_date).toLocaleDateString()}
                             </small>
                         </div>
                     `}
@@ -2722,7 +2722,7 @@
                     } else {
                         document.getElementById('classOverviewContent').innerHTML = `
                             <div style="text-align: center; padding: 40px; color: #dc2626;">
-                                <p>❌ Failed to load class overview</p>
+                                <p>Failed to load class overview</p>
                                 <p>${data.error}</p>
                             </div>
                         `;
@@ -2732,7 +2732,7 @@
                     console.error('Error loading class overview:', error);
                     document.getElementById('classOverviewContent').innerHTML = `
                         <div style="text-align: center; padding: 40px; color: #dc2626;">
-                            <p>❌ Error loading class overview</p>
+                            <p>Error loading class overview</p>
                         </div>
                     `;
                 });
@@ -2825,7 +2825,7 @@
 
                     <div style="background: white; padding: 20px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                            <h4 style="margin: 0; color: #1f2937;">📚 Classes by Course</h4>
+                            <h4 style="margin: 0; color: #1f2937;">Classes by Course</h4>
                             <div style="display: flex; gap: 10px; align-items: center;">
                                 <input type="text" id="courseSearch" placeholder="Search course..." oninput="filterCourseStats()" style="padding: 6px 10px; border: 1px solid #d1d5db; border-radius: 5px; font-size: 12px; width: 150px;">
                                 <button onclick="resetCourseFilter()" style="padding: 6px 12px; background: #f3f4f6; border: 1px solid #d1d5db; border-radius: 5px; font-size: 12px; cursor: pointer;">Reset</button>
@@ -2902,7 +2902,7 @@
 
                     <div style="background: white; padding: 20px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                            <h4 style="margin: 0; color: #1f2937;">👥 Students Enrolled per Class</h4>
+                            <h4 style="margin: 0; color: #1f2937;">Students Enrolled per Class</h4>
                             <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
                                 <select id="enrollmentYearFilter" onchange="filterEnrollmentStats()" style="padding: 6px 10px; border: 1px solid #d1d5db; border-radius: 5px; font-size: 12px;">
                                     <option value="">All Years</option>
@@ -2946,7 +2946,7 @@
                 <!-- Grading Structure Completion -->
                 <div style="background: white; padding: 20px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                        <h4 style="margin: 0; color: #1f2937;">✅ Grading Structure Completion</h4>
+                        <h4 style="margin: 0; color: #1f2937;">Grading Structure Completion</h4>
                         <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
                             <select id="completionYearFilter" onchange="filterCompletionStats()" style="padding: 6px 10px; border: 1px solid #d1d5db; border-radius: 5px; font-size: 12px;">
                                 <option value="">All Years</option>

@@ -1,5 +1,6 @@
 import logging
 import json
+import re
 from datetime import datetime
 from flask import (
     Blueprint,
@@ -272,6 +273,96 @@ def _generate_class_codes():
     while len(join_code) < 6:
         join_code += str(random.randint(0, 9))
     return class_code, join_code[:6]
+
+
+SUBJECT_CODE_KEYWORDS = (
+    "NSTP",
+    "ELECT",
+    "ELEC",
+    "INST",
+    "GEC",
+    "BPO",
+    "GE",
+    "IT",
+    "PE",
+)
+
+
+def _split_subject_alpha_token(alpha_token: str) -> list[str]:
+    token = re.sub(r"[^A-Z]", "", (alpha_token or "").upper())
+    if not token:
+        return []
+
+    parts = []
+    remaining = token
+
+    while remaining:
+        matched = None
+        for keyword in SUBJECT_CODE_KEYWORDS:
+            if remaining.startswith(keyword):
+                matched = keyword
+                break
+
+        if not matched:
+            if parts:
+                parts[-1] = f"{parts[-1]}{remaining}"
+            else:
+                parts.append(remaining)
+            break
+
+        parts.append(matched)
+        remaining = remaining[len(matched) :]
+
+    return parts
+
+
+def _normalize_subject_code(value: str) -> str:
+    raw = (value or "").strip().upper()
+    if not raw:
+        return ""
+
+    cleaned = re.sub(r"[^A-Z0-9\s-]", " ", raw)
+    cleaned = re.sub(r"([A-Z])([0-9])", r"\1 \2", cleaned)
+    cleaned = re.sub(r"([0-9])([A-Z])", r"\1 \2", cleaned)
+    cleaned = re.sub(r"[-\s]+", " ", cleaned).strip()
+
+    if not cleaned:
+        return ""
+
+    tokens = cleaned.split(" ")
+    alpha_tokens_raw = []
+    numeric_tokens = []
+
+    for token in tokens:
+        if token.isdigit():
+            numeric_tokens.append(token)
+            continue
+        alpha_tokens_raw.append(token)
+
+    if len(alpha_tokens_raw) == 1:
+        alpha_tokens = _split_subject_alpha_token(alpha_tokens_raw[0])
+    else:
+        alpha_tokens = alpha_tokens_raw
+
+    alpha_tokens = [token for token in alpha_tokens if token]
+
+    if not alpha_tokens:
+        return ""
+
+    if not numeric_tokens:
+        return " ".join(alpha_tokens)
+
+    normalized_number = str(int("".join(numeric_tokens)))
+
+    return f"{' '.join(alpha_tokens)} {normalized_number}"
+
+
+def _is_valid_subject_code(value: str) -> bool:
+    if not value:
+        return False
+
+    pattern = r"^[A-Z]+(?:\s[A-Z]+)*\s\d+$"
+    return bool(re.match(pattern, value))
 
 
 @instructor_bp.route(
@@ -572,6 +663,9 @@ def create_class():
 
                 # Accept JSON but avoid raising a BadRequest that returns HTML
                 data = request.get_json(silent=True) or {}
+                data["subjectCode"] = _normalize_subject_code(
+                    data.get("subjectCode", "")
+                )
                 logger.debug(f"create_class payload: {data}")
                 required_fields = [
                     "classType",
@@ -587,6 +681,16 @@ def create_class():
                 for field in required_fields:
                     if not data.get(field):
                         return jsonify({"error": f"{field} is required"}), 400
+
+                if not _is_valid_subject_code(data["subjectCode"]):
+                    return (
+                        jsonify(
+                            {
+                                "error": "Invalid subjectCode format. Examples: IT ELEC 1, IT 111, GEC 1, IT INST 1, GE ELEC IT 1, PE 1, NSTP 1, IT BPO 1"
+                            }
+                        ),
+                        400,
+                    )
 
                 if data.get("classType") not in ["MINOR", "MAJOR", "MAJOR_LAB"]:
                     return (
@@ -723,7 +827,10 @@ def update_class(class_id):
                 if not cls:
                     return jsonify({"error": "Class not found or access denied"}), 404
 
-                data = request.get_json() or {}
+                data = request.get_json(silent=True) or {}
+                data["subjectCode"] = _normalize_subject_code(
+                    data.get("subjectCode", "")
+                )
                 required_fields = [
                     "year",
                     "semester",
@@ -737,6 +844,16 @@ def update_class(class_id):
                 for field in required_fields:
                     if not data.get(field):
                         return jsonify({"error": f"{field} is required"}), 400
+
+                if not _is_valid_subject_code(data["subjectCode"]):
+                    return (
+                        jsonify(
+                            {
+                                "error": "Invalid subjectCode format. Examples: IT ELEC 1, IT 111, GEC 1, IT INST 1, GE ELEC IT 1, PE 1, NSTP 1, IT BPO 1"
+                            }
+                        ),
+                        400,
+                    )
 
                 # Validate classType if provided
                 if data.get("classType") and data.get("classType") not in [

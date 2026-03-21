@@ -14,7 +14,9 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/gradebuilder_v2.css') }}">
 </head>
 
-<body>
+<body 
+    {% if preselect_class_id %}data-preselect-class-id="{{ preselect_class_id }}"{% endif %}
+    >
     {% set active_page = 'gradebuilder' %}
     {% set header_subtitle = 'Grade Builder' %}
     {% include '_instructor_header.html' %}
@@ -117,9 +119,7 @@
                         </div>
                     </div>
 
-                    <div class="sticky-actions">
-                        <button id="save-btn-bottom" class="btn btn-primary" data-tooltip="Save the current grade structure to the selected class">Save Structure</button>
-                    </div>
+                  
                 </div>
             </section>
         </div>
@@ -161,9 +161,13 @@
 
     <script src="{{ url_for('static', filename='js/swal.js') }}"></script>
     <script>
-        // Pass preselected class_id from server to JavaScript
-        window._preselectClassId = {{ (preselect_class_id or None)|tojson }};
-        console.log('🎯 Preselected class_id from server:', window._preselectClassId);
+        // Pass preselected class_id from server to JavaScript via data attribute
+        (function() {
+            var bodyEl = document.body;
+            var preselectId = bodyEl && bodyEl.dataset.preselectClassId;
+            window._preselectClassId = preselectId ? parseInt(preselectId, 10) : null;
+            console.log('🎯 Preselected class_id from server:', window._preselectClassId);
+        })();
     </script>
     <script src="{{ url_for('static', filename='js/gradebuilder_v2.js') }}"></script>
     <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>

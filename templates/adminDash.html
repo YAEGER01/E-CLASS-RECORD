@@ -318,7 +318,7 @@
                border: 1px solid var(--border);
                border-radius: 8px;
                padding: 10px;
-               color: white;
+               color: rgb(255, 255, 255);
                font-size: 0.85rem;
                outline: none;
           }
@@ -376,6 +376,18 @@
                border: 1px solid var(--border);
           }
 
+          .status-pill.suspended {
+               background: rgba(239, 68, 68, 0.14);
+               color: #f87171;
+               border: 1px solid rgba(239, 68, 68, 0.25);
+          }
+
+          .status-pill.dropped {
+               background: rgba(251, 191, 36, 0.14);
+               color: #fbbf24;
+               border: 1px solid rgba(251, 191, 36, 0.28);
+          }
+
           .status-in {
                background: rgba(34, 197, 94, 0.15);
                color: #4ade80;
@@ -415,6 +427,32 @@
                font-size: 0.75rem;
           }
 
+          .header-actions {
+               display: flex;
+               align-items: center;
+               gap: 12px;
+          }
+
+          .user-profile {
+               display: flex;
+               align-items: center;
+               gap: 10px;
+          }
+
+          .avatar {
+               width: 34px;
+               height: 34px;
+               border-radius: 8px;
+               background: rgba(34, 197, 94, 0.15);
+               border: 1px solid var(--border);
+               color: var(--primary);
+               display: inline-flex;
+               align-items: center;
+               justify-content: center;
+               font-size: 0.75rem;
+               font-weight: 800;
+          }
+
           .filter-select {
                background: rgba(255, 255, 255, 0.05);
                border: 1px solid var(--border);
@@ -452,6 +490,45 @@
                border-radius: 50px;
                font-size: 0.65rem;
                margin-left: 6px;
+          }
+
+          .op-chip {
+               display: inline-flex;
+               align-items: center;
+               gap: 8px;
+               padding: 6px 10px;
+               border-radius: 999px;
+               border: 1px solid rgba(34, 197, 94, 0.25);
+               background: rgba(34, 197, 94, 0.08);
+               color: #d1fae5;
+               font-size: 0.72rem;
+               font-weight: 700;
+          }
+
+          .op-chip button {
+               border: none;
+               background: transparent;
+               color: #fca5a5;
+               cursor: pointer;
+               font-size: 0.9rem;
+               line-height: 1;
+               padding: 0;
+          }
+
+          .selection-box {
+               width: 16px;
+               height: 16px;
+               accent-color: #22c55e;
+               cursor: pointer;
+          }
+
+          .student-action-btn {
+               padding: 6px 10px;
+               min-width: 0;
+          }
+
+          .student-action-btn .action-label {
+               display: inline;
           }
 
           .traffic-list,
@@ -536,6 +613,133 @@
                     grid-template-columns: 1fr;
                }
           }
+
+          @media (max-width: 768px) {
+               body {
+                    flex-direction: column;
+               }
+
+               aside {
+                    position: static;
+                    width: 100%;
+                    height: auto;
+                    border-right: none;
+                    border-bottom: 1px solid var(--border);
+               }
+
+               .sidebar-header {
+                    padding: 14px 16px;
+                    justify-content: center;
+                    font-size: 1rem;
+               }
+
+               .sidebar-header span,
+               .sidebar-text {
+                    display: inline;
+               }
+
+               .nav-list {
+                    display: flex;
+                    overflow: hidden;
+                    gap: 6px;
+                    padding: 8px 10px;
+               }
+
+               .nav-list .nav-item {
+                    flex: 1 1 0;
+                    min-width: 0;
+                    padding: 10px 8px;
+                    border-radius: 10px;
+                    justify-content: center;
+                    gap: 0;
+               }
+
+               .nav-list .nav-item .sidebar-text {
+                    display: none;
+               }
+
+               .nav-list .nav-item.active {
+                    flex: 1.8 1 0;
+                    border-right: none;
+                    border-bottom: 2px solid var(--primary);
+                    justify-content: flex-start;
+                    gap: 8px;
+                    padding: 10px;
+               }
+
+               .nav-list .nav-item.active .sidebar-text {
+                    display: inline-block;
+                    min-width: 0;
+                    max-width: 100%;
+                    white-space: nowrap;
+                    overflow: hidden;
+                    text-overflow: ellipsis;
+                    font-size: 0.72rem;
+               }
+
+               main {
+                    width: 100%;
+               }
+
+               header {
+                    height: auto;
+                    padding: 12px 16px;
+                    gap: 10px;
+                    flex-wrap: wrap;
+               }
+
+               .search-box {
+                    width: 100%;
+               }
+
+               .header-actions {
+                    width: 100%;
+                    justify-content: flex-end;
+               }
+
+               .content-wrapper {
+                    padding: 16px;
+               }
+
+               .stats-grid,
+               .course-grid,
+               .faculty-form-grid {
+                    grid-template-columns: 1fr;
+               }
+
+               .card {
+                    padding: 16px;
+               }
+
+               .card-header {
+                    flex-wrap: wrap;
+                    gap: 10px;
+                    align-items: flex-start;
+               }
+
+               .card-header>div {
+                    width: 100%;
+                    display: flex;
+                    flex-wrap: wrap;
+                    gap: 8px;
+               }
+
+               .card-header>div>* {
+                    flex: 1 1 140px;
+               }
+
+               .student-action-btn {
+                    width: 32px;
+                    height: 32px;
+                    justify-content: center;
+                    padding: 6px;
+                    gap: 0;
+               }
+
+               .student-action-btn .action-label {
+                    display: none;
+               }
+          }
      </style>
 </head>
 
@@ -553,9 +757,10 @@
                <button onclick="switchTab('records')" class="nav-item" id="nav-records"><i
                          data-lucide="book-open"></i><span class="sidebar-text">E-Class Records</span></button>
           </nav>
-          <div style="padding: 20px; margin-top: auto;">
-               <button class="nav-item" style="padding: 12px 0; color: #ef4444;"><i data-lucide="log-out"></i><span
-                         class="sidebar-text">Sign Out</span></button>
+          <div class="sidebar-footer" style="padding: 20px; margin-top: auto;">
+               <a class="nav-item" style="padding: 12px 0; color: #ef4444;" href="{{ url_for('auth.logout') }}">
+                    <i data-lucide="log-out"></i><span class="sidebar-text">Sign Out</span>
+               </a>
           </div>
      </aside>
 
@@ -568,8 +773,8 @@
                </div>
                <div class="header-actions">
                     <div class="user-profile">
-                         <div class="avatar">AD</div>
-                         <span class="sidebar-text" style="font-size: 0.8rem; font-weight: 700;">Admin 008</span>
+                         <div class="avatar">{{ (user.school_id or 'AD')[:2] }}</div>
+                         <span class="sidebar-text" style="font-size: 0.8rem; font-weight: 700;">Admin {{ user.school_id }}</span>
                     </div>
                </div>
           </header>
@@ -579,27 +784,27 @@
                <!-- OVERVIEW TAB -->
                <div id="tab-overview" class="tab-content active">
                     <div class="welcome-sec">
-                         <h1>Platform Traffic & Activity</h1>
-                         <p>Real-time login sessions and weekly authentication trends.</p>
+                         <h1>Platform Operations Overview</h1>
+                         <p>Live summary of students, instructors, and registration approvals.</p>
                     </div>
-                    
+
                     <!-- Top Level Stats -->
                     <div class="stats-grid">
                          <div class="stat-card">
                               <span class="label">Total Students</span>
-                              <span class="value">1,284</span>
+                              <span class="value" id="totalStudentsStat">0</span>
                          </div>
                          <div class="stat-card">
                               <span class="label">Total Instructors</span>
-                              <span class="value">86</span>
+                              <span class="value" id="totalInstructorsStat">0</span>
                          </div>
                          <div class="stat-card">
-                              <span class="label">Current Online</span>
-                              <span class="value" style="color: #60a5fa;">142</span>
+                              <span class="label">Pending Reques ts</span>
+                              <span class="value" id="pendingRequestsStat" style="color: #fbbf24;">0</span>
                          </div>
                          <div class="stat-card">
-                              <span class="label">Peak Login (Today)</span>
-                              <span class="value">08:45 AM</span>
+                              <span class="label">Active Instructors</span>
+                              <span class="value" id="activeInstructorsStat">0</span>
                          </div>
                     </div>
                     
@@ -609,73 +814,19 @@
                               <div class="card">
                                    <h2 class="card-title">
                                         <i data-lucide="activity" size="18" style="color: var(--primary)"></i>
-                                        Authentication Log
+                                        Recent Activity
                                    </h2>
-                    
-                                   <div class="traffic-list">
-                                        <div class="traffic-item">
-                                             <div class="user-info">
-                                                  <div class="user-avatar bg-ins">INS</div>
-                                                  <div>
-                                                       <div style="font-weight:700; font-size:0.85rem;">INS-1042</div>
-                                                       <div style="color:var(--text-muted); font-size:0.7rem;">09:12 PM</div>
-                                                  </div>
-                                             </div>
-                                             <span class="status-pill status-in">LOGIN</span>
-                                        </div>
-                    
-                                        <div class="traffic-item">
-                                             <div class="user-info">
-                                                  <div class="user-avatar bg-stu">STU</div>
-                                                  <div>
-                                                       <div style="font-weight:700; font-size:0.85rem;">21-00452</div>
-                                                       <div style="color:var(--text-muted); font-size:0.7rem;">09:05 PM</div>
-                                                  </div>
-                                             </div>
-                                             <span class="status-pill status-out">LOGOUT</span>
-                                        </div>
-                    
-                                        <div class="traffic-item">
-                                             <div class="user-info">
-                                                  <div class="user-avatar bg-stu">STU</div>
-                                                  <div>
-                                                       <div style="font-weight:700; font-size:0.85rem;">22-01923</div>
-                                                       <div style="color:var(--text-muted); font-size:0.7rem;">08:58 PM</div>
-                                                  </div>
-                                             </div>
-                                             <span class="status-pill status-in">LOGIN</span>
-                                        </div>
-                                   </div>
+
+                                   <div class="traffic-list"  id="authTrafficList"></div>
                               </div>
                     
                               <!-- Student Requests Card -->
                               <div class="card">
                                    <h2 class="card-title">
                                         <i data-lucide="bell" size="18" style="color: #fbbf24"></i>
-                                        Enrollment Requests <span class="badge-count">14</span>
+                                        Enrollment Requests <span class="badge-count" id="pendingBadgeCount">0</span>
                                    </h2>
-                                   <div class="notif-list">
-                                        <div class="notif-item">
-                                             <div class="user-info">
-                                                  <div class="user-avatar bg-stu"><i data-lucide="user" size="14"></i></div>
-                                                  <div>
-                                                       <div style="font-weight:700; font-size:0.8rem;">Mark Villareal</div>
-                                                       <div style="color:var(--text-muted); font-size:0.65rem;">BSIT - 1st Year</div>
-                                                  </div>
-                                             </div>
-                                             <button class="btn-approve">Approve</button>
-                                        </div>
-                                        <div class="notif-item">
-                                             <div class="user-info">
-                                                  <div class="user-avatar bg-stu"><i data-lucide="user" size="14"></i></div>
-                                                  <div>
-                                                       <div style="font-weight:700; font-size:0.8rem;">Sofia Vergara</div>
-                                                       <div style="color:var(--text-muted); font-size:0.65rem;">BSCS - 2nd Year</div>
-                                                  </div>
-                                             </div>
-                                             <button class="btn-approve">Approve</button>
-                                        </div>
-                                   </div>
+                                   <div class="notif-list" id="pendingNotifList"></div>
                               </div>
                          </div>
                     
@@ -718,20 +869,40 @@
                          <div class="card-header"
                               style="padding: 24px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center;">
                               <h2 class="card-title">Master Enrollment List</h2>
-                              <div style="display: flex; gap: 12px;">
+                              <div style="display: flex; gap: 10px; flex-wrap: wrap; justify-content: flex-end;">
                                    <select class="btn btn-outline" id="statusFilter" onchange="handleFilter()">
                                         <option value="all">All Status</option>
                                         <option value="pending">Pending</option>
                                         <option value="enrolled">Enrolled</option>
+                                        <option value="suspended">Suspended</option>
+                                        <option value="dropped">Dropped</option>
                                    </select>
-                                   <button class="btn btn-primary"><i data-lucide="user-plus" size="16"></i> New
-                                        Student</button>
+                                   <select class="btn btn-outline" id="studentOperationSelect" onchange="pinStudentOperation()">
+                                        <option value="">Select Bulk Operation</option>
+                                        <option value="suspend">Blacklist/Suspend</option>
+                                        <option value="unsuspend">Whitelist/Unsuspend</option>
+                                        <option value="drop">Drop</option>
+                                        <option value="delete">Delete</option>
+                                   </select>
+                                   <button class="btn btn-primary" id="goStudentOpsBtn" onclick="runPinnedStudentOperations()"><i data-lucide="rocket"
+                                             size="16"></i> Go</button>
+                                   
+                                  
+                                   <button class="btn btn-primary" onclick="openPendingRequestsModal()"><i data-lucide="list" size="16"></i> View
+                                        Pending</button>
+                                        <button class="btn btn-outline" onclick="addNewStudent()"><i data-lucide="plus" size="16"></i> Add New Student</button>
                               </div>
+                            
+                         </div>
+                         <div style="padding: 10px 24px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;">
+                              <div id="pinnedStudentOps" style="display: flex; flex-wrap: wrap; gap: 8px;"></div>
+                              <div id="selectedStudentsInfo" style="font-size: 0.75rem; color: var(--text-muted);">0 students selected</div>
                          </div>
                          <div class="table-container" style="border: none; border-radius: 0;">
                               <table>
                                    <thead>
                                         <tr>
+                                             <th style="width:40px;"><input class="selection-box" type="checkbox" id="selectAllStudents" onchange="toggleSelectAllStudents(this.checked)"></th>
                                              <th>Student Name</th>
                                              <th>Student ID</th>
                                              <th>Course</th>
@@ -760,73 +931,362 @@
                               <i data-lucide="user-plus" size="18" style="color: var(--primary)"></i> Register New Faculty
                          </h2>
                          <form id="facultyForm" onsubmit="addFaculty(event)">
-                              <div
-                                   style="color: var(--primary); font-size: 0.7rem; font-weight: 800; text-transform: uppercase; margin-bottom: 12px; letter-spacing: 0.05em;">
-                                   Personal & Academic Info</div>
-                              <div class="faculty-form-grid">
-                                   <div class="form-group">
-                                        <label>Full Name</label>
-                                        <input type="text" id="fName" placeholder="e.g. Dr. Jane Smith" required>
-                                   </div>
-                                   <div class="form-group">
-                                        <label>Employee ID</label>
-                                        <input type="text" id="fId" placeholder="e.g. EMP-2024-001" required>
-                                   </div>
-                                   <div class="form-group">
-                                        <label>Department</label>
-                                        <select id="fDept">
-                                             <option value="CCS">College of Computer Studies</option>
-                                             <option value="CBA">College of Business Admin</option>
-                                             <option value="CHM">College of Hospitality Mgt</option>
-                                        </select>
-                                   </div>
-                                   <div class="form-group">
-                                        <label>Subject Assignment</label>
-                                        <input type="text" id="fSubject" placeholder="e.g. Data Structures">
-                                   </div>
-                              </div>
-               
-                              <div class="faculty-form-grid" style="margin-bottom: 24px;">
-                                   <div class="form-group">
-                                        <label>Assigned Course</label>
-                                        <select id="fCourse">
-                                             <option value="BSCS">BS Computer Science</option>
-                                             <option value="BSIT">BS Information Tech</option>
-                                             <option value="BSHM">BS Hospitality Mgt</option>
-                                        </select>
-                                   </div>
-                                   <div class="form-group">
-                                        <label>Year Level</label>
-                                        <select id="fYear">
-                                             <option value="1st">1st Year</option>
-                                             <option value="2nd">2nd Year</option>
-                                             <option value="3rd">3rd Year</option>
-                                             <option value="4th">4th Year</option>
-                                        </select>
-                                   </div>
-                                   <div class="form-group">
-                                        <label>Section</label>
-                                        <input type="text" id="fSection" placeholder="e.g. A, B, or IRREG">
-                                   </div>
-                                   <div></div>
-                              </div>
-               
-                              <div style="border-top: 1px solid var(--border); padding-top: 20px; margin-top: 10px;">
-                                   <div
-                                        style="color: var(--primary); font-size: 0.7rem; font-weight: 800; text-transform: uppercase; margin-bottom: 12px; letter-spacing: 0.05em;">
-                                        Account Credentials</div>
+                              <style>
+                                   .faculty-form-section {
+                                        background: rgba(46, 204, 113, 0.05);
+                                        padding: 20px;
+                                        border-radius: 12px;
+                                        margin-bottom: 16px;
+                                        border: 1px solid rgba(46, 204, 113, 0.15);
+                                        transition: all 0.3s ease;
+                                   }
+                                   .faculty-form-section:hover {
+                                        transform: translateY(-2px);
+                                        box-shadow: 0 8px 16px rgba(46, 204, 113, 0.1);
+                                   }
+                                   .faculty-section-title {
+                                        display: flex;
+                                        align-items: center;
+                                        gap: 10px;
+                                        margin: 0 0 18px 0;
+                                        font-weight: 700;
+                                        font-size: 14px;
+                                        text-transform: uppercase;
+                                        color: var(--primary);
+                                        letter-spacing: 0.06em;
+                                   }
+                                   .faculty-form-label {
+                                        display: block;
+                                        margin-bottom: 6px;
+                                        font-weight: 600;
+                                        color: var(--text);
+                                        font-size: 0.85rem;
+                                        text-transform: uppercase;
+                                        letter-spacing: 0.04em;
+                                   }
+                                   .faculty-form-field {
+                                        width: 100%;
+                                        padding: 11px 14px;
+                                        border: 1px solid var(--border);
+                                        border-radius: 8px;
+                                        font-size: 0.9rem;
+                                        box-sizing: border-box;
+                                        transition: all 0.3s ease;
+                                        background: rgba(255, 255, 255, 0.02);
+                                        color: var(--text);
+                                   }
+                                   .faculty-form-field:focus {
+                                        outline: none;
+                                        border-color: var(--lime-green);
+                                        box-shadow: 0 0 0 3px rgba(46, 204, 113, 0.1);
+                                        transform: translateY(-1px);
+                                   }
+                                   .password-field-wrap {
+                                        position: relative;
+                                   }
+                                   .password-field-wrap .faculty-form-field {
+                                        padding-right: 96px;
+                                   }
+                                   .password-embedded-toggle {
+                                        position: absolute;
+                                        right: 8px;
+                                        top: 50%;
+                                        transform: translateY(-50%);
+                                        border: 1px solid var(--border);
+                                        border-radius: 8px;
+                                        background: rgba(255, 255, 255, 0.03);
+                                        color: var(--text-muted);
+                                        font-size: 0.72rem;
+                                        font-weight: 700;
+                                        padding: 5px 10px;
+                                        cursor: pointer;
+                                        line-height: 1;
+                                   }
+                                   .password-embedded-toggle:hover {
+                                        color: var(--text);
+                                        border-color: rgba(46, 204, 113, 0.45);
+                                   }
+                                   .faculty-form-grid {
+                                        display: grid;
+                                        grid-template-columns: repeat(2, 1fr);
+                                        gap: 12px;
+                                   }
+                                   .assignment-toggle-row {
+                                        display: flex;
+                                        align-items: center;
+                                        justify-content: space-between;
+                                        gap: 12px;
+                                        margin-bottom: 14px;
+                                        padding: 10px 12px;
+                                        border: 1px solid rgba(46, 204, 113, 0.2);
+                                        border-radius: 10px;
+                                        background: rgba(46, 204, 113, 0.06);
+                                   }
+                                   .assignment-toggle-label {
+                                        display: inline-flex;
+                                        align-items: center;
+                                        gap: 8px;
+                                        font-size: 0.8rem;
+                                        font-weight: 700;
+                                        color: var(--text);
+                                   }
+                                   .assignment-toggle-checkbox {
+                                        appearance: none;
+                                        -webkit-appearance: none;
+                                        width: 18px;
+                                        height: 18px;
+                                        border-radius: 999px;
+                                        border: 2px solid rgba(148, 163, 184, 0.7);
+                                        background: rgba(255, 255, 255, 0.03);
+                                        display: inline-grid;
+                                        place-content: center;
+                                        cursor: pointer;
+                                        transition: all 0.2s ease;
+                                        flex-shrink: 0;
+                                   }
+                                   .assignment-toggle-checkbox::before {
+                                        content: "";
+                                        width: 8px;
+                                        height: 8px;
+                                        border-radius: 999px;
+                                        background: var(--lime-green);
+                                        transform: scale(0);
+                                        transition: transform 0.18s ease;
+                                   }
+                                   .assignment-toggle-checkbox:checked {
+                                        border-color: var(--lime-green);
+                                        background: rgba(46, 204, 113, 0.14);
+                                   }
+                                   .assignment-toggle-checkbox:checked::before {
+                                        transform: scale(1);
+                                   }
+                                   .assignment-toggle-checkbox:focus-visible {
+                                        outline: none;
+                                        box-shadow: 0 0 0 3px rgba(46, 204, 113, 0.22);
+                                   }
+                                   .assignment-help-text {
+                                        font-size: 0.72rem;
+                                        color: var(--text-muted);
+                                   }
+                                   .section-chip-row {
+                                        display: flex;
+                                        flex-wrap: wrap;
+                                        gap: 8px;
+                                        margin-bottom: 8px;
+                                   }
+                                   .section-chip {
+                                        border: 1px solid var(--border);
+                                        border-radius: 999px;
+                                        background: rgba(255, 255, 255, 0.02);
+                                        color: var(--text-muted);
+                                        padding: 6px 12px;
+                                        font-size: 0.75rem;
+                                        font-weight: 700;
+                                        cursor: pointer;
+                                        transition: all 0.2s ease;
+                                   }
+                                   .section-chip:hover {
+                                        border-color: rgba(46, 204, 113, 0.45);
+                                        color: var(--text);
+                                   }
+                                   .section-chip.active {
+                                        background: rgba(46, 204, 113, 0.16);
+                                        color: #bbf7d0;
+                                        border-color: rgba(46, 204, 113, 0.65);
+                                   }
+                                   .faculty-form-group {
+                                        margin-bottom: 0;
+                                   }
+                                   .faculty-form-group.full {
+                                        grid-column: 1 / -1;
+                                   }
+                                   .required::after {
+                                        content: " *";
+                                        color: #ef4444;
+                                   }
+                              </style>
+
+                              <!-- Personal Information Section -->
+                              <div class="faculty-form-section">
+                                   <h4 class="faculty-section-title">👤 Personal Information</h4>
                                    <div class="faculty-form-grid">
-                                        <div class="form-group">
-                                             <label>Generated Username</label>
-                                             <input type="text" id="fUsername" placeholder="INS-XXXX" required>
+                                        <div class="faculty-form-group">
+                                             <label class="faculty-form-label required">First Name</label>
+                                             <input type="text" id="firstName" placeholder="John" class="faculty-form-field" required>
                                         </div>
-                                        <div class="form-group">
-                                             <label>Default Password</label>
-                                             <input type="text" id="fPassword" placeholder="FaCuLTYPaSS_01++" required>
+                                        <div class="faculty-form-group">
+                                             <label class="faculty-form-label required">Last Name</label>
+                                             <input type="text" id="lastName" placeholder="Doe" class="faculty-form-field" required>
                                         </div>
-                                        <div class="form-group" style="justify-content: flex-end; grid-column: span 2;">
-                                             <button type="submit" class="btn btn-primary"><i data-lucide="plus"></i> Add Faculty
-                                                  Member</button>
+                                        <div class="faculty-form-group full">
+                                             <label class="faculty-form-label">Middle Name</label>
+                                             <input type="text" id="middleName" placeholder="Smith" class="faculty-form-field">
+                                        </div>
+                                        <div class="faculty-form-group">
+                                             <label class="faculty-form-label required">Email</label>
+                                             <input type="email" id="email" placeholder="john.doe@school.edu" class="faculty-form-field" required>
+                                        </div>
+                                        <div class="faculty-form-group">
+                                             <label class="faculty-form-label">Phone</label>
+                                             <input type="tel" id="phone" placeholder="+63 912 345 6789" class="faculty-form-field">
+                                        </div>
+                                        <div class="faculty-form-group full">
+                                             <label class="faculty-form-label">Address</label>
+                                             <input type="text" id="address" placeholder="Complete address" class="faculty-form-field">
+                                        </div>
+                                        <div class="faculty-form-group">
+                                             <label class="faculty-form-label">Birth Date</label>
+                                             <input type="date" id="birthDate" class="faculty-form-field">
+                                        </div>
+                                        <div class="faculty-form-group">
+                                             <label class="faculty-form-label">Gender</label>
+                                             <select id="gender" class="faculty-form-field">
+                                                  <option value="">Select Gender</option>
+                                                  <option value="Male">Male</option>
+                                                  <option value="Female">Female</option>
+                                                  <option value="Other">Other</option>
+                                             </select>
+                                        </div>
+                                        <div class="faculty-form-group">
+                                             <label class="faculty-form-label">Emergency Contact Name</label>
+                                             <input type="text" id="emergencyContactName" placeholder="Contact person name" class="faculty-form-field">
+                                        </div>
+                                        <div class="faculty-form-group">
+                                             <label class="faculty-form-label">Emergency Contact Phone</label>
+                                             <input type="tel" id="emergencyContactPhone" placeholder="Emergency contact #" class="faculty-form-field">
+                                        </div>
+                                   </div>
+                              </div>
+
+                              <!-- Professional Information Section -->
+                              <div class="faculty-form-section">
+                                   <h4 class="faculty-section-title">👨‍🏫 Professional Information</h4>
+                                   <div class="faculty-form-grid">
+                                        <div class="faculty-form-group">
+                                             <label class="faculty-form-label required">Department</label>
+                                             <select id="department" class="faculty-form-field" required>
+                                                  <option value="">Select Department</option>
+                                                  <option value="CCS">College of Computer Studies</option>
+                                                  <option value="CBA">College of Business Admin</option>
+                                                  <option value="CHM">College of Hospitality Mgt</option>
+                                             </select>
+                                        </div>
+                                        <div class="faculty-form-group">
+                                             <label class="faculty-form-label">Specialization</label>
+                                             <input type="text" id="specialization" placeholder="e.g. Data Structures" class="faculty-form-field">
+                                        </div>
+                                        <div class="faculty-form-group full">
+                                             <label class="faculty-form-label required">Employee ID</label>
+                                             <input type="text" id="employeeId" placeholder="e.g. EMP-2024-001" class="faculty-form-field" required>
+                                        </div>
+                                   </div>
+                              </div>
+
+                              <!-- Course Assignment Section -->
+                              <div class="faculty-form-section">
+                                   <h4 class="faculty-section-title">📚 Course Assignment</h4>
+                                   <div class="assignment-toggle-row">
+                                        <label class="assignment-toggle-label" for="enableCourseAssignment">
+                                             <input type="checkbox" id="enableCourseAssignment" class="assignment-toggle-checkbox">
+                                             Create initial class assignment now
+                                        </label>
+                                        <span class="assignment-help-text">Optional during account creation</span>
+                                   </div>
+                                   <div class="faculty-form-grid" id="courseAssignmentFields" style="display: none;">
+                                        <div class="faculty-form-group">
+                                             <label class="faculty-form-label">Assigned Course</label>
+                                             <select id="course" class="faculty-form-field">
+                                                  <option value="">Select Course</option>
+                                                  <option value="BSCS">BS Computer Science</option>
+                                                  <option value="BSIT">BS Information Technology</option>
+                                                  <option value="BSHM">BS Hospitality Management</option>
+                                                  <option value="BSA">BS Accountancy</option>
+                                                  <option value="BEED">BS Elementary Education</option>
+                                                  <option value="BSED">BS Secondary Education</option>
+                                             </select>
+                                        </div>
+                                        <div class="faculty-form-group">
+                                             <label class="faculty-form-label">Year Level</label>
+                                             <select id="yearLevel" class="faculty-form-field">
+                                                  <option value="">Select Year</option>
+                                                  <option value="1st">1st Year</option>
+                                                  <option value="2nd">2nd Year</option>
+                                                  <option value="3rd">3rd Year</option>
+                                                  <option value="4th">4th Year</option>
+                                             </select>
+                                        </div>
+                                        <div class="faculty-form-group full">
+                                             <label class="faculty-form-label">Section</label>
+                                             <div class="section-chip-row" id="sectionChipRow">
+                                                  <button type="button" class="section-chip" data-section="A">A</button>
+                                                  <button type="button" class="section-chip" data-section="B">B</button>
+                                                  <button type="button" class="section-chip" data-section="C">C</button>
+                                                  <button type="button" class="section-chip" data-section="D">D</button>
+                                                  <button type="button" class="section-chip" data-section="IRREG">IRREG</button>
+                                                  <button type="button" class="section-chip" data-section="CUSTOM">Custom</button>
+                                             </div>
+                                             <input type="text" id="section" placeholder="e.g. A, B, or IRREG" class="faculty-form-field">
+                                        </div>
+                                        <div class="faculty-form-group full" style="display: flex; justify-content: flex-end;">
+                                             <button type="button" class="btn btn-outline" onclick="useLastAssignment()">
+                                                  <i data-lucide="history" size="14"></i>
+                                                  Use Last Assignment
+                                             </button>
+                                        </div>
+                                   </div>
+                              </div>
+
+                              <!-- Account Credentials Section -->
+                              <div class="faculty-form-section">
+                                   <h4 class="faculty-section-title">🔐 Account Credentials</h4>
+                                   <div class="faculty-form-grid">
+                                        <div class="faculty-form-group full">
+                                             <label class="faculty-form-label required">School ID (Username)</label>
+                                             <input type="text" id="schoolId" placeholder="INS-001" class="faculty-form-field" pattern="^INS-\d{3}$" title="Use INS-$$$ format (example: INS-001)" maxlength="7" required>
+                                        </div>
+                                        <div class="faculty-form-group">
+                                             <label class="faculty-form-label required">Password</label>
+                                             <div class="password-field-wrap">
+                                                  <input type="password" id="password" placeholder="Strong password" class="faculty-form-field" minlength="12" maxlength="12" autocomplete="new-password" required>
+                                                  <button type="button" class="password-embedded-toggle" onclick="toggleCredentialPasswordVisibility()">Show</button>
+                                             </div>
+                                        </div>
+                                        <div class="faculty-form-group">
+                                             <label class="faculty-form-label required">Confirm Password</label>
+                                             <div class="password-field-wrap">
+                                                  <input type="password" id="confirmPassword" placeholder="Re-enter password" class="faculty-form-field" minlength="12" maxlength="12" autocomplete="new-password" required>
+                                                  <button type="button" class="password-embedded-toggle" onclick="toggleCredentialPasswordVisibility()">Show</button>
+                                             </div>
+                                        </div>
+                                        <div class="faculty-form-group full" style="display: flex; gap: 8px; margin-top: 4px;">
+                                             <button type="button" class="btn btn-outline" style="flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 6px;" onclick="generateCreds({ force: true })" title="Auto generate school ID and password" aria-label="Auto generate school ID and password">
+                                                  <i data-lucide="wand-sparkles" size="14"></i>
+                                                  <span>Auto</span>
+                                             </button>
+                                             <button type="button" class="btn btn-outline" style="flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 6px;" onclick="rotateCredentialPassword()" title="Rotate password" aria-label="Rotate password">
+                                                  <i data-lucide="refresh-cw" size="14"></i>
+                                                  <span>Rotate</span>
+                                             </button>
+                                        </div>
+                                        <div class="faculty-form-group full" style="font-size: 0.74rem; color: var(--text-muted); margin-top: -2px;">
+                                             Password policy: exactly 12 chars, upper/lowercase, at least 1 number, and 1-2 symbols.
+                                        </div>
+                                        <div class="faculty-form-group full" style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px;">
+                                             <button type="submit" class="btn btn-primary" style="flex: 1; min-width: 180px;">
+                                                  <i data-lucide="plus"></i> Register Faculty Member
+                                             </button>
+                                             <button type="button" class="btn btn-outline" style="flex: 1; min-width: 140px;" onclick="saveFacultyDraft({ showToast: true, requireAck: true })">
+                                                  <i data-lucide="save" size="14"></i> Save Draft
+                                             </button>
+                                             <button type="button" class="btn btn-outline" style="flex: 1; min-width: 140px; color:#ef4444;" onclick="discardFacultyDraft({ showToast: true })">
+                                                  <i data-lucide="trash-2" size="14"></i> Discard Draft
+                                             </button>
+                                             <button type="reset" class="btn btn-secondary" style="flex: 1; min-width: 140px;">
+                                                  Clear Form
+                                             </button>
+                                        </div>
+                                        <div class="faculty-form-group full" style="font-size: 0.73rem; color: var(--text-muted); margin-top: 6px;">
+                                             Draft note: This draft is saved only in this browser on this device. It is removed after successful registration or when discarded, and it auto-clears after 7 days.
                                         </div>
                                    </div>
                               </div>
@@ -866,244 +1326,2380 @@
           </div>
      </main>
 
-     <!--WHAT'S INSIDE THIS COMMENT IS THE LATEST JS-->
+     <!-- API-backed Admin Dashboard -->
      <script>
-          // MOCK DATA
-          const students = [
-               { name: "Fred Madayag", id: "21-00452", course: "BSCS", status: "pending", date: "2024-03-01", email: "fred.m@isu.edu.ph" },
-               { name: "Sarah Jenkins", id: "22-01923", course: "BSIT", status: "pending", date: "2024-03-05", email: "sarah.j@isu.edu.ph" },
-               { name: "Liam O'Connell", id: "21-00876", course: "BSCS", status: "pending", date: "2024-02-25", email: "liam.o@isu.edu.ph" },
-               { name: "Alice Mercado", id: "23-05512", course: "BSCS", status: "enrolled", date: "2024-02-28", email: "alice.m@isu.edu.ph" },
-               { name: "John Doe", id: "22-00123", course: "BSIT", status: "pending", date: "2024-03-10", email: "john.d@isu.edu.ph" },
-               { name: "Jane Smith", id: "23-00999", course: "BSHM", status: "pending", date: "2024-03-08", email: "jane.s@isu.edu.ph" },
-               { name: "Bob Wilson", id: "21-00555", course: "BSCS", status: "pending", date: "2024-01-15", email: "bob.w@isu.edu.ph" }
-          ];
+          const csrfToken = "{{ csrf_token() }}";
+          const COURSE_NAME_MAP = {
+               BSCS: "Computer Science",
+               BSIT: "Information Technology",
+               BSHM: "Hospitality Management",
+               BSA: "Accountancy",
+               BEED: "Elementary Education",
+               BSED: "Secondary Education"
+          };
 
-          const courses = [
-               { code: "BSCS", name: "Computer Science" },
-               { code: "BSIT", name: "Information Tech" },
-               { code: "BSHM", name: "Hospitality Management" }
-          ];
-
-          let facultyList = [
-               { name: "Dr. Alan Turing", id: "EMP-001", username: "INS-1042", dept: "CCS", subject: "Discrete Math", course: "BSCS", year: "1st", section: "A" }
-          ];
-          let nextPassSuffix = 2;
+          let students = [];
+          let pendingStudents = [];
+          let instructors = [];
           let trafficChart = null;
+          let credentialCounter = 1;
+          let selectedStudentIds = new Set();
+          let pinnedStudentOperations = [];
+          let filteredStudentRows = [];
 
-          function switchTab(tabId) {
-               document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
-               document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+          const STUDENT_OPERATION_LABELS = {
+               suspend: "Blacklist/Suspend",
+               unsuspend: "Whitelist/Unsuspend",
+               drop: "Drop",
+               delete: "Delete"
+          };
 
-               document.getElementById('tab-' + tabId).classList.add('active');
-               document.getElementById('nav-' + tabId).classList.add('active');
+          function escapeHtml(value) {
+               return String(value ?? "")
+                    .replace(/&/g, "&amp;")
+                    .replace(/</g, "&lt;")
+                    .replace(/>/g, "&gt;")
+                    .replace(/\"/g, "&quot;")
+                    .replace(/'/g, "&#39;");
+          }
 
-               if (tabId === 'students') {
-                    initStudents();
+          function formatDate(value) {
+               if (!value) {
+                    return "N/A";
                }
-               if (tabId === 'faculty') {
+               const date = new Date(value);
+               if (Number.isNaN(date.getTime())) {
+                    return "N/A";
+               }
+               return date.toLocaleDateString("en-PH", {
+                    year: "numeric",
+                    month: "short",
+                    day: "numeric"
+               });
+          }
+
+          function formatTime(value) {
+               if (!value) {
+                    return "-";
+               }
+               const date = new Date(value);
+               if (Number.isNaN(date.getTime())) {
+                    return "-";
+               }
+               return date.toLocaleTimeString("en-PH", {
+                    hour: "2-digit",
+                    minute: "2-digit"
+               });
+          }
+
+          function initialsFromSchoolId(schoolId) {
+               const value = (schoolId || "").toUpperCase();
+               if (value.startsWith("INS")) {
+                    return "INS";
+               }
+               return "STU";
+          }
+
+          async function apiFetch(url, options = {}) {
+               const merged = {
+                    credentials: "same-origin",
+                    headers: {
+                         "X-Requested-With": "XMLHttpRequest",
+                         ...(options.headers || {})
+                    },
+                    ...options
+               };
+
+               const response = await fetch(url, merged);
+               let payload = null;
+               try {
+                    payload = await response.json();
+               } catch (error) {
+                    payload = null;
+               }
+
+               if (!response.ok) {
+                    const message = payload?.error || payload?.message || "Request failed";
+                    throw new Error(message);
+               }
+
+               return payload;
+          }
+
+          function switchTab(tabId, options = {}) {
+               const allowReset = options.allowReset !== false;
+               const isMobile = window.matchMedia("(max-width: 768px)").matches;
+               const currentActiveTab = document
+                    .querySelector(".nav-list .nav-item.active")
+                    ?.id?.replace("nav-", "");
+
+               const targetTabId =
+                    isMobile && allowReset && currentActiveTab === tabId && tabId !== "overview"
+                         ? "overview"
+                         : tabId;
+
+               document.querySelectorAll(".tab-content").forEach((tab) => tab.classList.remove("active"));
+               document.querySelectorAll(".nav-list .nav-item").forEach((item) => item.classList.remove("active"));
+
+               document.getElementById(`tab-${targetTabId}`)?.classList.add("active");
+               document.getElementById(`nav-${targetTabId}`)?.classList.add("active");
+
+               if (targetTabId === "students") {
+                    renderCourseCards();
+                    handleFilter();
+               }
+               if (targetTabId === "faculty") {
                     renderFacultyTable();
                }
-               if (tabId === 'overview') {
+          }
+
+          async function loadDashboardData() {
+               try {
+                    const [studentsResp, instructorsResp, pendingResp] = await Promise.all([
+                         apiFetch("/api/admin/students"),
+                         apiFetch("/api/admin/instructors"),
+                         apiFetch("/admin/pending-registrations")
+                    ]);
+
+                    students = studentsResp?.students || [];
+                    instructors = instructorsResp?.instructors || [];
+                    pendingStudents = pendingResp?.students || [];
+
+                    updateOverviewStats();
+                    renderRecentActivity();
+                    renderPendingRequestsCard();
+                    renderCourseCards();
+                    handleFilter();
+                    renderFacultyTable();
                     renderChart();
+                    lucide.createIcons();
+               } catch (error) {
+                    Swal.fire({
+                         icon: "error",
+                         title: "Dashboard Load Failed",
+                         text: error.message || "Could not load admin dashboard data.",
+                         background: "#0a261e",
+                         color: "#fff",
+                         confirmButtonColor: "#22c55e"
+                    });
                }
           }
 
-          function initStudents() {
-               renderCourseCards();
-               handleFilter();
+          function updateOverviewStats() {
+               const totalStudentsEl = document.getElementById("totalStudentsStat");
+               const totalInstructorsEl = document.getElementById("totalInstructorsStat");
+               const pendingEl = document.getElementById("pendingRequestsStat");
+               const activeEl = document.getElementById("activeInstructorsStat");
+
+               if (totalStudentsEl) {
+                    totalStudentsEl.textContent = students.length.toLocaleString();
+               }
+               if (totalInstructorsEl) {
+                    totalInstructorsEl.textContent = instructors.length.toLocaleString();
+               }
+               if (pendingEl) {
+                    pendingEl.textContent = pendingStudents.length.toLocaleString();
+               }
+               if (activeEl) {
+                    const activeCount = instructors.filter((item) => (item.status || "").toLowerCase() === "active").length;
+                    activeEl.textContent = activeCount.toLocaleString();
+               }
           }
 
-          function renderCourseCards() {
-               const grid = document.getElementById('courseGrid');
-               if (!grid) return;
+          function renderRecentActivity() {
+               const container = document.getElementById("authTrafficList");
+               if (!container) {
+                    return;
+               }
 
-               grid.innerHTML = '';
-               const stats = courses.map(c => {
-                    const requests = students.filter(s => s.course === c.code && s.status === 'pending');
-                    return { ...c, pendingCount: requests.length, requests };
-               }).sort((a, b) => b.pendingCount - a.pendingCount);
+               const pendingEvents = pendingStudents.map((student) => ({
+                    actor: student.school_id,
+                    subtext: `${student.course || "N/A"} - ${student.year_level || "N/A"}`,
+                    time: student.created_at,
+                    tag: "PENDING",
+                    isInstructor: false
+               }));
 
-               stats.forEach(course => {
-                    const card = document.createElement('div');
-                    card.className = 'course-card';
-                    card.innerHTML = `
-                    ${course.pendingCount > 0 ? `<span class="count-badge">${course.pendingCount}</span>` : ''}
-                    <h3 style="font-size: 1.1rem; color: white;">${course.code}</h3>
-                    <p style="font-size: 0.8rem; color: var(--text-muted);">${course.name}</p>
-                    <p style="margin-top: 12px; font-size: 0.75rem; color: var(--primary); font-weight: 700;">View Requests <i data-lucide="chevron-right" size="12"></i></p>
-                `;
-                    card.onclick = () => showRequestsModal(course);
-                    grid.appendChild(card);
-               });
+               const instructorEvents = instructors.map((instructor) => ({
+                    actor: instructor.school_id,
+                    subtext: instructor.department || "No department",
+                    time: instructor.created_at,
+                    tag: "INSTRUCTOR",
+                    isInstructor: true
+               }));
+
+               const events = [...pendingEvents, ...instructorEvents]
+                    .sort((a, b) => new Date(b.time || 0) - new Date(a.time || 0))
+                    .slice(0, 6);
+
+               if (!events.length) {
+                    container.innerHTML = '<div style="color: var(--text-muted); font-size: 0.8rem;">No recent activity found.</div>';
+                    return;
+               }
+
+               container.innerHTML = events.map((event) => `
+                    <div class="traffic-item">
+                         <div class="user-info">
+                              <div class="user-avatar ${event.isInstructor ? "bg-ins" : "bg-stu"}">${event.isInstructor ? "INS" : "STU"}</div>
+                              <div>
+                                   <div style="font-weight:700; font-size:0.85rem;">${escapeHtml(event.actor || "N/A")}</div>
+                                   <div style="color:var(--text-muted); font-size:0.7rem;">${escapeHtml(event.subtext)} • ${formatTime(event.time)}</div>
+                              </div>
+                         </div>
+                         <span class="status-pill ${event.isInstructor ? "status-in" : "status-out"}">${escapeHtml(event.tag)}</span>
+                    </div>
+               `).join("");
 
                lucide.createIcons();
           }
 
-          function showRequestsModal(course) {
-               const sorted = [...course.requests].sort((a, b) => new Date(a.date) - new Date(b.date));
+          function renderPendingRequestsCard() {
+               const badge = document.getElementById("pendingBadgeCount");
+               const list = document.getElementById("pendingNotifList");
 
-               let html = '<div style="margin-top: 15px;">';
-               if (sorted.length === 0) {
-                    html += '<p>No pending requests.</p>';
-               } else {
-                    sorted.forEach(r => {
-                         html += `
-                        <div class="request-item">
-                            <div>
-                                <div style="color: white; font-weight: 700;">${r.name}</div>
-                                <div style="font-size: 0.75rem; color: var(--text-muted);">ID: ${r.id} | ${r.date}</div>
-                            </div>
-                            <div style="display: flex; gap: 8px;">
-                                <button class="btn btn-primary" style="padding: 6px 10px; font-size: 0.7rem;" onclick="Swal.close()">Approve</button>
-                                <button class="btn btn-outline" style="padding: 6px 10px; font-size: 0.7rem; color: #ef4444;" onclick="Swal.close()">Reject</button>
-                            </div>
-                        </div>
-                    `;
-                    });
+               if (badge) {
+                    badge.textContent = pendingStudents.length;
                }
-               html += '</div>';
+
+               if (!list) {
+                    return;
+               }
+
+               const latest = [...pendingStudents]
+                    .sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0))
+                    .slice(0, 3);
+
+               if (!latest.length) {
+                    list.innerHTML = '<div style="color: var(--text-muted); font-size: 0.8rem;">No pending registrations.</div>';
+                    return;
+               }
+
+               list.innerHTML = latest.map((student) => `
+                    <div class="notif-item">
+                         <div class="user-info">
+                              <div class="user-avatar bg-stu"><i data-lucide="user" size="14"></i></div>
+                              <div>
+                                   <div style="font-weight:700; font-size:0.8rem;">${escapeHtml(student.full_name || "N/A")}</div>
+                                   <div style="color:var(--text-muted); font-size:0.65rem;">${escapeHtml(student.course || "N/A")} - ${escapeHtml(student.year_level || "N/A")}</div>
+                              </div>
+                         </div>
+                         <button class="btn-approve" onclick="reviewStudentRegistration(${student.student_id})">Review</button>
+                    </div>
+               `).join("");
+
+               lucide.createIcons();
+          }
+
+          function updateStudentSelectionInfo() {
+               const infoEl = document.getElementById("selectedStudentsInfo");
+               if (infoEl) {
+                    const selectedCount = selectedStudentIds.size;
+                    infoEl.textContent = `${selectedCount} student${selectedCount === 1 ? "" : "s"} selected`;
+               }
+
+               const selectAll = document.getElementById("selectAllStudents");
+               if (!selectAll) {
+                    return;
+               }
+
+               const visibleIds = filteredStudentRows
+                    .map((student) => Number(student.id))
+                    .filter((id) => Number.isFinite(id));
+
+               if (!visibleIds.length) {
+                    selectAll.checked = false;
+                    selectAll.indeterminate = false;
+                    return;
+               }
+
+               const visibleSelected = visibleIds.filter((id) => selectedStudentIds.has(id)).length;
+               selectAll.checked = visibleSelected === visibleIds.length;
+               selectAll.indeterminate = visibleSelected > 0 && visibleSelected < visibleIds.length;
+          }
+
+          function toggleStudentSelection(studentId, checked) {
+               const id = Number(studentId);
+               if (!Number.isFinite(id)) {
+                    return;
+               }
+
+               if (checked) {
+                    selectedStudentIds.add(id);
+               } else {
+                    selectedStudentIds.delete(id);
+               }
+
+               updateStudentSelectionInfo();
+          }
+
+          function toggleSelectAllStudents(checked) {
+               filteredStudentRows.forEach((student) => {
+                    const id = Number(student.id);
+                    if (!Number.isFinite(id)) {
+                         return;
+                    }
+                    if (checked) {
+                         selectedStudentIds.add(id);
+                    } else {
+                         selectedStudentIds.delete(id);
+                    }
+               });
+
+               renderStudentTable(filteredStudentRows);
+          }
+
+          function renderPinnedStudentOperations() {
+               const container = document.getElementById("pinnedStudentOps");
+               const goButton = document.getElementById("goStudentOpsBtn");
+
+               if (!container) {
+                    return;
+               }
+
+               if (!pinnedStudentOperations.length) {
+                    container.innerHTML = '<span style="font-size:0.75rem; color: var(--text-muted);">No pinned operations</span>';
+               } else {
+                    container.innerHTML = pinnedStudentOperations.map((op) => `
+                         <span class="op-chip">
+                              ${escapeHtml(STUDENT_OPERATION_LABELS[op] || op)}
+                              <button type="button" title="Remove" onclick="removePinnedStudentOperation('${op}')">x</button>
+                         </span>
+                    `).join("");
+               }
+
+               if (goButton) {
+                    goButton.disabled = pinnedStudentOperations.length === 0;
+                    goButton.style.opacity = pinnedStudentOperations.length === 0 ? "0.6" : "1";
+               }
+          }
+
+          function pinStudentOperation() {
+               const select = document.getElementById("studentOperationSelect");
+               if (!select) {
+                    return;
+               }
+
+               const operation = String(select.value || "").trim();
+               if (!operation) {
+                    return;
+               }
+
+               if (!pinnedStudentOperations.includes(operation)) {
+                    pinnedStudentOperations.push(operation);
+               }
+
+               select.value = "";
+               renderPinnedStudentOperations();
+               lucide.createIcons();
+          }
+
+          function removePinnedStudentOperation(operation) {
+               pinnedStudentOperations = pinnedStudentOperations.filter((item) => item !== operation);
+               renderPinnedStudentOperations();
+          }
+
+          async function runCreateStudentOperation() {
+               const result = await Swal.fire({
+                    title: "Create Student",
+                    html: `
+                         <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; text-align:left;">
+                              <input id="create-first-name" class="swal2-input" placeholder="First name" style="margin:0;">
+                              <input id="create-last-name" class="swal2-input" placeholder="Last name" style="margin:0;">
+                              <input id="create-middle-name" class="swal2-input" placeholder="Middle name (optional)" style="margin:0; grid-column:1 / span 2;">
+                              <input id="create-email" type="email" class="swal2-input" placeholder="Email" style="margin:0; grid-column:1 / span 2;">
+                              <input id="create-school-id" class="swal2-input" placeholder="School ID" style="margin:0;">
+                              <input id="create-password" type="text" class="swal2-input" placeholder="Temporary password" style="margin:0;">
+                              <select id="create-course" class="swal2-input" style="margin:0;">
+                                   <option value="">Select course</option>
+                                   <option value="BSCS">BSCS</option>
+                                   <option value="BSIT">BSIT</option>
+                                   <option value="BSHM">BSHM</option>
+                                   <option value="BSA">BSA</option>
+                                   <option value="BEED">BEED</option>
+                                   <option value="BSED">BSED</option>
+                              </select>
+                              <select id="create-year-level" class="swal2-input" style="margin:0;">
+                                   <option value="">Year level</option>
+                                   <option value="1">1</option>
+                                   <option value="2">2</option>
+                                   <option value="3">3</option>
+                                   <option value="4">4</option>
+                              </select>
+                              <input id="create-section" class="swal2-input" placeholder="Section" style="margin:0;">
+                              <input id="create-track" class="swal2-input" placeholder="Track (optional)" style="margin:0;">
+                         </div>
+                    `,
+                    focusConfirm: false,
+                    showCancelButton: true,
+                    confirmButtonText: "Create",
+                    confirmButtonColor: "#22c55e",
+                    cancelButtonColor: "#475569",
+                    background: "#0a261e",
+                    color: "#fff",
+                    preConfirm: () => {
+                         const payload = {
+                              first_name: document.getElementById("create-first-name")?.value?.trim() || "",
+                              last_name: document.getElementById("create-last-name")?.value?.trim() || "",
+                              middle_name: document.getElementById("create-middle-name")?.value?.trim() || "",
+                              email: document.getElementById("create-email")?.value?.trim() || "",
+                              school_id: document.getElementById("create-school-id")?.value?.trim() || "",
+                              password: document.getElementById("create-password")?.value || "",
+                              course: document.getElementById("create-course")?.value || "",
+                              year_level: document.getElementById("create-year-level")?.value || "",
+                              section: document.getElementById("create-section")?.value?.trim() || "",
+                              track: document.getElementById("create-track")?.value?.trim() || ""
+                         };
+
+                         if (!payload.first_name || !payload.last_name || !payload.email || !payload.school_id || !payload.password || !payload.course || !payload.year_level || !payload.section) {
+                              Swal.showValidationMessage("Please complete all required fields");
+                              return false;
+                         }
+                         return payload;
+                    }
+               });
+
+               if (!result.isConfirmed) {
+                    return false;
+               }
+
+               try {
+                    await apiFetch("/api/admin/students", {
+                         method: "POST",
+                         headers: {
+                              "Content-Type": "application/json",
+                              "X-CSRFToken": csrfToken,
+                              "X-CSRF-Token": csrfToken
+                         },
+                         body: JSON.stringify(result.value)
+                    });
+
+                    Swal.fire({
+                         icon: "success",
+                         title: "Student Created",
+                         text: "New student account created successfully.",
+                         background: "#0a261e",
+                         color: "#fff",
+                         confirmButtonColor: "#22c55e"
+                    });
+                    return true;
+               } catch (error) {
+                    Swal.fire({
+                         icon: "error",
+                         title: "Create Failed",
+                         text: error.message,
+                         background: "#0a261e",
+                         color: "#fff",
+                         confirmButtonColor: "#22c55e"
+                    });
+                    return false;
+               }
+          }
+
+          async function runEditStudentOperation(selectedIds) {
+               if (selectedIds.length !== 1) {
+                    Swal.fire({
+                         icon: "warning",
+                         title: "Edit Requires One Student",
+                         text: "Please select exactly one student for Edit/Update.",
+                         background: "#0a261e",
+                         color: "#fff",
+                         confirmButtonColor: "#22c55e"
+                    });
+                    return false;
+               }
+
+               const targetId = Number(selectedIds[0]);
+               const student = students.find((item) => Number(item.id) === targetId);
+               if (!student) {
+                    Swal.fire({
+                         icon: "error",
+                         title: "Student Not Found",
+                         text: "Could not find the selected student record.",
+                         background: "#0a261e",
+                         color: "#fff",
+                         confirmButtonColor: "#22c55e"
+                    });
+                    return false;
+               }
+
+               const result = await Swal.fire({
+                    title: `Edit ${escapeHtml(student.school_id || "Student")}`,
+                    html: `
+                         <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; text-align:left;">
+                              <input id="edit-first-name" class="swal2-input" placeholder="First name" value="${escapeHtml(student.first_name || "")}" style="margin:0;">
+                              <input id="edit-last-name" class="swal2-input" placeholder="Last name" value="${escapeHtml(student.last_name || "")}" style="margin:0;">
+                              <input id="edit-middle-name" class="swal2-input" placeholder="Middle name (optional)" value="${escapeHtml(student.middle_name || "")}" style="margin:0; grid-column:1 / span 2;">
+                              <input id="edit-email" type="email" class="swal2-input" placeholder="Email" value="${escapeHtml(student.email || "")}" style="margin:0; grid-column:1 / span 2;">
+                              <input id="edit-school-id" class="swal2-input" placeholder="School ID" value="${escapeHtml(student.school_id || "")}" style="margin:0; grid-column:1 / span 2;">
+                              <input id="edit-course" class="swal2-input" placeholder="Course" value="${escapeHtml(student.course || "")}" style="margin:0;">
+                              <input id="edit-year-level" class="swal2-input" placeholder="Year level" value="${escapeHtml(student.year_level || "")}" style="margin:0;">
+                              <input id="edit-section" class="swal2-input" placeholder="Section" value="${escapeHtml(student.section || "")}" style="margin:0;">
+                              <input id="edit-track" class="swal2-input" placeholder="Track" value="${escapeHtml(student.track || "")}" style="margin:0;">
+                         </div>
+                    `,
+                    focusConfirm: false,
+                    showCancelButton: true,
+                    confirmButtonText: "Update",
+                    confirmButtonColor: "#22c55e",
+                    cancelButtonColor: "#475569",
+                    background: "#0a261e",
+                    color: "#fff",
+                    preConfirm: () => {
+                         const payload = {
+                              first_name: document.getElementById("edit-first-name")?.value?.trim() || "",
+                              last_name: document.getElementById("edit-last-name")?.value?.trim() || "",
+                              middle_name: document.getElementById("edit-middle-name")?.value?.trim() || "",
+                              email: document.getElementById("edit-email")?.value?.trim() || "",
+                              school_id: document.getElementById("edit-school-id")?.value?.trim() || "",
+                              course: document.getElementById("edit-course")?.value?.trim() || "",
+                              year_level: document.getElementById("edit-year-level")?.value?.trim() || "",
+                              section: document.getElementById("edit-section")?.value?.trim() || "",
+                              track: document.getElementById("edit-track")?.value?.trim() || ""
+                         };
+                         if (!payload.first_name || !payload.last_name || !payload.email || !payload.school_id || !payload.course || !payload.year_level || !payload.section) {
+                              Swal.showValidationMessage("Please complete all required fields");
+                              return false;
+                         }
+                         return payload;
+                    }
+               });
+
+               if (!result.isConfirmed) {
+                    return false;
+               }
+
+               try {
+                    await apiFetch(`/api/admin/students/${targetId}`, {
+                         method: "PUT",
+                         headers: {
+                              "Content-Type": "application/json",
+                              "X-CSRFToken": csrfToken,
+                              "X-CSRF-Token": csrfToken
+                         },
+                         body: JSON.stringify(result.value)
+                    });
+
+                    Swal.fire({
+                         icon: "success",
+                         title: "Student Updated",
+                         text: "Student record updated successfully.",
+                         background: "#0a261e",
+                         color: "#fff",
+                         confirmButtonColor: "#22c55e"
+                    });
+                    return true;
+               } catch (error) {
+                    Swal.fire({
+                         icon: "error",
+                         title: "Update Failed",
+                         text: error.message,
+                         background: "#0a261e",
+                         color: "#fff",
+                         confirmButtonColor: "#22c55e"
+                    });
+                    return false;
+               }
+          }
+
+          async function executeStudentBulkAction(operation, selectedIds) {
+               if (!selectedIds.length) {
+                    Swal.fire({
+                         icon: "warning",
+                         title: "No Students Selected",
+                         text: "Select at least one student for this operation.",
+                         background: "#0a261e",
+                         color: "#fff",
+                         confirmButtonColor: "#22c55e"
+                    });
+                    return false;
+               }
+
+               const actionMap = {
+                    suspend: "suspend",
+                    unsuspend: "unsuspend",
+                    drop: "drop",
+                    delete: "delete"
+               };
+
+               const action = actionMap[operation];
+               if (!action) {
+                    return false;
+               }
+
+               try {
+                    await apiFetch("/api/admin/students/bulk-action", {
+                         method: "POST",
+                         headers: {
+                              "Content-Type": "application/json",
+                              "X-CSRFToken": csrfToken,
+                              "X-CSRF-Token": csrfToken
+                         },
+                         body: JSON.stringify({ action, student_ids: selectedIds })
+                    });
+                    return true;
+               } catch (error) {
+                    Swal.fire({
+                         icon: "error",
+                         title: "Operation Failed",
+                         text: error.message,
+                         background: "#0a261e",
+                         color: "#fff",
+                         confirmButtonColor: "#22c55e"
+                    });
+                    return false;
+               }
+          }
+
+          async function addNewStudent() {
+               const ok = await runCreateStudentOperation();
+               if (!ok) {
+                    return;
+               }
+
+               await loadDashboardData();
+               handleFilter();
+          }
+
+          async function editStudentRecord(studentId) {
+               const confirmation = await Swal.fire({
+                    icon: "question",
+                    title: "Confirm Action",
+                    html: "You're about to perform <strong>Edit</strong>, Are you sure??",
+                    showCancelButton: true,
+                    confirmButtonText: "Yes, Proceed",
+                    cancelButtonText: "Cancel",
+                    confirmButtonColor: "#22c55e",
+                    cancelButtonColor: "#475569",
+                    background: "#0a261e",
+                    color: "#fff"
+               });
+
+               if (!confirmation.isConfirmed) {
+                    return;
+               }
+
+               const ok = await runEditStudentOperation([studentId]);
+               if (!ok) {
+                    return;
+               }
+
+               await loadDashboardData();
+               handleFilter();
+          }
+
+          async function runStudentRowOperation(studentId, operation) {
+               const labels = {
+                    suspend: "Blacklist/Suspend",
+                    unsuspend: "Whitelist/Unsuspend",
+                    drop: "Drop",
+                    delete: "Delete"
+               };
+               const label = labels[operation] || operation;
+
+               const confirmation = await Swal.fire({
+                    icon: operation === "delete" ? "warning" : "question",
+                    title: "Confirm Action",
+                    html: `You're about to perform <strong>${escapeHtml(label)}</strong>, Are you sure??`,
+                    showCancelButton: true,
+                    confirmButtonText: "Yes, Proceed",
+                    cancelButtonText: "Cancel",
+                    confirmButtonColor: "#22c55e",
+                    cancelButtonColor: "#475569",
+                    background: "#0a261e",
+                    color: "#fff"
+               });
+
+               if (!confirmation.isConfirmed) {
+                    return;
+               }
+
+               const ok = await executeStudentBulkAction(operation, [studentId]);
+               if (!ok) {
+                    return;
+               }
+
+               selectedStudentIds.delete(Number(studentId));
+               await loadDashboardData();
+               handleFilter();
+          }
+
+          async function runPinnedStudentOperations() {
+               if (!pinnedStudentOperations.length) {
+                    Swal.fire({
+                         icon: "info",
+                         title: "No Operations Pinned",
+                         text: "Select at least one operation first.",
+                         background: "#0a261e",
+                         color: "#fff",
+                         confirmButtonColor: "#22c55e"
+                    });
+                    return;
+               }
+
+               const selectedIds = Array.from(selectedStudentIds);
+               const needsSelection = pinnedStudentOperations.some((op) => op !== "create");
+               if (needsSelection && selectedIds.length === 0) {
+                    Swal.fire({
+                         icon: "warning",
+                         title: "No Students Selected",
+                         text: "Select target students first before running these operations.",
+                         background: "#0a261e",
+                         color: "#fff",
+                         confirmButtonColor: "#22c55e"
+                    });
+                    return;
+               }
+
+               const operationList = pinnedStudentOperations
+                    .map((op) => STUDENT_OPERATION_LABELS[op] || op)
+                    .join(", ");
+
+               const confirmResult = await Swal.fire({
+                    icon: "warning",
+                    title: "Confirm Student Operations",
+                    html: `Perform <strong>${escapeHtml(operationList)}</strong> on <strong>${selectedIds.length}</strong> selected student(s)?`,
+                    showCancelButton: true,
+                    confirmButtonText: "Proceed",
+                    confirmButtonColor: "#22c55e",
+                    cancelButtonColor: "#475569",
+                    background: "#0a261e",
+                    color: "#fff"
+               });
+
+               if (!confirmResult.isConfirmed) {
+                    return;
+               }
+
+               const completed = [];
+               for (const operation of pinnedStudentOperations) {
+                         const ok = await executeStudentBulkAction(operation, selectedIds);
+
+                    if (!ok) {
+                         return;
+                    }
+
+                    completed.push(STUDENT_OPERATION_LABELS[operation] || operation);
+               }
+
+               await loadDashboardData();
+               selectedStudentIds.clear();
+               pinnedStudentOperations = [];
+               renderPinnedStudentOperations();
+               handleFilter();
 
                Swal.fire({
-                    title: `<div style="text-align: left;">${course.code} Requests</div>`,
-                    html: `<div style="text-align: left; font-size: 0.9rem;">${course.name}</div> ${html}`,
-                    showConfirmButton: false,
-                    showCloseButton: true,
-                    width: '450px'
+                    icon: "success",
+                    title: "Operations Complete",
+                    text: `Executed: ${completed.join(", ")}`,
+                    background: "#0a261e",
+                    color: "#fff",
+                    confirmButtonColor: "#22c55e"
                });
           }
 
+          function normalizedStudentRows() {
+               const pendingBySchoolId = new Map(
+                    pendingStudents.map((student) => [student.school_id, student])
+               );
+
+               return students.map((student) => {
+                    const pendingRecord = pendingBySchoolId.get(student.school_id);
+                    const accountStatus = String(student.account_status || "active").toLowerCase();
+                    const isDropped = Boolean(student.is_dropped);
+
+                    let status = "enrolled";
+                    if (pendingRecord) {
+                         status = "pending";
+                    } else if (accountStatus === "suspended") {
+                         status = "suspended";
+                    } else if (isDropped) {
+                         status = "dropped";
+                    }
+
+                    return {
+                         id: Number(student.id),
+                         user_id: Number(student.user_id || 0),
+                         pending_student_id: pendingRecord?.student_id || student.id,
+                         school_id: student.school_id,
+                         first_name: student.first_name || "",
+                         middle_name: student.middle_name || "",
+                         last_name: student.last_name || "",
+                         name: student.name,
+                         full_name: pendingRecord?.full_name || student.name,
+                         course: student.course,
+                         track: student.track,
+                         year_level: student.year_level,
+                         section: student.section,
+                         email: student.email,
+                         created_at: student.created_at,
+                         account_status: accountStatus,
+                         is_dropped: isDropped,
+                         status
+                    };
+               });
+          }
+
+          function renderCourseCards() {
+               const grid = document.getElementById("courseGrid");
+               if (!grid) {
+                    return;
+               }
+
+               const grouped = pendingStudents.reduce((acc, student) => {
+                    const code = (student.course || "N/A").toUpperCase();
+                    if (!acc[code]) {
+                         acc[code] = [];
+                    }
+                    acc[code].push(student);
+                    return acc;
+               }, {});
+
+               const cards = Object.keys(grouped)
+                    .sort((a, b) => grouped[b].length - grouped[a].length)
+                    .map((code) => ({
+                         code,
+                         name: COURSE_NAME_MAP[code] || "General Program",
+                         requests: grouped[code]
+                    }));
+
+               if (!cards.length) {
+                    grid.innerHTML = '<div style="color: var(--text-muted);">No pending enrollment requests.</div>';
+                    return;
+               }
+
+               grid.innerHTML = cards.map((course) => `
+                    <div class="course-card" onclick="openCourseRequestsModal('${escapeHtml(course.code)}')">
+                         <span class="count-badge">${course.requests.length}</span>
+                         <h3 style="font-size: 1.1rem; color: white;">${escapeHtml(course.code)}</h3>
+                         <p style="font-size: 0.8rem; color: var(--text-muted);">${escapeHtml(course.name)}</p>
+                         <p style="margin-top: 12px; font-size: 0.75rem; color: var(--primary); font-weight: 700;">View Requests <i data-lucide="chevron-right" size="12"></i></p>
+                    </div>
+               `).join("");
+
+               lucide.createIcons();
+          }
+
           function handleFilter() {
-               const searchInput = document.getElementById('globalSearch');
-               const statusSelect = document.getElementById('statusFilter');
-               if (!searchInput || !statusSelect) return;
+               const searchInput = document.getElementById("globalSearch");
+               const statusSelect = document.getElementById("statusFilter");
+               if (!searchInput || !statusSelect) {
+                    return;
+               }
 
-               const query = searchInput.value.toLowerCase();
+               const query = searchInput.value.trim().toLowerCase();
                const status = statusSelect.value;
+               const rows = normalizedStudentRows();
 
-               const filtered = students.filter(s => {
-                    const matchesSearch = s.name.toLowerCase().includes(query) || s.id.includes(query);
-                    const matchesStatus = status === 'all' || s.status === status;
+               const filtered = rows.filter((student) => {
+                    const matchesSearch =
+                         student.name.toLowerCase().includes(query) ||
+                         student.school_id.toLowerCase().includes(query) ||
+                         (student.course || "").toLowerCase().includes(query);
+                    const matchesStatus = status === "all" || student.status === status;
                     return matchesSearch && matchesStatus;
                });
+
+               filteredStudentRows = filtered;
 
                renderStudentTable(filtered);
           }
 
           function renderStudentTable(data) {
-               const tbody = document.getElementById('studentTableBody');
-               if (!tbody) return;
+               const tbody = document.getElementById("studentTableBody");
+               if (!tbody) {
+                    return;
+               }
 
-               tbody.innerHTML = data.map(s => `
+               if (!data.length) {
+                    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; color: var(--text-muted);">No matching students.</td></tr>';
+                    updateStudentSelectionInfo();
+                    return;
+               }
+
+               tbody.innerHTML = data.map((student) => `
                     <tr>
-                        <td>
-                            <div style="font-weight: 700; color: white;">${s.name}</div>
-                            <div style="font-size: 0.7rem; color: var(--text-muted);">${s.email}</div>
-                        </td>
-                        <td>${s.id}</td>
-                        <td>${s.course}</td>
-                        <td>${s.date}</td>
-                        <td><span class="status-pill ${s.status}">${s.status.toUpperCase()}</span></td>
-                        <td><i data-lucide="more-vertical" style="cursor: pointer; color: var(--text-muted);"></i></td>
+                         <td><input class="selection-box" type="checkbox" ${selectedStudentIds.has(Number(student.id)) ? "checked" : ""} onchange="toggleStudentSelection(${student.id}, this.checked)"></td>
+                         <td>
+                              <div style="font-weight: 700; color: white;">${escapeHtml(student.name)}</div>
+                              <div style="font-size: 0.7rem; color: var(--text-muted);">${escapeHtml(student.email || "N/A")}</div>
+                         </td>
+                         <td>${escapeHtml(student.school_id)}</td>
+                         <td>${escapeHtml(student.course || "N/A")}</td>
+                         <td>${formatDate(student.created_at)}</td>
+                         <td><span class="status-pill ${student.status}">${escapeHtml(String(student.status || "enrolled").toUpperCase())}</span></td>
+                         <td>
+                              ${student.status === "pending"
+                                   ? `<button class="btn btn-primary btn-sm" onclick="reviewStudentRegistration(${student.pending_student_id})">Review</button>
+                                      <button class="btn btn-outline btn-sm" style="margin-left: 6px;" onclick="approveRegistration(${student.pending_student_id})">Approve</button>
+                                      <button class="btn btn-outline btn-sm" style="color:#ef4444; margin-left: 6px;" onclick="rejectRegistration(${student.pending_student_id})">Reject</button>`
+                                                         : `<button class="btn btn-outline btn-sm student-action-btn" title="Edit" onclick="editStudentRecord(${student.id})"><i data-lucide="pencil" size="14"></i><span class="action-label">Edit</span></button>
+                                                              <button class="btn btn-outline btn-sm student-action-btn" style="margin-left: 6px; color:#ef4444;" title="Delete" onclick="runStudentRowOperation(${student.id}, 'delete')"><i data-lucide="trash-2" size="14"></i><span class="action-label">Delete</span></button>
+                                                              <button class="btn btn-outline btn-sm student-action-btn" style="margin-left: 6px; color:#fbbf24;" title="Drop" onclick="runStudentRowOperation(${student.id}, 'drop')"><i data-lucide="user-minus" size="14"></i><span class="action-label">Drop</span></button>
+                                                              <button class="btn btn-outline btn-sm student-action-btn" style="margin-left: 6px;" title="${student.account_status === "suspended" ? "Unsuspend" : "Suspend"}" onclick="runStudentRowOperation(${student.id}, '${student.account_status === "suspended" ? "unsuspend" : "suspend"}')"><i data-lucide="${student.account_status === "suspended" ? "user-check" : "user-x"}" size="14"></i><span class="action-label">${student.account_status === "suspended" ? "Unsuspend" : "Suspend"}</span></button>`}
+                         </td>
                     </tr>
-               `).join('');
+               `).join("");
 
+               updateStudentSelectionInfo();
                lucide.createIcons();
           }
 
-          function generateCreds() {
-               const rand = Math.floor(1000 + Math.random() * 9000);
-               document.getElementById('fUsername').value = `INS-${rand}`;
-               document.getElementById('fPassword').value = `FaCuLTYPaSS_${nextPassSuffix.toString().padStart(2, '0')}++`;
+          function getPendingStudentById(studentId) {
+               return pendingStudents.find((student) => Number(student.student_id) === Number(studentId)) || null;
           }
 
-          function addFaculty(e) {
-               e.preventDefault();
+          function studentNameForId(studentId) {
+               const student = getPendingStudentById(studentId);
+               return student?.full_name || student?.school_id || "this student";
+          }
 
-               const newMember = {
-                    name: document.getElementById('fName').value,
-                    id: document.getElementById('fId').value,
-                    username: document.getElementById('fUsername').value,
-                    dept: document.getElementById('fDept').value,
-                    subject: document.getElementById('fSubject').value,
-                    course: document.getElementById('fCourse').value,
-                    year: document.getElementById('fYear').value,
-                    section: document.getElementById('fSection').value
-               };
+          function mediaUrl(path) {
+               if (!path) {
+                    return "";
+               }
+               return path.startsWith("/") ? path : `/${path}`;
+          }
 
-               facultyList.unshift(newMember);
-               nextPassSuffix++;
-               renderFacultyTable();
-               e.target.reset();
-               generateCreds();
+          async function approveRegistration(studentId) {
+               const studentName = studentNameForId(studentId);
+
+               const confirmation = await Swal.fire({
+                    title: "Approve Registration?",
+                    html: `Approve the registration for <strong>${escapeHtml(studentName)}</strong>?`,
+                    icon: "question",
+                    showCancelButton: true,
+                    confirmButtonText: "Approve",
+                    confirmButtonColor: "#22c55e",
+                    cancelButtonColor: "#475569",
+                    background: "#0a261e",
+                    color: "#fff"
+               });
+
+               if (!confirmation.isConfirmed) {
+                    return;
+               }
+
+               try {
+                    await apiFetch(`/admin/approve-registration/${studentId}`, {
+                         method: "POST",
+                         headers: {
+                              "X-CSRFToken": csrfToken,
+                              "X-CSRF-Token": csrfToken,
+                              "Content-Type": "application/json"
+                         },
+                         body: JSON.stringify({})
+                    });
+
+                    await loadDashboardData();
+                    Swal.fire({
+                         icon: "success",
+                         title: "Approved",
+                         text: `${studentName} has been approved.`,
+                         background: "#0a261e",
+                         color: "#fff",
+                         confirmButtonColor: "#22c55e"
+                    });
+               } catch (error) {
+                    Swal.fire({
+                         icon: "error",
+                         title: "Approval Failed",
+                         text: error.message,
+                         background: "#0a261e",
+                         color: "#fff",
+                         confirmButtonColor: "#22c55e"
+                    });
+               }
+          }
+
+          async function rejectRegistration(studentId) {
+               const studentName = studentNameForId(studentId);
+
+               const result = await Swal.fire({
+                    title: "Reject Registration",
+                    html: `<div style="text-align:left; color:#cbd5e1; margin-bottom:8px;">Student: <strong style="color:#fff;">${escapeHtml(studentName)}</strong></div>`,
+                    input: "textarea",
+                    inputLabel: "Reason (optional)",
+                    inputPlaceholder: "Add a rejection reason to include in the email",
+                    showCancelButton: true,
+                    confirmButtonText: "Reject",
+                    confirmButtonColor: "#ef4444",
+                    cancelButtonColor: "#475569",
+                    background: "#0a261e",
+                    color: "#fff"
+               });
+
+               if (!result.isConfirmed) {
+                    return;
+               }
+
+               try {
+                    await apiFetch(`/admin/reject-registration/${studentId}`, {
+                         method: "POST",
+                         headers: {
+                              "X-CSRFToken": csrfToken,
+                              "X-CSRF-Token": csrfToken,
+                              "Content-Type": "application/json"
+                         },
+                         body: JSON.stringify({ reason: result.value || "" })
+                    });
+
+                    await loadDashboardData();
+                    Swal.fire({
+                         icon: "success",
+                         title: "Rejected",
+                         text: `${studentName} has been rejected.`,
+                         background: "#0a261e",
+                         color: "#fff",
+                         confirmButtonColor: "#22c55e"
+                    });
+               } catch (error) {
+                    Swal.fire({
+                         icon: "error",
+                         title: "Rejection Failed",
+                         text: error.message,
+                         background: "#0a261e",
+                         color: "#fff",
+                         confirmButtonColor: "#22c55e"
+                    });
+               }
+          }
+
+          function reviewStudentRegistration(studentId) {
+               const student = getPendingStudentById(studentId);
+               if (!student) {
+                    Swal.fire({
+                         icon: "error",
+                         title: "Student Not Found",
+                         text: "The selected pending registration was not found.",
+                         background: "#0a261e",
+                         color: "#fff",
+                         confirmButtonColor: "#22c55e"
+                    });
+                    return;
+               }
+
+               const frontUrl = mediaUrl(student.id_front_path);
+               const backUrl = mediaUrl(student.id_back_path);
+               const faceUrl = mediaUrl(student.face_photo_path);
+
+               const renderPhotoCard = (title, icon, url) => `
+                    <div style="background:#0f2f25; border:1px solid var(--border); border-radius:10px; padding:10px;">
+                         <div style="font-size:0.8rem; font-weight:700; margin-bottom:8px; color:#f8fafc;">${icon} ${title}</div>
+                         ${url
+                              ? `<a href="${url}" target="_blank" rel="noopener noreferrer" style="display:block; text-decoration:none;">
+                                      <img src="${url}" alt="${title}" style="width:100%; height:180px; object-fit:contain; background:#052017; border-radius:8px; border:1px solid var(--border);" />
+                                      <div style="font-size:0.72rem; color:var(--text-muted); margin-top:6px;">Click to open full image</div>
+                                 </a>`
+                              : `<div style="height:180px; display:flex; align-items:center; justify-content:center; background:#052017; border-radius:8px; border:1px dashed var(--border); color:var(--text-muted); font-size:0.75rem;">No photo uploaded</div>`}
+                    </div>
+               `;
 
                Swal.fire({
-                    icon: 'success',
-                    title: 'Faculty Added',
-                    text: `${newMember.name} registered as ${newMember.username}`,
-                    background: '#0a261e',
-                    color: '#fff',
-                    confirmButtonColor: '#22c55e'
+                    title: `Review Registration: ${escapeHtml(student.full_name || "N/A")}`,
+                    html: `
+                         <div style="text-align:left; max-height:70vh; overflow-y:auto; padding-right:6px;">
+                              <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:14px;">
+                                   <div><span style="color:var(--text-muted); font-size:0.75rem;">School ID</span><div style="font-weight:700;">${escapeHtml(student.school_id || "N/A")}</div></div>
+                                   <div><span style="color:var(--text-muted); font-size:0.75rem;">Email</span><div style="font-weight:700;">${escapeHtml(student.email || "N/A")}</div></div>
+                                   <div><span style="color:var(--text-muted); font-size:0.75rem;">Course</span><div style="font-weight:700;">${escapeHtml(student.course || "N/A")}</div></div>
+                                   <div><span style="color:var(--text-muted); font-size:0.75rem;">Year / Section</span><div style="font-weight:700;">${escapeHtml(student.year_level || "N/A")} / ${escapeHtml(student.section || "N/A")}</div></div>
+                              </div>
+                              <div style="background:rgba(251,191,36,0.08); border:1px solid rgba(251,191,36,0.35); color:#fbbf24; border-radius:8px; padding:10px; font-size:0.78rem; margin-bottom:14px;">
+                                   Verify the submitted ID front, ID back, and face photo before approving.
+                              </div>
+                              <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:10px;">
+                                   ${renderPhotoCard("ID Front", "🆔", frontUrl)}
+                                   ${renderPhotoCard("ID Back", "🎫", backUrl)}
+                                   ${renderPhotoCard("Face Photo", "👤", faceUrl)}
+                              </div>
+                              <div style="display:flex; gap:10px; margin-top:16px; justify-content:center;">
+                                   <button class="btn btn-primary" onclick="Swal.close(); approveRegistration(${student.student_id});">Approve</button>
+                                   <button class="btn btn-outline" style="color:#ef4444;" onclick="Swal.close(); rejectRegistration(${student.student_id});">Reject</button>
+                              </div>
+                         </div>
+                    `,
+                    width: 980,
+                    showConfirmButton: true,
+                    confirmButtonText: "Close",
+                    confirmButtonColor: "#475569",
+                    background: "#0a261e",
+                    color: "#fff"
                });
           }
 
-          function renderFacultyTable() {
-               const searchInput = document.getElementById('facultySearch');
-               const tbody = document.getElementById('facultyTableBody');
-               if (!tbody) return;
+          function openCourseRequestsModal(courseCode) {
+               const requests = pendingStudents
+                    .filter((student) => (student.course || "").toUpperCase() === courseCode)
+                    .sort((a, b) => new Date(a.created_at || 0) - new Date(b.created_at || 0));
 
-               const query = searchInput ? searchInput.value.toLowerCase() : '';
-               tbody.innerHTML = facultyList
-                    .filter(f => f.name.toLowerCase().includes(query))
-                    .map(f => `
-                           <tr>
-                               <td>
-                                   <div style="font-weight:700; color:white;">${f.name}</div>
-                                   <div style="font-size:0.7rem; color:var(--text-muted);">ID: ${f.id}</div>
-                               </td>
-                               <td><div style="font-family:monospace; color:var(--primary); font-weight:700;">${f.username}</div></td>
-                               <td><span class="badge">${f.dept}</span></td>
-                               <td>
-                                   <div style="font-weight:600;">${f.subject}</div>
-                                   <div style="font-size:0.75rem; color:var(--text-muted);">${f.course} - ${f.year}</div>
-                               </td>
-                               <td>Section ${f.section}</td>
-                               <td>
-                                   <button class="btn btn-outline btn-sm" onclick="removeFaculty('${f.id}')"><i data-lucide="trash" size="14"></i></button>
-                               </td>
-                           </tr>
-                       `).join('');
+               let html = "<div style='margin-top: 12px;'>";
+               if (!requests.length) {
+                    html += "<p>No pending requests.</p>";
+               } else {
+                    html += requests.map((student) => `
+                         <div class="request-item">
+                              <div>
+                                   <div style="color: white; font-weight: 700;">${escapeHtml(student.full_name || "N/A")}</div>
+                                   <div style="font-size: 0.75rem; color: var(--text-muted);">${escapeHtml(student.school_id)} • ${formatDate(student.created_at)}</div>
+                              </div>
+                              <div style="display: flex; gap: 8px;">
+                                   <button class="btn btn-outline" style="padding: 6px 10px; font-size: 0.7rem;" onclick="reviewStudentRegistration(${student.student_id});">Details</button>
+                                   <button class="btn btn-primary" style="padding: 6px 10px; font-size: 0.7rem;" onclick="approveRegistration(${student.student_id});">Approve</button>
+                                   <button class="btn btn-outline" style="padding: 6px 10px; font-size: 0.7rem; color: #ef4444;" onclick="rejectRegistration(${student.student_id});">Reject</button>
+                              </div>
+                         </div>
+                    `).join("");
+               }
+               html += "</div>";
+
+               Swal.fire({
+                    title: `${escapeHtml(courseCode)} Requests`,
+                    html,
+                    showConfirmButton: false,
+                    showCloseButton: true,
+                    width: 540,
+                    background: "#0a261e",
+                    color: "#fff"
+               });
+          }
+
+          function openPendingRequestsModal() {
+               switchTab("students", { allowReset: false });
+               if (!pendingStudents.length) {
+                    Swal.fire({
+                         icon: "info",
+                         title: "No Pending Requests",
+                         text: "There are no pending student registrations right now.",
+                         background: "#0a261e",
+                         color: "#fff",
+                         confirmButtonColor: "#22c55e"
+                    });
+                    return;
+               }
+
+               const sorted = [...pendingStudents].sort(
+                    (a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0)
+               );
+
+               const html = `
+                    <div style="max-height: 65vh; overflow-y: auto; text-align: left;">
+                         ${sorted.map((student) => `
+                              <div class="request-item">
+                                   <div>
+                                        <div style="color: white; font-weight: 700;">${escapeHtml(student.full_name || "N/A")}</div>
+                                        <div style="font-size: 0.72rem; color: var(--text-muted); margin-top: 4px;">
+                                             ${escapeHtml(student.school_id || "N/A")} • ${escapeHtml(student.course || "N/A")} • ${escapeHtml(student.year_level || "N/A")} / ${escapeHtml(student.section || "N/A")}
+                                        </div>
+                                   </div>
+                                   <div style="display: flex; gap: 8px;">
+                                        <button class="btn btn-outline" style="padding: 6px 10px; font-size: 0.72rem;" onclick="reviewStudentRegistration(${student.student_id});">Details</button>
+                                        <button class="btn btn-primary" style="padding: 6px 10px; font-size: 0.72rem;" onclick="approveRegistration(${student.student_id});">Approve</button>
+                                        <button class="btn btn-outline" style="padding: 6px 10px; font-size: 0.72rem; color:#ef4444;" onclick="rejectRegistration(${student.student_id});">Reject</button>
+                                   </div>
+                              </div>
+                         `).join("")}
+                    </div>
+               `;
+
+               Swal.fire({
+                    title: "Pending Student Registrations",
+                    html,
+                    width: 980,
+                    showConfirmButton: false,
+                    showCloseButton: true,
+                    background: "#0a261e",
+                    color: "#fff"
+               });
+          }
+
+          function randomCharFrom(charset) {
+               return charset[Math.floor(Math.random() * charset.length)];
+          }
+
+          const SCHOOL_ID_REGEX = /^INS-\d{3}$/;
+          const LAST_ASSIGNMENT_STORAGE_KEY = "admin:last-course-assignment";
+          const FACULTY_DRAFT_STORAGE_KEY = "admin:faculty-registration-drafts:v1";
+          const LEGACY_FACULTY_DRAFT_STORAGE_KEY = "admin:faculty-registration-draft:v1";
+          const FACULTY_DRAFT_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+          const DEFAULT_MAX_CLASS_LOAD = 6;
+          let activeFacultyDraftId = null;
+
+          function validateSchoolIdFormat(field, options = {}) {
+               if (!field) {
+                    return false;
+               }
+
+               const showPrompt = Boolean(options.showPrompt);
+               const value = String(field.value || "").trim().toUpperCase();
+               field.value = value;
+
+               const isValid = SCHOOL_ID_REGEX.test(value);
+               const message = isValid
+                    ? ""
+                    : "School ID must use INS-$$$ format (example: INS-001).";
+
+               field.setCustomValidity(message);
+               if (showPrompt && !isValid) {
+                    field.reportValidity();
+               }
+
+               return isValid;
+          }
+
+          function normalizeSectionValue(value) {
+               return String(value || "").trim().toUpperCase();
+          }
+
+          function getLastAssignment() {
+               try {
+                    const raw = localStorage.getItem(LAST_ASSIGNMENT_STORAGE_KEY);
+                    if (!raw) {
+                         return null;
+                    }
+                    const parsed = JSON.parse(raw);
+                    if (!parsed || typeof parsed !== "object") {
+                         return null;
+                    }
+                    const course = String(parsed.course || "").trim();
+                    const yearLevel = String(parsed.yearLevel || "").trim();
+                    const section = normalizeSectionValue(parsed.section || "");
+                    if (!course || !yearLevel || !section) {
+                         return null;
+                    }
+                    return { course, yearLevel, section };
+               } catch (error) {
+                    return null;
+               }
+          }
+
+          function saveLastAssignment(course, yearLevel, section) {
+               const assignment = {
+                    course: String(course || "").trim(),
+                    yearLevel: String(yearLevel || "").trim(),
+                    section: normalizeSectionValue(section)
+               };
+
+               if (!assignment.course || !assignment.yearLevel || !assignment.section) {
+                    return;
+               }
+
+               try {
+                    localStorage.setItem(LAST_ASSIGNMENT_STORAGE_KEY, JSON.stringify(assignment));
+               } catch (error) {
+                    // Ignore storage failures on restricted browsers.
+               }
+          }
+
+          function setCourseAssignmentEnabled(enabled, options = {}) {
+               const clearValues = Boolean(options.clearValues);
+               const toggle = document.getElementById("enableCourseAssignment");
+               const fieldsWrap = document.getElementById("courseAssignmentFields");
+               const courseField = document.getElementById("course");
+               const yearField = document.getElementById("yearLevel");
+               const sectionField = document.getElementById("section");
+
+               if (toggle) {
+                    toggle.checked = Boolean(enabled);
+               }
+               if (fieldsWrap) {
+                    fieldsWrap.style.display = enabled ? "grid" : "none";
+               }
+
+               if (!enabled && clearValues) {
+                    if (courseField) courseField.value = "";
+                    if (yearField) yearField.value = "";
+                    if (sectionField) sectionField.value = "";
+               }
+
+               syncSectionChipSelection();
+          }
+
+          function setSectionFromChip(value) {
+               const sectionField = document.getElementById("section");
+               if (!sectionField) {
+                    return;
+               }
+
+               if (value === "CUSTOM") {
+                    sectionField.value = "";
+                    sectionField.focus();
+               } else {
+                    sectionField.value = normalizeSectionValue(value);
+               }
+
+               syncSectionChipSelection();
+          }
+
+          function syncSectionChipSelection() {
+               const sectionValue = normalizeSectionValue(document.getElementById("section")?.value || "");
+               document.querySelectorAll("#sectionChipRow .section-chip").forEach((chip) => {
+                    const chipValue = normalizeSectionValue(chip.dataset.section || "");
+                    const isCustom = chipValue === "CUSTOM";
+                    const active = isCustom
+                         ? Boolean(sectionValue) && !["A", "B", "C", "D", "IRREG"].includes(sectionValue)
+                         : sectionValue === chipValue;
+                    chip.classList.toggle("active", active);
+               });
+          }
+
+          function useLastAssignment() {
+               const last = getLastAssignment();
+               if (!last) {
+                    Swal.fire({
+                         icon: "info",
+                         title: "No Previous Assignment",
+                         text: "No saved course assignment was found yet.",
+                         background: "#0a261e",
+                         color: "#fff",
+                         confirmButtonColor: "#22c55e"
+                    });
+                    return;
+               }
+
+               const courseField = document.getElementById("course");
+               const yearField = document.getElementById("yearLevel");
+               const sectionField = document.getElementById("section");
+
+               setCourseAssignmentEnabled(true);
+               if (courseField) courseField.value = last.course;
+               if (yearField) yearField.value = last.yearLevel;
+               if (sectionField) sectionField.value = last.section;
+               syncSectionChipSelection();
+          }
+
+          function isSameAssignment(a, b) {
+               if (!a || !b) {
+                    return false;
+               }
+               return (
+                    String(a.course || "").trim() === String(b.course || "").trim() &&
+                    String(a.yearLevel || "").trim() === String(b.yearLevel || "").trim() &&
+                    normalizeSectionValue(a.section) === normalizeSectionValue(b.section)
+               );
+          }
+
+          function createFacultyDraftId() {
+               return `dr_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+          }
+
+          function getFacultyDraftData(options = {}) {
+               const now = Date.now();
+               const existingDraftId = String(options.existingDraftId || "").trim();
+
+               return {
+                    id: existingDraftId || createFacultyDraftId(),
+                    firstName: document.getElementById("firstName")?.value?.trim() || "",
+                    lastName: document.getElementById("lastName")?.value?.trim() || "",
+                    middleName: document.getElementById("middleName")?.value?.trim() || "",
+                    email: document.getElementById("email")?.value?.trim() || "",
+                    phone: document.getElementById("phone")?.value?.trim() || "",
+                    address: document.getElementById("address")?.value?.trim() || "",
+                    birthDate: document.getElementById("birthDate")?.value || "",
+                    gender: document.getElementById("gender")?.value || "",
+                    emergencyContactName: document.getElementById("emergencyContactName")?.value?.trim() || "",
+                    emergencyContactPhone: document.getElementById("emergencyContactPhone")?.value?.trim() || "",
+                    department: document.getElementById("department")?.value || "",
+                    specialization: document.getElementById("specialization")?.value?.trim() || "",
+                    employeeId: document.getElementById("employeeId")?.value?.trim() || "",
+                    assignmentEnabled: Boolean(document.getElementById("enableCourseAssignment")?.checked),
+                    course: document.getElementById("course")?.value || "",
+                    yearLevel: document.getElementById("yearLevel")?.value || "",
+                    section: normalizeSectionValue(document.getElementById("section")?.value || ""),
+                    schoolId: document.getElementById("schoolId")?.value?.trim() || "",
+                    updatedAt: new Date(now).toISOString(),
+                    expiresAt: new Date(now + FACULTY_DRAFT_TTL_MS).toISOString()
+               };
+          }
+
+          function normalizeDraftRecord(draft) {
+               if (!draft || typeof draft !== "object") {
+                    return null;
+               }
+
+               const id = String(draft.id || createFacultyDraftId())
+                    .trim()
+                    .replace(/[^a-zA-Z0-9_-]/g, "_");
+               const expiresAt = Date.parse(String(draft.expiresAt || ""));
+               const updatedAt = Date.parse(String(draft.updatedAt || ""));
+
+               return {
+                    id,
+                    firstName: String(draft.firstName || "").trim(),
+                    lastName: String(draft.lastName || "").trim(),
+                    middleName: String(draft.middleName || "").trim(),
+                    email: String(draft.email || "").trim(),
+                    phone: String(draft.phone || "").trim(),
+                    address: String(draft.address || "").trim(),
+                    birthDate: String(draft.birthDate || "").trim(),
+                    gender: String(draft.gender || "").trim(),
+                    emergencyContactName: String(draft.emergencyContactName || "").trim(),
+                    emergencyContactPhone: String(draft.emergencyContactPhone || "").trim(),
+                    department: String(draft.department || "").trim(),
+                    specialization: String(draft.specialization || "").trim(),
+                    employeeId: String(draft.employeeId || "").trim(),
+                    assignmentEnabled: Boolean(draft.assignmentEnabled),
+                    course: String(draft.course || "").trim(),
+                    yearLevel: String(draft.yearLevel || "").trim(),
+                    section: normalizeSectionValue(draft.section),
+                    schoolId: String(draft.schoolId || "").trim().toUpperCase(),
+                    updatedAt: Number.isFinite(updatedAt)
+                         ? new Date(updatedAt).toISOString()
+                         : new Date().toISOString(),
+                    expiresAt: Number.isFinite(expiresAt)
+                         ? new Date(expiresAt).toISOString()
+                         : new Date(Date.now() + FACULTY_DRAFT_TTL_MS).toISOString()
+               };
+          }
+
+          function getFacultyDraftList() {
+               const now = Date.now();
+               let list = [];
+
+               try {
+                    const raw = localStorage.getItem(FACULTY_DRAFT_STORAGE_KEY);
+                    if (raw) {
+                         const parsed = JSON.parse(raw);
+                         if (Array.isArray(parsed)) {
+                              list = parsed.map(normalizeDraftRecord).filter(Boolean);
+                         }
+                    }
+               } catch (error) {
+                    list = [];
+               }
+
+               // Migrate old single-draft payload to multi-draft list if it still exists.
+               try {
+                    const legacyRaw = localStorage.getItem(LEGACY_FACULTY_DRAFT_STORAGE_KEY);
+                    if (legacyRaw) {
+                         const legacyParsed = normalizeDraftRecord(JSON.parse(legacyRaw));
+                         if (legacyParsed) {
+                              list.push(legacyParsed);
+                         }
+                         localStorage.removeItem(LEGACY_FACULTY_DRAFT_STORAGE_KEY);
+                    }
+               } catch (error) {
+                    // Ignore malformed legacy entries.
+               }
+
+               // Enforce TTL and remove expired drafts.
+               const active = list.filter((draft) => {
+                    const expiresAtMs = Date.parse(String(draft.expiresAt || ""));
+                    return Number.isFinite(expiresAtMs) && expiresAtMs > now;
+               });
+
+               const dedupedMap = new Map();
+               active.forEach((draft) => {
+                    dedupedMap.set(draft.id, draft);
+               });
+               const deduped = Array.from(dedupedMap.values()).sort(
+                    (a, b) => new Date(b.updatedAt || 0) - new Date(a.updatedAt || 0)
+               );
+
+               try {
+                    localStorage.setItem(FACULTY_DRAFT_STORAGE_KEY, JSON.stringify(deduped));
+               } catch (error) {
+                    // Ignore storage issues.
+               }
+
+               return deduped;
+          }
+
+          function setFacultyDraftList(drafts) {
+               try {
+                    localStorage.setItem(FACULTY_DRAFT_STORAGE_KEY, JSON.stringify(drafts));
+               } catch (error) {
+                    // Ignore storage issues.
+               }
+          }
+
+          function getFacultyDraftById(draftId) {
+               const id = String(draftId || "").trim();
+               if (!id) {
+                    return null;
+               }
+               return getFacultyDraftList().find((draft) => draft.id === id) || null;
+          }
+
+          async function saveFacultyDraft(options = {}) {
+               const showToast = Boolean(options.showToast);
+               const requireAck = Boolean(options.requireAck);
+               const updateExisting = options.updateExisting !== false;
+
+               if (requireAck) {
+                    const notice = await Swal.fire({
+                         icon: "info",
+                         title: "Save Draft Locally?",
+                         html: "This draft only lives in this browser on this device.<br>It will be deleted after successful registration or manual discard, and auto-clears after 7 days.",
+                         showCancelButton: true,
+                         confirmButtonText: "I Understand",
+                         cancelButtonText: "Cancel",
+                         confirmButtonColor: "#22c55e",
+                         cancelButtonColor: "#475569",
+                         background: "#0a261e",
+                         color: "#fff"
+                    });
+
+                    if (!notice.isConfirmed) {
+                         return false;
+                    }
+               }
+
+               const existingDraftId = updateExisting ? activeFacultyDraftId : null;
+               const draft = getFacultyDraftData({ existingDraftId });
+               const drafts = getFacultyDraftList();
+
+               const existingIndex = drafts.findIndex((item) => item.id === draft.id);
+               if (existingIndex >= 0) {
+                    drafts[existingIndex] = draft;
+               } else {
+                    drafts.unshift(draft);
+               }
+
+               setFacultyDraftList(drafts);
+               activeFacultyDraftId = draft.id;
+               renderFacultyTable();
+
+               if (showToast) {
+                    Swal.fire({
+                         icon: "success",
+                         title: existingIndex >= 0 ? "Draft Updated" : "Draft Saved",
+                         text: "Faculty form draft saved locally.",
+                         timer: 1300,
+                         showConfirmButton: false,
+                         background: "#0a261e",
+                         color: "#fff"
+                    });
+               }
+
+               return true;
+          }
+
+          function discardFacultyDraft(options = {}) {
+               const showToast = Boolean(options.showToast);
+               const targetId = String(options.targetId || activeFacultyDraftId || "").trim();
+               const deleteAll = Boolean(options.deleteAll);
+               let removedCount = 0;
+
+               if (deleteAll) {
+                    const drafts = getFacultyDraftList();
+                    removedCount = drafts.length;
+                    setFacultyDraftList([]);
+                    activeFacultyDraftId = null;
+               } else if (targetId) {
+                    const drafts = getFacultyDraftList();
+                    removedCount = drafts.some((draft) => draft.id === targetId) ? 1 : 0;
+                    const remaining = drafts.filter((draft) => draft.id !== targetId);
+                    setFacultyDraftList(remaining);
+                    if (activeFacultyDraftId === targetId) {
+                         activeFacultyDraftId = null;
+                    }
+               } else {
+                    const drafts = getFacultyDraftList();
+                    removedCount = drafts.length;
+                    setFacultyDraftList([]);
+                    activeFacultyDraftId = null;
+               }
+
+               renderFacultyTable();
+
+               if (showToast && removedCount > 0) {
+                    Swal.fire({
+                         icon: "success",
+                         title: "Draft Removed",
+                         text: removedCount === 1 ? "Saved faculty draft has been discarded." : `${removedCount} saved drafts have been discarded.`,
+                         timer: 1300,
+                         showConfirmButton: false,
+                         background: "#0a261e",
+                         color: "#fff"
+                    });
+               } else if (showToast && removedCount === 0) {
+                    Swal.fire({
+                         icon: "info",
+                         title: "No Drafts Found",
+                         text: "There are no saved drafts to discard.",
+                         timer: 1400,
+                         showConfirmButton: false,
+                         background: "#0a261e",
+                         color: "#fff"
+                    });
+               }
+          }
+
+          function applyFacultyDraft(draft) {
+               if (!draft) {
+                    return;
+               }
+
+               const assignValue = (id, value) => {
+                    const field = document.getElementById(id);
+                    if (field) {
+                         field.value = value ?? "";
+                    }
+               };
+
+               assignValue("firstName", draft.firstName);
+               assignValue("lastName", draft.lastName);
+               assignValue("middleName", draft.middleName);
+               assignValue("email", draft.email);
+               assignValue("phone", draft.phone);
+               assignValue("address", draft.address);
+               assignValue("birthDate", draft.birthDate);
+               assignValue("gender", draft.gender);
+               assignValue("emergencyContactName", draft.emergencyContactName);
+               assignValue("emergencyContactPhone", draft.emergencyContactPhone);
+               assignValue("department", draft.department);
+               assignValue("specialization", draft.specialization);
+               assignValue("employeeId", draft.employeeId);
+               assignValue("schoolId", String(draft.schoolId || "").toUpperCase());
+
+               setCourseAssignmentEnabled(Boolean(draft.assignmentEnabled), {
+                    clearValues: false
+               });
+               assignValue("course", draft.course);
+               assignValue("yearLevel", draft.yearLevel);
+               assignValue("section", normalizeSectionValue(draft.section));
+               syncSectionChipSelection();
+
+               const schoolIdField = document.getElementById("schoolId");
+               if (schoolIdField) {
+                    validateSchoolIdFormat(schoolIdField);
+               }
+
+               const phoneField = document.getElementById("phone");
+               const emergencyPhoneField = document.getElementById("emergencyContactPhone");
+               if (phoneField) {
+                    phoneField.value = formatPhilippinePhoneInput(phoneField.value);
+               }
+               if (emergencyPhoneField) {
+                    emergencyPhoneField.value = formatPhilippinePhoneInput(emergencyPhoneField.value);
+               }
+
+               activeFacultyDraftId = draft.id || null;
+               generateCreds({ force: false });
+          }
+
+          function finishFacultyDraft(draftId) {
+               const draft = getFacultyDraftById(draftId);
+               if (!draft) {
+                    Swal.fire({
+                         icon: "info",
+                         title: "Draft Not Found",
+                         text: "This draft is no longer available.",
+                         background: "#0a261e",
+                         color: "#fff",
+                         confirmButtonColor: "#22c55e"
+                    });
+                    renderFacultyTable();
+                    return;
+               }
+
+               switchTab("faculty", { allowReset: false });
+               applyFacultyDraft(draft);
+               renderFacultyTable();
+          }
+
+          function deleteFacultyDraft(draftId) {
+               const draft = getFacultyDraftById(draftId);
+               if (!draft) {
+                    renderFacultyTable();
+                    return;
+               }
+
+               Swal.fire({
+                    icon: "warning",
+                    title: "Delete Draft?",
+                    text: "This saved draft will be removed permanently.",
+                    showCancelButton: true,
+                    confirmButtonText: "Delete",
+                    cancelButtonText: "Cancel",
+                    confirmButtonColor: "#ef4444",
+                    cancelButtonColor: "#475569",
+                    background: "#0a261e",
+                    color: "#fff"
+               }).then((result) => {
+                    if (!result.isConfirmed) {
+                         return;
+                    }
+                    discardFacultyDraft({ showToast: true, targetId: draft.id });
+               });
+          }
+
+          async function validateWorkloadBeforeCreate(payload) {
+               try {
+                    const response = await apiFetch("/api/admin/instructors/workload-validation", {
+                         method: "POST",
+                         headers: {
+                              "Content-Type": "application/json",
+                              "X-CSRFToken": csrfToken,
+                              "X-CSRF-Token": csrfToken
+                         },
+                         body: JSON.stringify({
+                              schoolId: payload.schoolId,
+                              course: payload.course,
+                              yearLevel: payload.yearLevel,
+                              section: payload.section,
+                              maxClassLoad: DEFAULT_MAX_CLASS_LOAD
+                         })
+                    });
+
+                    return {
+                         warnings: Array.isArray(response?.warnings) ? response.warnings : [],
+                         metrics: response?.metrics || {}
+                    };
+               } catch (error) {
+                    return {
+                         warnings: ["Workload validation is temporarily unavailable."],
+                         metrics: {},
+                         softError: true
+                    };
+               }
+          }
+
+          function buildFacultyPreviewHtml(payload, options = {}) {
+               const warnings = Array.isArray(options.warnings) ? options.warnings : [];
+               const assignmentEnabled = Boolean(payload.course && payload.yearLevel && payload.section);
+               const assignmentLabel = assignmentEnabled
+                    ? `${escapeHtml(payload.course)} • ${escapeHtml(payload.yearLevel)} • ${escapeHtml(payload.section)}`
+                    : "No initial class will be created";
+
+               const warningBlock = warnings.length
+                    ? `
+                         <div style="border:1px solid rgba(251,191,36,0.45); background:rgba(251,191,36,0.08); color:#fde68a; border-radius:10px; padding:10px; font-size:0.78rem;">
+                              <div style="font-weight:800; margin-bottom:6px;">Workload Warnings</div>
+                              ${warnings.map((warning) => `<div>• ${escapeHtml(warning)}</div>`).join("")}
+                         </div>
+                      `
+                    : "";
+
+               return `
+                    <div style="text-align:left; display:flex; flex-direction:column; gap:12px; margin-top:6px;">
+                         ${warningBlock}
+                         <div style="border:1px solid var(--border); border-radius:10px; padding:10px;">
+                              <div style="font-size:0.72rem; color:var(--text-muted); text-transform:uppercase; font-weight:700; letter-spacing:0.04em; margin-bottom:6px;">Account To Be Created</div>
+                              <div style="font-size:0.84rem;"><strong>Name:</strong> ${escapeHtml(`${payload.firstName} ${payload.lastName}`.trim())}</div>
+                              <div style="font-size:0.84rem;"><strong>Email:</strong> ${escapeHtml(payload.email || "N/A")}</div>
+                              <div style="font-size:0.84rem;"><strong>Department:</strong> ${escapeHtml(payload.department || "N/A")}</div>
+                              <div style="font-size:0.84rem;"><strong>Employee ID:</strong> ${escapeHtml(payload.employeeId || "N/A")}</div>
+                         </div>
+                         <div style="border:1px solid var(--border); border-radius:10px; padding:10px;">
+                              <div style="font-size:0.72rem; color:var(--text-muted); text-transform:uppercase; font-weight:700; letter-spacing:0.04em; margin-bottom:6px;">Initial Class Assignment</div>
+                              <div style="font-size:0.84rem;">${assignmentLabel}</div>
+                         </div>
+                         <div style="border:1px solid var(--border); border-radius:10px; padding:10px;">
+                              <div style="font-size:0.72rem; color:var(--text-muted); text-transform:uppercase; font-weight:700; letter-spacing:0.04em; margin-bottom:6px;">Generated Credentials</div>
+                              <div style="font-size:0.84rem;"><strong>Username:</strong> <span style="font-family:monospace; color:#bbf7d0;">${escapeHtml(payload.schoolId)}</span></div>
+                              <div style="font-size:0.84rem;"><strong>Password:</strong> <span style="font-family:monospace; color:#bbf7d0;">${escapeHtml(payload.password)}</span></div>
+                         </div>
+                    </div>
+               `;
+          }
+
+          function formatByGroups(digits, groups) {
+               const parts = [];
+               let cursor = 0;
+
+               for (const size of groups) {
+                    if (cursor >= digits.length) {
+                         break;
+                    }
+                    parts.push(digits.slice(cursor, cursor + size));
+                    cursor += size;
+               }
+
+               if (cursor < digits.length) {
+                    parts.push(digits.slice(cursor));
+               }
+
+               return parts.join(" ");
+          }
+
+          function formatPhilippinePhoneInput(value) {
+               const digits = String(value || "").replace(/\D/g, "");
+               if (!digits) {
+                    return "";
+               }
+
+               // International format: 639123456789 -> +63 912 345 6789
+               if (digits.startsWith("63")) {
+                    const local = digits.slice(2, 12);
+                    if (!local) {
+                         return "+63";
+                    }
+                    return `+63 ${formatByGroups(local, [3, 3, 4])}`.trim();
+               }
+
+               // Local mobile format: 09123456789 -> 0912 345 6789
+               if (digits.startsWith("0")) {
+                    return formatByGroups(digits.slice(0, 11), [4, 3, 4]);
+               }
+
+               // Fallback for partial entries without prefix
+               if (digits.startsWith("9")) {
+                    return formatByGroups(digits.slice(0, 10), [3, 3, 4]);
+               }
+
+               return digits.slice(0, 12);
+          }
+
+          function attachRealtimePhoneFormatter(fieldId) {
+               const field = document.getElementById(fieldId);
+               if (!field) {
+                    return;
+               }
+
+               const applyFormat = () => {
+                    field.value = formatPhilippinePhoneInput(field.value);
+               };
+
+               field.addEventListener("input", applyFormat);
+               field.addEventListener("blur", applyFormat);
+          }
+
+          function shuffleChars(chars) {
+               const arr = [...chars];
+               for (let i = arr.length - 1; i > 0; i -= 1) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [arr[i], arr[j]] = [arr[j], arr[i]];
+               }
+               return arr.join("");
+          }
+
+          function generateSchoolIdCandidate() {
+               const taken = new Set(
+                    (instructors || [])
+                         .map((item) => String(item.school_id || "").toUpperCase())
+                         .filter(Boolean)
+               );
+
+               for (let attempt = 0; attempt < 1200; attempt += 1) {
+                    const suffix = String(Math.floor(1 + Math.random() * 999)).padStart(3, "0");
+                    const candidate = `INS-${suffix}`;
+                    if (!taken.has(candidate)) {
+                         return candidate;
+                    }
+               }
+
+               return `INS-${String(Math.floor(1 + Math.random() * 999)).padStart(3, "0")}`;
+          }
+
+          function generateStrongCredentialPassword() {
+               const upper = "ABCDEFGHJKLMNPQRSTUVWXYZ";
+               const lower = "abcdefghijkmnopqrstuvwxyz";
+               const digits = "23456789";
+               const symbols = "!@#$%^&*";
+
+               const targetLength = 12; // Fixed 12-character standard
+               const symbolCount = Math.random() < 0.5 ? 1 : 2;
+
+               const required = [
+                    randomCharFrom(upper),
+                    randomCharFrom(lower),
+                    randomCharFrom(digits)
+               ];
+
+               for (let i = 0; i < symbolCount; i += 1) {
+                    required.push(randomCharFrom(symbols));
+               }
+
+               // Fill the rest with alphanumeric chars so total symbols stays within 1-2.
+               const pool = `${upper}${lower}${digits}`;
+               while (required.length < targetLength) {
+                    required.push(randomCharFrom(pool));
+               }
+
+               return shuffleChars(required);
+          }
+
+          function rotateCredentialPassword() {
+               const passwordField = document.getElementById("password");
+               const confirmPasswordField = document.getElementById("confirmPassword");
+               if (!passwordField || !confirmPasswordField) {
+                    return;
+               }
+
+               const generatedPassword = generateStrongCredentialPassword();
+               passwordField.value = generatedPassword;
+               confirmPasswordField.value = generatedPassword;
+          }
+
+          function toggleCredentialPasswordVisibility() {
+               const passwordField = document.getElementById("password");
+               const confirmPasswordField = document.getElementById("confirmPassword");
+               if (!passwordField || !confirmPasswordField) {
+                    return;
+               }
+
+               const shouldShow = passwordField.type === "password";
+               const nextType = shouldShow ? "text" : "password";
+
+               passwordField.type = nextType;
+               confirmPasswordField.type = nextType;
+
+               document.querySelectorAll(".password-embedded-toggle").forEach((button) => {
+                    button.textContent = shouldShow ? "Hide" : "Show";
+               });
+          }
+
+          function generateCreds(options = {}) {
+               const force = Boolean(options.force);
+               const schoolIdField = document.getElementById("schoolId");
+               const passwordField = document.getElementById("password");
+               const confirmPasswordField = document.getElementById("confirmPassword");
+
+               if (schoolIdField && (force || !schoolIdField.value.trim())) {
+                    schoolIdField.value = generateSchoolIdCandidate();
+               }
+
+               if (
+                    passwordField &&
+                    confirmPasswordField &&
+                    (force || !passwordField.value || !confirmPasswordField.value)
+               ) {
+                    const generatedPassword = generateStrongCredentialPassword();
+                    passwordField.value = generatedPassword;
+                    confirmPasswordField.value = generatedPassword;
+               }
+
+               credentialCounter += 1;
+          }
+
+          function splitName(fullName) {
+               const parts = String(fullName || "").trim().split(/\s+/).filter(Boolean);
+               if (parts.length === 0) {
+                    return { firstName: "", middleName: "", lastName: "" };
+               }
+               if (parts.length === 1) {
+                    return { firstName: parts[0], middleName: "", lastName: parts[0] };
+               }
+               const firstName = parts[0];
+               const lastName = parts[parts.length - 1];
+               const middleName = parts.slice(1, -1).join(" ");
+               return { firstName, middleName, lastName };
+          }
+
+          async function addFaculty(event) {
+               event.preventDefault();
+
+               const schoolIdField = document.getElementById("schoolId");
+               if (schoolIdField && !validateSchoolIdFormat(schoolIdField, { showPrompt: true })) {
+                    Swal.fire({
+                         icon: "warning",
+                         title: "Invalid School ID",
+                         text: "Use INS-$$$ format only (example: INS-001).",
+                         background: "#0a261e",
+                         color: "#fff",
+                         confirmButtonColor: "#22c55e"
+                    });
+                    return;
+               }
+
+               // Collect all form fields
+               const firstName = document.getElementById("firstName")?.value?.trim() || "";
+               const lastName = document.getElementById("lastName")?.value?.trim() || "";
+               const middleName = document.getElementById("middleName")?.value?.trim() || "";
+               const email = document.getElementById("email")?.value?.trim() || "";
+               const phone = document.getElementById("phone")?.value?.trim() || "";
+               const address = document.getElementById("address")?.value?.trim() || "";
+               const birthDate = document.getElementById("birthDate")?.value || "";
+               const gender = document.getElementById("gender")?.value || "";
+               const emergencyContactName = document.getElementById("emergencyContactName")?.value?.trim() || "";
+               const emergencyContactPhone = document.getElementById("emergencyContactPhone")?.value?.trim() || "";
+               
+               const department = document.getElementById("department")?.value?.trim() || "";
+               const specialization = document.getElementById("specialization")?.value?.trim() || "";
+               const employeeId = document.getElementById("employeeId")?.value?.trim() || "";
+
+               const assignmentEnabled = Boolean(document.getElementById("enableCourseAssignment")?.checked);
+               let course = document.getElementById("course")?.value?.trim() || "";
+               let yearLevel = document.getElementById("yearLevel")?.value?.trim() || "";
+               let section = normalizeSectionValue(document.getElementById("section")?.value || "");
+
+               if (!assignmentEnabled) {
+                    course = "";
+                    yearLevel = "";
+                    section = "";
+               }
+               
+               const schoolId = schoolIdField?.value?.trim() || "";
+               const password = document.getElementById("password")?.value || "";
+               const confirmPassword = document.getElementById("confirmPassword")?.value || "";
+
+               // Validation
+               const errors = [];
+               if (!firstName) errors.push("First name is required");
+               if (!lastName) errors.push("Last name is required");
+               if (!email) errors.push("Email is required");
+               if (!schoolId) errors.push("School ID is required");
+               if (!password) errors.push("Password is required");
+               if (!department) errors.push("Department is required");
+               if (!employeeId) errors.push("Employee ID is required");
+
+               if (assignmentEnabled && (!course || !yearLevel || !section)) {
+                    errors.push("Complete Course, Year Level, and Section or disable initial class assignment");
+               }
+               
+               if (password !== confirmPassword) {
+                    errors.push("Passwords do not match");
+               }
+               
+               if (!SCHOOL_ID_REGEX.test(schoolId)) {
+                    errors.push("School ID must use INS-$$$ format (example: INS-001)");
+               }
+
+               if (password) {
+                    const symbolCount = (password.match(/[^A-Za-z0-9]/g) || []).length;
+                    if (password.length !== 12) {
+                         errors.push("Password must be exactly 12 characters long");
+                    }
+                    if (!/[A-Z]/.test(password)) {
+                         errors.push("Password must include at least one uppercase letter");
+                    }
+                    if (!/[a-z]/.test(password)) {
+                         errors.push("Password must include at least one lowercase letter");
+                    }
+                    if (!/[0-9]/.test(password)) {
+                         errors.push("Password must include at least one number");
+                    }
+                    if (symbolCount < 1 || symbolCount > 2) {
+                         errors.push("Password must include 1 to 2 symbols");
+                    }
+                    if (/\s/.test(password)) {
+                         errors.push("Password must not contain spaces");
+                    }
+               }
+
+               if (errors.length > 0) {
+                    Swal.fire({
+                         icon: "warning",
+                         title: "Missing or Invalid Fields",
+                         html: errors.map(e => `<div>• ${e}</div>`).join(""),
+                         background: "#0a261e",
+                         color: "#fff",
+                         confirmButtonColor: "#22c55e"
+                    });
+                    return;
+               }
+
+               if (assignmentEnabled) {
+                    const currentAssignment = { course, yearLevel, section };
+                    const lastAssignment = getLastAssignment();
+
+                    if (isSameAssignment(currentAssignment, lastAssignment)) {
+                         const duplicateCheck = await Swal.fire({
+                              icon: "question",
+                              title: "Same Assignment as Last Entry",
+                              text: "This matches the previous Course/Year/Section you used. Continue anyway?",
+                              showCancelButton: true,
+                              confirmButtonText: "Yes, Continue",
+                              cancelButtonText: "Cancel",
+                              confirmButtonColor: "#22c55e",
+                              cancelButtonColor: "#475569",
+                              background: "#0a261e",
+                              color: "#fff"
+                         });
+
+                         if (!duplicateCheck.isConfirmed) {
+                              return;
+                         }
+                    }
+               }
+
+               const payload = {
+                    firstName,
+                    lastName,
+                    middleName,
+                    email,
+                    phone,
+                    address,
+                    birthDate,
+                    gender,
+                    emergencyContactName,
+                    emergencyContactPhone,
+                    department,
+                    specialization,
+                    employeeId,
+                    course,
+                    yearLevel,
+                    section,
+                    schoolId,
+                    password,
+                    confirmPassword
+               };
+
+               let workloadWarnings = [];
+               if (assignmentEnabled) {
+                    const workloadValidation = await validateWorkloadBeforeCreate(payload);
+                    workloadWarnings = workloadValidation.warnings || [];
+               }
+
+               const previewResult = await Swal.fire({
+                    icon: "info",
+                    title: "Confirm Faculty Creation",
+                    html: buildFacultyPreviewHtml(payload, { warnings: workloadWarnings }),
+                    width: 760,
+                    showCancelButton: true,
+                    confirmButtonText: "Create Faculty",
+                    cancelButtonText: "Edit Details",
+                    confirmButtonColor: "#22c55e",
+                    cancelButtonColor: "#475569",
+                    background: "#0a261e",
+                    color: "#fff"
+               });
+
+               if (!previewResult.isConfirmed) {
+                    return;
+               }
+
+               try {
+                    const response = await apiFetch("/admin/create-instructor", {
+                         method: "POST",
+                         headers: {
+                              "Content-Type": "application/json",
+                              "X-CSRFToken": csrfToken,
+                              "X-CSRF-Token": csrfToken
+                         },
+                         body: JSON.stringify(payload)
+                    });
+
+                    document.getElementById("facultyForm")?.reset();
+                    generateCreds({ force: true });
+
+                         if (assignmentEnabled) {
+                              saveLastAssignment(course, yearLevel, section);
+                         }
+
+                    if (activeFacultyDraftId) {
+                         discardFacultyDraft({ showToast: false, targetId: activeFacultyDraftId });
+                    }
+                    activeFacultyDraftId = null;
+
+                    await loadDashboardData();
+
+                    Swal.fire({
+                         icon: "success",
+                         title: "Faculty Registered",
+                         text: `${firstName} ${lastName} (${schoolId}) created successfully.`,
+                         background: "#0a261e",
+                         color: "#fff",
+                         confirmButtonColor: "#22c55e"
+                    });
+               } catch (error) {
+                    Swal.fire({
+                         icon: "error",
+                         title: "Registration Failed",
+                         text: error.message || "Failed to register faculty member.",
+                         background: "#0a261e",
+                         color: "#fff",
+                         confirmButtonColor: "#22c55e"
+                    });
+               }
+          }
+
+          function renderFacultyTable() {
+               const tbody = document.getElementById("facultyTableBody");
+               const query = (document.getElementById("facultySearch")?.value || "").trim().toLowerCase();
+               if (!tbody) {
+                    return;
+               }
+
+               const filtered = instructors.filter((instructor) => {
+                    const haystack = `${instructor.name} ${instructor.school_id} ${instructor.department}`.toLowerCase();
+                    return haystack.includes(query);
+               });
+
+               const drafts = getFacultyDraftList();
+               const filteredDrafts = drafts.filter((draft) => {
+                    const draftName = `${draft.firstName || ""} ${draft.lastName || ""}`.trim();
+                    const assignmentText = `${draft.course || ""} ${draft.yearLevel || ""} ${draft.section || ""}`;
+                    const haystack = `${draftName} ${draft.schoolId || ""} ${draft.department || ""} ${assignmentText}`.toLowerCase();
+                    return haystack.includes(query);
+               });
+
+               if (!filtered.length && !filteredDrafts.length) {
+                    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; color: var(--text-muted);">No instructors or drafts found.</td></tr>';
+                    return;
+               }
+
+               const draftRows = filteredDrafts.map((draft) => {
+                    const draftName = `${draft.firstName || ""} ${draft.lastName || ""}`.trim() || "Untitled Draft";
+                    const assignmentLabel = draft.assignmentEnabled && draft.course && draft.yearLevel && draft.section
+                         ? `${draft.course} • ${draft.yearLevel}`
+                         : "No initial class";
+                    const sectionLabel = draft.assignmentEnabled && draft.section
+                         ? draft.section
+                         : "-";
+                    const updatedLabel = draft.updatedAt ? formatDate(draft.updatedAt) : "N/A";
+
+                    return `
+                    <tr style="background: rgba(46, 204, 113, 0.06);">
+                         <td>
+                              <div style="font-weight:700; color:white;">${escapeHtml(draftName)}</div>
+                              <div style="font-size:0.7rem; color:var(--text-muted);">Draft saved: ${escapeHtml(updatedLabel)}</div>
+                         </td>
+                         <td>
+                              <div style="font-family:monospace; color:var(--primary); font-weight:700;">${escapeHtml(draft.schoolId || "(No Username)")}</div>
+                              <span class="badge" style="margin-top:4px; background: rgba(59, 130, 246, 0.14); color:#93c5fd; border:1px solid rgba(96,165,250,0.4);">DRAFT</span>
+                         </td>
+                         <td><span class="badge">${escapeHtml(draft.department || "N/A")}</span></td>
+                         <td>
+                              <div style="font-weight:600;">${escapeHtml(assignmentLabel)}</div>
+                              <div style="font-size:0.75rem; color:var(--text-muted);">${escapeHtml(draft.specialization || "Pending details")}</div>
+                         </td>
+                         <td>${escapeHtml(sectionLabel)}</td>
+                         <td>
+                              <button class="btn btn-outline btn-sm" onclick="finishFacultyDraft('${draft.id}')">Finish Draft</button>
+                              <button class="btn btn-outline btn-sm" style="margin-left:6px; color:#ef4444;" onclick="deleteFacultyDraft('${draft.id}')">Delete Draft</button>
+                         </td>
+                    </tr>
+               `;
+               }).join("");
+
+               const instructorRows = filtered.map((instructor) => {
+                    const isSystemAdmin = Boolean(
+                         instructor.is_system_admin ||
+                         String(instructor.user_role || "").toLowerCase() === "admin"
+                    );
+                    const nextStatus =
+                         (instructor.status || "active") === "active"
+                              ? "suspended"
+                              : "active";
+                    const statusLabel =
+                         (instructor.status || "active") === "active"
+                              ? "Suspend"
+                              : "Activate";
+                    const actionMarkup = isSystemAdmin
+                         ? `<span class="badge" style="background: rgba(251, 191, 36, 0.12); color: #fbbf24; border: 1px solid rgba(251, 191, 36, 0.35);">System Admin</span>`
+                         : `<button class="btn btn-outline btn-sm" onclick="toggleInstructorStatus(${instructor.id}, '${nextStatus}')">${statusLabel}</button>
+                              <button class="btn btn-outline btn-sm" style="margin-left:6px; color:#ef4444;" onclick="removeFaculty(${instructor.id})">Delete</button>`;
+
+                    return `
+                    <tr>
+                         <td>
+                              <div style="font-weight:700; color:white;">${escapeHtml(instructor.name)}</div>
+                              <div style="font-size:0.7rem; color:var(--text-muted);">ID: ${escapeHtml(instructor.employee_id || "N/A")}</div>
+                         </td>
+                         <td><div style="font-family:monospace; color:var(--primary); font-weight:700;">${escapeHtml(instructor.school_id)}</div></td>
+                         <td><span class="badge">${escapeHtml(instructor.department || "N/A")}</span></td>
+                         <td>
+                              <div style="font-weight:600;">${escapeHtml(instructor.specialization || "General")}</div>
+                              <div style="font-size:0.75rem; color:var(--text-muted);">Status: ${escapeHtml(instructor.status || "active")}</div>
+                         </td>
+                         <td>${escapeHtml(instructor.hire_date ? formatDate(instructor.hire_date) : "N/A")}</td>
+                         <td>${actionMarkup}</td>
+                    </tr>
+               `;
+               }).join("");
+
+               tbody.innerHTML = `${draftRows}${instructorRows}`;
 
                lucide.createIcons();
           }
 
-          function removeFaculty(id) {
-               facultyList = facultyList.filter(f => f.id !== id);
-               renderFacultyTable();
+          async function toggleInstructorStatus(instructorId, newStatus) {
+               try {
+                    await apiFetch(`/api/admin/instructors/${instructorId}/status`, {
+                         method: "PUT",
+                         headers: {
+                              "Content-Type": "application/json",
+                              "X-CSRFToken": csrfToken
+                         },
+                         body: JSON.stringify({ status: newStatus })
+                    });
+
+                    await loadDashboardData();
+               } catch (error) {
+                    Swal.fire({
+                         icon: "error",
+                         title: "Status Update Failed",
+                         text: error.message,
+                         background: "#0a261e",
+                         color: "#fff",
+                         confirmButtonColor: "#22c55e"
+                    });
+               }
+          }
+
+          async function removeFaculty(instructorId) {
+               const confirmation = await Swal.fire({
+                    icon: "warning",
+                    title: "Delete instructor?",
+                    text: "This action permanently deletes the instructor account.",
+                    showCancelButton: true,
+                    confirmButtonColor: "#ef4444",
+                    cancelButtonColor: "#475569",
+                    background: "#0a261e",
+                    color: "#fff"
+               });
+
+               if (!confirmation.isConfirmed) {
+                    return;
+               }
+
+               try {
+                    await apiFetch(`/api/admin/instructors/${instructorId}`, {
+                         method: "DELETE",
+                         headers: {
+                              "X-CSRFToken": csrfToken,
+                              "X-CSRF-Token": csrfToken
+                         }
+                    });
+                    await loadDashboardData();
+               } catch (error) {
+                    Swal.fire({
+                         icon: "error",
+                         title: "Delete Failed",
+                         text: error.message,
+                         background: "#0a261e",
+                         color: "#fff",
+                         confirmButtonColor: "#22c55e"
+                    });
+               }
           }
 
           function renderChart() {
-               if (trafficChart) return;
+               const canvas = document.getElementById("trafficChart");
+               if (!canvas) {
+                    return;
+               }
 
-               const canvas = document.getElementById('trafficChart');
-               if (!canvas) return;
+               const labels = [];
+               const studentCounts = [];
+               const instructorCounts = [];
+               const now = new Date();
 
-               const ctx = canvas.getContext('2d');
+               for (let i = 6; i >= 0; i -= 1) {
+                    const day = new Date(now);
+                    day.setDate(now.getDate() - i);
+                    labels.push(day.toLocaleDateString("en-PH", { weekday: "short" }));
+
+                    const key = day.toISOString().slice(0, 10);
+                    const studentsForDay = students.filter((item) => (item.created_at || "").slice(0, 10) === key).length;
+                    const instructorsForDay = instructors.filter((item) => (item.created_at || "").slice(0, 10) === key).length;
+
+                    studentCounts.push(studentsForDay);
+                    instructorCounts.push(instructorsForDay);
+               }
+
+               const ctx = canvas.getContext("2d");
+               if (trafficChart) {
+                    trafficChart.destroy();
+               }
+
                trafficChart = new Chart(ctx, {
-                    type: 'bar',
+                    type: "bar",
                     data: {
-                         labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+                         labels,
                          datasets: [
                               {
-                                   label: 'Instructor Logins',
-                                   data: [45, 52, 61, 48, 72, 20, 15],
-                                   backgroundColor: '#22c55e',
+                                   label: "Student Registrations",
+                                   data: studentCounts,
+                                   backgroundColor: "#60a5fa",
                                    borderRadius: 6
                               },
                               {
-                                   label: 'Student Logins',
-                                   data: [420, 510, 590, 480, 620, 150, 90],
-                                   backgroundColor: '#60a5fa',
+                                   label: "Instructor Accounts",
+                                   data: instructorCounts,
+                                   backgroundColor: "#22c55e",
                                    borderRadius: 6
                               }
                          ]
@@ -1113,30 +3709,88 @@
                          maintainAspectRatio: false,
                          plugins: {
                               legend: {
-                                   position: 'bottom',
-                                   labels: { color: '#94a3b8', boxWidth: 12, padding: 20 }
+                                   position: "bottom",
+                                   labels: {
+                                        color: "#94a3b8",
+                                        boxWidth: 12,
+                                        padding: 20
+                                   }
                               }
                          },
                          scales: {
                               y: {
-                                   grid: { color: 'rgba(255,255,255,0.05)' },
-                                   ticks: { color: '#94a3b8' }
+                                   beginAtZero: true,
+                                   grid: { color: "rgba(255,255,255,0.05)" },
+                                   ticks: { color: "#94a3b8" }
                               },
                               x: {
                                    grid: { display: false },
-                                   ticks: { color: '#94a3b8' }
+                                   ticks: { color: "#94a3b8" }
                               }
                          }
                     }
                });
           }
 
-          document.addEventListener('DOMContentLoaded', () => {
-               renderChart();
-               initStudents();
-               generateCreds();
-               renderFacultyTable();
-               lucide.createIcons();
+          document.addEventListener("DOMContentLoaded", async () => {
+               const facultyForm = document.getElementById("facultyForm");
+               if (facultyForm) {
+                    facultyForm.addEventListener("reset", () => {
+                         // Wait for native reset to clear the inputs before repopulating credentials.
+                         setTimeout(() => {
+                              activeFacultyDraftId = null;
+                              generateCreds({ force: true });
+                              setCourseAssignmentEnabled(false, { clearValues: true });
+                         }, 0);
+                    });
+               }
+
+               const schoolIdField = document.getElementById("schoolId");
+               if (schoolIdField) {
+                    schoolIdField.addEventListener("input", () => {
+                         schoolIdField.value = schoolIdField.value.toUpperCase().replace(/\s+/g, "");
+                         validateSchoolIdFormat(schoolIdField);
+                    });
+
+                    schoolIdField.addEventListener("blur", () => {
+                         if (schoolIdField.value.trim()) {
+                              validateSchoolIdFormat(schoolIdField, { showPrompt: true });
+                         }
+                    });
+               }
+
+               const assignmentToggle = document.getElementById("enableCourseAssignment");
+               if (assignmentToggle) {
+                    assignmentToggle.addEventListener("change", () => {
+                         setCourseAssignmentEnabled(assignmentToggle.checked, {
+                              clearValues: !assignmentToggle.checked
+                         });
+                    });
+               }
+
+               document.querySelectorAll("#sectionChipRow .section-chip").forEach((chip) => {
+                    chip.addEventListener("click", () => {
+                         setSectionFromChip(chip.dataset.section || "");
+                    });
+               });
+
+               const sectionField = document.getElementById("section");
+               if (sectionField) {
+                    sectionField.addEventListener("input", () => {
+                         sectionField.value = normalizeSectionValue(sectionField.value);
+                         syncSectionChipSelection();
+                    });
+               }
+
+               setCourseAssignmentEnabled(false, { clearValues: true });
+
+               attachRealtimePhoneFormatter("phone");
+               attachRealtimePhoneFormatter("emergencyContactPhone");
+
+               generateCreds({ force: true });
+               await loadDashboardData();
+               renderPinnedStudentOperations();
+               updateStudentSelectionInfo();
           });
      </script>
 </body>

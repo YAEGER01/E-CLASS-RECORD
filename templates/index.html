@@ -57,9 +57,23 @@
             </p>
 
             <div class="hero-buttons">
-              <a href="{{ url_for('auth.login') }}" class="btn btn-primary">
-                <i class="fas fa-rocket"></i> LOGIN
-              </a>
+              <div class="login-dropdown" id="loginDropdown">
+                <button type="button" class="btn btn-primary login-toggle" id="loginToggle" aria-haspopup="true" aria-expanded="false">
+                  <i class="fas fa-rocket"></i> LOGIN
+                  <i class="fas fa-chevron-down login-caret" aria-hidden="true"></i>
+                </button>
+                <div class="login-menu" id="loginMenu" role="menu">
+                  <a href="{{ url_for('auth.student_login') }}" class="login-menu-item" role="menuitem">
+                    <i class="fas fa-user-graduate"></i> LOGIN STUDENT
+                  </a>
+                  <a href="{{ url_for('auth.instructor_login') }}" class="login-menu-item" role="menuitem">
+                    <i class="fas fa-chalkboard-teacher"></i> LOGIN INSTRUCTOR
+                  </a>
+                  <a href="{{ url_for('auth.admin_login') }}" class="login-menu-item" role="menuitem">
+                    <i class="fas fa-user-shield"></i> LOGIN ADMIN
+                  </a>
+                </div>
+              </div>
               <a href="{{ url_for('auth.register') }}" class="btn btn-secondary">
                 <i class="fas fa-user-plus"></i> REGISTER
               </a>
@@ -67,9 +81,15 @@
           </div>
 
           <div class="hero-graphic" aria-hidden="true">
+            <div class="gold-dust-layer" id="goldDustLayer"></div>
             <div class="icon"><i class="fas fa-graduation-cap"></i></div>
           </div>
         </div>
+
+        <h2 class="hero-tagline" aria-label="Chase Knowledge. Create Impact.">
+          <span class="tagline-line">Chase Knowledge</span>
+          <span class="tagline-line">Create Impact</span>
+        </h2>
       </section>
 
       <!-- Features Section -->
@@ -104,7 +124,7 @@
   <!-- Footer -->
   <footer>
     <div class="footer-content">
-      <p>© 2024 E-Class Record System | Isabela State University - Cauayan Campus</p>
+      <p>© 2025 E-Class Record System | Isabela State University - Cauayan Campus</p>
       <p>College of Computing Studies, Information and Communication Technology (CCSICT)</p>
       <p>University for People, Nature, Entrepreneurship and Innovation</p>
     </div>
@@ -113,6 +133,102 @@
   <!-- Helpers and main scripts (ES Modules) -->
     <script type="module" src="{{ url_for('static', filename='js/ngrokFetch.js') }}"></script>
   <script type="module" src="{{ url_for('static', filename='js/main.js') }}"></script>
+  <script>
+    (() => {
+      const dropdown = document.getElementById("loginDropdown");
+      const toggle = document.getElementById("loginToggle");
+      if (!dropdown || !toggle) {
+        return;
+      }
+
+      const closeDropdown = () => {
+        dropdown.classList.remove("open");
+        toggle.setAttribute("aria-expanded", "false");
+      };
+
+      toggle.addEventListener("click", (event) => {
+        event.preventDefault();
+        const isOpen = dropdown.classList.toggle("open");
+        toggle.setAttribute("aria-expanded", isOpen ? "true" : "false");
+      });
+
+      document.addEventListener("click", (event) => {
+        if (!dropdown.contains(event.target)) {
+          closeDropdown();
+        }
+      });
+
+      document.addEventListener("keydown", (event) => {
+        if (event.key === "Escape") {
+          closeDropdown();
+        }
+      });
+
+      const dustLayer = document.getElementById("goldDustLayer");
+      const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+      if (dustLayer && !prefersReducedMotion) {
+        let pulseBoost = 0;
+
+        const randomBetween = (min, max) => Math.random() * (max - min) + min;
+
+        const spawnDust = () => {
+          const mote = document.createElement("span");
+          mote.className = "dust-particle";
+
+          const size = randomBetween(2.2, 5.8);
+          const startX = randomBetween(-26, 26);
+          const startY = randomBetween(16, 38);
+          const endX = startX + randomBetween(-50, 50);
+          const endY = randomBetween(-120, -72);
+          const duration = randomBetween(1350, 2300) - pulseBoost;
+
+          mote.style.setProperty("--size", `${size.toFixed(2)}px`);
+          mote.style.setProperty("--sx", `${startX.toFixed(2)}px`);
+          mote.style.setProperty("--sy", `${startY.toFixed(2)}px`);
+          mote.style.setProperty("--ex", `${endX.toFixed(2)}px`);
+          mote.style.setProperty("--ey", `${endY.toFixed(2)}px`);
+          mote.style.setProperty("--dur", `${Math.max(900, duration).toFixed(0)}ms`);
+          mote.style.setProperty("--ss", `${randomBetween(0.55, 1.1).toFixed(2)}`);
+          mote.style.setProperty("--es", `${randomBetween(0.05, 0.4).toFixed(2)}`);
+          mote.style.setProperty("--oa", `${randomBetween(0.75, 1).toFixed(2)}`);
+
+          dustLayer.appendChild(mote);
+          mote.addEventListener("animationend", () => mote.remove(), { once: true });
+        };
+
+        const startEmitter = () => {
+          spawnDust();
+          return window.setInterval(() => {
+            spawnDust();
+            if (Math.random() > 0.65) {
+              spawnDust();
+            }
+          }, 150);
+        };
+
+        let emitterId = startEmitter();
+
+        const heroGraphic = dustLayer.closest(".hero-graphic");
+        if (heroGraphic) {
+          heroGraphic.addEventListener("mouseenter", () => {
+            pulseBoost = 360;
+          });
+          heroGraphic.addEventListener("mouseleave", () => {
+            pulseBoost = 0;
+          });
+        }
+
+        document.addEventListener("visibilitychange", () => {
+          if (document.hidden) {
+            window.clearInterval(emitterId);
+          } else {
+            emitterId = startEmitter();
+          }
+        });
+      }
+    })();
+  </script>
 
 </body>
 

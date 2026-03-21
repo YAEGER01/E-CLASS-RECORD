@@ -151,45 +151,33 @@
 
     <!-- Class Details Modal -->
     <div id="class-details-modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title" aria-hidden="true">
-        <div class="modal-content" role="document" tabindex="-1">
-            <div class="modal-header">
+        <div class="modal-content modal-lg" role="document" tabindex="-1">
+            <div class="modal-header modal-header-compact">
                 <h2 class="modal-title" id="modal-title">Class Details</h2>
                 <button class="close" onclick="closeModal()" aria-label="Close modal" title="Close">×</button>
             </div>
-            <div class="modal-body">
-                <div class="class-details-toolbar" role="toolbar" aria-label="Class detail actions">
-                    <button class="btn btn-secondary options-trigger" onclick="openOptionsModal()" aria-haspopup="dialog" aria-controls="options-modal">Options</button>
-                </div>
-                <div id="detail-view-container" role="region" aria-live="polite" aria-label="Detail view">
+            <!-- Quick Action Tabs -->
+            <div class="quick-actions-bar" role="tablist" aria-label="Class actions">
+                <button class="quick-action-tab active" role="tab" aria-selected="true" onclick="switchQuickAction(this, 'members')">
+                    <i class="fas fa-users"></i>
+                    <span>Members</span>
+                </button>
+                <button class="quick-action-tab" role="tab" aria-selected="false" onclick="switchQuickAction(this, 'grades')">
+                    <i class="fas fa-pencil-alt"></i>
+                    <span>Grades</span>
+                </button>
+                <button class="quick-action-tab" role="tab" aria-selected="false" onclick="switchQuickAction(this, 'details')">
+                    <i class="fas fa-info-circle"></i>
+                    <span>Info</span>
+                </button>
+            </div>
+            <div class="modal-body modal-body-compact">
+                <div id="detail-view-container" role="tabpanel" aria-label="Detail view">
                     <div class="loading">
                         <div class="spinner" aria-hidden="true"></div>
-                        <div>Select an option above…</div>
+                        <div>Loading members...</div>
                     </div>
                 </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Options Modal (secondary) -->
-    <div id="options-modal" class="modal modal-elevated" role="dialog" aria-modal="true" aria-labelledby="options-title" aria-hidden="true">
-        <div class="modal-content modal-sm" role="document" tabindex="-1">
-            <div class="modal-header options-header">
-                <h2 class="options-title" id="options-title">What do you want to do, Prof?</h2>
-                <button class="close" onclick="closeOptionsModal()" aria-label="Close options" title="Close">×</button>
-            </div>
-            <div class="options-actions" role="group" aria-label="Available actions">
-                <button class="option-btn" onclick="closeOptionsModal(); showViewMembers();">
-                    <i class="fas fa-users"></i>
-                    <span>View Members</span>
-                </button>
-                <button class="option-btn" onclick="closeOptionsModal(); showGradeEntry();">
-                    <i class="fas fa-pencil-alt"></i>
-                    <span>Grade Entry</span>
-                </button>
-                <button class="option-btn" onclick="closeOptionsModal(); showViewClassDetails();">
-                    <i class="fas fa-info-circle"></i>
-                    <span>Class Details</span>
-                </button>
             </div>
         </div>
     </div>
@@ -343,10 +331,43 @@
             requestAnimationFrame(() => modal.classList.add('show'));
             modal.setAttribute('aria-hidden', 'false');
             document.body.classList.add('modal-open');
-            document.getElementById('detail-view-container').innerHTML = '<div class="loading">Select an option above...</div>';
+            
+            // Reset to Members tab and auto-load
+            const membersTab = document.querySelector('.quick-action-tab');
+            if (membersTab) {
+                switchQuickAction(membersTab, 'members');
+            } else {
+                document.getElementById('detail-view-container').innerHTML = '<div class="loading">Loading...</div>';
+                showViewMembers();
+            }
+            
             setTimeout(() => {
                 modal.querySelector('.close')?.focus();
             }, 60);
+        }
+
+        // Quick action tab switching - replaces the old options modal workflow
+        function switchQuickAction(tabElement, action) {
+            // Update tab states
+            document.querySelectorAll('.quick-action-tab').forEach(tab => {
+                tab.classList.remove('active');
+                tab.setAttribute('aria-selected', 'false');
+            });
+            tabElement.classList.add('active');
+            tabElement.setAttribute('aria-selected', 'true');
+            
+            // Load the appropriate content
+            switch(action) {
+                case 'members':
+                    showViewMembers();
+                    break;
+                case 'grades':
+                    showGradeEntry();
+                    break;
+                case 'details':
+                    showViewClassDetails();
+                    break;
+            }
         }
 
         function testModal() {
@@ -539,11 +560,6 @@
         }
 
         window.onclick = function (event) {
-            const options = document.getElementById('options-modal');
-            if (event.target === options && options.classList.contains('show')) {
-                closeOptionsModal();
-                return;
-            }
             const modal = document.getElementById('class-details-modal');
             if (event.target === modal && modal.classList.contains('show')) {
                 closeModal();
@@ -552,47 +568,11 @@
 
         window.addEventListener('keydown', (e) => {
             if (e.key !== 'Escape') return;
-            const options = document.getElementById('options-modal');
-            if (options && options.classList.contains('show')) {
-                closeOptionsModal();
-                return;
-            }
             const modal = document.getElementById('class-details-modal');
             if (modal && modal.classList.contains('show')) {
                 closeModal();
             }
         });
-
-        function openOptionsModal() {
-            const options = document.getElementById('options-modal');
-            options.removeAttribute('inert');
-            options.style.display = 'flex';
-            requestAnimationFrame(() => options.classList.add('show'));
-            options.setAttribute('aria-hidden', 'false');
-            setTimeout(() => {
-                options.querySelector('.option-btn')?.focus();
-            }, 60);
-        }
-
-        function closeOptionsModal() {
-            const options = document.getElementById('options-modal');
-            const trigger = document.querySelector('.options-trigger');
-
-            if (options.contains(document.activeElement)) {
-                if (trigger) {
-                    trigger.focus();
-                } else {
-                    document.body.focus();
-                }
-            }
-
-            options.classList.remove('show');
-            options.setAttribute('aria-hidden', 'true');
-            options.setAttribute('inert', '');
-            setTimeout(() => {
-                options.style.display = 'none';
-            }, 200);
-        }
 
         function regenerateJoinCode() {
             Swal.fire({

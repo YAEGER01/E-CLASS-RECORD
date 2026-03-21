@@ -20,10 +20,10 @@
   --gray-800: #1f2937;
   --gray-900: #111827;
   --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1),
-    0 4px 6px -2px rgba(0, 0, 0, 0.05);
-  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1),
-    0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  --shadow-lg:
+    0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  --shadow-xl:
+    0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
 }
 
 * {
@@ -225,20 +225,30 @@ label {
   color: var(--gray-900);
 }
 
-input,
-select {
+#class-form input,
+#class-form select {
   width: 100%;
-  padding: 12px 16px;
+  padding: 14px 18px;
   border: 1px solid var(--gray-300);
   border-radius: 8px;
-  font-size: 14px;
+  font-size: 16px;
+  font-weight: 500;
+  min-height: 50px;
+  line-height: 1.35;
   transition: all 0.15s ease;
   background: var(--white);
   color: var(--gray-900);
 }
 
-input:focus,
-select:focus {
+#class-form input::placeholder {
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--gray-600);
+  opacity: 1;
+}
+
+#class-form input:focus,
+#class-form select:focus {
   outline: none;
   border-color: var(--gray-400);
   box-shadow: 0 0 0 3px rgba(107, 114, 128, 0.1);
@@ -442,10 +452,11 @@ select:focus {
 }
 
 .action-select {
-  padding: 8px 12px;
+  padding: 12px 14px;
   border: 1px solid var(--gray-300);
   border-radius: 6px;
-  font-size: 14px;
+  font-size: 15px;
+  min-height: 44px;
   background: var(--white);
   color: var(--gray-900);
 }
@@ -526,7 +537,9 @@ select:focus {
   z-index: 1000;
   visibility: hidden;
   opacity: 0;
-  transition: visibility 0s, opacity 0.3s ease-in-out;
+  transition:
+    visibility 0s,
+    opacity 0.3s ease-in-out;
 }
 
 .modal-overlay.show {
@@ -547,20 +560,117 @@ select:focus {
   border: 1px solid var(--gray-200);
 }
 
-.preview-details {
-  background: var(--gray-50);
-  padding: 16px;
-  border-radius: 8px;
-  border: 1px solid var(--gray-200);
+#preview-modal .modal-content {
+  max-width: 640px;
+  padding: 0;
+  overflow: hidden;
 }
 
-.preview-item {
-  margin-bottom: 8px;
+.preview-modal-header {
+  padding: 22px 24px 16px;
+  background: linear-gradient(180deg, #f8fafc 0%, #eef2ff 100%);
+  border-bottom: 1px solid var(--gray-200);
+}
+
+.preview-badge {
+  display: inline-flex;
+  align-items: center;
+  margin: 0 0 8px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid #bfdbfe;
+  color: #1d4ed8;
+  background: #dbeafe;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.preview-modal-header h3 {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--gray-900);
+}
+
+.preview-subtitle {
+  margin: 8px 0 0;
+  color: var(--gray-600);
   font-size: 14px;
 }
 
-.preview-item:last-child {
-  margin-bottom: 0;
+.preview-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 14px 24px;
+  background: var(--white);
+}
+
+.preview-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--gray-300);
+  background: var(--gray-100);
+  color: var(--gray-700);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.preview-details {
+  background: var(--gray-50);
+  padding: 16px 24px 22px;
+  border-top: 1px solid var(--gray-200);
+  border-bottom: 1px solid var(--gray-200);
+}
+
+.preview-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.preview-item {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px;
+  border-radius: 10px;
+  border: 1px solid var(--gray-200);
+  background: var(--white);
+}
+
+.preview-item-full {
+  grid-column: 1 / -1;
+}
+
+.preview-label {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--gray-500);
+  text-transform: uppercase;
+}
+
+.preview-value {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--gray-900);
+  line-height: 1.35;
+}
+
+.preview-actions {
+  padding: 14px 24px 20px;
+  margin-top: 0;
+}
+
+#preview-confirm,
+#preview-cancel {
+  min-height: 44px;
+  min-width: 132px;
 }
 
 /* Additional sections for better layout */
@@ -647,6 +757,37 @@ select:focus {
 @media (max-width: 768px) {
   .main-content {
     padding: 16px;
+  }
+
+  #preview-modal .modal-content {
+    max-width: 96%;
+  }
+
+  .preview-modal-header,
+  .preview-summary,
+  .preview-details,
+  .preview-actions {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+
+  .preview-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .preview-actions {
+    justify-content: stretch;
+  }
+
+  #preview-confirm,
+  #preview-cancel {
+    width: 100%;
+  }
+
+  #class-form input,
+  #class-form select {
+    min-height: 48px;
+    font-size: 16px;
   }
 
   .record-details {

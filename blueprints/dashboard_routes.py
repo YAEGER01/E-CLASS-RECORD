@@ -74,12 +74,12 @@ def student_dashboard():
                                         self.address = data.get("address") or ""
                                         self.birth_date = data.get("birth_date") or ""
                                         self.gender = data.get("gender") or ""
-                                        self.emergency_contact_name = data.get(
-                                            "emergency_contact_name"
-                                        ) or ""
-                                        self.emergency_contact_phone = data.get(
-                                            "emergency_contact_phone"
-                                        ) or ""
+                                        self.emergency_contact_name = (
+                                            data.get("emergency_contact_name") or ""
+                                        )
+                                        self.emergency_contact_phone = (
+                                            data.get("emergency_contact_phone") or ""
+                                        )
                                         self.full_name = self.get_full_name()
 
                                     def get_full_name(self):
@@ -100,6 +100,7 @@ def student_dashboard():
                         self.personal_info = self.student_profile.personal_info
                     else:
                         self.student_profile = None
+
                         # Create empty personal_info even if no student data
                         class PersonalInfo:
                             def __init__(self):
@@ -114,6 +115,7 @@ def student_dashboard():
                                 self.emergency_contact_name = ""
                                 self.emergency_contact_phone = ""
                                 self.full_name = ""
+
                         self.personal_info = PersonalInfo()
 
             user = UserObject(user_data)
@@ -181,4 +183,4 @@ def admin_dashboard():
         return redirect(url_for("auth.login"))
 
     logger.info(f"Admin dashboard accessed by {session.get('school_id')}")
-    return render_template("admin_dashboard.html", user=user)
+    return render_template("adminDash.html", user=user)

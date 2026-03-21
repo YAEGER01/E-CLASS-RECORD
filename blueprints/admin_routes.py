@@ -1,5 +1,7 @@
 import logging
 import traceback
+import uuid
+import random
 from datetime import datetime
 from flask import Blueprint, request, jsonify, session
 from werkzeug.security import generate_password_hash
@@ -56,8 +58,14 @@ def create_instructor():
         department = data.get("department", "").strip()
         specialization = data.get("specialization", "").strip()
 
+        # Extract course assignment information
+        course = data.get("course", "").strip()
+        year_level = data.get("yearLevel", "").strip()
+        section = data.get("section", "").strip()
+
         # Validation
         errors = []
+        import re
 
         # Required field validations
         if not first_name:
@@ -73,25 +81,64 @@ def create_instructor():
         if not department:
             errors.append("Department is required")
 
-        # Password validation: only require passwords match; no complexity/length restriction
+        # Password validation for admin-created instructor accounts.
         confirm_password = data.get("confirmPassword", "")
         if password != confirm_password:
             errors.append("Passwords do not match")
-        errors.extend(
-            validate_password_policy(password, school_id=school_id, email=email)
-        )
 
-        # Ensure the ID suffix follows 3 digits for INS-### format
-        if (
-            not school_id.startswith("INS-")
-            or len(school_id) != 7
-            or not school_id[4:].isdigit()
-        ):
-            errors.append("School ID must be in INS-### format")
+        if password:
+            if len(password) != 12:
+                errors.append("Password must be exactly 12 characters long")
+            if not any(c.isupper() for c in password):
+                errors.append("Password must contain at least one uppercase letter")
+            if not any(c.islower() for c in password):
+                errors.append("Password must contain at least one lowercase letter")
+            if not any(c.isdigit() for c in password):
+                errors.append("Password must contain at least one number")
+
+            symbol_count = len(re.findall(r"[^A-Za-z0-9]", password))
+            if symbol_count < 1 or symbol_count > 2:
+                errors.append("Password must contain 1 to 2 symbols")
+
+            if any(c.isspace() for c in password):
+                errors.append("Password must not contain spaces")
+
+            weak_passwords = {
+                "password",
+                "password123",
+                "admin",
+                "admin123",
+                "qwerty",
+                "qwerty123",
+                "123456",
+                "12345678",
+                "123456789",
+                "letmein",
+                "welcome",
+                "iloveyou",
+            }
+            password_lower = password.lower()
+            if password_lower in weak_passwords:
+                errors.append(
+                    "Password is too common. Choose a less predictable password"
+                )
+
+            normalized_school_id = "".join(
+                ch for ch in school_id.lower() if ch.isalnum()
+            )
+            if normalized_school_id and normalized_school_id in password_lower:
+                errors.append("Password must not contain your school ID")
+
+            if email and "@" in email:
+                local_part = email.split("@", 1)[0].strip().lower()
+                if len(local_part) >= 3 and local_part in password_lower:
+                    errors.append("Password must not contain your email name")
+
+        # School ID must strictly follow INS-$$$ format, e.g. INS-001.
+        if not re.fullmatch(r"INS-\d{3}", school_id):
+            errors.append("School ID must use INS-$$$ format (example: INS-001)")
 
         # Email validation
-        import re
-
         email_regex = r"^[^\s@]+@[^\s@]+\.[^\s@]+$"
         if email and not re.match(email_regex, email):
             errors.append("Please enter a valid email address")
@@ -150,6 +197,58 @@ def create_instructor():
                     employee_id if employee_id else None,
                 ),
             )
+            instructor_id = cursor.lastrowid
+
+            # Create class assignment if course, yearLevel, and section are provided
+            if course and year_level and section:
+                # Generate unique class_code and join_code
+                class_code = str(uuid.uuid4())
+                join_code = "".join(
+                    random.choices("0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ", k=6)
+                )
+
+                # Get current academic year and semester
+                current_year = datetime.now().year
+                current_month = datetime.now().month
+
+                # Determine academic year start (e.g., 2026 for 2026-2027) and semester
+                if current_month >= 6:  # June-December
+                    year_value = str(current_year)
+                    semester = "1st Semester"
+                else:  # January-May
+                    year_value = str(current_year - 1)
+                    semester = "2nd Semester"
+
+                # Map yearLevel to track/stage
+                year_level_map = {
+                    "1st": "1st Year",
+                    "2nd": "2nd Year",
+                    "3rd": "3rd Year",
+                    "4th": "4th Year",
+                }
+                track = year_level_map.get(year_level, year_level)
+
+                # Create class record with defaults for missing fields
+                cursor.execute(
+                    """INSERT INTO classes
+                    (instructor_id, year, semester, course, subject, section, track, schedule, class_code, join_code)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)""",
+                    (
+                        instructor_id,
+                        year_value,
+                        semester,
+                        course,
+                        f"{course} - {section}",  # Default subject as "COURSE - SECTION"
+                        section,
+                        track,
+                        "TBD",  # Default schedule as TBD
+                        class_code,
+                        join_code,
+                    ),
+                )
+                logger.info(
+                    f"Class created for instructor {school_id}: {course} {section} (Year: {year_value}, {semester})"
+                )
 
         get_db_connection().commit()
 
@@ -182,6 +281,131 @@ def create_instructor():
         )
 
 
+@admin_bp.route(
+    "/api/admin/instructors/workload-validation",
+    methods=["POST"],
+    endpoint="validate_instructor_workload",
+)
+@login_required
+def validate_instructor_workload():
+    err = _require_admin()
+    if err:
+        return err
+
+    try:
+        data = request.get_json(silent=True) or {}
+
+        school_id = (data.get("schoolId") or "").strip().upper()
+        course = (data.get("course") or "").strip().upper()
+        year_level = (data.get("yearLevel") or "").strip()
+        section = (data.get("section") or "").strip().upper()
+
+        try:
+            max_class_load = int(data.get("maxClassLoad") or 6)
+        except (TypeError, ValueError):
+            max_class_load = 6
+        max_class_load = max(1, min(max_class_load, 20))
+
+        year_level_map = {
+            "1st": "1st Year",
+            "2nd": "2nd Year",
+            "3rd": "3rd Year",
+            "4th": "4th Year",
+        }
+        track = year_level_map.get(year_level, year_level)
+        track_key = (track or "").upper()
+
+        has_assignment = bool(course and year_level and section)
+
+        instructor_id = None
+        current_class_count = 0
+        duplicate_assignment_count = 0
+        section_load_count = 0
+
+        with get_db_connection().cursor() as cursor:
+            if school_id:
+                cursor.execute(
+                    """SELECT i.id
+                       FROM instructors i
+                       JOIN users u ON u.id = i.user_id
+                       WHERE u.school_id = %s
+                       LIMIT 1""",
+                    (school_id,),
+                )
+                row = cursor.fetchone() or {}
+                instructor_id = row.get("id")
+
+            if instructor_id:
+                cursor.execute(
+                    "SELECT COUNT(*) AS total FROM classes WHERE instructor_id = %s",
+                    (instructor_id,),
+                )
+                class_count_row = cursor.fetchone() or {}
+                current_class_count = int(class_count_row.get("total") or 0)
+
+            if has_assignment:
+                cursor.execute(
+                    """SELECT COUNT(*) AS total
+                       FROM classes
+                       WHERE UPPER(course) = %s
+                         AND UPPER(section) = %s
+                         AND UPPER(track) = %s""",
+                    (course, section, track_key),
+                )
+                section_count_row = cursor.fetchone() or {}
+                section_load_count = int(section_count_row.get("total") or 0)
+
+                if instructor_id:
+                    cursor.execute(
+                        """SELECT COUNT(*) AS total
+                           FROM classes
+                           WHERE instructor_id = %s
+                             AND UPPER(course) = %s
+                             AND UPPER(section) = %s
+                             AND UPPER(track) = %s""",
+                        (instructor_id, course, section, track_key),
+                    )
+                    duplicate_row = cursor.fetchone() or {}
+                    duplicate_assignment_count = int(duplicate_row.get("total") or 0)
+
+        warnings = []
+        projected_class_count = current_class_count + (1 if has_assignment else 0)
+
+        if instructor_id and duplicate_assignment_count > 0:
+            warnings.append(
+                "This instructor already has the same Course/Year Level/Section assignment."
+            )
+
+        if instructor_id and projected_class_count > max_class_load:
+            warnings.append(
+                f"This assignment would exceed the max class load of {max_class_load} (current: {current_class_count}, projected: {projected_class_count})."
+            )
+
+        if has_assignment and section_load_count > 0:
+            warnings.append(
+                f"There are already {section_load_count} existing class assignment(s) for {course} {track} Section {section}."
+            )
+
+        return jsonify(
+            {
+                "success": True,
+                "warnings": warnings,
+                "metrics": {
+                    "instructorFound": bool(instructor_id),
+                    "currentClassCount": current_class_count,
+                    "projectedClassCount": projected_class_count,
+                    "maxClassLoad": max_class_load,
+                    "duplicateAssignmentCount": duplicate_assignment_count,
+                    "sectionLoadCount": section_load_count,
+                },
+            }
+        )
+
+    except Exception as e:
+        logger.error(f"Workload validation failed: {str(e)}")
+        return jsonify({"success": False, "error": "Failed to validate workload"}), 500
+
+
 @admin_bp.route("/api/admin/instructors", methods=["GET"], endpoint="get_instructors")
 @login_required
 def get_instructors():
@@ -197,7 +421,7 @@ def get_instructors():
             cursor.execute(
                 """SELECT i.id, i.user_id, i.personal_info_id, i.department, i.specialization,
                          i.employee_id, i.hire_date, i.status, i.created_at, i.updated_at,
-                         u.school_id, pi.first_name, pi.last_name, pi.email
+                         u.school_id, u.role as user_role, pi.first_name, pi.last_name, pi.email
                 FROM instructors i
                 JOIN users u ON i.user_id = u.id
                 LEFT JOIN personal_info pi ON i.personal_info_id = pi.id
@@ -246,6 +470,11 @@ def get_instructors():
                     instructor_data = {
                         "id": int(instructor.get("id") or 0),
                         "school_id": str(instructor.get("school_id") or ""),
+                        "user_role": str(instructor.get("user_role") or "instructor"),
+                        "is_system_admin": str(
+                            instructor.get("user_role") or ""
+                        ).lower()
+                        == "admin",
                         "name": f"{instructor.get('first_name') or ''} {instructor.get('last_name') or ''}".strip()
                         or f"Instructor {instructor.get('id')}",
                         "email": str(instructor.get("email") or "N/A"),
@@ -448,12 +677,31 @@ def update_instructor_status(instructor_id):
 
         with get_db_connection().cursor() as cursor:
             cursor.execute(
-                "SELECT id, status FROM instructors WHERE id = %s", (instructor_id,)
+                """SELECT i.id, i.status, u.role, u.school_id
+                FROM instructors i
+                JOIN users u ON i.user_id = u.id
+                WHERE i.id = %s""",
+                (instructor_id,),
             )
             instructor = cursor.fetchone()
 
             if not instructor:
                 return jsonify({"error": "Instructor not found"}), 404
+
+            if (instructor.get("role") or "").lower() == "admin":
+                logger.warning(
+                    "Admin %s attempted to change status of system admin account %s",
+                    session.get("school_id"),
+                    instructor.get("school_id"),
+                )
+                return (
+                    jsonify(
+                        {
+                            "error": "System admin accounts cannot be suspended or reactivated."
+                        }
+                    ),
+                    403,
+                )
 
             old_status = instructor["status"] or "active"
 
@@ -498,13 +746,27 @@ def delete_instructor(instructor_id):
     try:
         with get_db_connection().cursor() as cursor:
             cursor.execute(
-                "SELECT i.id, i.user_id, u.school_id FROM instructors i JOIN users u ON i.user_id = u.id WHERE i.id = %s",
+                """SELECT i.id, i.user_id, u.school_id, u.role
+                FROM instructors i
+                JOIN users u ON i.user_id = u.id
+                WHERE i.id = %s""",
                 (instructor_id,),
             )
             instructor = cursor.fetchone()
 
             if not instructor:
                 return jsonify({"error": "Instructor not found"}), 404
+
+            if (instructor.get("role") or "").lower() == "admin":
+                logger.warning(
+                    "Admin %s attempted to delete system admin account %s",
+                    session.get("school_id"),
+                    instructor.get("school_id"),
+                )
+                return (
+                    jsonify({"error": "System admin accounts cannot be deleted."}),
+                    403,
+                )
 
             cursor.execute(
                 "SELECT COUNT(*) as count FROM classes WHERE instructor_id = %s",
@@ -560,7 +822,13 @@ def get_students():
     try:
         with get_db_connection().cursor() as cursor:
             cursor.execute(
-                """SELECT s.*, u.school_id, pi.first_name, pi.last_name, pi.email
+                """SELECT s.*, u.school_id, u.account_status,
+                         pi.first_name, pi.middle_name, pi.last_name, pi.email,
+                         (
+                             SELECT COUNT(*)
+                             FROM student_classes sc
+                             WHERE sc.student_id = s.id AND sc.is_dropped = 1
+                         ) AS dropped_class_count
                 FROM students s
                 JOIN users u ON s.user_id = u.id
                 LEFT JOIN personal_info pi ON s.personal_info_id = pi.id"""
@@ -574,7 +842,11 @@ def get_students():
             for student in students:
                 student_data = {
                     "id": student["id"],
+                    "user_id": student["user_id"],
                     "school_id": student["school_id"],
+                    "first_name": student["first_name"] or "",
+                    "middle_name": student.get("middle_name") or "",
+                    "last_name": student["last_name"] or "",
                     "name": f"{student['first_name'] or ''} {student['last_name'] or ''}".strip()
                     or f"Student {student['id']}",
                     "email": student["email"] or "N/A",
@@ -582,6 +854,10 @@ def get_students():
                     "track": student["track"] or "Not specified",
                     "year_level": student["year_level"] or "Not specified",
                     "section": student["section"] or "Not specified",
+                    "approval_status": student.get("approval_status") or "approved",
+                    "account_status": student.get("account_status") or "active",
+                    "is_dropped": (student.get("dropped_class_count") or 0) > 0,
+                    "dropped_class_count": int(student.get("dropped_class_count") or 0),
                     "created_at": (
                         student["created_at"].isoformat()
                         if student["created_at"]
@@ -589,8 +865,10 @@ def get_students():
                     ),
                 }
 
-                # For now, assume all students are active (no status field in students table)
-                active_count += 1
+                if student_data["account_status"] == "suspended":
+                    suspended_count += 1
+                else:
+                    active_count += 1
 
                 students_data.append(student_data)
 
@@ -613,6 +891,381 @@ def get_students():
     except Exception as e:
         logger.error(f"Failed to get students: {str(e)}")
         return jsonify({"error": "Failed to retrieve students"}), 500
+
+
+@admin_bp.route("/api/admin/students", methods=["POST"], endpoint="create_student")
+@login_required
+def create_student():
+    err = _require_admin()
+    if err:
+        return err
+
+    try:
+        data = request.get_json() or {}
+
+        first_name = (data.get("first_name") or "").strip()
+        middle_name = (data.get("middle_name") or "").strip()
+        last_name = (data.get("last_name") or "").strip()
+        email = (data.get("email") or "").strip().lower()
+        school_id = (data.get("school_id") or "").strip()
+        password = data.get("password") or ""
+        course = (data.get("course") or "").strip().upper()
+        track = (data.get("track") or "").strip()
+        year_level_raw = str(data.get("year_level") or "").strip()
+        section = (data.get("section") or "").strip().upper()
+
+        year_map = {"1st": 1, "2nd": 2, "3rd": 3, "4th": 4}
+        year_level = year_map.get(year_level_raw.lower(), None)
+        if year_level is None:
+            try:
+                year_level = int(year_level_raw)
+            except (TypeError, ValueError):
+                year_level = None
+
+        errors = []
+        if not first_name:
+            errors.append("First name is required")
+        if not last_name:
+            errors.append("Last name is required")
+        if not email:
+            errors.append("Email is required")
+        if not school_id:
+            errors.append("School ID is required")
+        if not password:
+            errors.append("Password is required")
+        if not course:
+            errors.append("Course is required")
+        if year_level is None:
+            errors.append("Year level is required")
+        if not section:
+            errors.append("Section is required")
+
+        errors.extend(
+            validate_password_policy(password, school_id=school_id, email=email)
+        )
+
+        if errors:
+            return jsonify({"error": "; ".join(errors)}), 400
+
+        with get_db_connection().cursor() as cursor:
+            cursor.execute("SELECT id FROM users WHERE school_id = %s", (school_id,))
+            if cursor.fetchone():
+                return jsonify({"error": "School ID already exists"}), 409
+
+            cursor.execute("SELECT id FROM personal_info WHERE email = %s", (email,))
+            if cursor.fetchone():
+                return jsonify({"error": "Email already exists"}), 409
+
+            cursor.execute(
+                """INSERT INTO personal_info
+                (first_name, last_name, middle_name, email)
+                VALUES (%s, %s, %s, %s)""",
+                (first_name, last_name, middle_name or None, email),
+            )
+            personal_info_id = cursor.lastrowid
+
+            cursor.execute(
+                """INSERT INTO users (school_id, password_hash, role, account_status)
+                VALUES (%s, %s, %s, %s)""",
+                (school_id, generate_password_hash(password), "student", "active"),
+            )
+            user_id = cursor.lastrowid
+
+            cursor.execute(
+                """INSERT INTO students
+                (user_id, personal_info_id, course, track, year_level, section, approval_status, approved_by, approved_at)
+                VALUES (%s, %s, %s, %s, %s, %s, 'approved', %s, NOW())""",
+                (
+                    user_id,
+                    personal_info_id,
+                    course,
+                    track or None,
+                    year_level,
+                    section,
+                    session.get("user_id"),
+                ),
+            )
+            student_id = cursor.lastrowid
+
+        get_db_connection().commit()
+        logger.info(
+            "Admin %s created student account %s",
+            session.get("school_id"),
+            school_id,
+        )
+        return (
+            jsonify(
+                {
+                    "success": True,
+                    "message": "Student account created successfully",
+                    "student": {
+                        "id": student_id,
+                        "school_id": school_id,
+                        "name": f"{first_name} {last_name}".strip(),
+                    },
+                }
+            ),
+            201,
+        )
+    except Exception as e:
+        get_db_connection().rollback()
+        logger.error(f"Failed to create student: {str(e)}")
+        return jsonify({"error": "Failed to create student"}), 500
+
+
+@admin_bp.route(
+    "/api/admin/students/<int:student_id>", methods=["PUT"], endpoint="update_student"
+)
+@login_required
+def update_student(student_id):
+    err = _require_admin()
+    if err:
+        return err
+
+    try:
+        data = request.get_json() or {}
+
+        with get_db_connection().cursor() as cursor:
+            cursor.execute(
+                """SELECT s.id, s.user_id, s.personal_info_id, s.course, s.track, s.year_level, s.section,
+                         u.school_id, pi.first_name, pi.middle_name, pi.last_name, pi.email
+                FROM students s
+                JOIN users u ON s.user_id = u.id
+                LEFT JOIN personal_info pi ON s.personal_info_id = pi.id
+                WHERE s.id = %s""",
+                (student_id,),
+            )
+            student = cursor.fetchone()
+
+            if not student:
+                return jsonify({"error": "Student not found"}), 404
+
+            first_name = (
+                data.get("first_name") or student.get("first_name") or ""
+            ).strip()
+            middle_name = (
+                data.get("middle_name") or student.get("middle_name") or ""
+            ).strip()
+            last_name = (
+                data.get("last_name") or student.get("last_name") or ""
+            ).strip()
+            email = (data.get("email") or student.get("email") or "").strip().lower()
+            school_id = (
+                data.get("school_id") or student.get("school_id") or ""
+            ).strip()
+            course = (data.get("course") or student.get("course") or "").strip().upper()
+            track = data.get("track") if "track" in data else student.get("track")
+            track = (track or "").strip()
+            section = (
+                (data.get("section") or student.get("section") or "").strip().upper()
+            )
+
+            year_raw = data.get("year_level", student.get("year_level"))
+            year_map = {"1st": 1, "2nd": 2, "3rd": 3, "4th": 4}
+            if isinstance(year_raw, str):
+                year_level = year_map.get(year_raw.strip().lower(), None)
+                if year_level is None:
+                    try:
+                        year_level = int(year_raw.strip())
+                    except (TypeError, ValueError):
+                        year_level = None
+            else:
+                try:
+                    year_level = int(year_raw)
+                except (TypeError, ValueError):
+                    year_level = None
+
+            if not first_name or not last_name or not email or not school_id:
+                return (
+                    jsonify(
+                        {
+                            "error": "First name, last name, email, and school ID are required"
+                        }
+                    ),
+                    400,
+                )
+            if not course or year_level is None or not section:
+                return (
+                    jsonify({"error": "Course, year level, and section are required"}),
+                    400,
+                )
+
+            cursor.execute(
+                "SELECT id FROM users WHERE school_id = %s AND id <> %s",
+                (school_id, student["user_id"]),
+            )
+            if cursor.fetchone():
+                return jsonify({"error": "School ID already exists"}), 409
+
+            cursor.execute(
+                "SELECT id FROM personal_info WHERE email = %s AND id <> %s",
+                (email, student["personal_info_id"]),
+            )
+            if cursor.fetchone():
+                return jsonify({"error": "Email already exists"}), 409
+
+            cursor.execute(
+                """UPDATE personal_info
+                SET first_name = %s,
+                    middle_name = %s,
+                    last_name = %s,
+                    email = %s
+                WHERE id = %s""",
+                (
+                    first_name,
+                    middle_name or None,
+                    last_name,
+                    email,
+                    student["personal_info_id"],
+                ),
+            )
+
+            cursor.execute(
+                "UPDATE users SET school_id = %s WHERE id = %s",
+                (school_id, student["user_id"]),
+            )
+
+            cursor.execute(
+                """UPDATE students
+                SET course = %s,
+                    track = %s,
+                    year_level = %s,
+                    section = %s
+                WHERE id = %s""",
+                (course, track or None, year_level, section, student_id),
+            )
+
+        get_db_connection().commit()
+        logger.info(
+            "Admin %s updated student %s",
+            session.get("school_id"),
+            school_id,
+        )
+        return jsonify({"success": True, "message": "Student updated successfully"})
+    except Exception as e:
+        get_db_connection().rollback()
+        logger.error(f"Failed to update student: {str(e)}")
+        return jsonify({"error": "Failed to update student"}), 500
+
+
+@admin_bp.route(
+    "/api/admin/students/bulk-action",
+    methods=["POST"],
+    endpoint="bulk_student_action",
+)
+@login_required
+def bulk_student_action():
+    err = _require_admin()
+    if err:
+        return err
+
+    try:
+        data = request.get_json() or {}
+        action = str(data.get("action") or "").strip().lower()
+        raw_ids = data.get("student_ids") or []
+
+        if not isinstance(raw_ids, list) or not raw_ids:
+            return jsonify({"error": "student_ids must be a non-empty list"}), 400
+
+        student_ids = []
+        for value in raw_ids:
+            try:
+                parsed = int(value)
+                if parsed > 0:
+                    student_ids.append(parsed)
+            except (TypeError, ValueError):
+                continue
+
+        if not student_ids:
+            return jsonify({"error": "No valid student IDs provided"}), 400
+
+        action_map = {
+            "blacklist": "suspend",
+            "suspend": "suspend",
+            "whitelist": "unsuspend",
+            "unsuspend": "unsuspend",
+            "drop": "drop",
+            "delete": "delete",
+        }
+        normalized_action = action_map.get(action)
+        if not normalized_action:
+            return jsonify({"error": "Unsupported bulk action"}), 400
+
+        placeholders = ",".join(["%s"] * len(student_ids))
+
+        with get_db_connection().cursor() as cursor:
+            cursor.execute(
+                f"""SELECT s.id, s.user_id, s.personal_info_id, u.school_id
+                FROM students s
+                JOIN users u ON s.user_id = u.id
+                WHERE s.id IN ({placeholders})""",
+                tuple(student_ids),
+            )
+            targets = cursor.fetchall()
+
+            if not targets:
+                return jsonify({"error": "No matching students found"}), 404
+
+            affected = 0
+
+            if normalized_action == "suspend":
+                user_ids = [row["user_id"] for row in targets]
+                user_placeholders = ",".join(["%s"] * len(user_ids))
+                cursor.execute(
+                    f"UPDATE users SET account_status = 'suspended' WHERE id IN ({user_placeholders}) AND role = 'student'",
+                    tuple(user_ids),
+                )
+                affected = cursor.rowcount
+
+            elif normalized_action == "unsuspend":
+                user_ids = [row["user_id"] for row in targets]
+                user_placeholders = ",".join(["%s"] * len(user_ids))
+                cursor.execute(
+                    f"UPDATE users SET account_status = 'active' WHERE id IN ({user_placeholders}) AND role = 'student'",
+                    tuple(user_ids),
+                )
+                affected = cursor.rowcount
+
+            elif normalized_action == "drop":
+                cursor.execute(
+                    f"UPDATE student_classes SET is_dropped = 1 WHERE student_id IN ({placeholders})",
+                    tuple(student_ids),
+                )
+                affected = cursor.rowcount
+
+            elif normalized_action == "delete":
+                for row in targets:
+                    cursor.execute("DELETE FROM students WHERE id = %s", (row["id"],))
+                    cursor.execute("DELETE FROM users WHERE id = %s", (row["user_id"],))
+                    if row.get("personal_info_id"):
+                        cursor.execute(
+                            "DELETE FROM personal_info WHERE id = %s",
+                            (row["personal_info_id"],),
+                        )
+                    affected += 1
+
+        get_db_connection().commit()
+
+        logger.info(
+            "Admin %s executed student bulk action %s for %s targets",
+            session.get("school_id"),
+            normalized_action,
+            len(student_ids),
+        )
+        return jsonify(
+            {
+                "success": True,
+                "action": normalized_action,
+                "target_count": len(student_ids),
+                "affected_count": affected,
+            }
+        )
+
+    except Exception as e:
+        get_db_connection().rollback()
+        logger.error(f"Failed to run student bulk action: {str(e)}")
+        logger.error(traceback.format_exc())
+        return jsonify({"error": "Failed to run student bulk action"}), 500
 
 
 @admin_bp.route(

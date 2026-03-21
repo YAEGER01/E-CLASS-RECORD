@@ -267,6 +267,12 @@ PRODUCTION_DOMAIN = os.environ.get(
     "PRODUCTION_DOMAIN", None
 )  # e.g., 'eclass.isu.edu.ph' or 'yourdomain.com'
 
+# Keep debugger off by default when running behind a trusted proxy.
+# For local-only development, APP_DEBUG defaults to enabled.
+APP_DEBUG = _get_bool_env(
+    "APP_DEBUG", FLASK_ENV == "development" and TRUSTED_PROXY_HOPS == 0
+)
+
 if FLASK_ENV == "production" and PRODUCTION_DOMAIN:
     # Production settings
     app.config["SERVER_NAME"] = PRODUCTION_DOMAIN
@@ -310,24 +316,43 @@ app.config["WTF_CSRF_CHECK_DEFAULT"] = True
 # Configure via SOCKET_ALLOWED_ORIGINS="https://example.com,https://app.example.com"
 def _get_socket_allowed_origins():
     configured = (os.environ.get("SOCKET_ALLOWED_ORIGINS") or "").strip()
+    origins = []
+
     if configured:
         origins = [origin.strip() for origin in configured.split(",") if origin.strip()]
-        if origins:
-            return origins
-
-    if FLASK_ENV == "production" and PRODUCTION_DOMAIN:
+    elif FLASK_ENV == "production" and PRODUCTION_DOMAIN:
         domain = PRODUCTION_DOMAIN.strip()
         if domain.startswith("http://") or domain.startswith("https://"):
-            return [domain]
-        return [f"https://{domain}"]
+            origins = [domain]
+        else:
+            origins = [f"https://{domain}"]
+    else:
+        # Safe local defaults for development.
+        origins = [
+            "http://localhost:5000",
+            "http://127.0.0.1:5000",
+            "http://localhost:5173",
+            "http://127.0.0.1:5173",
+        ]
 
-    # Safe local defaults for development.
-    return [
-        "http://localhost:5000",
-        "http://127.0.0.1:5000",
-        "http://localhost:5173",
-        "http://127.0.0.1:5173",
-    ]
+    # Optional ngrok origin for demos, e.g. https://abc-123.ngrok-free.app
+    ngrok_origin = (
+        os.environ.get("NGROK_PUBLIC_URL") or os.environ.get("NGROK_URL") or ""
+    ).strip()
+    if ngrok_origin:
+        ngrok_origin = ngrok_origin.rstrip("/")
+        if not ngrok_origin.startswith(("http://", "https://")):
+            ngrok_origin = f"https://{ngrok_origin}"
+        origins.append(ngrok_origin)
+
+    # Preserve order while deduplicating.
+    deduped = []
+    seen = set()
+    for origin in origins:
+        if origin not in seen:
+            deduped.append(origin)
+            seen.add(origin)
+    return deduped
 
 
 SOCKET_ALLOWED_ORIGINS = _get_socket_allowed_origins()
@@ -837,5 +862,13 @@ if __name__ == "__main__":
     # Only start the reloader in development
     use_reloader = os.environ.get("WERKZEUG_RUN_MAIN") != "true"
 
-    # Run the app
-    socketio.run(app, host="0.0.0.0", port=5000, debug=True, use_reloader=use_reloader)
+    logger.info(f"Runtime debug mode: {'enabled' if APP_DEBUG else 'disabled'}")
+
+    # Run the app (use 127.0.0.1 to avoid socket permission issues on Windows)
+    socketio.run(
+        app,
+        host="127.0.0.1",
+        port=5000,
+        debug=APP_DEBUG,
+        use_reloader=use_reloader if APP_DEBUG else False,
+    )

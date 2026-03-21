@@ -17,10 +17,10 @@
   --gray-800: #1f2937;
   --gray-900: #111827;
   --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1),
-    0 4px 6px -2px rgba(0, 0, 0, 0.05);
-  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1),
-    0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  --shadow-lg:
+    0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  --shadow-xl:
+    0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
 }
 
 * {
@@ -147,7 +147,7 @@ body {
 }
 
 .nav-link.active::after {
-  content: '';
+  content: "";
   position: absolute;
   bottom: -8px;
   left: 50%;
@@ -216,7 +216,11 @@ body {
 /* Main Content Layout */
 .main-content {
   padding: 32px 24px;
-  background: linear-gradient(180deg, rgba(240, 253, 244, 0.5) 0%, rgba(250, 251, 250, 0.8) 100%);
+  background: linear-gradient(
+    180deg,
+    rgba(240, 253, 244, 0.5) 0%,
+    rgba(250, 251, 250, 0.8) 100%
+  );
   min-height: calc(100vh - 70px);
 }
 
@@ -585,6 +589,19 @@ body {
   font-style: italic;
 }
 
+.class-list .empty-state {
+  font-size: 20px;
+  font-weight: 700;
+  font-style: normal;
+  line-height: 1.4;
+  color: var(--gray-700);
+}
+
+.class-list .empty-state .link {
+  font-size: 20px;
+  font-weight: 800;
+}
+
 .skeleton-list {
   display: flex;
   flex-direction: column;
@@ -732,6 +749,74 @@ body {
   background: var(--primary-light);
   border-color: var(--primary);
   color: var(--primary);
+}
+
+/* Quick Action Tabs - replaces Options modal */
+.quick-actions-bar {
+  display: flex;
+  gap: 0;
+  padding: 0 20px;
+  background: var(--surface);
+  border-bottom: 2px solid var(--border);
+}
+
+.quick-action-tab {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 20px;
+  border: none;
+  background: transparent;
+  color: var(--gray-600);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  position: relative;
+  transition: all 0.2s ease;
+  border-radius: 0;
+}
+
+.quick-action-tab::after {
+  content: "";
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: transparent;
+  transition: background 0.2s ease;
+}
+
+.quick-action-tab:hover {
+  color: var(--primary);
+  background: var(--primary-light);
+}
+
+.quick-action-tab.active {
+  color: var(--primary);
+  font-weight: 600;
+}
+
+.quick-action-tab.active::after {
+  background: var(--primary);
+}
+
+.quick-action-tab i {
+  font-size: 16px;
+}
+
+/* Compact modal header */
+.modal-header-compact {
+  padding: 16px 20px !important;
+}
+
+.modal-body-compact {
+  padding: 16px 20px !important;
+  max-height: 450px;
+}
+
+.modal-lg {
+  max-width: 800px;
 }
 
 .option-icon {
@@ -1285,7 +1370,9 @@ input:focus {
     rgba(255, 255, 255, 0)
   );
   border: 1px solid rgba(0, 0, 0, 0.03);
-  transition: transform 0.18s cubic-bezier(0.2, 0.9, 0.2, 1), box-shadow 0.18s;
+  transition:
+    transform 0.18s cubic-bezier(0.2, 0.9, 0.2, 1),
+    box-shadow 0.18s;
 }
 
 .nav-link:hover {
@@ -1333,7 +1420,9 @@ input:focus {
     rgba(255, 255, 255, 0) 100%
   );
   transform: translateX(-100%) rotate(12deg);
-  transition: transform 0.9s cubic-bezier(0.2, 0.9, 0.2, 1), opacity 0.4s;
+  transition:
+    transform 0.9s cubic-bezier(0.2, 0.9, 0.2, 1),
+    opacity 0.4s;
   opacity: 0;
   pointer-events: none;
 }
@@ -1441,11 +1530,8 @@ input:focus {
   z-index: 0;
   pointer-events: none;
   /* Slightly stronger translucent pattern so it's visible on white backgrounds */
-  background-image: radial-gradient(
-      circle,
-      transparent 25%,
-      rgba(255, 255, 255, 0.92) 26%
-    ),
+  background-image:
+    radial-gradient(circle, transparent 25%, rgba(255, 255, 255, 0.92) 26%),
     linear-gradient(
       45deg,
       rgba(0, 0, 0, 0.08) 46%,
@@ -1494,13 +1580,22 @@ input:focus {
 
 @keyframes header-bg-drift {
   0% {
-    background-position: 0 0, 0 0, 0 0;
+    background-position:
+      0 0,
+      0 0,
+      0 0;
   }
   50% {
-    background-position: 20px 18px, -18px -20px, 18px -16px;
+    background-position:
+      20px 18px,
+      -18px -20px,
+      18px -16px;
   }
   100% {
-    background-position: 0 0, 0 0, 0 0;
+    background-position:
+      0 0,
+      0 0,
+      0 0;
   }
 }
 

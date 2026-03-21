@@ -34,6 +34,28 @@ if ($LASTEXITCODE -ne 0) {
     }
 }
 
+# Demo-safe runtime defaults (can be overridden by pre-setting env vars)
+if (-not $env:TRUSTED_PROXY_HOPS) {
+    $env:TRUSTED_PROXY_HOPS = "1"
+}
+
+if (-not $env:NGROK_PUBLIC_URL) {
+    $env:NGROK_PUBLIC_URL = "https://angeline-unprotuberant-vanita.ngrok-free.dev"
+}
+
+if (-not $env:APP_DEBUG) {
+    $env:APP_DEBUG = "false"
+}
+
+$appDebugEnabled = @("1", "true", "yes", "on") -contains $env:APP_DEBUG.ToLowerInvariant()
+if ($env:NGROK_PUBLIC_URL -and $appDebugEnabled) {
+    Write-Host "[WARNING] NGROK_PUBLIC_URL is set while APP_DEBUG is true. Disable debug for public tunnel demos." -ForegroundColor Yellow
+}
+
+Write-Host "[INFO] Demo env: TRUSTED_PROXY_HOPS=$($env:TRUSTED_PROXY_HOPS)" -ForegroundColor DarkCyan
+Write-Host "[INFO] Demo env: NGROK_PUBLIC_URL=$($env:NGROK_PUBLIC_URL)" -ForegroundColor DarkCyan
+Write-Host "[INFO] Demo env: APP_DEBUG=$($env:APP_DEBUG)" -ForegroundColor DarkCyan
+
 Write-Host "[INFO] Starting Flask application..." -ForegroundColor Green
 Write-Host "[INFO] Access the application at: http://127.0.0.1:5000" -ForegroundColor Cyan
 Write-Host ""

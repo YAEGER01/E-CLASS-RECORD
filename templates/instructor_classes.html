@@ -115,7 +115,7 @@
                                 </div>
                                 <div class="form-group">
                                     <label for="subjectCode">Subject Code</label>
-                                    <input type="text" id="subjectCode" required placeholder="e.g., IT 311">
+                                    <input type="text" id="subjectCode" required placeholder="e.g., IT ELEC 1 or IT 111" title="Use formats like IT ELEC 1, IT 111, GEC 1, IT INST 1, GE ELEC IT 1, PE 1, NSTP 1, IT BPO 1">
                                 </div>
                                 <div class="form-group">
                                     <label for="units">Units</label>
@@ -207,13 +207,17 @@
 
     <!-- Modal for class preview -->
     <div id="preview-modal" class="modal-overlay">
-        <div class="modal-content">
-            <h3>Class Preview</h3>
-            <p>Is the information correct? If so, proceed to ADD CLASS.</p>
-            <div id="preview-details" class="preview-details">
-                <!-- Preview content will be inserted here -->
+        <div class="modal-content preview-modal-card">
+            <div class="preview-modal-header">
+                <p class="preview-badge">Confirm Before Saving</p>
+                <h3>Class Preview</h3>
+                <p class="preview-subtitle">Review the class details below. If everything is correct, continue and add this class.</p>
             </div>
-            <div class="form-actions">
+            <div id="preview-summary" class="preview-summary"></div>
+            <div id="preview-details" class="preview-details preview-grid">
+                <!-- Preview fields will be inserted here -->
+            </div>
+            <div class="form-actions preview-actions">
                 <button id="preview-confirm" class="btn btn-primary">ADD CLASS</button>
                 <button id="preview-cancel" class="btn btn-secondary">Cancel</button>
             </div>
@@ -245,8 +249,109 @@
 
         let optionsData = {};
 
+        const SUBJECT_CODE_KEYWORDS = ['NSTP', 'ELECT', 'ELEC', 'INST', 'GEC', 'BPO', 'GE', 'IT', 'PE'];
+
+        function splitSubjectAlphaToken(alphaToken) {
+            const token = (alphaToken || '').toUpperCase().replace(/[^A-Z]/g, '');
+            if (!token) return [];
+
+            const parts = [];
+            let remaining = token;
+
+            while (remaining) {
+                let matched = '';
+                for (const keyword of SUBJECT_CODE_KEYWORDS) {
+                    if (remaining.startsWith(keyword)) {
+                        matched = keyword;
+                        break;
+                    }
+                }
+
+                if (!matched) {
+                    if (parts.length) {
+                        parts[parts.length - 1] += remaining;
+                    } else {
+                        parts.push(remaining);
+                    }
+                    break;
+                }
+
+                parts.push(matched);
+                remaining = remaining.slice(matched.length);
+            }
+
+            return parts;
+        }
+
+        function normalizeSubjectCode(value) {
+            const raw = (value || '').toUpperCase().trim();
+            if (!raw) return '';
+
+            let cleaned = raw.replace(/[^A-Z0-9\s-]/g, ' ');
+            cleaned = cleaned
+                .replace(/([A-Z])([0-9])/g, '$1 $2')
+                .replace(/([0-9])([A-Z])/g, '$1 $2')
+                .replace(/[-\s]+/g, ' ')
+                .trim();
+
+            if (!cleaned) return '';
+
+            const tokens = cleaned.split(' ');
+            const alphaTokensRaw = [];
+            const numericTokens = [];
+
+            tokens.forEach((token) => {
+                if (/^\d+$/.test(token)) {
+                    numericTokens.push(token);
+                    return;
+                }
+                alphaTokensRaw.push(token);
+            });
+
+            let alphaTokens = [];
+            if (alphaTokensRaw.length === 1) {
+                alphaTokens = splitSubjectAlphaToken(alphaTokensRaw[0]);
+            } else {
+                alphaTokens = alphaTokensRaw;
+            }
+
+            alphaTokens = alphaTokens.filter(Boolean);
+            if (!alphaTokens.length) return '';
+
+            if (!numericTokens.length) {
+                return alphaTokens.join(' ');
+            }
+
+            const normalizedNumber = String(parseInt(numericTokens.join(''), 10));
+
+            return `${alphaTokens.join(' ')} ${normalizedNumber}`;
+        }
+
+        function bindSubjectCodeAutoFormat() {
+            const subjectCodeInput = document.getElementById('subjectCode');
+            if (!subjectCodeInput) return;
+
+            const applyTypingFormat = () => {
+                const formatted = normalizeSubjectCode(subjectCodeInput.value);
+                if (subjectCodeInput.value !== formatted) {
+                    subjectCodeInput.value = formatted;
+                }
+            };
+
+            const applyFinalFormat = () => {
+                const formatted = normalizeSubjectCode(subjectCodeInput.value);
+                if (subjectCodeInput.value !== formatted) {
+                    subjectCodeInput.value = formatted;
+                }
+            };
+
+            subjectCodeInput.addEventListener('input', applyTypingFormat);
+            subjectCodeInput.addEventListener('blur', applyFinalFormat);
+        }
+
         document.addEventListener('DOMContentLoaded', () => {
             loadOptions();
+            bindSubjectCodeAutoFormat();
             document.getElementById('clear-btn').addEventListener('click', clearForm);
             document.getElementById('next-btn').addEventListener('click', nextStep);
             document.getElementById('back-btn').addEventListener('click', prevStep);
@@ -480,7 +585,9 @@
             const semester = document.getElementById('semester').value;
             const course = document.getElementById('course').value;
             const subject = document.getElementById('subject').value.trim();
-            const subjectCode = document.getElementById('subjectCode').value.trim();
+            const subjectCodeInput = document.getElementById('subjectCode');
+            const subjectCode = normalizeSubjectCode(subjectCodeInput.value);
+            subjectCodeInput.value = subjectCode;
             const units = document.getElementById('units').value;
             const track = document.getElementById('track').value;
             const sectionNumber = document.getElementById('sectionNumber').value;
@@ -504,17 +611,53 @@
 
         // Function to show preview modal
         function showPreviewModal(classType, year, semester, course, subject, subjectCode, units, track, section) {
+            const previewSummary = document.getElementById('preview-summary');
             const previewDetails = document.getElementById('preview-details');
+
+            previewSummary.innerHTML = `
+                <span class="preview-chip">${formatClassType(classType)}</span>
+                <span class="preview-chip">${course}</span>
+                <span class="preview-chip">${semester}</span>
+                <span class="preview-chip">Section ${section}</span>
+            `;
+
             previewDetails.innerHTML = `
-                <div class="preview-item"><strong>Class Type:</strong> ${formatClassType(classType)}</div>
-                <div class="preview-item"><strong>Year:</strong> ${year}</div>
-                <div class="preview-item"><strong>Semester:</strong> ${semester}</div>
-                <div class="preview-item"><strong>Course:</strong> ${course}</div>
-                <div class="preview-item"><strong>Subject:</strong> ${subject}</div>
-                <div class="preview-item"><strong>Subject Code:</strong> ${subjectCode}</div>
-                <div class="preview-item"><strong>Units:</strong> ${parseFloat(units)}</div>
-                <div class="preview-item"><strong>Track:</strong> ${track}</div>
-                <div class="preview-item"><strong>Section:</strong> ${formatSection(section)}</div>
+                <div class="preview-item">
+                    <span class="preview-label">Class Type</span>
+                    <span class="preview-value">${formatClassType(classType)}</span>
+                </div>
+                <div class="preview-item">
+                    <span class="preview-label">Year</span>
+                    <span class="preview-value">${year}</span>
+                </div>
+                <div class="preview-item">
+                    <span class="preview-label">Semester</span>
+                    <span class="preview-value">${semester}</span>
+                </div>
+                <div class="preview-item">
+                    <span class="preview-label">Course</span>
+                    <span class="preview-value">${course}</span>
+                </div>
+                <div class="preview-item">
+                    <span class="preview-label">Subject</span>
+                    <span class="preview-value">${subject}</span>
+                </div>
+                <div class="preview-item">
+                    <span class="preview-label">Subject Code</span>
+                    <span class="preview-value">${subjectCode}</span>
+                </div>
+                <div class="preview-item">
+                    <span class="preview-label">Units</span>
+                    <span class="preview-value">${parseFloat(units)}</span>
+                </div>
+                <div class="preview-item">
+                    <span class="preview-label">Track</span>
+                    <span class="preview-value">${track}</span>
+                </div>
+                <div class="preview-item preview-item-full">
+                    <span class="preview-label">Section</span>
+                    <span class="preview-value">${formatSection(section)}</span>
+                </div>
             `;
 
             const modal = document.getElementById('preview-modal');
@@ -545,7 +688,9 @@
             const semester = document.getElementById('semester').value;
             const course = document.getElementById('course').value;
             const subject = document.getElementById('subject').value.trim();
-            const subjectCode = document.getElementById('subjectCode').value.trim();
+            const subjectCodeInput = document.getElementById('subjectCode');
+            const subjectCode = normalizeSubjectCode(subjectCodeInput.value);
+            subjectCodeInput.value = subjectCode;
             const units = document.getElementById('units').value;
             const track = document.getElementById('track').value;
             const sectionNumber = document.getElementById('sectionNumber').value;
@@ -652,7 +797,7 @@
                 populateTrackOptions();
                 
                 document.getElementById('subject').value = classToEdit.subject || '';
-                document.getElementById('subjectCode').value = classToEdit.subjectCode || '';
+                document.getElementById('subjectCode').value = normalizeSubjectCode(classToEdit.subjectCode || '');
                 document.getElementById('units').value = classToEdit.units || '';
                 document.getElementById('track').value = classToEdit.track;
 

@@ -15,7 +15,19 @@
     {% endif %}
 </head>
 
-<body>
+{% set saved_track = form_data.track if form_data and form_data.track else '' %}
+{% with messages = get_flashed_messages(with_categories=true) %}
+{% set has_registration_pending = False %}
+{% if messages %}
+    {% for message in messages %}
+        {% if message[1] == 'registration_pending' %}
+            {% set has_registration_pending = True %}
+        {% endif %}
+    {% endfor %}
+{% endif %}
+<body {% if saved_track %}data-saved-track="{{ saved_track }}"{% endif %}
+    {% if has_registration_pending %}data-flash-message="registration_pending"{% endif %}
+    >
     <div class="bg-container">
         <div class="bg-shape"></div>
         <div class="bg-shape"></div>
@@ -35,12 +47,11 @@
                         <p>Isabela State University - Cauayan | CCSICT</p>
                     </div>
                 </div>
-                <a href="#login" class="login-link">Already have an account? Log in →</a>
+                <a href="/index" class="login-link" data-login-url="/index">Already have an account? Log in →</a>
             </header>
 
             <div class="content">
                 <div class="form-section">
-                    {% with messages = get_flashed_messages(with_categories=true) %}
                     {% if messages %}
                     {% for category, message in messages %}
                     <div class="status {{ 'error' if category == 'error' else 'success' }}" role="alert"
@@ -50,7 +61,6 @@
                     </div>
                     {% endfor %}
                     {% endif %}
-                    {% endwith %}
 
                     <form id="registrationForm" method="POST" enctype="multipart/form-data">
                         <!-- CSRF protection token required by Flask-WTF -->
@@ -424,16 +434,14 @@
                 trackSelect.disabled = true;
             }
 
-            // Restore previously selected track if it exists in form_data
-            {% if form_data and form_data.track %}
-            const savedTrack = "{{ form_data.track }}";
+            // Restore previously selected track from data attribute
+            const savedTrack = document.body.dataset.savedTrack;
             if (savedTrack) {
                 const matchingOption = Array.from(trackSelect.options).find(opt => opt.value === savedTrack);
                 if (matchingOption) {
                     trackSelect.value = savedTrack;
                 }
             }
-            {% endif %}
         }
 
         // Listen for course changes
@@ -785,7 +793,8 @@
         // Login link navigation
         document.querySelector('.login-link').addEventListener('click', function (e) {
             e.preventDefault();
-            window.location.href = '{{ url_for("auth.login") }}';
+            var loginUrl = this.dataset.loginUrl || '/login';
+            window.location.href = loginUrl;
         });
 
         // Add subtle hover effects to form fields
@@ -833,47 +842,41 @@
         // Run on load to set initial placement
         document.addEventListener('DOMContentLoaded', relocatePreview);
 
-        // Check for registration pending flash message
-        {% with messages = get_flashed_messages(with_categories=true) %}
-        {% if messages %}
-        {% for category, message in messages %}
-        {% if message == 'registration_pending' %}
+        // Check for registration pending flash message via data attribute
         document.addEventListener('DOMContentLoaded', function() {
-            Swal.fire({
-                icon: 'info',
-                title: 'Registration Pending Approval',
-                html: `
-                    <div style="text-align: left; padding: 20px;">
-                        <p style="font-size: 16px; margin-bottom: 15px;">
-                            Thank you for registering! Your account has been submitted for approval.
-                        </p>
-                        <div style="background: #f3f4f6; padding: 15px; border-radius: 8px; border-left: 4px solid #3b82f6;">
-                            <p style="margin: 0; font-size: 14px;">
-                                <strong>📧 Email Notification:</strong><br>
-                                You will receive an email notification at your registered email address once your account is:
+            if (document.body.dataset.flashMessage === 'registration_pending') {
+                Swal.fire({
+                    icon: 'info',
+                    title: 'Registration Pending Approval',
+                    html: `
+                        <div style="text-align: left; padding: 20px;">
+                            <p style="font-size: 16px; margin-bottom: 15px;">
+                                Thank you for registering! Your account has been submitted for approval.
                             </p>
-                            <ul style="margin: 10px 0 0 20px; font-size: 14px;">
-                                <li><strong>Approved</strong> - You can then log in to the system</li>
-                                <li><strong>Not Approved</strong> - With information about the decision</li>
-                            </ul>
+                            <div style="background: #f3f4f6; padding: 15px; border-radius: 8px; border-left: 4px solid #3b82f6;">
+                                <p style="margin: 0; font-size: 14px;">
+                                    <strong>📧 Email Notification:</strong><br>
+                                    You will receive an email notification at your registered email address once your account is:
+                                </p>
+                                <ul style="margin: 10px 0 0 20px; font-size: 14px;">
+                                    <li><strong>Approved</strong> - You can then log in to the system</li>
+                                    <li><strong>Not Approved</strong> - With information about the decision</li>
+                                </ul>
+                            </div>
+                            <p style="font-size: 13px; color: #6b7280; margin-top: 15px;">
+                                The administrator will review your registration soon. Please check your email regularly.
+                            </p>
                         </div>
-                        <p style="font-size: 13px; color: #6b7280; margin-top: 15px;">
-                            The administrator will review your registration soon. Please check your email regularly.
-                        </p>
-                    </div>
-                `,
-                confirmButtonText: 'OK, Got it!',
-                confirmButtonColor: '#3b82f6',
-                width: '600px',
-                customClass: {
-                    popup: 'registration-pending-popup'
-                }
-            });
+                    `,
+                    confirmButtonText: 'OK, Got it!',
+                    confirmButtonColor: '#3b82f6',
+                    width: '600px',
+                    customClass: {
+                        popup: 'registration-pending-popup'
+                    }
+                });
+            }
         });
-        {% endif %}
-        {% endfor %}
-        {% endif %}
-        {% endwith %}
 
         // School ID format validation
         const schoolIdInput = document.getElementById('schoolId');
@@ -905,6 +908,7 @@
     </script>
     <!-- SweetAlert2 JS -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.7.32/dist/sweetalert2.all.min.js"></script>
+{% endwith %}
 </body>
 
 </html>

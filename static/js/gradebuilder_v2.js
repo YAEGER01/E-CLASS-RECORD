@@ -181,7 +181,11 @@ document.addEventListener('DOMContentLoaded', () => {
     container.className = 'preview-details';
     const title = document.createElement('h3'); title.textContent = s.structure_name || '(unnamed)'; container.appendChild(title);
     const meta = document.createElement('div'); meta.className = 'preview-meta';
-    const cls = document.createElement('div'); cls.innerHTML = `<strong>Class:</strong> ${escapeHtml(classObj ? (classObj.course + (classObj.section ? (' - ' + classObj.section) : '')) : String(s.class_id))}`;
+    // Show track in preview: "BSIT 3A NS" format
+    let classLabel = classObj ? classObj.course : String(s.class_id);
+    if (classObj && classObj.section) classLabel += ` ${classObj.section}`;
+    if (classObj && classObj.track) classLabel += ` ${classObj.track}`;
+    const cls = document.createElement('div'); cls.innerHTML = `<strong>Class:</strong> ${escapeHtml(classLabel)}`;
     const prof = document.createElement('div'); prof.innerHTML = `<strong>Created by:</strong> ${escapeHtml((instructor && (instructor.name || '')) || '')} ${escapeHtml((instructor && instructor.email) ? ('‹' + instructor.email + '›') : '')}`;
     meta.appendChild(cls); meta.appendChild(prof); container.appendChild(meta);
     // structure content
@@ -556,7 +560,11 @@ document.addEventListener('DOMContentLoaded', () => {
         (data.classes || []).forEach(c => {
           const opt = document.createElement('option'); 
           opt.value = c.class_id; 
-          opt.textContent = `${c.course} - ${c.section}`; 
+          // Show track if available: "BSIT 3A NS" format, otherwise fallback to "BSIT - 3A"
+          let label = c.course;
+          if (c.section) label += ` ${c.section}`;
+          if (c.track) label += ` ${c.track}`;
+          opt.textContent = label; 
           classSelect.appendChild(opt);
         });
         
@@ -770,7 +778,10 @@ document.addEventListener('DOMContentLoaded', () => {
     classesSource.forEach(c => {
       const val = c.class_id || c.value || '';
       if (!val) return;
-      const label = c.course ? (c.section ? `${c.course} - ${c.section}` : c.course) : (c.textContent || String(val));
+      // Show track if available: "BSIT 3A NS" format, otherwise fallback to "BSIT - 3A"
+      let label = c.course || c.textContent || String(val);
+      if (c.section) label += ` ${c.section}`;
+      if (c.track) label += ` ${c.track}`;
       classOptionsHtml += `<option value="${val}">${label}</option>`;
     });
     const html = `
@@ -1022,7 +1033,10 @@ document.addEventListener('DOMContentLoaded', () => {
         let optionsHtml = '<option value="">(select class)</option>';
         classes.forEach(c => {
           const val = c.class_id || c.id;
-          const label = c.course ? (c.section ? `${c.course} - ${c.section}` : c.course) : (c.class_code || String(val));
+          // Show track if available: "BSIT 3A NS" format, otherwise fallback to "BSIT - 3A"
+          let label = c.course || c.class_code || String(val);
+          if (c.section) label += ` ${c.section}`;
+          if (c.track) label += ` ${c.track}`;
           optionsHtml += `<option value="${val}">${escapeHtml(label)}</option>`;
         });
         const html = `

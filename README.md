@@ -416,9 +416,9 @@ MIT License — See [LICENSE](LICENSE) file.
 
 ## 📧 Support & Contact
 
-**Developed for:** Isabela State University (ISU)  
-**Developer:** Justin Von Vergara | Frederick Madayag
-**Email:** programmingproject06@gmail.com | manchoco69@gmail.com
+**Developed for:** Isabela State University (ISU)
+
+**Developer:** Justin Von Vergara - programmingproject06@gmail.com | Frederick Madayag - manchoco69@gmail.com
 
 For issues, feature requests, or security reports:
 

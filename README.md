@@ -417,14 +417,13 @@ MIT License — See [LICENSE](LICENSE) file.
 ## 📧 Support & Contact
 
 **Developed for:** Isabela State University (ISU)  
-**Developer:** Frederick Madayag  
-**Email:** programmingproject06@gmail.com
+**Developer:** Justin Von Vergara | Frederick Madayag
+**Email:** programmingproject06@gmail.com | manchoco69@gmail.com
 
 For issues, feature requests, or security reports:
 
 - 🐛 [Open an Issue](https://github.com/yourusername/E-CLASS-RECORD/issues)
 - 💬 [Start a Discussion](https://github.com/yourusername/E-CLASS-RECORD/discussions)
-- 🔐 Security: Email `programmingproject06@gmail.com`
 
 ---
 

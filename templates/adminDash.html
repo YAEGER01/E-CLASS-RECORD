@@ -312,16 +312,28 @@
                font-weight: 600;
           }
 
-          .form-group input,
-          .form-group select {
-               background: rgba(255, 255, 255, 0.05);
-               border: 1px solid var(--border);
-               border-radius: 8px;
-               padding: 10px;
-               color: rgb(255, 255, 255);
-               font-size: 0.85rem;
-               outline: none;
-          }
+           .form-group input,
+           .form-group select {
+                background: rgba(255, 255, 255, 0.05);
+                border: 1px solid var(--border);
+                border-radius: 8px;
+                padding: 10px;
+                color: rgb(255, 255, 255);
+                font-size: 0.85rem;
+                outline: none;
+           }
+
+
+           
+            .form-group select option {
+                 background-color: #0a261e !important;
+                 color: #f8fafc !important;
+            }
+
+            .form-group select option:checked {
+                 background-color: #94a3b8 !important;
+                 color: #051a14 !important;
+            }
 
           .form-group input:focus {
                border-color: var(--primary);
@@ -416,11 +428,21 @@
                color: #051a14;
           }
 
-          .btn-outline {
-               background: rgba(255, 255, 255, 0.03);
-               border: 1px solid var(--border);
-               color: var(--text-main);
-          }
+           .btn-outline {
+                background: rgba(255, 255, 255, 0.03);
+                border: 1px solid var(--border);
+                color: var(--text-main);
+           }
+
+           .btn-outline option {
+                background-color: #0a261e !important;
+                color: #f8fafc !important;
+           }
+
+           .btn-outline option:checked {
+                background-color: #94a3b8 !important;
+                color: #051a14 !important;
+           }
 
           .btn-sm {
                padding: 6px 12px;
@@ -453,15 +475,25 @@
                font-weight: 800;
           }
 
-          .filter-select {
-               background: rgba(255, 255, 255, 0.05);
-               border: 1px solid var(--border);
-               color: white;
-               border-radius: 6px;
-               font-size: 0.75rem;
-               padding: 4px 8px;
-               outline: none;
-          }
+           .filter-select {
+                background: rgba(255, 255, 255, 0.05);
+                border: 1px solid var(--border);
+                color: white;
+                border-radius: 6px;
+                font-size: 0.75rem;
+                padding: 4px 8px;
+                outline: none;
+           }
+
+            .filter-select option {
+                 background-color: #0a261e !important;
+                 color: #f8fafc !important;
+            }
+
+            .filter-select option:checked {
+                 background-color: #94a3b8 !important;
+                 color: #051a14 !important;
+            }
 
           .btn-approve {
                background: var(--primary);
@@ -964,17 +996,27 @@
                                         text-transform: uppercase;
                                         letter-spacing: 0.04em;
                                    }
-                                   .faculty-form-field {
-                                        width: 100%;
-                                        padding: 11px 14px;
-                                        border: 1px solid var(--border);
-                                        border-radius: 8px;
-                                        font-size: 0.9rem;
-                                        box-sizing: border-box;
-                                        transition: all 0.3s ease;
-                                        background: rgba(255, 255, 255, 0.02);
-                                        color: var(--text);
-                                   }
+                                    .faculty-form-field {
+                                         width: 100%;
+                                         padding: 11px 14px;
+                                         border: 1px solid var(--border);
+                                         border-radius: 8px;
+                                         font-size: 0.9rem;
+                                         box-sizing: border-box;
+                                         transition: all 0.3s ease;
+                                         background: rgba(255, 255, 255, 0.02);
+                                         color: var(--text);
+                                     }
+
+                                    .faculty-form-field option {
+                                         background-color: #0a261e !important;
+                                         color: #f8fafc !important;
+                                     }
+
+                                    .faculty-form-field option:checked {
+                                         background-color: #94a3b8 !important;
+                                         color: #051a14 !important;
+                                     }
                                    .faculty-form-field:focus {
                                         outline: none;
                                         border-color: var(--lime-green);

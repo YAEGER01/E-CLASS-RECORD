@@ -419,7 +419,7 @@ MIT License — See [LICENSE](LICENSE) file.
 **Developed for:** Isabela State University (ISU)
 
 **Developer:** Justin Von Vergara - programmingproject06@gmail.com | Frederick Madayag - manchoco69@gmail.com
-
+**Tester & Reviewer** Jasmine Rotugal | ---
 For issues, feature requests, or security reports:
 
 - 🐛 [Open an Issue](https://github.com/yourusername/E-CLASS-RECORD/issues)

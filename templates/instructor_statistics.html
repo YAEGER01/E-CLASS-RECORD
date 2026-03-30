@@ -12,11 +12,120 @@
     </script>
 
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/instructor-dashboard.css') }}">
     <style>
+        :root {
+            --instructor-primary: #005A31;
+            --instructor-secondary: #003d1f;
+            --instructor-light: #e8f5e9;
+            --gray-50: #f9fafb;
+            --gray-100: #f3f4f6;
+            --gray-200: #e5e7eb;
+            --gray-300: #d1d5db;
+            --gray-600: #4b5563;
+            --gray-700: #374151;
+            --gray-800: #1f2937;
+            --gray-900: #111827;
+        }
+
+        .class-selector-section {
+            background: linear-gradient(135deg, #ffffff 0%, #f9fafb 100%);
+            border: 1px solid var(--gray-200);
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+            margin-bottom: 2rem;
+        }
+
+        .class-selector-section h3 {
+            margin-top: 0;
+            color: var(--gray-900);
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: 1.5rem;
+        }
+
+        .class-cards-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .class-selector-card {
+            background: linear-gradient(135deg, #ffffff 0%, #f8fbff 100%);
+            border: 2px solid var(--gray-200);
+            border-radius: 12px;
+            padding: 1.5rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+            position: relative;
+            overflow: visible;
+            user-select: none;
+        }
+
+        .class-selector-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #005A31, #1B7E2B);
+            transform: scaleX(0);
+            transform-origin: left;
+            transition: transform 0.3s ease;
+        }
+
+        .class-selector-card:hover {
+            border-color: var(--instructor-primary);
+            box-shadow: 0 8px 16px rgba(0, 90, 49, 0.12);
+            transform: translateY(-2px);
+        }
+
+        .class-selector-card:hover::before {
+            transform: scaleX(1);
+        }
+
+        .class-selector-card.active {
+            background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%);
+            border-color: var(--instructor-primary);
+            box-shadow: 0 8px 24px rgba(0, 90, 49, 0.15);
+        }
+
+        .class-selector-card.active::before {
+            transform: scaleX(1);
+        }
+
+        .class-card-code {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--gray-900);
+            margin-bottom: 0.25rem;
+        }
+
+        .class-card-details {
+            font-size: 0.875rem;
+            color: var(--gray-600);
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+            line-height: 1.4;
+        }
+
+        .class-card-subject {
+            font-size: 0.85rem;
+            color: var(--gray-700);
+            font-weight: 500;
+        }
+
         .stats-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
@@ -25,46 +134,109 @@
         }
         
         .stat-card {
-            background: white;
-            border-radius: 12px;
-            padding: 1.5rem;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            border: 1px solid #e5e7eb;
+            background: linear-gradient(135deg, #ffffff 0%, #fafbff 100%);
+            border-radius: 16px;
+            padding: 2rem 1.5rem;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.06), 0 1px 3px rgba(0,0,0,0.08);
+            border: 2px solid #e5e7eb;
             text-align: center;
-            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #005A31, #1B7E2B, #2BA84F);
+            transform: scaleX(0);
+            transform-origin: left;
+            transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .stat-card::after {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -50%;
+            width: 200px;
+            height: 200px;
+            background: radial-gradient(circle, rgba(0, 90, 49, 0.08), transparent);
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            z-index: 0;
         }
 
         .stat-card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            transform: translateY(-6px);
+            box-shadow: 0 16px 32px rgba(0, 90, 49, 0.12), 0 4px 12px rgba(0, 90, 49, 0.08);
+            border-color: #005A31;
+        }
+
+        .stat-card:hover::before {
+            transform: scaleX(1);
+        }
+
+        .stat-card:hover::after {
+            top: -20%;
+            right: -20%;
         }
 
         .stat-icon {
-            font-size: 2rem;
-            margin-bottom: 0.5rem;
-            color: #6366f1;
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            color: #005A31;
+            position: relative;
+            z-index: 1;
+            animation: float 3s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-8px); }
+        }
+
+        .stat-card:hover .stat-icon {
+            animation: float 2s ease-in-out infinite;
         }
 
         .stat-value {
-            font-size: 2.5rem;
-            font-weight: 700;
-            color: #1f2937;
-            margin-bottom: 0.5rem;
+            font-size: 3rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #1f2937 0%, #005A31 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 0.75rem;
+            margin-top: 0.5rem;
+            position: relative;
+            z-index: 1;
+            display: block;
         }
 
         .stat-label {
-            font-size: 0.875rem;
+            font-size: 0.8rem;
             color: #6b7280;
-            font-weight: 500;
+            font-weight: 700;
             text-transform: uppercase;
-            letter-spacing: 0.05em;
+            letter-spacing: 0.08em;
+            position: relative;
+            z-index: 1;
+            word-spacing: 0.1em;
+        }
+
+        .stat-card:hover .stat-label {
+            color: #005A31;
         }
         
         .classes-table {
             background: white;
             border-radius: 12px;
             overflow: hidden;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
             border: 1px solid #e5e7eb;
         }
         
@@ -81,7 +253,7 @@
         }
         
         .classes-table th {
-            background: #f9fafb;
+            background: linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%);
             font-weight: 600;
             color: #374151;
             font-size: 0.875rem;
@@ -101,17 +273,31 @@
         }
 
         .class-card {
-            background: white;
+            background: linear-gradient(135deg, #ffffff 0%, #f8fbff 100%);
             border-radius: 12px;
             padding: 1.5rem;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
             border: 1px solid #e5e7eb;
-            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .class-card::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, transparent, rgba(37, 99, 235, 0.02));
+            pointer-events: none;
         }
 
         .class-card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            transform: translateY(-4px);
+            box-shadow: 0 12px 24px rgba(0, 90, 49, 0.1);
+            border-color: #005A31;
         }
 
         .class-card h4 {
@@ -119,8 +305,10 @@
             font-size: 1.1rem;
             font-weight: 600;
             margin-bottom: 0.75rem;
-            border-bottom: 2px solid #e5e7eb;
-            padding-bottom: 0.5rem;
+            padding-bottom: 0.75rem;
+            border-bottom: 2px solid #005A31;
+            position: relative;
+            z-index: 1;
         }
 
         .class-info {
@@ -128,42 +316,79 @@
             grid-template-columns: repeat(2, 1fr);
             gap: 0.75rem;
             margin-top: 1rem;
+            position: relative;
+            z-index: 1;
         }
 
         .class-info-item {
             font-size: 0.875rem;
             color: #374151;
+            padding: 0.75rem;
+            background: #f9fafb;
+            border-radius: 8px;
+            transition: all 0.2s ease;
+        }
+
+        .class-info-item:hover {
+            background: #e0f2e0;
         }
 
         .class-info-label {
             font-size: 0.75rem;
             color: #6b7280;
-            font-weight: 500;
+            font-weight: 600;
             text-transform: uppercase;
             letter-spacing: 0.05em;
             margin-bottom: 0.25rem;
         }
 
         .class-info-value {
-            font-size: 0.95rem;
+            font-size: 1rem;
             color: #1f2937;
-            font-weight: 600;
+            font-weight: 700;
         }
 
         .grade-stats {
-            background: white;
-            border-radius: 12px;
-            padding: 1.5rem;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            border: 1px solid #e5e7eb;
+            background: linear-gradient(135deg, #ffffff 0%, #f9fafb 100%);
+            border-radius: 16px;
+            padding: 2rem;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.5);
+            border: 2px solid #e5e7eb;
             margin-top: 2rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .grade-stats::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(0, 90, 49, 0.3), transparent);
+            opacity: 0.5;
         }
         
         .grade-stats h3 {
-            margin-bottom: 1rem;
+            margin-bottom: 1.5rem;
             color: #1f2937;
-            font-size: 1.25rem;
-            font-weight: 600;
+            font-size: 1.35rem;
+            font-weight: 700;
+            position: relative;
+            z-index: 1;
+        }
+
+        .grade-stats h3::before {
+            content: '';
+            display: inline-block;
+            width: 4px;
+            height: 24px;
+            background: linear-gradient(180deg, #005A31, #1B7E2B);
+            border-radius: 2px;
+            margin-right: 0.75rem;
+            position: relative;
+            top: 2px;
         }
         
         .grade-grid {
@@ -174,25 +399,103 @@
         
         .grade-stat {
             text-align: center;
-            padding: 1rem;
-            background: #f9fafb;
-            border-radius: 8px;
+            padding: 1.5rem 1.25rem;
+            background: linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%);
+            border-radius: 12px;
+            border: 2px solid #e5e7eb;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .grade-stat::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, transparent 0%, rgba(0, 90, 49, 0.05) 100%);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            pointer-events: none;
+        }
+
+        .grade-stat:hover {
+            background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%);
+            border-color: #005A31;
+            box-shadow: 0 8px 20px rgba(0, 90, 49, 0.12);
+            transform: translateY(-3px);
+        }
+
+        .grade-stat:hover::before {
+            opacity: 1;
         }
         
         .grade-stat .value {
-            font-size: 1.5rem;
-            font-weight: 700;
-            color: #1f2937;
+            font-size: 2rem;
+            font-weight: 800;
+            color: #005A31;
             display: block;
+            margin-bottom: 0.25rem;
+            position: relative;
+            z-index: 1;
+            letter-spacing: -0.05em;
+            line-height: 1;
+        }
+        
+        .grade-stat .value::after {
+            content: '';
+            position: absolute;
+            bottom: -8px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 30%;
+            height: 3px;
+            background: linear-gradient(90deg, transparent, #005A31, transparent);
+            border-radius: 2px;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .grade-stat:hover .value::after {
+            opacity: 1;
         }
         
         .grade-stat .label {
             font-size: 0.75rem;
             color: #6b7280;
-            font-weight: 500;
+            font-weight: 700;
             text-transform: uppercase;
-            letter-spacing: 0.05em;
-            margin-top: 0.25rem;
+            letter-spacing: 0.08em;
+            margin-top: 0.5rem;
+            position: relative;
+            z-index: 1;
+        }
+
+        .grade-stat:hover .label {
+            color: #005A31;
+        }
+        
+        /* Data value animations and styling */
+        @keyframes slideInValue {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .grade-stat {
+            animation: slideInValue 0.6s ease-out;
+        }
+
+        .grade-stat .value {
+            animation: slideInValue 0.6s ease-out 0.1s both;
+            text-shadow: 0 2px 8px rgba(0, 90, 49, 0.1);
         }
         
         .no-data {
@@ -200,6 +503,258 @@
             color: #6b7280;
             font-style: italic;
             padding: 2rem;
+        }
+
+        /* Ensure select element is always visible */
+        select {
+            color: #000000 !important;
+            background-color: #ffffff !important;
+            font-weight: 600 !important;
+            appearance: auto !important;
+        }
+
+        select option {
+            color: black !important;
+            -webkit-text-fill-color: black !important;
+            background: white !important;
+            background-color: white !important;
+            padding: 0.75rem !important;
+            min-height: 2em !important;
+            line-height: 1.5 !important;
+            font-weight: 600 !important;
+            font-size: 1rem !important;
+            text-shadow: 0 0 0 black !important;
+        }
+
+        select option:enabled {
+            color: black !important;
+            -webkit-text-fill-color: black !important;
+            background-color: white !important;
+        }
+
+        select option:hover {
+            color: black !important;
+            -webkit-text-fill-color: black !important;
+            background-color: #e0e0e0 !important;
+        }
+
+        select option:checked {
+            background: white !important;
+            background-color: white !important;
+            color: black !important;
+            -webkit-text-fill-color: black !important;
+        }
+
+        /* SweetAlert2 select styling */
+        .swal2-popup select {
+            color: #000000 !important;
+            background-color: #ffffff !important;
+            border: 2px solid #059669 !important;
+            font-weight: 600 !important;
+            appearance: auto !important;
+        }
+
+        .swal2-popup select option {
+            color: black !important;
+            -webkit-text-fill-color: black !important;
+            background: white !important;
+            background-color: white !important;
+            padding: 0.75rem !important;
+            min-height: 2em !important;
+            line-height: 1.5 !important;
+            font-weight: 600 !important;
+            font-size: 1rem !important;
+            text-shadow: 0 0 0 black !important;
+        }
+
+        .swal2-popup select option:enabled {
+            color: black !important;
+            -webkit-text-fill-color: black !important;
+            background-color: white !important;
+        }
+
+        .swal2-popup select option:hover {
+            color: black !important;
+            -webkit-text-fill-color: black !important;
+            background-color: #e0e0e0 !important;
+        }
+
+        .swal2-popup select option:checked {
+            background: white !important;
+            background-color: white !important;
+            color: black !important;
+            -webkit-text-fill-color: black !important;
+        }
+
+        .class-option-btn {
+            color: black !important;
+            text-align: left !important;
+            font-weight: 500 !important;
+        }
+
+        .class-option-btn:hover {
+            color: black !important;
+        }
+
+        /* Statistics Section Enhancements */
+        .classes-header {
+            margin: 2rem 0;
+            position: relative;
+            z-index: 1;
+        }
+
+        .classes-title h2 {
+            font-size: 1.75rem;
+            font-weight: 800;
+            color: #1f2937;
+            margin: 0;
+            position: relative;
+            display: inline-block;
+        }
+
+        .classes-title h2::after {
+            content: '';
+            position: absolute;
+            bottom: -8px;
+            left: 0;
+            width: 100%;
+            height: 4px;
+            background: linear-gradient(90deg, #005A31, #1B7E2B, transparent);
+            border-radius: 2px;
+        }
+
+        .classes-title p {
+            color: #6b7280;
+            font-size: 0.95rem;
+            margin: 0.5rem 0 0 0;
+            font-weight: 500;
+        }
+
+        .classes-content {
+            position: relative;
+            z-index: 1;
+        }
+
+        .classes-content h3 {
+            position: relative;
+            padding-bottom: 1rem;
+            margin-bottom: 1.5rem !important;
+        }
+
+        .classes-content h3::before {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 60px;
+            height: 4px;
+            background: linear-gradient(90deg, #005A31, #1B7E2B);
+            border-radius: 2px;
+        }
+
+        /* Score range styling */
+        #score-range-block {
+            background: linear-gradient(135deg, #e8f5e9 0%, #f9fafb 100%);
+            padding: 1rem;
+            border-radius: 10px;
+            border-left: 4px solid #005A31;
+            font-weight: 600;
+            color: #374151;
+            margin-top: 1.5rem;
+        }
+
+        /* Outlier list styling */
+        #outlier-list {
+            background: linear-gradient(135deg, #fff7ed 0%, #fef3c7 100%);
+            padding: 1rem;
+            border-radius: 10px;
+            border-left: 4px solid #f59e0b;
+            color: #92400e;
+            font-weight: 500;
+            margin-top: 1.5rem;
+        }
+
+        /* Stats descriptions styling */
+        .stat-description {
+            background: linear-gradient(135deg, #e8f5e9 0%, #f8fafc 100%);
+            padding: 1rem;
+            border-radius: 10px;
+            border-left: 4px solid #2BA84F;
+            color: #0c4a6e;
+            line-height: 1.6;
+        }
+
+        /* Charts Section */
+        .charts-section {
+            margin-top: 3rem;
+            margin-bottom: 2rem;
+        }
+
+        .charts-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 2rem;
+            margin-top: 1.5rem;
+        }
+
+        .chart-container {
+            background: linear-gradient(135deg, #ffffff 0%, #f9fafb 100%);
+            border: 2px solid #e5e7eb;
+            border-radius: 16px;
+            padding: 1.75rem;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.5);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .chart-container::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(0, 90, 49, 0.3), transparent);
+            opacity: 0.5;
+        }
+
+        .chart-container:hover {
+            box-shadow: 0 12px 24px rgba(0, 90, 49, 0.1), inset 0 1px 0 rgba(255,255,255,0.5);
+            border-color: #005A31;
+            transform: translateY(-2px);
+        }
+
+        .chart-container h4 {
+            margin: 0 0 1.5rem 0;
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: #1f2937;
+            position: relative;
+            z-index: 1;
+            padding-bottom: 0.75rem;
+            border-bottom: 2px solid #e5e7eb;
+        }
+
+        .chart-container h4::before {
+            content: '';
+            display: inline-block;
+            width: 4px;
+            height: 20px;
+            background: linear-gradient(180deg, #005A31, #1B7E2B);
+            border-radius: 2px;
+            margin-right: 0.75rem;
+            position: relative;
+            top: 2px;
+        }
+
+        .chart-container.wide {
+            grid-column: 1 / -1;
+        }
+
+        .chart-container canvas {
+            position: relative;
+            z-index: 1;
         }
     </style>
 </head>
@@ -212,16 +767,21 @@
     <!-- Main Content -->
     <main class="main-content">
         <div class="content-container" id="stats-content" style="display:none;">
-            <!-- Class Selection Dropdown -->
-            <div style="margin-bottom: 2rem;">
-                <label for="class-select" style="font-weight:600; color:#374151;">Select Class:</label>
-                <select id="class-select" style="margin-left:1rem; padding:0.5rem 1rem; border-radius:6px; border:1px solid #e5e7eb; font-size:1rem;">
-                    <option value="">-- Choose a class --</option>
-                    {% for class in stats.classes %}
-                        <option value="{{ class.id }}">{{ class.class_id }}</option>
-                    {% endfor %}
-                </select>
+            <!-- Class Selection Section -->
+            <div class="class-selector-section">
+                <h3>Select a Class</h3>
+                <div class="class-cards-grid" id="class-cards-container">
+                    <!-- Class cards will be populated here by JavaScript -->
+                </div>
             </div>
+
+            <!-- Hidden select for data storage -->
+            <select id="class-select" style="display:none;">
+                <option value="">-- Choose a class --</option>
+                {% for class in stats.classes %}
+                    <option value="{{ class.id }}" data-id="{{ class.id }}" data-code="{{ class.class_code or class.id }}" data-subject="{{ class.subject or '' }}" data-course="{{ class.course or '' }}" data-section="{{ class.section or '' }}">{{ class.class_code or class.code or class.id }}</option>
+                {% endfor %}
+            </select>
             <!-- Statistics Overview -->
             <div class="classes-header">
                 <div class="classes-title">
@@ -231,7 +791,7 @@
             </div>
             <div class="grade-stats" id="advanced-stats-block" style="margin-top:2rem; display:none;">
                 <h3>Advanced Class Statistics</h3>
-                <p style="color: #6b7280; font-size: 0.875rem; margin-bottom: 1rem;">
+                <p style="color: #6b7280; font-size: 0.875rem; margin-bottom: 1.5rem;">
                     These advanced metrics provide deeper insights into student performance patterns and trends.
                 </p>
                 <div class="grade-grid">
@@ -252,7 +812,7 @@
                         <span class="label">Regression R²</span>
                     </div>
                 </div>
-                <div id="outlier-list" style="margin-top:1rem; font-size:0.875rem; color:#6b7280;"></div>
+                <div id="outlier-list" style="margin-top:1.5rem; font-size:0.875rem; color:#6b7280;"></div>
                 <div id="stats-descriptions" style="margin-top:1.5rem; padding-top:1rem; border-top:1px solid #e5e7eb;">
                     <div style="display: grid; gap: 1rem;">
                         <div class="stat-description" id="std-dev-description" style="display: none;">
@@ -260,7 +820,7 @@
                             <span id="std-dev-message">This measures the variability in student scores. A lower value indicates more consistent performance across students.</span>
                         </div>
                         <div class="stat-description" id="outlier-description" style="display: none;">
-                            <strong>⚠️ Outlier Analysis:</strong>
+                            <strong>Outlier Analysis:</strong>
                             <span id="outlier-message">These are students performing significantly above or below the class average. They may need special attention or recognition.</span>
                         </div>
                         <div class="stat-description" id="regression-description" style="display: none;">
@@ -296,6 +856,29 @@
                 </div>
             </div>
 
+            <!-- Charts Section -->
+            <div class="charts-section">
+                <div class="charts-grid">
+                    <!-- Grade Distribution Chart -->
+                    <div class="chart-container">
+                        <h4>Grade Distribution</h4>
+                        <canvas id="gradeDistributionChart"></canvas>
+                    </div>
+                    
+                    <!-- Student Performance Chart -->
+                    <div class="chart-container">
+                        <h4>Student Performance Status</h4>
+                        <canvas id="studentPerformanceChart"></canvas>
+                    </div>
+                    
+                    <!-- Assessment Trend Chart -->
+                    <div class="chart-container wide">
+                        <h4>Assessment Performance Trends</h4>
+                        <canvas id="assessmentTrendChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
             <!-- Classes Breakdown -->
             <div class="classes-content">
                 <h3 style="margin-bottom: 1rem; color: #1f2937; font-size: 1.25rem; font-weight: 600;">Classes Overview</h3>
@@ -310,30 +893,41 @@
             <!-- Grade Statistics -->
             <div class="grade-stats" id="grade-stats-block" style="display:none;">
                 <h3>Assessment Performance</h3>
+                <p style="color: #6b7280; font-size: 0.875rem; margin-bottom: 1.5rem;">
+                    Summary of student assessment scores and performance metrics across all evaluations.
+                </p>
                 <div class="grade-grid">
                     <div class="grade-stat">
-                        <span class="value" id="total-scores-value">0</span>
+                        <span class="value" id="total-scores-value">—</span>
                         <span class="label">Total Scores</span>
                     </div>
                     <div class="grade-stat">
-                        <span class="value" id="avg-score-value">0%</span>
+                        <span class="value" id="avg-score-value">—</span>
                         <span class="label">Avg Score</span>
                     </div>
                     <div class="grade-stat">
-                        <span class="value" id="students-assessed-value">0</span>
+                        <span class="value" id="students-assessed-value">—</span>
                         <span class="label">Students Assessed</span>
                     </div>
                     <div class="grade-stat">
-                        <span class="value" id="total-assessments-value">0</span>
+                        <span class="value" id="total-assessments-value">—</span>
                         <span class="label">Assessments</span>
                     </div>
                     <div class="grade-stat">
-                        <span class="value" id="pass-rate-60-value">0%</span>
+                        <span class="value" id="pass-rate-60-value">—</span>
                         <span class="label">Pass Rate (≥60%)</span>
                     </div>
                 </div>
-                <div style="margin-top: 1rem; font-size: 0.875rem; color: #6b7280;" id="score-range-block">
-                    Score Range: 0 | Passing: 0 | Failing: 0
+                <div style="margin-top: 1.5rem; padding: 1rem; border-radius: 10px; background: linear-gradient(135deg, #e8f5e9 0%, #f8fafc 100%); border-left: 4px solid #005A31; font-size: 0.875rem; color: #374151; font-weight: 500;" id="score-range-block">
+                    Score Range: — | Passing: — | Failing: —
+                </div>
+                
+                <!-- Score Distribution Chart -->
+                <div style="margin-top: 2rem;">
+                    <div class="chart-container wide">
+                        <h4>Score Distribution Analysis</h4>
+                        <canvas id="scoreDistributionChart"></canvas>
+                    </div>
                 </div>
             </div>
 
@@ -344,6 +938,12 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {
+            // Initialize chart variables at the top
+            let gradeDistributionChart = null;
+            let studentPerformanceChart = null;
+            let assessmentTrendChart = null;
+            let scoreDistributionChart = null;
+
             // Handle flashed messages
             const flashedMessages = document.getElementById('flashed-messages');
             if (flashedMessages) {
@@ -359,56 +959,70 @@
                 });
             }
 
-            // Hide stats content until class is selected
+            // Show stats content with card-based class selector
             const statsContent = document.getElementById('stats-content');
             const classSelect = document.getElementById('class-select');
+            
+            // Display stats content immediately
+            statsContent.style.display = 'block';
 
-            // Show SweetAlert2 modal for class selection
-            function showClassModal() {
-                // Get class options from the HTML dropdown (which is already populated by Jinja2)
-                const htmlSelect = document.getElementById('class-select');
-                let classOptions = '';
-                for (let i = 1; i < htmlSelect.options.length; i++) {
-                    const option = htmlSelect.options[i];
-                    classOptions += `<option value='${option.value}'>${option.text}</option>`;
-                }
-
-                Swal.fire({
-                    title: 'Select Class',
-                    html: `<select id='swal-class-select' style='width:100%;padding:0.75rem 1.5rem;border-radius:6px;border:1px solid #e5e7eb;font-size:1rem;margin-top:1rem;'>
-                        <option value=''>-- Choose a class --</option>
-                        ${classOptions}
-                    </select>`,
-                    showCancelButton: false,
-                    confirmButtonText: 'Select',
-                    allowOutsideClick: false,
-                    allowEscapeKey: false,
-                    didOpen: () => {
-                        // Focus the select on open
-                        document.getElementById('swal-class-select').focus();
-                    },
-                    preConfirm: () => {
-                        const selectEl = document.getElementById('swal-class-select');
-                        const selected = selectEl.options[selectEl.selectedIndex].value;
-                        if (!selected || selected === '') {
-                            Swal.showValidationMessage('Please select a class');
-                            return false;
-                        }
-                        return selected;
+            // Create class selector cards
+            function createClassCards() {
+                const cardsContainer = document.getElementById('class-cards-container');
+                cardsContainer.innerHTML = '';
+                
+                const options = classSelect.querySelectorAll('option');
+                let cardCount = 0;
+                
+                options.forEach((option, index) => {
+                    if (index === 0) return; // Skip "Choose a class" option
+                    
+                    const classId = option.value;
+                    const classCourse = option.dataset.course || '';
+                    const classSection = option.dataset.section || '';
+                    const classSubject = option.dataset.subject || '';
+                    let classCode = option.dataset.code || '';
+                    
+                    // If class_code is empty/ID, construct from course code
+                    if (!classCode || (classCode.includes('-') && classCode.length > 20)) {
+                        classCode = classCourse || 'Class';
                     }
-                }).then(result => {
-                    if (result.isConfirmed && result.value && result.value !== '') {
-                        classSelect.value = result.value;
-                        statsContent.style.display = 'block';
-                        // Trigger change event to load stats
-                        const event = new Event('change');
-                        classSelect.dispatchEvent(event);
-                    } else {
-                        // If not selected, show modal again
-                        showClassModal();
-                    }
+                    
+                    const card = document.createElement('div');
+                    card.className = 'class-selector-card';
+                    card.dataset.classId = classId;
+                    card.style.cursor = 'pointer';
+                    card.innerHTML = `
+                        <div class="class-card-code">${classCode} ${classSection}</div>
+                        <div class="class-card-subject">${classCourse} • ${classSubject}</div>
+                    `;
+                    
+                    // Attach click handler
+                    card.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        
+                        // Remove active class from all cards
+                        document.querySelectorAll('.class-selector-card').forEach(c => {
+                            c.classList.remove('active');
+                        });
+                        
+                        // Add active class to clicked card
+                        card.classList.add('active');
+                        
+                        // Update hidden select and trigger change
+                        classSelect.value = classId;
+                        classSelect.dispatchEvent(new Event('change', { bubbles: true }));
+                    });
+                    
+                    cardsContainer.appendChild(card);
+                    cardCount++;
                 });
+                
+                console.log('Created ' + cardCount + ' class cards');
             }
+            
+            createClassCards();
 
             // Set all stats to 0/default
             function resetStats() {
@@ -416,21 +1030,39 @@
                 document.getElementById('total-students-value').textContent = '0';
                 document.getElementById('avg-class-size-value').textContent = '0';
                 document.getElementById('pass-rate-value').textContent = '0%';
-                document.getElementById('total-scores-value').textContent = '0';
-                document.getElementById('avg-score-value').textContent = '0%';
-                document.getElementById('students-assessed-value').textContent = '0';
-                document.getElementById('total-assessments-value').textContent = '0';
-                document.getElementById('pass-rate-60-value').textContent = '0%';
-                document.getElementById('score-range-block').textContent = 'Score Range: 0 | Passing: 0 | Failing: 0';
-                document.getElementById('std-dev-value').textContent = '-';
-                document.getElementById('outlier-count-value').textContent = '-';
-                document.getElementById('regression-value').textContent = '-';
-                document.getElementById('regression-r2-value').textContent = '-';
+                document.getElementById('total-scores-value').textContent = '—';
+                document.getElementById('avg-score-value').textContent = '—';
+                document.getElementById('students-assessed-value').textContent = '—';
+                document.getElementById('total-assessments-value').textContent = '—';
+                document.getElementById('pass-rate-60-value').textContent = '—';
+                document.getElementById('score-range-block').textContent = 'Score Range: — | Passing: — | Failing: —';
+                document.getElementById('std-dev-value').textContent = '—';
+                document.getElementById('outlier-count-value').textContent = '—';
+                document.getElementById('regression-value').textContent = '—';
+                document.getElementById('regression-r2-value').textContent = '—';
                 document.getElementById('outlier-list').textContent = '';
                 document.getElementById('classes-grid-block').style.display = 'none';
                 document.getElementById('no-classes-block').style.display = 'none';
                 document.getElementById('grade-stats-block').style.display = 'none';
                 document.getElementById('advanced-stats-block').style.display = 'none';
+                
+                // Reset charts
+                if (gradeDistributionChart) {
+                    gradeDistributionChart.data.datasets[0].data = [0, 0, 0, 0, 0];
+                    gradeDistributionChart.update();
+                }
+                if (studentPerformanceChart) {
+                    studentPerformanceChart.data.datasets[0].data = [0, 0];
+                    studentPerformanceChart.update();
+                }
+                if (assessmentTrendChart) {
+                    assessmentTrendChart.data.datasets[0].data = [0, 0, 0, 0, 0];
+                    assessmentTrendChart.update();
+                }
+                if (scoreDistributionChart) {
+                    scoreDistributionChart.data.datasets[0].data = [0, 0, 0, 0, 0];
+                    scoreDistributionChart.update();
+                }
             }
 
             function highlightAdvancedStats() {
@@ -518,6 +1150,8 @@
                 })
                 .then(response => response.json())
                 .then(data => {
+                    console.log('Stats API Response:', data);
+                    
                     document.getElementById('total-classes-value').textContent = data.total_classes ?? '0';
                     document.getElementById('total-students-value').textContent = data.total_students ?? '0';
                     document.getElementById('avg-class-size-value').textContent = data.avg_class_size ?? '0';
@@ -533,10 +1167,16 @@
                         classesGrid.innerHTML = '';
 
                         data.classes.forEach(cls => {
+                            // Construct proper class code if not available
+                            let classCodeDisplay = cls.class_code || cls.code || cls.course || 'Class';
+                            if (classCodeDisplay.includes('-') && classCodeDisplay.length > 20) {
+                                classCodeDisplay = cls.course || 'Class';
+                            }
+                            
                             const classCard = document.createElement('div');
                             classCard.className = 'class-card';
                             classCard.innerHTML = `
-                                <h4>${cls.class_code} - ${cls.subject}</h4>
+                                <h4>${classCodeDisplay} ${cls.section || ''}</h4>
                                 <div class="class-info">
                                     <div class="class-info-item">
                                         <div class="class-info-label">Course</div>
@@ -555,6 +1195,7 @@
                                         <div class="class-info-value">${cls.assessment_count ?? 0}</div>
                                     </div>
                                 </div>
+                                <p style="font-size: 0.875rem; color: #6b7280; margin-top: 1rem; margin-bottom: 0;">${cls.subject}</p>
                             `;
                             classesGrid.appendChild(classCard);
                         });
@@ -563,18 +1204,38 @@
                         noClassesBlock.style.display = 'block';
                     }
 
-                    // Grade stats
+                    // Grade stats - Format and display values
                     if (data.grade_stats) {
                         document.getElementById('grade-stats-block').style.display = 'block';
-                        document.getElementById('total-scores-value').textContent = data.grade_stats.total_scores ?? '0';
-                        document.getElementById('avg-score-value').textContent = (data.grade_stats.avg_score ?? '0') + '%';
-                        document.getElementById('students-assessed-value').textContent = data.grade_stats.students_with_scores ?? '0';
-                        document.getElementById('total-assessments-value').textContent = data.grade_stats.total_assessments ?? '0';
-                        document.getElementById('pass-rate-60-value').textContent = (data.grade_stats.pass_rate ?? '0') + '%';
-                        document.getElementById('score-range-block').textContent = `Score Range: ${data.grade_stats.score_range ?? '0'} | Passing: ${data.grade_stats.passing_count ?? '0'} | Failing: ${data.grade_stats.failing_count ?? '0'}`;
+                        
+                        // Display actual numeric values with proper formatting
+                        const totalScores = data.grade_stats.total_scores ?? 0;
+                        const avgScore = data.grade_stats.avg_score ?? 0;
+                        const studentsAssessed = data.grade_stats.students_with_scores ?? 0;
+                        const totalAssessments = data.grade_stats.total_assessments ?? 0;
+                        const passRate = data.grade_stats.pass_rate ?? 0;
+                        const passingCount = data.grade_stats.passing_count ?? 0;
+                        const failingCount = data.grade_stats.failing_count ?? 0;
+                        const scoreMin = data.grade_stats.score_min ?? 0;
+                        const scoreMax = data.grade_stats.score_max ?? 0;
+                        
+                        // Update Assessment Performance section
+                        document.getElementById('total-scores-value').textContent = totalScores;
+                        document.getElementById('avg-score-value').textContent = parseFloat(avgScore).toFixed(2) + '%';
+                        document.getElementById('students-assessed-value').textContent = studentsAssessed;
+                        document.getElementById('total-assessments-value').textContent = totalAssessments;
+                        document.getElementById('pass-rate-60-value').textContent = parseFloat(passRate).toFixed(1) + '%';
+                        document.getElementById('score-range-block').textContent = `Score Range: ${parseFloat(scoreMin).toFixed(1)} - ${parseFloat(scoreMax).toFixed(1)} | Passing: ${passingCount} | Failing: ${failingCount}`;
+                        
+                        // Update charts with actual data
+                        console.log('Calling updateCharts with:', data);
+                        updateCharts(data);
                     } else {
                         document.getElementById('grade-stats-block').style.display = 'none';
                     }
+                })
+                .catch(error => {
+                    console.error('Stats fetch error:', error);
                 });
 
                 // Fetch advanced stats
@@ -587,10 +1248,10 @@
                 .then(response => response.json())
                 .then(data => {
                     document.getElementById('advanced-stats-block').style.display = 'block';
-                    document.getElementById('std-dev-value').textContent = data.std_dev ?? '-';
+                    document.getElementById('std-dev-value').textContent = (data.std_dev ?? '-').toFixed(2);
                     document.getElementById('outlier-count-value').textContent = data.outlier_count ?? '-';
-                    document.getElementById('regression-value').textContent = data.regression?.slope ?? '-';
-                    document.getElementById('regression-r2-value').textContent = data.regression?.r2 ?? '-';
+                    document.getElementById('regression-value').textContent = (data.regression?.slope ?? '-').toFixed(4);
+                    document.getElementById('regression-r2-value').textContent = (data.regression?.r2 ?? '-').toFixed(4);
 
                     // Show descriptive messages
                     document.getElementById('std-dev-description').style.display = 'block';
@@ -609,18 +1270,346 @@
                 })
                 .catch(() => {
                     document.getElementById('advanced-stats-block').style.display = 'block';
-                    document.getElementById('std-dev-value').textContent = '-';
-                    document.getElementById('outlier-count-value').textContent = '-';
-                    document.getElementById('regression-value').textContent = '-';
-                    document.getElementById('regression-r2-value').textContent = '-';
-                    document.getElementById('outlier-list').textContent = 'Error loading statistics.';
+                    document.getElementById('std-dev-value').textContent = '—';
+                    document.getElementById('outlier-count-value').textContent = '—';
+                    document.getElementById('regression-value').textContent = '—';
+                    document.getElementById('regression-r2-value').textContent = '—';
+                    document.getElementById('std-dev-description').style.display = 'block';
+                    document.getElementById('outlier-description').style.display = 'block';
+                    document.getElementById('regression-description').style.display = 'block';
+                    document.getElementById('outlier-list').textContent = '';
                 });
             });
 
             // Initial state
-            statsContent.style.display = 'none';
             resetStats();
-            showClassModal();
+
+            // Initialize Grade Distribution Chart
+            function initGradeDistributionChart() {
+                const ctx = document.getElementById('gradeDistributionChart');
+                if (!ctx) return;
+                
+                if (gradeDistributionChart) {
+                    gradeDistributionChart.destroy();
+                    gradeDistributionChart = null;
+                }
+                
+                gradeDistributionChart = new Chart(ctx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['A (90-100%)', 'B (80-89%)', 'C (70-79%)', 'D (60-69%)', 'F (<60%)'],
+                        datasets: [{
+                            data: [0, 0, 0, 0, 0],
+                            backgroundColor: [
+                                '#10b981',
+                                '#005A31',
+                                '#f59e0b',
+                                '#ef4444',
+                                '#6b7280'
+                            ],
+                            borderColor: '#ffffff',
+                            borderWidth: 3,
+                            borderRadius: 8
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: true,
+                        animation: {
+                            animateScale: true,
+                            animateRotate: true
+                        },
+                        plugins: {
+                            legend: {
+                                position: 'bottom',
+                                labels: {
+                                    font: { size: 12, weight: '600' },
+                                    color: '#374151',
+                                    padding: 15,
+                                    boxWidth: 12,
+                                    boxHeight: 12,
+                                    usePointStyle: false
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+
+            // Initialize Student Performance Chart
+            function initStudentPerformanceChart() {
+                const ctx = document.getElementById('studentPerformanceChart');
+                if (!ctx) return;
+                
+                if (studentPerformanceChart) {
+                    studentPerformanceChart.destroy();
+                    studentPerformanceChart = null;
+                }
+                
+                studentPerformanceChart = new Chart(ctx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['Passing', 'Failing'],
+                        datasets: [{
+                            data: [0, 0],
+                            backgroundColor: [
+                                '#10b981',
+                                '#ef4444'
+                            ],
+                            borderColor: '#ffffff',
+                            borderWidth: 3,
+                            borderRadius: 8
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: true,
+                        animation: {
+                            animateScale: true,
+                            animateRotate: true
+                        },
+                        plugins: {
+                            legend: {
+                                position: 'bottom',
+                                labels: {
+                                    font: { size: 12, weight: '600' },
+                                    color: '#374151',
+                                    padding: 15,
+                                    boxWidth: 12,
+                                    boxHeight: 12,
+                                    usePointStyle: false
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+
+            // Initialize Assessment Trend Chart
+            function initAssessmentTrendChart() {
+                const ctx = document.getElementById('assessmentTrendChart');
+                if (!ctx) return;
+                
+                if (assessmentTrendChart) {
+                    assessmentTrendChart.destroy();
+                    assessmentTrendChart = null;
+                }
+                
+                assessmentTrendChart = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: ['Assessment 1', 'Assessment 2', 'Assessment 3', 'Assessment 4', 'Assessment 5'],
+                        datasets: [{
+                            label: 'Average Score',
+                            data: [0, 0, 0, 0, 0],
+                            borderColor: '#005A31',
+                            backgroundColor: 'rgba(0, 90, 49, 0.1)',
+                            borderWidth: 3,
+                            tension: 0.4,
+                            fill: true,
+                            pointRadius: 6,
+                            pointBackgroundColor: '#005A31',
+                            pointBorderColor: '#ffffff',
+                            pointBorderWidth: 2,
+                            pointHoverRadius: 8,
+                            pointHoverBackgroundColor: '#1B7E2B'
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: true,
+                        interaction: {
+                            mode: 'index',
+                            intersect: false
+                        },
+                        plugins: {
+                            legend: {
+                                labels: {
+                                    font: { size: 12, weight: '600' },
+                                    color: '#374151',
+                                    padding: 15
+                                }
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                max: 100,
+                                grid: {
+                                    color: 'rgba(0, 0, 0, 0.05)',
+                                    drawBorder: false
+                                },
+                                ticks: {
+                                    color: '#6b7280',
+                                    font: { weight: '600' },
+                                    callback: function(value) {
+                                        return value + '%';
+                                    }
+                                }
+                            },
+                            x: {
+                                grid: {
+                                    display: false,
+                                    drawBorder: false
+                                },
+                                ticks: {
+                                    color: '#6b7280',
+                                    font: { weight: '600' }
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+
+            // Initialize Score Distribution Chart
+            function initScoreDistributionChart() {
+                const ctx = document.getElementById('scoreDistributionChart');
+                if (!ctx) return;
+                
+                if (scoreDistributionChart) {
+                    scoreDistributionChart.destroy();
+                    scoreDistributionChart = null;
+                }
+                
+                scoreDistributionChart = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: ['0-20%', '20-40%', '40-60%', '60-80%', '80-100%'],
+                        datasets: [{
+                            label: 'Number of Students',
+                            data: [0, 0, 0, 0, 0],
+                            backgroundColor: [
+                                '#ef4444',
+                                '#f59e0b',
+                                '#eab308',
+                                '#84cc16',
+                                '#10b981'
+                            ],
+                            borderColor: '#ffffff',
+                            borderWidth: 2,
+                            borderRadius: 8,
+                            barThickness: 'flex',
+                            maxBarThickness: 60
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: true,
+                        indexAxis: 'x',
+                        interaction: {
+                            mode: 'index',
+                            intersect: false
+                        },
+                        plugins: {
+                            legend: {
+                                labels: {
+                                    font: { size: 12, weight: '600' },
+                                    color: '#374151',
+                                    padding: 15
+                                }
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                grid: {
+                                    color: 'rgba(0, 0, 0, 0.05)',
+                                    drawBorder: false
+                                },
+                                ticks: {
+                                    color: '#6b7280',
+                                    font: { weight: '600' },
+                                    stepSize: 1
+                                }
+                            },
+                            x: {
+                                grid: {
+                                    display: false,
+                                    drawBorder: false
+                                },
+                                ticks: {
+                                    color: '#6b7280',
+                                    font: { weight: '600' }
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+
+            // Update charts with data
+            function updateCharts(data) {
+                console.log('updateCharts called with:', {
+                    grade_distribution: data.grade_distribution,
+                    grade_stats: data.grade_stats,
+                    assessment_trends: data.assessment_trends
+                });
+
+                // Update Grade Distribution Chart
+                if (gradeDistributionChart && data.grade_distribution) {
+                    const gradeData = [
+                        data.grade_distribution.A || 0,
+                        data.grade_distribution.B || 0,
+                        data.grade_distribution.C || 0,
+                        data.grade_distribution.D || 0,
+                        data.grade_distribution.F || 0
+                    ];
+                    console.log('Grade data:', gradeData);
+                    gradeDistributionChart.data.datasets[0].data = gradeData;
+                    gradeDistributionChart.update('none');
+                } else {
+                    console.warn('Grade distribution chart or data missing');
+                }
+
+                // Update Student Performance Chart
+                if (studentPerformanceChart && data.grade_stats) {
+                    const perfData = [
+                        data.grade_stats.passing_count || 0,
+                        data.grade_stats.failing_count || 0
+                    ];
+                    console.log('Performance data:', perfData);
+                    studentPerformanceChart.data.datasets[0].data = perfData;
+                    studentPerformanceChart.update('none');
+                } else {
+                    console.warn('Performance chart or grade_stats missing');
+                }
+
+                // Update Assessment Trend Chart
+                if (assessmentTrendChart && data.assessment_trends) {
+                    const trendLabels = data.assessment_trends.labels || ['Assessment 1', 'Assessment 2', 'Assessment 3', 'Assessment 4', 'Assessment 5'];
+                    const trendScores = data.assessment_trends.scores || [0, 0, 0, 0, 0];
+                    console.log('Trend labels:', trendLabels);
+                    console.log('Trend scores:', trendScores);
+                    assessmentTrendChart.data.labels = trendLabels;
+                    assessmentTrendChart.data.datasets[0].data = trendScores;
+                    assessmentTrendChart.update('none');
+                } else {
+                    console.warn('Assessment trend chart or assessment_trends missing');
+                }
+
+                // Update Score Distribution Chart
+                if (scoreDistributionChart && data.score_distribution) {
+                    const scoreData = [
+                        data.score_distribution['0-20'] || 0,
+                        data.score_distribution['20-40'] || 0,
+                        data.score_distribution['40-60'] || 0,
+                        data.score_distribution['60-80'] || 0,
+                        data.score_distribution['80-100'] || 0
+                    ];
+                    console.log('Score distribution data:', scoreData);
+                    scoreDistributionChart.data.datasets[0].data = scoreData;
+                    scoreDistributionChart.update('none');
+                } else {
+                    console.warn('Score distribution chart or data missing');
+                }
+            }
+
+            // Initialize charts on load
+            initGradeDistributionChart();
+            initStudentPerformanceChart();
+            initAssessmentTrendChart();
+            initScoreDistributionChart();
         });
     </script>
 </body>

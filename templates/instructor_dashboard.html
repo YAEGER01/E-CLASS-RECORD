@@ -91,7 +91,7 @@
                                 <p>View teaching statistics</p>
                             </div>
                         </a>
-                        <a href="#" onclick="openGradeSheetReport()" class="action-card">
+                        <a href="#" onclick="openGradeSheetReport(); return false;" class="action-card">
                             <div class="card-content">
                                 <h3>Grade Sheet Report</h3>
                                 <p>Generate comprehensive grade reports</p>
@@ -186,6 +186,75 @@
         let classes = [];
         let currentClassId = null;
         let currentClassName = null;
+        
+        // Check if we're opening a modal via hash
+        const hasModalHash = window.location.hash === '#open-students-modal' || window.location.hash === '#open-grade-sheet-modal';
+
+        // Global modal functions - defined at top level for accessibility from navbar
+        function openGradeSheetReport() {
+            const modal = document.getElementById('grade-sheet-report-modal');
+            if (modal) {
+                if (typeof loadClassesForGradeSheetReport === 'function') {
+                    loadClassesForGradeSheetReport();
+                }
+                modal.setAttribute('aria-hidden', 'false');
+                modal.style.display = 'flex';
+            }
+        }
+
+        function closeGradeSheetReportModal() {
+            const modal = document.getElementById('grade-sheet-report-modal');
+            if (modal) {
+                modal.setAttribute('aria-hidden', 'true');
+                modal.style.display = 'none';
+            }
+        }
+
+        function openStudentsModal() {
+            const modal = document.getElementById('students-modal');
+            if (modal) {
+                modal.setAttribute('aria-hidden', 'false');
+                modal.style.display = 'flex';
+                if (typeof loadClassesForStudentManagement === 'function') {
+                    loadClassesForStudentManagement();
+                }
+                if (typeof loadPendingRequestsCount === 'function') {
+                    loadPendingRequestsCount();
+                }
+            }
+        }
+
+        function closeStudentsModal() {
+            const modal = document.getElementById('students-modal');
+            if (modal) {
+                modal.setAttribute('aria-hidden', 'true');
+                modal.style.display = 'none';
+            }
+        }
+
+        // Check for hash to open specific modal on page load
+        window.addEventListener('load', function () {
+            const hash = window.location.hash;
+            if (hash === '#open-students-modal') {
+                // Clear the hash
+                window.history.replaceState(null, null, ' ');
+                // Open the students modal
+                setTimeout(function() {
+                    if (typeof openStudentsModal === 'function') {
+                        openStudentsModal();
+                    }
+                }, 200);
+            } else if (hash === '#open-grade-sheet-modal') {
+                // Clear the hash
+                window.history.replaceState(null, null, ' ');
+                // Open the grade sheet modal
+                setTimeout(function() {
+                    if (typeof openGradeSheetReport === 'function') {
+                        openGradeSheetReport();
+                    }
+                }, 200);
+            }
+        });
 
         // Display any flashed messages from the server using SweetAlert (toasts only)
         document.addEventListener('DOMContentLoaded', function () {
@@ -234,7 +303,8 @@
                     classes = Array.isArray(data.classes) ? data.classes : [];
                     renderClasses();
 
-                    if (classes.length > 0) {
+                    // Only show success message if we're not opening a modal
+                    if (classes.length > 0 && !hasModalHash) {
                         Swal.fire({
                                 icon: 'success',
                                 title: 'Classes Loaded!',
@@ -703,19 +773,22 @@
             // Load pending requests count on page load
             loadPendingRequestsCount();
             
-            setTimeout(() => {
-                Swal.fire({
-                    title: 'Welcome back, Instructor!',
-                    text: 'Your dashboard is ready. Look for the "View Details" buttons next to each class to open class management options.',
-                    icon: 'info',
-                    timer: 1400,
-                    timerProgressBar: false,
-                    showConfirmButton: false,
-                    position: 'center',
-                    background: '#f9fafb',
-                    color: '#374151'
-                });
-            }, 900);
+            // Only show welcome modal if we're not opening a specific modal
+            if (!hasModalHash) {
+                setTimeout(() => {
+                    Swal.fire({
+                        title: 'Welcome back, Instructor!',
+                        text: 'Your dashboard is ready. Look for the "View Details" buttons next to each class to open class management options.',
+                        icon: 'info',
+                        timer: 1400,
+                        timerProgressBar: false,
+                        showConfirmButton: false,
+                        position: 'center',
+                        background: '#f9fafb',
+                        color: '#374151'
+                    });
+                }, 900);
+            }
 
             loadClasses();
         });
@@ -1235,30 +1308,11 @@
             window.open('/api/export/student-grades', '_blank');
         }
 
-        // Grade Sheet Report Modal Functions
-        function openGradeSheetReport() {
-            loadClassesForGradeSheetReport();
-            document.getElementById('grade-sheet-report-modal').setAttribute('aria-hidden', 'false');
-            document.getElementById('grade-sheet-report-modal').style.display = 'flex';
-        }
+        // Grade Sheet Report Modal Functions (MOVED TO GLOBAL SCOPE - see top of script)
+        // These functions are now defined globally for navbar access
 
-        function closeGradeSheetReportModal() {
-            document.getElementById('grade-sheet-report-modal').setAttribute('aria-hidden', 'true');
-            document.getElementById('grade-sheet-report-modal').style.display = 'none';
-        }
-
-        // Students Modal Functions
-        function openStudentsModal() {
-            document.getElementById('students-modal').setAttribute('aria-hidden', 'false');
-            document.getElementById('students-modal').style.display = 'flex';
-            loadClassesForStudentManagement();
-            loadPendingRequestsCount();
-        }
-
-        function closeStudentsModal() {
-            document.getElementById('students-modal').setAttribute('aria-hidden', 'true');
-            document.getElementById('students-modal').style.display = 'none';
-        }
+        // Students Modal Functions (MOVED TO GLOBAL SCOPE - see top of script)
+        // These functions are now defined globally for navbar access
 
         async function loadClassesForStudentManagement() {
             try {

@@ -8,8 +8,9 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/register-page.css') }}">
     <!-- Font Awesome CSS -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- SweetAlert2 CSS -->
+    <!-- SweetAlert2 CSS & JS -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11.7.32/dist/sweetalert2.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.7.32/dist/sweetalert2.all.min.js"></script>
     {% if captcha_enabled %}
     <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
     {% endif %}
@@ -17,16 +18,8 @@
 
 {% set saved_track = form_data.track if form_data and form_data.track else '' %}
 {% with messages = get_flashed_messages(with_categories=true) %}
-{% set has_registration_pending = False %}
-{% if messages %}
-    {% for message in messages %}
-        {% if message[1] == 'registration_pending' %}
-            {% set has_registration_pending = True %}
-        {% endif %}
-    {% endfor %}
-{% endif %}
 <body {% if saved_track %}data-saved-track="{{ saved_track }}"{% endif %}
-    {% if has_registration_pending %}data-flash-message="registration_pending"{% endif %}
+    {% for category, message in messages %}{% if category == 'registration_pending' %}data-flash-message="registration_pending"{% endif %}{% endfor %}
     >
     <div class="bg-container">
         <div class="bg-shape"></div>
@@ -54,11 +47,13 @@
                 <div class="form-section">
                     {% if messages %}
                     {% for category, message in messages %}
+                    {% if category != 'registration_pending' %}
                     <div class="status {{ 'error' if category == 'error' else 'success' }}" role="alert"
                         aria-live="assertive">
                         <i class="fas fa-{{ 'exclamation-circle' if category == 'error' else 'check-circle' }}"></i> {{
                         message }}
                     </div>
+                    {% endif %}
                     {% endfor %}
                     {% endif %}
 
@@ -88,13 +83,12 @@
 
                             <div class="form-field">
                                 <label for="middleName">
-                                    Middle Name
+                                    Middle Name <span class="required-mark">*</span>
                                 </label>
                                 <div class="input-group">
                                     <input id="middleName" name="middleName" type="text" placeholder="Santos"
-                                        value="{{ form_data.middleName if form_data else '' }}" />
+                                        required value="{{ form_data.middleName if form_data else '' }}" />
                                 </div>
-                                <div class="field-hint">Optional</div>
                             </div>
 
                             <div class="form-field">
@@ -103,9 +97,9 @@
                                 </label>
                                 <div class="input-group">
                                     <input id="schoolId" name="schoolId" type="text" placeholder="e.g. 22-12345"
-                                        required value="{{ form_data.schoolId if form_data else '' }}" pattern="^(21|22|23|24|25|26)-\d{5}$" />
+                                        required value="{{ form_data.schoolId if form_data else '' }}" pattern="^\d{2}-\d{5}$" />
                                 </div>
-                                <div class="field-hint">Format: YY-NNNNN (e.g., 22-12345, 23-15472) where YY is 21-26</div>
+                                <div class="field-hint">Format: YY-NNNNN (e.g., 01-12345, 22-12345, 99-15472)</div>
                             </div>
 
                             <div class="form-field">
@@ -114,9 +108,9 @@
                                 </label>
                                 <div class="input-group">
                                     <input id="email" name="email" type="email" placeholder="your.email@example.com"
-                                        required value="{{ form_data.email if form_data else '' }}" />
+                                        required value="{{ form_data.email if form_data else '' }}" pattern="^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$" />
                                 </div>
-                                <div class="field-hint">We'll send your approval notification here</div>
+                                <div class="field-hint">We'll send your approval notification here (e.g., student@isu.edu.ph)</div>
                             </div>
 
                             <div class="form-field">
@@ -139,8 +133,8 @@
                             </div>
 
                             <div class="form-field">
-                                <label for="track">Specialization Track</label>
-                                <select id="track" name="track">
+                                <label for="track">Specialization Track <span class="required-mark">*</span></label>
+                                <select id="track" name="track" required>
                                     <option value="">Select Track</option>
                                     <!-- Options will be populated dynamically based on course selection -->
                                 </select>
@@ -167,8 +161,13 @@
                                 <label for="section">
                                     Section <span class="required-mark">*</span>
                                 </label>
-                                <input id="section" name="section" type="text" placeholder="e.g. A, B, C" required
-                                    value="{{ form_data.section if form_data else '' }}" />
+                                <select id="section" name="section" required>
+                                    <option value="">Select Section</option>
+                                    <option value="A" {{ 'selected' if form_data and form_data.section=='A' else '' }}>A</option>
+                                    <option value="B" {{ 'selected' if form_data and form_data.section=='B' else '' }}>B</option>
+                                    <option value="C" {{ 'selected' if form_data and form_data.section=='C' else '' }}>C</option>
+                                    <option value="D" {{ 'selected' if form_data and form_data.section=='D' else '' }}>D</option>
+                                </select>
                             </div>
 
                             <div class="form-field">
@@ -846,30 +845,35 @@
         document.addEventListener('DOMContentLoaded', function() {
             if (document.body.dataset.flashMessage === 'registration_pending') {
                 Swal.fire({
-                    icon: 'info',
-                    title: 'Registration Pending Approval',
+                    icon: 'success',
+                    title: 'Account Registration Successful!',
                     html: `
                         <div style="text-align: left; padding: 20px;">
-                            <p style="font-size: 16px; margin-bottom: 15px;">
-                                Thank you for registering! Your account has been submitted for approval.
+                            <p style="font-size: 15px; margin-bottom: 20px; line-height: 1.6;">
+                                Thank you for registering with the <strong>E-CLASS Record System</strong>! Your account has been successfully created and is currently under review.
                             </p>
-                            <div style="background: #f3f4f6; padding: 15px; border-radius: 8px; border-left: 4px solid #3b82f6;">
-                                <p style="margin: 0; font-size: 14px;">
-                                    <strong>📧 Email Notification:</strong><br>
-                                    You will receive an email notification at your registered email address once your account is:
+                            <div style="background: #e0f2fe; padding: 15px; border-radius: 8px; border-left: 4px solid #0284c7; margin-bottom: 15px;">
+                                <p style="margin: 0; font-size: 14px; color: #0355a3;">
+                                    <strong>📋 Status: Account Under Review</strong><br>
+                                    <span style="font-size: 13px;">Our administrators will review your registration and verify your documents.</span>
                                 </p>
-                                <ul style="margin: 10px 0 0 20px; font-size: 14px;">
-                                    <li><strong>Approved</strong> - You can then log in to the system</li>
-                                    <li><strong>Not Approved</strong> - With information about the decision</li>
-                                </ul>
                             </div>
-                            <p style="font-size: 13px; color: #6b7280; margin-top: 15px;">
-                                The administrator will review your registration soon. Please check your email regularly.
-                            </p>
+                            <div style="background: #fef3c7; padding: 15px; border-radius: 8px; border-left: 4px solid #d97706; margin-bottom: 15px;">
+                                <p style="margin: 0; font-size: 14px; color: #92400e;">
+                                    <strong>📧 Email Notification</strong><br>
+                                    <span style="font-size: 13px;">We will send you a notification email as soon as your account has been reviewed. Please check your email (including spam folder) regularly.</span>
+                                </p>
+                            </div>
+                            <div style="background: #f0fdf4; padding: 15px; border-radius: 8px; border-left: 4px solid #16a34a;">
+                                <p style="margin: 0; font-size: 14px; color: #15803d;">
+                                    <strong>✓ What happens next?</strong><br>
+                                    <span style="font-size: 13px;">Once approved, you'll be able to log in and access the complete E-CLASS Record System for managing your grades and academic information.</span>
+                                </p>
+                            </div>
                         </div>
                     `,
-                    confirmButtonText: 'OK, Got it!',
-                    confirmButtonColor: '#3b82f6',
+                    confirmButtonText: 'OK, I Understand',
+                    confirmButtonColor: '#0284c7',
                     width: '600px',
                     customClass: {
                         popup: 'registration-pending-popup'
@@ -880,13 +884,13 @@
 
         // School ID format validation
         const schoolIdInput = document.getElementById('schoolId');
-        const schoolIdPattern = /^(21|22|23|24|25|26)-\d{5}$/;
+        const schoolIdPattern = /^\d{2}-\d{5}$/;
 
         if (schoolIdInput) {
             schoolIdInput.addEventListener('blur', function() {
                 const value = this.value.trim();
                 if (value && !schoolIdPattern.test(value)) {
-                    this.setCustomValidity('Invalid format. Use YY-NNNNN (e.g., 22-12345) where YY is 21-26');
+                    this.setCustomValidity('Invalid format. Use YY-NNNNN (e.g., 01-12345, 22-12345, 99-15472) where YY is 01-99');
                     this.reportValidity();
                 } else {
                     this.setCustomValidity('');
@@ -896,7 +900,7 @@
             schoolIdInput.addEventListener('input', function() {
                 if (this.value.trim()) {
                     if (!schoolIdPattern.test(this.value)) {
-                        this.setCustomValidity('Invalid format. Use YY-NNNNN (e.g., 22-12345) where YY is 21-26');
+                        this.setCustomValidity('Invalid format. Use YY-NNNNN (e.g., 01-12345, 22-12345, 99-15472) where YY is 01-99');
                     } else {
                         this.setCustomValidity('');
                     }
@@ -905,9 +909,109 @@
                 }
             });
         }
+
+        // Email address format validation
+        const emailInput = document.getElementById('email');
+        const emailPattern = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+
+        if (emailInput) {
+            emailInput.addEventListener('blur', function() {
+                const value = this.value.trim();
+                if (value && !emailPattern.test(value)) {
+                    this.setCustomValidity('Invalid email format. Use a valid email address (e.g., student@isu.edu.ph)');
+                    this.reportValidity();
+                } else {
+                    this.setCustomValidity('');
+                }
+            });
+
+            emailInput.addEventListener('input', function() {
+                if (this.value.trim()) {
+                    if (!emailPattern.test(this.value)) {
+                        this.setCustomValidity('Invalid email format. Use a valid email address (e.g., student@isu.edu.ph)');
+                    } else {
+                        this.setCustomValidity('');
+                    }
+                } else {
+                    this.setCustomValidity('');
+                }
+            });
+        }
+
+        // Real-time validation for School ID availability
+        const schoolIdField = document.getElementById('schoolId');
+        if (schoolIdField) {
+            schoolIdField.addEventListener('blur', function() {
+                const schoolId = this.value.trim();
+                if (schoolId && /^\d{2}-\d{5}$/.test(schoolId)) {
+                    checkAvailability('school_id', schoolId, 'schoolIdMessage');
+                }
+            });
+        }
+
+        // Real-time validation for Email availability
+        const emailField = document.getElementById('email');
+        if (emailField) {
+            emailField.addEventListener('blur', function() {
+                const email = this.value.trim();
+                if (email && /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(email)) {
+                    checkAvailability('email', email, 'emailMessage');
+                }
+            });
+        }
+
+        // Function to check availability via API
+        function checkAvailability(fieldType, fieldValue, messageElementId) {
+            // Get CSRF token from the form
+            const csrfToken = document.querySelector('input[name="csrf_token"]').value;
+            
+            fetch('/api/check-registration-availability', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrfToken
+                },
+                body: JSON.stringify({
+                    type: fieldType,
+                    value: fieldValue
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                // Create or get the message element
+                let messageEl = document.getElementById(messageElementId);
+                if (!messageEl) {
+                    const inputEl = fieldType === 'school_id' ? schoolIdField : emailField;
+                    messageEl = document.createElement('div');
+                    messageEl.id = messageElementId;
+                    messageEl.style.marginTop = '8px';
+                    messageEl.style.fontSize = '13px';
+                    messageEl.style.fontWeight = '500';
+                    inputEl.parentElement.insertAdjacentElement('afterend', messageEl);
+                }
+
+                // Display availability status
+                if (data.available) {
+                    messageEl.innerHTML = `<span style="color: #10b981;">${data.message}</span>`;
+                    if (fieldType === 'school_id') {
+                        schoolIdField.style.borderColor = '#10b981';
+                    } else {
+                        emailField.style.borderColor = '#10b981';
+                    }
+                } else {
+                    messageEl.innerHTML = `<span style="color: #ef4444;">${data.message}</span>`;
+                    if (fieldType === 'school_id') {
+                        schoolIdField.style.borderColor = '#ef4444';
+                    } else {
+                        emailField.style.borderColor = '#ef4444';
+                    }
+                }
+            })
+            .catch(error => {
+                console.error('Error checking availability:', error);
+            });
+        }
     </script>
-    <!-- SweetAlert2 JS -->
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.7.32/dist/sweetalert2.all.min.js"></script>
 {% endwith %}
 </body>
 

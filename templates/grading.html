@@ -48,10 +48,11 @@
         /* Base table cell styling */
         .grading-table th,
         .grading-table td {
-            padding: 12px 16px;
+            padding: 6px 8px;
             text-align: center;
             border: 1px solid #e1e4e6;
             transition: background-color 0.2s;
+            font-size: 0.85rem;
         }
 
         /*
@@ -65,9 +66,9 @@
 
         /* Level 1 Grouping Header - Base styles */
         .header-group th {
-            font-size: 1.0rem;
+            font-size: 0.9rem;
             font-weight: 700;
-            padding: 8px 16px;
+            padding: 6px 8px;
             border-bottom: 2px solid #ced4da;
         }
 
@@ -90,8 +91,8 @@
         */
         .student-header {
             text-align: left;
-            padding-left: 20px;
-            min-width: 200px;
+            padding-left: 10px;
+            min-width: 180px;
             background-color: #f8f9fa;
             color: #343a40;
 
@@ -100,6 +101,85 @@
             left: 0;
             z-index: 10;
             box-shadow: 2px 0 3px rgba(0, 0, 0, 0.1);
+            font-size: 0.85rem;
+        }
+
+        /* Grade input cells - editable styling */
+        .grade-cell {
+            cursor: pointer;
+            position: relative;
+            user-select: none;
+            min-height: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+        }
+
+        .grade-cell:hover {
+            background-color: #f0f8ff;
+            box-shadow: inset 0 0 3px rgba(0, 118, 255, 0.2);
+        }
+
+        .grade-cell.active-cell {
+            background-color: #d9ebff;
+            box-shadow: inset 0 0 0 2px #0056b3;
+            outline: 2px solid #0056b3;
+        }
+
+        /* Grade input field */
+        .grade-input {
+            width: 90%;
+            padding: 2px 4px;
+            border: 1px solid #0056b3;
+            border-radius: 3px;
+            font-size: 0.85rem;
+            text-align: center;
+            background-color: white;
+            box-sizing: border-box;
+        }
+
+        .grade-input:focus {
+            outline: none;
+            box-shadow: 0 0 0 2px rgba(0, 86, 179, 0.3);
+        }
+
+        /* Keyboard hint indicator */
+        .keyboard-hint {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: #0056b3;
+            color: white;
+            padding: 10px 16px;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            z-index: 1000;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+            text-align: center;
+            animation: slideInUp 0.3s ease;
+        }
+
+        @keyframes slideInUp {
+            from {
+                transform: translateY(20px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .keyboard-hint.hidden {
+            display: none;
+        }
+
+        /* Grade display for non-editing mode */
+        .grade-display {
+            font-weight: 600;
+            color: #212529;
         }
 
         .sticky-column {
@@ -138,7 +218,7 @@
         /* Button row styling */
         .action-row td {
             background-color: white;
-            padding: 16px 8px;
+            padding: 8px 4px;
         }
 
         /* The Add Button */
@@ -146,16 +226,15 @@
             background-color: white;
             color: #007bff;
             border: 1px solid #ced4da;
-            padding: 8px 15px;
-            border-radius: 8px;
-            font-size: 0.8rem;
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-size: 0.75rem;
             cursor: pointer;
             outline: none;
             transition: all 0.2s;
             box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
             font-weight: 600;
             white-space: nowrap;
-            /* Prevent button text from wrapping */
         }
 
         .add-btn:hover {
@@ -170,7 +249,7 @@
 
         /* Score/Data cells */
         .grading-table .data-placeholder {
-            font-size: 1.2rem;
+            font-size: 1rem;
             color: #6c757d;
             font-weight: 300;
         }
@@ -217,30 +296,39 @@
         */
         @media (max-width: 600px) {
             body {
-                padding: 10px;
+                padding: 8px;
             }
 
             .grading-table th,
             .grading-table td {
-                padding: 8px 10px;
+                padding: 4px 6px;
                 /* Reduced padding */
-            }
-
-            .header-group th {
-                font-size: 0.9rem;
-            }
-
-            .header-assessment th {
                 font-size: 0.75rem;
             }
 
+            .header-group th {
+                font-size: 0.8rem;
+                padding: 4px 6px;
+            }
+
+            .header-assessment th {
+                font-size: 0.7rem;
+            }
+
             .student-header {
-                min-width: 150px;
-                padding-left: 10px;
+                min-width: 140px;
+                padding-left: 6px;
             }
 
             .add-btn {
-                padding: 6px 10px;
+                padding: 4px 8px;
+                font-size: 0.7rem;
+            }
+
+            .keyboard-hint {
+                bottom: 10px;
+                right: 10px;
+                padding: 8px 12px;
                 font-size: 0.7rem;
             }
 
@@ -302,35 +390,221 @@
                     <td><button class="add-btn" data-assessment="Lab Participation">+ Add</button></td>
                 </tr>
 
-                <!-- Student Data Row (Scores are now placeholders) -->
+                <!-- Student Data Row (Scores are now editable) -->
                 <tr class="student-data-row">
                     <td>FHE0000000002. MAdnononoxo</td>
-                    <!-- LECTURE SCORES (Placeholder) -->
-                    <td class="data-placeholder">—</td>
-                    <td class="data-placeholder">—</td>
-                    <td class="data-placeholder">—</td>
-                    <td class="data-placeholder">—</td>
-                    <td class="data-placeholder">—</td>
-                    <!-- LABORATORY SCORE (Placeholder) -->
-                    <td class="data-placeholder">—</td>
+                    <!-- LECTURE SCORES (Editable) -->
+                    <td class="grade-cell" data-row="0" data-col="0" data-assessment="Attendance"><span class="data-placeholder">—</span></td>
+                    <td class="grade-cell" data-row="0" data-col="1" data-assessment="Homework"><span class="data-placeholder">—</span></td>
+                    <td class="grade-cell" data-row="0" data-col="2" data-assessment="Quiz"><span class="data-placeholder">—</span></td>
+                    <td class="grade-cell" data-row="0" data-col="3" data-assessment="Prelim Exam"><span class="data-placeholder">—</span></td>
+                    <td class="grade-cell" data-row="0" data-col="4" data-assessment="Final Exam"><span class="data-placeholder">—</span></td>
+                    <!-- LABORATORY SCORE (Editable) -->
+                    <td class="grade-cell" data-row="0" data-col="5" data-assessment="Lab Participation"><span class="data-placeholder">—</span></td>
                 </tr>
             </tbody>
         </table>
     </div>
 
+    <!-- Keyboard Navigation Hint -->
+    <div class="keyboard-hint hidden" id="keyboardHint">
+        <div><strong>↑↓←→ or W/A/S/D</strong> to Navigate</div>
+        <div><strong>Enter</strong> to Edit • <strong>Esc</strong> to Cancel</div>
+    </div>
+
     <!-- SweetAlert2 JS -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.12.3/dist/sweetalert2.all.min.js"></script>
     <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            const addButtons = document.querySelectorAll('.add-btn');
+        // ============================================
+        // GRADE INPUT WITH KEYBOARD NAVIGATION
+        // ============================================
+        class GradeEditor {
+            constructor() {
+                this.currentCell = null;
+                this.grades = {}; // Store grades: "row-col" => value
+                this.gradeCells = document.querySelectorAll('.grade-cell');
+                this.keyboardHint = document.getElementById('keyboardHint');
+                this.isEditing = false;
+                
+                this.initializeEventListeners();
+                this.showKeyboardHint();
+            }
 
+            initializeEventListeners() {
+                this.gradeCells.forEach(cell => {
+                    cell.addEventListener('click', (e) => this.selectCell(e.target.closest('.grade-cell')));
+                    cell.addEventListener('dblclick', () => this.startEdit(this.currentCell));
+                });
+
+                document.addEventListener('keydown', (e) => this.handleKeydown(e));
+                document.addEventListener('click', (e) => {
+                    if (!e.target.closest('.grade-cell') && !e.target.closest('.grade-input')) {
+                        this.deselectCell();
+                    }
+                });
+            }
+
+            selectCell(cell) {
+                if (!cell || cell === this.currentCell) return;
+                
+                // Deselect previous cell
+                if (this.currentCell) {
+                    this.currentCell.classList.remove('active-cell');
+                }
+
+                // Select new cell
+                this.currentCell = cell;
+                cell.classList.add('active-cell');
+                this.showKeyboardHint();
+            }
+
+            startEdit(cell) {
+                if (!cell || this.isEditing) return;
+
+                this.isEditing = true;
+                const rowCol = `${cell.dataset.row}-${cell.dataset.col}`;
+                const currentValue = this.grades[rowCol] || '';
+
+                // Create input field
+                const input = document.createElement('input');
+                input.type = 'number';
+                input.className = 'grade-input';
+                input.value = currentValue;
+                input.step = '0.01';
+                input.min = '0';
+                input.max = '100';
+
+                // Save previous content
+                const previousContent = cell.innerHTML;
+
+                // Replace cell content with input
+                cell.innerHTML = '';
+                cell.appendChild(input);
+                input.focus();
+                input.select();
+
+                // Handle save on Enter
+                input.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter') {
+                        this.saveEdit(cell, input.value, rowCol, previousContent);
+                    } else if (e.key === 'Escape') {
+                        this.cancelEdit(cell, previousContent);
+                    }
+                });
+
+                // Handle blur (clicking outside)
+                input.addEventListener('blur', () => {
+                    this.saveEdit(cell, input.value, rowCol, previousContent);
+                });
+            }
+
+            saveEdit(cell, value, rowCol, previousContent) {
+                value = parseFloat(value);
+
+                if (!isNaN(value) && value >= 0 && value <= 100) {
+                    this.grades[rowCol] = value;
+                    cell.innerHTML = `<span class="grade-display">${value.toFixed(2)}</span>`;
+                } else {
+                    cell.innerHTML = previousContent;
+                }
+
+                this.isEditing = false;
+                cell.classList.add('active-cell');
+            }
+
+            cancelEdit(cell, previousContent) {
+                cell.innerHTML = previousContent;
+                this.isEditing = false;
+                cell.classList.add('active-cell');
+            }
+
+            deselectCell() {
+                if (this.currentCell) {
+                    this.currentCell.classList.remove('active-cell');
+                    this.currentCell = null;
+                    this.keyboardHint.classList.add('hidden');
+                }
+            }
+
+            handleKeydown(e) {
+                if (!this.currentCell || this.isEditing) return;
+
+                const row = parseInt(this.currentCell.dataset.row);
+                const col = parseInt(this.currentCell.dataset.col);
+                let newRow = row;
+                let newCol = col;
+
+                // Arrow keys and WASD navigation
+                switch (e.key.toLowerCase()) {
+                    case 'arrowup':
+                    case 'w':
+                        newRow = Math.max(0, row - 1);
+                        e.preventDefault();
+                        break;
+                    case 'arrowdown':
+                    case 's':
+                        newRow = Math.min(this.getMaxRows() - 1, row + 1);
+                        e.preventDefault();
+                        break;
+                    case 'arrowleft':
+                    case 'a':
+                        newCol = Math.max(0, col - 1);
+                        e.preventDefault();
+                        break;
+                    case 'arrowright':
+                    case 'd':
+                        newCol = Math.min(5, col + 1); // 6 grade columns (0-5)
+                        e.preventDefault();
+                        break;
+                    case 'enter':
+                        this.startEdit(this.currentCell);
+                        e.preventDefault();
+                        break;
+                    case 'tab':
+                        newCol = (col + 1) % 6;
+                        e.preventDefault();
+                        break;
+                    default:
+                        return;
+                }
+
+                // Find and select the new cell
+                const newCell = document.querySelector(`[data-row="${newRow}"][data-col="${newCol}"]`);
+                if (newCell) {
+                    this.selectCell(newCell);
+                }
+            }
+
+            getMaxRows() {
+                const rows = new Set();
+                this.gradeCells.forEach(cell => rows.add(parseInt(cell.dataset.row)));
+                return Math.max(...Array.from(rows)) + 1;
+            }
+
+            showKeyboardHint() {
+                this.keyboardHint.classList.remove('hidden');
+                // Auto-hide hint after 3 seconds if no interaction
+                clearTimeout(this.hintTimeout);
+                this.hintTimeout = setTimeout(() => {
+                    if (!this.currentCell) {
+                        this.keyboardHint.classList.add('hidden');
+                    }
+                }, 3000);
+            }
+        }
+
+        // Initialize Grade Editor when DOM is ready
+        document.addEventListener('DOMContentLoaded', () => {
+            const gradeEditor = new GradeEditor();
+
+            // Keep the existing Add Assessment button functionality
+            const addButtons = document.querySelectorAll('.add-btn');
             addButtons.forEach(button => {
                 button.addEventListener('click', async (event) => {
                     const assessmentType = event.target.getAttribute('data-assessment');
 
                     const { value: formValues } = await Swal.fire({
                         title: `Add New Assessment for ${assessmentType}`,
-                        // Wrapped HTML content in a div for better control on small screens
                         html:
                             '<div class="swal-form-content">' +
                             '<label for="swal-name">Assessment Name</label>' +
@@ -339,13 +613,12 @@
                             '<input id="swal-max" class="swal2-input" type="number" min="1" placeholder="e.g., 100" value="100">' +
                             '<label for="swal-total">Total Class Weight (%)</label>' +
                             '<input id="swal-total" class="swal2-input" type="number" min="1" max="100" placeholder="e.g., 25" value="25">' +
-                            '</div>', // Close wrapper
+                            '</div>',
 
                         focusConfirm: false,
                         showCancelButton: true,
                         confirmButtonText: 'Save Assessment',
                         preConfirm: () => {
-                            // Gather values and perform basic validation
                             const name = document.getElementById('swal-name').value;
                             const maxScore = document.getElementById('swal-max').value;
                             const totalWeight = document.getElementById('swal-total').value;
@@ -372,7 +645,6 @@
                     });
 
                     if (formValues) {
-                        // Log the collected data (in a real app, you would send this to the server/database)
                         console.log('New Assessment Created:', formValues);
 
                         Swal.fire({
@@ -386,7 +658,7 @@
             });
         });
 
-        // Custom alert function to replace the browser's native alert (kept for reference, though Swal is used now)
+        // Custom alert function to replace the browser's native alert
         function alert(message) {
             const existingAlert = document.getElementById('custom-alert');
             if (existingAlert) existingAlert.remove();

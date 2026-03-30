@@ -269,6 +269,32 @@
         </div>
     </div>
 
+    <!-- Missing Assessments Drawer -->
+    <div id="missingAssessmentsDrawer" class="drawer" style="display: none; position: fixed; top: 0; right: -400px; width: 400px; height: 100%; background: white; box-shadow: -2px 0 16px rgba(0,0,0,0.1); z-index: 999; overflow-y: auto; transition: right 0.3s ease;">
+        <div class="drawer-header" style="padding: 20px; background: linear-gradient(135deg, #071f18 0%, #0b2b20 100%); color: white; position: sticky; top: 0; z-index: 10;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <h3 style="margin: 0; font-size: 18px;"><i class="fas fa-tasks"></i> Missing Assessments</h3>
+                <button onclick="toggleMissingAssessmentsDrawer()" style="background: none; border: none; color: white; font-size: 24px; cursor: pointer; padding: 0; line-height: 1;">×</button>
+            </div>
+        </div>
+        <div class="drawer-content" id="missingAssessmentsContent" style="padding: 20px;">
+            <div class="drawer-loading"><div class="spinner"></div> Loading...</div>
+        </div>
+    </div>
+
+    <!-- Notifications Drawer (Alternative to Modal) -->
+    <div id="classNotificationsDrawer" class="drawer" style="display: none; position: fixed; top: 0; right: -400px; width: 400px; height: 100%; background: white; box-shadow: -2px 0 16px rgba(0,0,0,0.1); z-index: 999; overflow-y: auto; transition: right 0.3s ease;">
+        <div class="drawer-header" style="padding: 20px; background: linear-gradient(135deg, #071f18 0%, #0b2b20 100%); color: white; position: sticky; top: 0; z-index: 10;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <h3 style="margin: 0; font-size: 18px;"><i class="fas fa-bell"></i> Class Notifications</h3>
+                <button onclick="closeNotificationsDrawer()" style="background: none; border: none; color: white; font-size: 24px; cursor: pointer; padding: 0; line-height: 1;">×</button>
+            </div>
+        </div>
+        <div class="drawer-content" id="classNotificationsList" style="padding: 20px;">
+            <div class="drawer-loading"><div class="spinner"></div> Loading...</div>
+        </div>
+    </div>
+
     <!-- Join Class Modal -->
     <div id="joinClassModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:1000; align-items:center; justify-content:center; flex-direction:column;">
         <div style="background:white; padding:30px; border-radius:12px; max-width:400px; width:90%; animation: slideDown 0.3s ease-out;">
@@ -819,10 +845,12 @@
 
         // Function to join a class
         function joinClass() {
-            // Get the correct input based on screen size
-            const isMobile = window.innerWidth <= 768;
-            const joinCodeInput = document.getElementById(isMobile ? 'joinCodeMobile' : 'joinCodeDesktop');
-            const messageDiv = document.getElementById(isMobile ? 'joinMessageMobile' : 'joinMessageDesktop');
+            // Try to get the input from the modal first, then fall back to mobile/desktop responsive inputs
+            let joinCodeInput = document.getElementById('joinCode');
+            if (!joinCodeInput) {
+                const isMobile = window.innerWidth <= 768;
+                joinCodeInput = document.getElementById(isMobile ? 'joinCodeMobile' : 'joinCodeDesktop');
+            }
             
             let joinCode = '';
             if (joinCodeInput) {
@@ -1116,9 +1144,12 @@
                                         <div style="color: #071f18; font-weight: 700; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;">${cls.subject || 'SUBJECT'}</div>
                                         <h3 style="margin: 0; color: #1f2937; font-size: 15px;"><i class="fas fa-book"></i> ${cls.class_name}</h3>
                                     </div>
-                                    ${hasGrade ? `<div style="background: #dcfce7; padding: 6px 12px; border-radius: 6px; color: #15803d; font-weight: 600; font-size: 13px;">${equivalent || ''}</div>` : ''}
                                 </div>
-                                <div style="color: ${gradeColor}; font-size: 36px; font-weight: 700; margin: 12px 0; line-height: 1;">${finalGrade}</div>
+                                <div style="margin: 12px 0;">
+                                    <div style="color: ${gradeColor}; font-size: 36px; font-weight: 700; line-height: 1.2; margin-bottom: 4px;">${finalGrade}${hasGrade ? '%' : ''}</div>
+                                    ${hasGrade ? `<div style="background: linear-gradient(135deg, #dcfce7 0%, #c7f0d8 100%); padding: 8px 16px; border-radius: 8px; color: #15803d; font-weight: 700; font-size: 14px; border: 1px solid #86efac; display: inline-block;">ISU: ${equivalent}</div>` : ''}
+                                </div>
+                                ${hasGrade ? `<div style="color: #6b7280; font-size: 11px; margin-bottom: 12px; font-style: italic;">ISU Grade Scale: 1.0=Excellent, 5.0=Failing</div>` : ''}
                                 <div style="color: #6b7280; font-size: 12px; margin-bottom: 12px;">
                                     ${missingCount > 0 ? `<div style="color: #dc3545;"><i class="fas fa-exclamation-triangle"></i> ${missingCount} missing assessment${missingCount !== 1 ? 's' : ''}</div>` : '<div style="color: #16a34a;"><i class="fas fa-check-circle"></i> All assessments completed</div>'}
                                 </div>
@@ -1161,8 +1192,12 @@
                     let html = '<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(350px, 1fr)); gap: 15px;">';
                     
                     data.classes.forEach(cls => {
+                        const isPending = cls.status === 'pending';
+                        const borderColor = isPending ? '#f59e0b' : '#2ecc71';
+                        const statusBadge = isPending ? '<span style="background: #fef3c7; color: #b45309; padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; display: inline-block; margin-top: 8px;"><i class="fas fa-hourglass-half"></i> Pending Approval</span>' : '';
+                        
                         html += `
-                            <div style="background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 12px; padding: 20px; cursor: pointer; transition: all 0.3s ease; border-left: 4px solid #2ecc71; position: relative;" onclick="showClassDetails('${cls.id}')" style="hover: {box-shadow: 0 8px 24px rgba(0,0,0,0.1);}">
+                            <div style="background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 12px; padding: 20px; cursor: pointer; transition: all 0.3s ease; border-left: 4px solid ${borderColor}; position: relative;" onclick="showClassDetails('${cls.id}')" style="hover: {box-shadow: 0 8px 24px rgba(0,0,0,0.1);}">
                                 <div style="color: #071f18; font-weight: 700; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px;"><i class="fas fa-tag"></i> ${cls.subject || 'SUBJECT'}</div>
                                 <h3 style="margin: 0 0 8px 0; color: #1f2937; font-size: 16px; font-weight: 600;"><i class="fas fa-book"></i> ${cls.class_id}</h3>
                                 <div style="color: #6b7280; font-size: 13px; margin-bottom: 12px;">
@@ -1170,6 +1205,7 @@
                                     ${cls.schedule && cls.schedule !== 'TBA' ? `<div style="margin-bottom: 5px;"><i class="fas fa-clock"></i> ${cls.schedule}</div>` : ''}
                                     ${cls.units ? `<div><i class="fas fa-layers"></i> ${cls.units} Units</div>` : ''}
                                 </div>
+                                ${statusBadge}
 
                             </div>
                         `;
@@ -1942,15 +1978,67 @@
         }
 
         // Close drawer when clicking outside
-        document.getElementById('missingAssessmentsDrawer').addEventListener('click', function (e) {
-            if (e.target === this) {
-                toggleMissingAssessmentsDrawer();
-            }
-        });
+        const missingDrawer = document.getElementById('missingAssessmentsDrawer');
+        if (missingDrawer) {
+            missingDrawer.addEventListener('click', function (e) {
+                if (e.target === this) {
+                    toggleMissingAssessmentsDrawer();
+                }
+            });
+        }
 
         // Prevent drawer content clicks from closing drawer
-        document.querySelector('.drawer-content').addEventListener('click', function (e) {
-            e.stopPropagation();
+        const drawerContents = document.querySelectorAll('#missingAssessmentsDrawer .drawer-content');
+        drawerContents.forEach(content => {
+            content.addEventListener('click', function (e) {
+                e.stopPropagation();
+            });
+        });
+
+        // Function to open/close missing assessments drawer
+        function toggleMissingAssessmentsDrawer() {
+            const drawer = document.getElementById('missingAssessmentsDrawer');
+            if (drawer) {
+                const currentRight = window.getComputedStyle(drawer).right;
+                if (currentRight === '-400px' || currentRight === '0px') {
+                    drawer.style.right = (currentRight === '-400px') ? '0px' : '-400px';
+                    if (drawer.style.right === '0px') {
+                        loadMissingAssessmentsDetails();
+                    }
+                } else {
+                    // Fallback: toggle based on display
+                    drawer.style.display = drawer.style.display === 'none' ? 'block' : 'none';
+                    if (drawer.style.display !== 'none') {
+                        loadMissingAssessmentsDetails();
+                    }
+                }
+            }
+        }
+
+        // Function to close notifications drawer
+        function closeNotificationsDrawer() {
+            const drawer = document.getElementById('classNotificationsDrawer');
+            if (drawer) {
+                drawer.style.right = '-400px';
+            }
+        }
+
+        // Notifications Drawer Event Listener
+        const notificationsDrawer = document.getElementById('classNotificationsDrawer');
+        if (notificationsDrawer) {
+            notificationsDrawer.addEventListener('click', function (e) {
+                if (e.target === this) {
+                    closeNotificationsDrawer();
+                }
+            });
+        }
+
+        // Prevent drawer content clicks from closing drawer (notifications)
+        const notificationDrawerContents = document.querySelectorAll('#classNotificationsDrawer .drawer-content');
+        notificationDrawerContents.forEach(content => {
+            content.addEventListener('click', function (e) {
+                e.stopPropagation();
+            });
         });
 
         // Notifications System
@@ -1960,6 +2048,10 @@
         // Function to load class notifications
         function loadClassNotifications() {
             const notificationsDiv = document.getElementById('classNotificationsList');
+            if (!notificationsDiv) {
+                console.warn('classNotificationsList element not found');
+                return;
+            }
             notificationsDiv.innerHTML = '<div class="notifications-loading"><div class="spinner"></div> Loading notifications...</div>';
 
             fetch('/api/student/analytics', {
@@ -1981,9 +2073,14 @@
                 })
                 .catch(error => {
                     console.error('Error loading notifications:', error);
-                    notificationsDiv.innerHTML = '<div style="text-align: center; padding: 20px; color: #dc3545;"><div style="font-size: 32px; margin-bottom: 8px;">❌</div><p>Failed to load notifications</p></div>';
-                    document.getElementById('notificationCount').textContent = '0';
-                    document.getElementById('notificationCount').classList.add('zero');
+                    if (notificationsDiv) {
+                        notificationsDiv.innerHTML = '<div style="text-align: center; padding: 20px; color: #dc3545;"><div style="font-size: 32px; margin-bottom: 8px;">❌</div><p>Failed to load notifications</p></div>';
+                    }
+                    const notificationCount = document.getElementById('notificationCount');
+                    if (notificationCount) {
+                        notificationCount.textContent = '0';
+                        notificationCount.classList.add('zero');
+                    }
                 });
         }
 

@@ -37,7 +37,7 @@ body {
   position: sticky;
   top: 40px; /* Adjust to match assess-head height */
   z-index: 9;
-  padding: 24px;
+  padding: 12px;
   max-width: 1800px;
   margin: 0 auto;
 }
@@ -99,7 +99,7 @@ table.matrix th,
 table.matrix td {
   border-bottom: 1px solid var(--border);
   border-right: 1px solid var(--border);
-  padding: 12px 10px;
+  padding: 6px 6px;
   text-align: center;
 }
 table.matrix td {
@@ -142,15 +142,15 @@ table.matrix td.sticky-left {
 /* Header Text Styles */
 thead tr:nth-child(1) th {
   text-transform: uppercase;
-  font-size: 0.9rem;
+  font-size: 0.8rem;
   letter-spacing: 0.06em;
   color: var(--gundam-red);
 }
 thead tr:nth-child(2) th {
-  font-size: 0.85rem;
+  font-size: 0.75rem;
 }
 thead tr:nth-child(3) th {
-  font-size: 0.8rem;
+  font-size: 0.7rem;
   white-space: nowrap;
 }
 
@@ -228,29 +228,44 @@ th.subcat-head[data-category="laboratory"] {
   background-color: #007bff;
 } /* Classic Bold Blue */
 
-/* Input Scores (Clean, with soft focus glow) */
+/* Input Scores (Compact for fast data entry) */
 input.score {
-  width: 72px;
-  padding: 6px 8px;
-  font-size: 1rem;
+  width: 56px;
+  padding: 3px 5px;
+  font-size: 0.9rem;
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: 4px;
   text-align: right;
   background: #f8f8f8;
-  transition: all 0.2s ease;
-  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.05); /* Inner shadow for depth */
+  transition: all 0.15s ease;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.05);
+  min-height: 24px;
 }
+
+input.score:hover {
+  background: #fafafa;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.05), 0 0 0 1px rgba(57, 255, 20, 0.3);
+}
+
 input.score:focus {
-  outline: none; /* Remove default outline */
-  border-color: var(--focus); /* Neon green border */
-  box-shadow: 0 0 0 3px rgba(57, 255, 20, 0.25),
-    inset 0 1px 2px rgba(0, 0, 0, 0.05); /* Soft outer glow + inner shadow */
+  outline: none;
+  border-color: var(--focus);
+  box-shadow: 0 0 0 2px rgba(57, 255, 20, 0.3),
+    inset 0 1px 2px rgba(0, 0, 0, 0.05);
   background: var(--gundam-white);
 }
+
+input.score.active-cell {
+  border-color: #0056b3;
+  box-shadow: inset 0 0 0 2px rgba(0, 86, 179, 0.2),
+    0 0 0 2px rgba(0, 86, 179, 0.3);
+  background: #f0f8ff;
+}
+
 input.score.score-invalid {
   border-color: var(--gundam-red);
-  box-shadow: 0 0 0 3px rgba(227, 6, 19, 0.2),
-    inset 0 1px 2px rgba(0, 0, 0, 0.05); /* Red error glow */
+  box-shadow: 0 0 0 2px rgba(227, 6, 19, 0.2),
+    inset 0 1px 2px rgba(0, 0, 0, 0.05);
 }
 
 /* Utility/Misc */
@@ -271,15 +286,15 @@ input.score.score-invalid {
 
 /* Buttons (Elevated and interactive) */
 .btn {
-  padding: 10px 16px;
+  padding: 6px 12px;
   border: none; /* No border for the base button */
   background: var(--gundam-white);
-  border-radius: 8px;
+  border-radius: 6px;
   cursor: pointer;
-  font-weight: 700; /* Emphasized bold */
-  font-size: 1rem; /* Base font size */
+  font-weight: 600;
+  font-size: 0.9rem;
   transition: all 0.15s ease-out; /* QUICKER TRANSITION */
-  box-shadow: 0 2px 5px var(--subtle-shadow); /* Softer lift */
+  box-shadow: 0 1px 3px var(--subtle-shadow); /* Softer lift */
   color: var(--gundam-blue); /* Default text color for non-primary buttons */
 }
 .btn:hover {

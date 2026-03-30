@@ -675,12 +675,14 @@ def create_class():
                     "subject",
                     "subjectCode",
                     "units",
-                    "track",
                     "section",
                 ]
                 for field in required_fields:
                     if not data.get(field):
                         return jsonify({"error": f"{field} is required"}), 400
+
+                # Track is optional - only required if the course has tracks available
+                # The frontend will handle validation based on course selection
 
                 if not _is_valid_subject_code(data["subjectCode"]):
                     return (
@@ -838,12 +840,14 @@ def update_class(class_id):
                     "subject",
                     "subjectCode",
                     "units",
-                    "track",
                     "section",
                 ]
                 for field in required_fields:
                     if not data.get(field):
                         return jsonify({"error": f"{field} is required"}), 400
+
+                # Track is optional - only required if the course has tracks available
+                # The frontend will handle validation based on course selection
 
                 if not _is_valid_subject_code(data["subjectCode"]):
                     return (
@@ -1744,26 +1748,26 @@ def api_get_release_grades(class_id):
                     if has_missing:
                         missing_subcategories.append(subcategory_name)
 
-                # Calculate equivalent (letter grade) from final grade
+                # Calculate equivalent (letter grade) from final grade using ISU Grading System
                 # If student has incomplete requirements, set equivalent to INC
                 if missing_subcategories:
                     equivalent = "INC"
                 elif final_grade is not None:
-                    if final_grade >= 97.5:
+                    if final_grade >= 98:
                         equivalent = "1.0"
-                    elif final_grade >= 94.5:
+                    elif final_grade >= 95:
                         equivalent = "1.25"
-                    elif final_grade >= 91.5:
+                    elif final_grade >= 92:
                         equivalent = "1.5"
-                    elif final_grade >= 88.5:
+                    elif final_grade >= 89:
                         equivalent = "1.75"
-                    elif final_grade >= 85.5:
+                    elif final_grade >= 86:
                         equivalent = "2.0"
-                    elif final_grade >= 82.5:
+                    elif final_grade >= 83:
                         equivalent = "2.25"
-                    elif final_grade >= 79.5:
+                    elif final_grade >= 80:
                         equivalent = "2.5"
-                    elif final_grade >= 76.5:
+                    elif final_grade >= 77:
                         equivalent = "2.75"
                     elif final_grade >= 75:
                         equivalent = "3.0"
@@ -2202,21 +2206,21 @@ def _finalize_snapshot_and_store_release(cursor, class_id, student_ids, released
         if missing_subcategories:
             equivalent = "INC"
         elif final_grade is not None:
-            if final_grade >= 97.5:
+            if final_grade >= 98:
                 equivalent = "1.0"
-            elif final_grade >= 94.5:
+            elif final_grade >= 95:
                 equivalent = "1.25"
-            elif final_grade >= 91.5:
+            elif final_grade >= 92:
                 equivalent = "1.5"
-            elif final_grade >= 88.5:
+            elif final_grade >= 89:
                 equivalent = "1.75"
-            elif final_grade >= 85.5:
+            elif final_grade >= 86:
                 equivalent = "2.0"
-            elif final_grade >= 82.5:
+            elif final_grade >= 83:
                 equivalent = "2.25"
-            elif final_grade >= 79.5:
+            elif final_grade >= 80:
                 equivalent = "2.5"
-            elif final_grade >= 76.5:
+            elif final_grade >= 77:
                 equivalent = "2.75"
             elif final_grade >= 75:
                 equivalent = "3.0"

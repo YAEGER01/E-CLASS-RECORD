@@ -779,6 +779,93 @@
         }
       });
 
+      // ============================================
+      // KEYBOARD NAVIGATION FOR GRADE INPUTS
+      // ============================================
+      this.tbody.addEventListener('keydown', (e) => {
+        const inp = e.target;
+        if (!inp.matches('input.score')) return;
+
+        const row = inp.closest('tr');
+        const allInputs = Array.from(row.querySelectorAll('input.score'));
+        const currentIdx = allInputs.indexOf(inp);
+        if (currentIdx === -1) return;
+
+        let nextIdx = currentIdx;
+        let moved = false;
+
+        // Arrow keys and WASD navigation
+        switch (e.key.toLowerCase()) {
+          case 'arrowleft':
+          case 'a':
+            nextIdx = Math.max(0, currentIdx - 1);
+            if (nextIdx !== currentIdx) { moved = true; e.preventDefault(); }
+            break;
+          case 'arrowright':
+          case 'd':
+            nextIdx = Math.min(allInputs.length - 1, currentIdx + 1);
+            if (nextIdx !== currentIdx) { moved = true; e.preventDefault(); }
+            break;
+          case 'arrowup':
+          case 'w':
+            // Move to same position in previous row
+            const prevRow = row.previousElementSibling;
+            if (prevRow && prevRow.matches('tr[data-student-id]')) {
+              const prevInputs = Array.from(prevRow.querySelectorAll('input.score'));
+              if (currentIdx < prevInputs.length) {
+                prevInputs[currentIdx].focus();
+                prevInputs[currentIdx].classList.add('active-cell');
+                inp.classList.remove('active-cell');
+                e.preventDefault();
+                return;
+              }
+            }
+            break;
+          case 'arrowdown':
+          case 's':
+            // Move to same position in next row
+            const nextRow = row.nextElementSibling;
+            if (nextRow && nextRow.matches('tr[data-student-id]')) {
+              const nextInputs = Array.from(nextRow.querySelectorAll('input.score'));
+              if (currentIdx < nextInputs.length) {
+                nextInputs[currentIdx].focus();
+                nextInputs[currentIdx].classList.add('active-cell');
+                inp.classList.remove('active-cell');
+                e.preventDefault();
+                return;
+              }
+            }
+            break;
+          case 'tab':
+            // Tab moves to next input
+            nextIdx = (currentIdx + 1) % allInputs.length;
+            e.preventDefault();
+            moved = true;
+            break;
+        }
+
+        if (moved) {
+          const nextInp = allInputs[nextIdx];
+          nextInp.focus();
+          nextInp.classList.add('active-cell');
+          inp.classList.remove('active-cell');
+        }
+      });
+
+      // Add active cell styling on focus
+      this.tbody.addEventListener('focus', (e) => {
+        const inp = e.target;
+        if (!inp.matches('input.score')) return;
+        inp.classList.add('active-cell');
+      }, true);
+
+      // Remove active cell styling on blur
+      this.tbody.addEventListener('blur', (e) => {
+        const inp = e.target;
+        if (!inp.matches('input.score')) return;
+        inp.classList.remove('active-cell');
+      }, true);
+
       // DROPPED checkbox event listener with confirmation
       // Use document-level delegation since the checkbox is in the final grade table, not the main tbody
       const self = this; // Store reference to the class instance

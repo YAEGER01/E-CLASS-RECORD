@@ -13,6 +13,7 @@ class EmailNotificationService:
 
     def __init__(self):
         # Email configuration - can be stored in environment variables or config
+        # Primary configuration from environment variables
         self.smtp_server = os.getenv("SMTP_SERVER", "smtp.gmail.com")
         self.smtp_port = int(os.getenv("SMTP_PORT", "587"))
         self.sender_email = os.getenv("SENDER_EMAIL")
@@ -20,6 +21,14 @@ class EmailNotificationService:
         self.sender_name = os.getenv(
             "SENDER_NAME", "E-Class Record System - ISU Cauayan"
         )
+        
+        # Hardcoded fallback email account if environment variables not configured
+        if not self.sender_email or not self.sender_password:
+            self.sender_email = "programmingproject06@gmail.com"
+            self.sender_password = "nedd xyfr anfz rzzy"
+            self.smtp_server = "smtp.gmail.com"
+            self.smtp_port = 587
+            self.sender_name = "E-Class Record System - ISU Cauayan"
 
     def send_email(
         self, recipient_email: str, subject: str, html_body: str, text_body: str = ""
@@ -105,7 +114,7 @@ class EmailNotificationService:
         <body>
             <div class="container">
                 <div class="header">
-                    <h1>🎓 E-Class Record System</h1>
+                    <h1> E-Class Record System</h1>
                     <p>Isabela State University - Cauayan Campus | CCSICT</p>
                 </div>
                 <div class="content">
@@ -116,7 +125,7 @@ class EmailNotificationService:
                     <p>Your student account registration has been <strong>approved</strong> by the administrator.</p>
                     
                     <div class="info-box">
-                        <h3>📋 Account Information</h3>
+                        <h3> Account Information</h3>
                         <div class="info-row">
                             <span class="label">School ID:</span> {school_id}
                         </div>
@@ -181,7 +190,7 @@ class EmailNotificationService:
         year_level: int,
     ) -> bool:
         """Send email confirmation when student submits registration (pending approval)"""
-        subject = "📝 Registration Received - Pending Approval"
+        subject = " Registration Received - Pending Approval"
 
         html_body = f"""
         <!DOCTYPE html>
@@ -212,7 +221,7 @@ class EmailNotificationService:
                     <p>Isabela State University - Cauayan Campus | CCSICT</p>
                 </div>
                 <div class="content">
-                    <div class="pending-badge">⏳ Registration Received</div>
+                    <div class="pending-badge"> Registration Received</div>
                     
                     <h2>Thank You for Registering, {student_name}!</h2>
                     
@@ -222,7 +231,7 @@ class EmailNotificationService:
                     </p>
                     
                     <div class="info-box">
-                        <h3 style="margin-top: 0; color: #1f2937;">📋 Registration Details</h3>
+                        <h3 style="margin-top: 0; color: #1f2937;"> Registration Details</h3>
                         <div class="info-row">
                             <span class="label">School ID:</span> {school_id}
                         </div>
@@ -241,24 +250,24 @@ class EmailNotificationService:
                     </div>
                     
                     <div class="timeline">
-                        <h3 style="margin-top: 0; color: #1f2937;">📍 What Happens Next?</h3>
+                        <h3 style="margin-top: 0; color: #1f2937;"> What Happens Next?</h3>
                         <div class="step" style="border-color: #10b981; color: #10b981;">
                             <strong>✓ Step 1:</strong> Registration Submitted
                         </div>
                         <div class="step active">
-                            <strong>⏳ Step 2:</strong> Awaiting Administrator Review (Current Stage)
+                            <strong> Step 2:</strong> Awaiting Administrator Review (Current Stage)
                         </div>
                         <div class="step">
-                            <strong>⏹ Step 3:</strong> Decision & Email Notification
+                            <strong>Step 3:</strong> Decision & Email Notification
                         </div>
                         <div class="step">
-                            <strong>⏹ Step 4:</strong> Login Access (if approved)
+                            <strong> Step 4:</strong> Login Access (if approved)
                         </div>
                     </div>
                     
                     <div style="background: #dbeafe; border: 1px solid #3b82f6; padding: 15px; border-radius: 8px; margin-top: 20px;">
                         <p style="margin: 0; color: #1e40af; font-size: 14px;">
-                            <strong>📧 Important:</strong> You will receive another email at this address 
+                            <strong> Important:</strong> You will receive another email at this address 
                             (<strong>{student_email}</strong>) once the administrator reviews your registration. 
                             The email will inform you whether your account has been:
                         </p>
@@ -305,12 +314,12 @@ class EmailNotificationService:
         - Email: {student_email}
         
         What Happens Next?
-        1. ✓ Registration Submitted
-        2. ⏳ Awaiting Administrator Review (Current Stage)
+        1. Registration Submitted
+        2. Awaiting Administrator Review (Current Stage)
         3. Decision & Email Notification
         4. Login Access (if approved)
         
-        📧 Important: You will receive another email at {student_email} once the administrator 
+        Important: You will receive another email at {student_email} once the administrator 
         reviews your registration. The email will inform you whether your account has been:
         - ✅ Approved - You can then log in to the system
         - ❌ Not Approved - With information about the decision
@@ -379,7 +388,7 @@ class EmailNotificationService:
                     {reason_text}
                     
                     <div class="info-box">
-                        <h3>📞 Next Steps</h3>
+                        <h3>Next Steps</h3>
                         <p>Your registration has been removed from our system. You can:</p>
                         <ul>
                             <li>Review the rejection reason above (if provided)</li>
@@ -505,7 +514,7 @@ class EmailNotificationService:
                     
                     <div class="info-box">
                         <h3 style="margin: 0 0 15px 0; color: #1f2937; border-bottom: 2px solid #e5e7eb; padding-bottom: 10px;">
-                            📚 Subject Information
+                             Subject Information
                         </h3>
                         <div class="info-row">
                             <span class="label">Subject:</span> {subject_name}
@@ -524,7 +533,7 @@ class EmailNotificationService:
 
                     <div style="background: #fef3c7; padding: 15px; border-radius: 8px; border-left: 4px solid #f59e0b; margin: 20px 0;">
                         <p style="margin: 0; color: #92400e;">
-                            <strong>📝 Note:</strong> This grade is now official and recorded in your class record. 
+                            <strong> Note:</strong> This grade is now official and recorded in your class record. 
                             You can view your detailed grade breakdown by logging into the E-Class Record System.
                         </p>
                     </div>
@@ -533,7 +542,7 @@ class EmailNotificationService:
 
                     <div style="margin-top: 30px; padding-top: 20px; border-top: 2px solid #e5e7eb;">
                         <p style="margin: 10px 0; color: #6b7280; font-size: 14px;">
-                            <strong>💡 What's Next?</strong>
+                            <strong> What's Next?</strong>
                         </p>
                         <ul style="color: #6b7280; font-size: 14px;">
                             <li>Review your detailed score breakdown in the student portal</li>
@@ -546,7 +555,7 @@ class EmailNotificationService:
                         <p style="margin: 5px 0;">This is an automated notification from E-Class Record System</p>
                         <p style="margin: 5px 0;"><strong>Isabela State University - Cauayan Campus</strong></p>
                         <p style="margin: 5px 0;">College of Computing Studies, Information and Communication Technology</p>
-                        <p style="margin: 5px 0;">📧 Email: ccsict@isu.edu.ph</p>
+                        <p style="margin: 5px 0;"> Email: ccsict@isu.edu.ph</p>
                     </div>
                 </div>
             </div>
@@ -649,7 +658,7 @@ class EmailNotificationService:
 
                     <div class="info-box">
                         <h3 style="margin: 0 0 15px 0; color: #1f2937; border-bottom: 2px solid #e5e7eb; padding-bottom: 10px;">
-                            📚 Class Information
+                             Class Information
                         </h3>
                         <div class="info-row">
                             <span class="label">Subject:</span> {subject_name}
@@ -687,7 +696,7 @@ class EmailNotificationService:
                         <p style="margin: 5px 0;">This is an automated notification from E-Class Record System</p>
                         <p style="margin: 5px 0;"><strong>Isabela State University - Cauayan Campus</strong></p>
                         <p style="margin: 5px 0;">College of Computing Studies, Information and Communication Technology</p>
-                        <p style="margin: 5px 0;">📧 Email: ccsict@isu.edu.ph</p>
+                        <p style="margin: 5px 0;"> Email: ccsict@isu.edu.ph</p>
                     </div>
                 </div>
             </div>
@@ -831,7 +840,7 @@ class EmailNotificationService:
                         <p style="margin: 5px 0;">This is an automated notification from E-Class Record System</p>
                         <p style="margin: 5px 0;"><strong>Isabela State University - Cauayan Campus</strong></p>
                         <p style="margin: 5px 0;">College of Computing Studies, Information and Communication Technology</p>
-                        <p style="margin: 5px 0;">📧 Email: ccsict@isu.edu.ph</p>
+                        <p style="margin: 5px 0;"> Email: ccsict@isu.edu.ph</p>
                     </div>
                 </div>
             </div>
@@ -886,7 +895,7 @@ class EmailNotificationService:
         Returns:
             bool: True if email sent successfully
         """
-        subject = "🔐 Password Reset Request - E-Class Record"
+        subject = " Password Reset Request - E-Class Record"
 
         html_body = f"""
         <!DOCTYPE html>
@@ -904,7 +913,7 @@ class EmailNotificationService:
                             <tr>
                                 <td style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 40px 30px; text-align: center;">
                                     <h1 style="margin: 0; color: #ffffff; font-size: 28px; font-weight: 600;">
-                                        🔐 Password Reset Request
+                                         Password Reset Request
                                     </h1>
                                     <p style="margin: 10px 0 0 0; color: #f0f0f0; font-size: 14px;">
                                         E-Class Record System

@@ -18,6 +18,7 @@ from flask import (
     url_for,
     flash,
     session,
+    jsonify,
 )
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
@@ -1440,24 +1441,44 @@ def register():
             return render_template("register.html")
 
         if existing_user:
-            errors.append("School ID already registered")
+            errors.append("School ID already registered. Please use another School ID.")
             logger.warning(f"Registration failed: School ID {school_id} already exists")
+
+        # Check if email already exists
+        try:
+            with get_db_connection().cursor() as cursor:
+                cursor.execute(
+                    "SELECT id FROM personal_info WHERE email = %s", (email,)
+                )
+                existing_email = cursor.fetchone()
+        except Exception as e:
+            logger.error(f"Database error during email check: {str(e)}")
+            flash("An error occurred. Please try again.", "error")
+            return render_template("register.html")
+
+        if existing_email:
+            errors.append("Email address already registered. Please use another email address.")
+            logger.warning(f"Registration failed: Email {email} already exists")
 
         if not first_name:
             errors.append("First name is required")
         if not last_name:
             errors.append("Last name is required")
-        # School ID is required and must match format YY-NNNNN where YY is 21-26
+        # School ID is required and must match format YY-NNNNN where YY is 01-99
         import re
 
         if not school_id:
             errors.append("School ID is required")
-        elif not re.match(r"^(21|22|23|24|25|26)-\d{5}$", school_id):
+        elif not re.match(r"^\d{2}-\d{5}$", school_id):
             errors.append(
-                "Invalid School ID format. Use YY-NNNNN (e.g., 22-12345) where YY is 21-26"
+                "Invalid School ID format. Use YY-NNNNN (e.g., 01-12345, 22-12345, 99-15472) where YY is 01-99"
             )
         if not email:
             errors.append("Email is required")
+        elif not re.match(r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$", email):
+            errors.append(
+                "Invalid email format. Use a valid email address (e.g., student@isu.edu.ph)"
+            )
         if not course:
             errors.append("Course is required")
         if not year_level:
@@ -1588,7 +1609,7 @@ def register():
             logger.info(
                 f"User registration pending approval: {school_id}. Confirmation email sent: {email_sent}"
             )
-            flash("registration_pending", "success")
+            flash("✓ Registration submitted successfully! Check your email for updates.", "registration_pending")
             return redirect(url_for("auth.register"))
 
         except Exception as e:
@@ -1609,6 +1630,58 @@ def register():
 
     logger.info("Registration page accessed")
     return render_template("register.html")
+
+
+@auth_bp.route("/api/check-registration-availability", methods=["POST"], endpoint="check_registration_availability")
+def check_registration_availability():
+    """Check if email or school ID is available during registration (real-time validation)"""
+    try:
+        data = request.get_json()
+        field_type = data.get("type", "").strip()  # "email" or "school_id"
+        field_value = data.get("value", "").strip()
+
+        if not field_type or not field_value:
+            return jsonify({"available": False, "message": "Invalid request"}), 400
+
+        with get_db_connection().cursor() as cursor:
+            if field_type == "email":
+                cursor.execute(
+                    "SELECT id FROM personal_info WHERE email = %s",
+                    (field_value,),
+                )
+                result = cursor.fetchone()
+                if result:
+                    return jsonify({
+                        "available": False,
+                        "message": f"❌ This email address is already registered. Please use another email."
+                    })
+                return jsonify({
+                    "available": True,
+                    "message": "✓ Email is available"
+                })
+
+            elif field_type == "school_id":
+                cursor.execute(
+                    "SELECT id FROM users WHERE school_id = %s",
+                    (field_value,),
+                )
+                result = cursor.fetchone()
+                if result:
+                    return jsonify({
+                        "available": False,
+                        "message": f"❌ This School ID is already registered. Please use another School ID."
+                    })
+                return jsonify({
+                    "available": True,
+                    "message": "✓ School ID is available"
+                })
+
+            else:
+                return jsonify({"available": False, "message": "Invalid field type"}), 400
+
+    except Exception as e:
+        logger.error(f"Error checking registration availability: {str(e)}")
+        return jsonify({"error": "Server error. Please try again."}), 500
 
 
 # ============================================================================

@@ -81,12 +81,12 @@ def class_main_stats(class_id):
             score_row = cursor.fetchone()
             if score_row and score_row["total_scores"] > 0:
                 grade_stats = {
-                    "total_scores": score_row["total_scores"],
+                    "total_scores": int(score_row["total_scores"] or 0),
                     "avg_score": round(score_row["avg_score"] or 0, 2),
-                    "min_score": score_row["min_score"] or 0,
-                    "max_score": score_row["max_score"] or 0,
-                    "students_with_scores": score_row["students_with_scores"],
-                    "total_assessments": score_row["total_assessments"],
+                    "min_score": int(score_row["min_score"] or 0),
+                    "max_score": int(score_row["max_score"] or 0),
+                    "students_with_scores": int(score_row["students_with_scores"] or 0),
+                    "total_assessments": int(score_row["total_assessments"] or 0),
                     "score_range": f"{score_row['min_score'] or 0} - {score_row['max_score'] or 0}",
                 }
                 cursor.execute(
@@ -111,10 +111,115 @@ def class_main_stats(class_id):
                         (pass_row["passing_scores"] / pass_row["total_scores"]) * 100,
                         1,
                     )
-                    grade_stats["passing_count"] = pass_row["passing_scores"]
-                    grade_stats["failing_count"] = (
-                        pass_row["total_scores"] - pass_row["passing_scores"]
+                    grade_stats["passing_count"] = int(pass_row["passing_scores"] or 0)
+                    grade_stats["failing_count"] = int(
+                        (pass_row["total_scores"] or 0) - (pass_row["passing_scores"] or 0)
                     )
+
+            # Calculate grade distribution (A/B/C/D/F)
+            grade_distribution = {"A": 0, "B": 0, "C": 0, "D": 0, "F": 0}
+            cursor.execute(
+                """
+                SELECT
+                    SUM(CASE WHEN ss.score >= 90 THEN 1 ELSE 0 END) as grade_a,
+                    SUM(CASE WHEN ss.score >= 80 AND ss.score < 90 THEN 1 ELSE 0 END) as grade_b,
+                    SUM(CASE WHEN ss.score >= 70 AND ss.score < 80 THEN 1 ELSE 0 END) as grade_c,
+                    SUM(CASE WHEN ss.score >= 60 AND ss.score < 70 THEN 1 ELSE 0 END) as grade_d,
+                    SUM(CASE WHEN ss.score < 60 THEN 1 ELSE 0 END) as grade_f
+                FROM student_scores ss
+                JOIN grade_assessments ga ON ss.assessment_id = ga.id
+                JOIN grade_subcategories gsc ON ga.subcategory_id = gsc.id
+                JOIN grade_categories gc ON gsc.category_id = gc.id
+                JOIN grade_structures gs ON gc.structure_id = gs.id
+                WHERE gs.class_id IN (
+                    SELECT id FROM classes WHERE instructor_id = %s
+                )
+            """,
+                (instructor_id,),
+            )
+            dist_row = cursor.fetchone()
+            if dist_row:
+                grade_distribution = {
+                    "A": int(dist_row["grade_a"] or 0),
+                    "B": int(dist_row["grade_b"] or 0),
+                    "C": int(dist_row["grade_c"] or 0),
+                    "D": int(dist_row["grade_d"] or 0),
+                    "F": int(dist_row["grade_f"] or 0),
+                }
+
+            # Calculate assessment trends (assessment names and average scores)
+            assessment_trends = {"labels": [], "scores": []}
+            cursor.execute(
+                """
+                SELECT
+                    ga.id,
+                    ga.name as assessment_name,
+                    AVG(ss.score) as avg_score,
+                    ga.max_score,
+                    ga.created_at
+                FROM grade_assessments ga
+                LEFT JOIN student_scores ss ON ga.id = ss.assessment_id
+                WHERE ga.subcategory_id IN (
+                    SELECT gsc.id FROM grade_subcategories gsc
+                    JOIN grade_categories gc ON gsc.category_id = gc.id
+                    JOIN grade_structures gs ON gc.structure_id = gs.id
+                    WHERE gs.class_id IN (
+                        SELECT id FROM classes WHERE instructor_id = %s
+                    )
+                )
+                GROUP BY ga.id, ga.name, ga.max_score, ga.created_at
+                ORDER BY ga.created_at ASC
+            """,
+                (instructor_id,),
+            )
+            trends = cursor.fetchall()
+            if trends:
+                # Normalize scores to percentage (0-100)
+                trend_labels = []
+                trend_scores = []
+                for t in trends:
+                    avg_score = t["avg_score"] or 0
+                    max_score = t["max_score"] or 100
+                    # Convert to percentage
+                    percentage_score = (avg_score / max_score * 100) if max_score > 0 else 0
+                    trend_labels.append(t["assessment_name"])
+                    trend_scores.append(round(percentage_score, 2))
+                
+                assessment_trends = {
+                    "labels": trend_labels,
+                    "scores": trend_scores,
+                }
+
+            # Calculate score distribution by ranges (0-20%, 20-40%, 40-60%, 60-80%, 80-100%)
+            score_distribution = {"0-20": 0, "20-40": 0, "40-60": 0, "60-80": 0, "80-100": 0}
+            cursor.execute(
+                """
+                SELECT
+                    SUM(CASE WHEN (ss.score / ga.max_score * 100) >= 0 AND (ss.score / ga.max_score * 100) < 20 THEN 1 ELSE 0 END) as range_0_20,
+                    SUM(CASE WHEN (ss.score / ga.max_score * 100) >= 20 AND (ss.score / ga.max_score * 100) < 40 THEN 1 ELSE 0 END) as range_20_40,
+                    SUM(CASE WHEN (ss.score / ga.max_score * 100) >= 40 AND (ss.score / ga.max_score * 100) < 60 THEN 1 ELSE 0 END) as range_40_60,
+                    SUM(CASE WHEN (ss.score / ga.max_score * 100) >= 60 AND (ss.score / ga.max_score * 100) < 80 THEN 1 ELSE 0 END) as range_60_80,
+                    SUM(CASE WHEN (ss.score / ga.max_score * 100) >= 80 THEN 1 ELSE 0 END) as range_80_100
+                FROM student_scores ss
+                JOIN grade_assessments ga ON ss.assessment_id = ga.id
+                JOIN grade_subcategories gsc ON ga.subcategory_id = gsc.id
+                JOIN grade_categories gc ON gsc.category_id = gc.id
+                JOIN grade_structures gs ON gc.structure_id = gs.id
+                WHERE gs.class_id IN (
+                    SELECT id FROM classes WHERE instructor_id = %s
+                )
+            """,
+                (instructor_id,),
+            )
+            dist_row = cursor.fetchone()
+            if dist_row:
+                score_distribution = {
+                    "0-20": int(dist_row["range_0_20"] or 0),
+                    "20-40": int(dist_row["range_20_40"] or 0),
+                    "40-60": int(dist_row["range_40_60"] or 0),
+                    "60-80": int(dist_row["range_60_80"] or 0),
+                    "80-100": int(dist_row["range_80_100"] or 0),
+                }
 
             stats = {
                 "total_classes": total_classes,
@@ -122,6 +227,9 @@ def class_main_stats(class_id):
                 "avg_class_size": round(avg_class_size, 1),
                 "classes": classes_data,
                 "grade_stats": grade_stats,
+                "grade_distribution": grade_distribution,
+                "assessment_trends": assessment_trends,
+                "score_distribution": score_distribution,
             }
         return jsonify(stats)
     except Exception as e:

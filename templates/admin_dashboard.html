@@ -1928,9 +1928,37 @@
             const noPhotoStyle = 'width: 100%; height: 250px; display: flex; flex-direction: column; align-items: center; justify-content: center; background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%); border-radius: 10px; border: 3px dashed #d1d5db; color: #9ca3af; font-size: 14px;';
             
             Swal.fire({
-                title: `<div style="color: #1f2937; font-size: 24px; font-weight: bold;">Student Registration Details</div>`,
+                title: `<div style="color: #1f2937; font-size: 26px; font-weight: bold;">Review Registration: ${student.full_name}</div>`,
                 html: `
-                    <div style="text-align: left; padding: 20px; max-height: 600px; overflow-y: auto;">
+                    <div style="text-align: left; padding: 20px; max-height: 80vh; overflow-y: auto;">
+                        <!-- Top Information Bar -->
+                        <div style="background: linear-gradient(135deg, #1f2937 0%, #374151 100%); padding: 25px; border-radius: 10px; margin-bottom: 25px; color: white;">
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px; margin-bottom: 20px;">
+                                <div>
+                                    <div style="font-size: 12px; color: #d1d5db; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 5px;">School ID</div>
+                                    <div style="font-size: 24px; font-weight: bold; color: #3b82f6;">${student.school_id}</div>
+                                </div>
+                                <div>
+                                    <div style="font-size: 12px; color: #d1d5db; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 5px;">Email</div>
+                                    <div style="font-size: 16px; font-weight: 600; color: #10b981; word-break: break-all;">${student.email}</div>
+                                </div>
+                            </div>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 30px;">
+                                <div>
+                                    <div style="font-size: 12px; color: #d1d5db; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 5px;">Course</div>
+                                    <div style="font-size: 18px; font-weight: 600;">${student.course}</div>
+                                </div>
+                                <div>
+                                    <div style="font-size: 12px; color: #d1d5db; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 5px;">Year / Section</div>
+                                    <div style="font-size: 18px; font-weight: 600;">${student.year_level} / ${student.section}</div>
+                                </div>
+                                <div>
+                                    <div style="font-size: 12px; color: #d1d5db; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 5px;">Track</div>
+                                    <div style="font-size: 18px; font-weight: 600;">${student.track || 'General'}</div>
+                                </div>
+                            </div>
+                        </div>
+
                         <!-- Personal Information Section -->
                         <div style="background: #f9fafb; padding: 20px; border-radius: 10px; margin-bottom: 20px;">
                             <h3 style="margin: 0 0 15px 0; color: #1f2937; font-size: 18px; border-bottom: 2px solid #3b82f6; padding-bottom: 8px;">
@@ -1939,52 +1967,19 @@
                             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
                                 <div>
                                     <strong style="color: #6b7280;">First Name:</strong>
-                                    <p style="margin: 5px 0 0 0; color: #1f2937;">${student.first_name}</p>
+                                    <p style="margin: 5px 0 0 0; color: #1f2937; font-size: 15px;">${student.first_name}</p>
                                 </div>
                                 <div>
                                     <strong style="color: #6b7280;">Last Name:</strong>
-                                    <p style="margin: 5px 0 0 0; color: #1f2937;">${student.last_name}</p>
+                                    <p style="margin: 5px 0 0 0; color: #1f2937; font-size: 15px;">${student.last_name}</p>
                                 </div>
-                                <div>
+                                <div style="grid-column: span 2;">
                                     <strong style="color: #6b7280;">Middle Name:</strong>
-                                    <p style="margin: 5px 0 0 0; color: #1f2937;">${student.middle_name || 'N/A'}</p>
-                                </div>
-                                <div>
-                                    <strong style="color: #6b7280;">School ID:</strong>
-                                    <p style="margin: 5px 0 0 0; color: #1f2937;">${student.school_id}</p>
+                                    <p style="margin: 5px 0 0 0; color: #1f2937; font-size: 15px;">${student.middle_name || 'Not Provided'}</p>
                                 </div>
                                 <div style="grid-column: span 2;">
-                                    <strong style="color: #6b7280;">Email Address:</strong>
-                                    <p style="margin: 5px 0 0 0; color: #1f2937;">${student.email}</p>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Academic Information Section -->
-                        <div style="background: #f9fafb; padding: 20px; border-radius: 10px; margin-bottom: 20px;">
-                            <h3 style="margin: 0 0 15px 0; color: #1f2937; font-size: 18px; border-bottom: 2px solid #10b981; padding-bottom: 8px;">
-                                Academic Information
-                            </h3>
-                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
-                                <div>
-                                    <strong style="color: #6b7280;">Course:</strong>
-                                    <p style="margin: 5px 0 0 0; color: #1f2937;">${student.course}</p>
-                                </div>
-                                <div>
-                                    <strong style="color: #6b7280;">Track:</strong>
-                                    <p style="margin: 5px 0 0 0; color: #1f2937;">${student.track || 'N/A'}</p>
-                                </div>
-                                <div>
-                                    <strong style="color: #6b7280;">Year Level:</strong>
-                                    <p style="margin: 5px 0 0 0; color: #1f2937;">${student.year_level}</p>
-                                </div>
-                                <div>
-                                    <strong style="color: #6b7280;">Section:</strong>
-                                    <p style="margin: 5px 0 0 0; color: #1f2937;">${student.section}</p>
-                                </div>
-                                <div style="grid-column: span 2;">
-                                    <strong style="color: #6b7280;">Registration Date:</strong>
-                                    <p style="margin: 5px 0 0 0; color: #1f2937;">${new Date(student.created_at).toLocaleString()}</p>
+                                    <strong style="color: #6b7280;">Registration Date & Time:</strong>
+                                    <p style="margin: 5px 0 0 0; color: #1f2937; font-size: 15px;">${new Date(student.created_at).toLocaleString()}</p>
                                 </div>
                             </div>
                         </div>
@@ -2083,13 +2078,15 @@
                         </div>
                     </div>
                 `,
-                width: '900px',
+                width: '1000px',
+                maxHeight: '90vh',
                 showConfirmButton: true,
                 confirmButtonText: 'Close',
                 confirmButtonColor: '#6b7280',
                 customClass: {
                     popup: 'student-details-modal'
-                }
+                },
+                scrollbarPadding: false
             });
         }
 

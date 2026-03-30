@@ -36,7 +36,7 @@ def get_joined_classes():
                 JOIN student_classes sc ON c.id = sc.class_id
                 LEFT JOIN instructors i ON c.instructor_id = i.id
                 LEFT JOIN personal_info pi ON i.personal_info_id = pi.id
-                WHERE sc.student_id = %s AND sc.status = 'approved'
+                WHERE sc.student_id = %s AND sc.status IN ('approved', 'pending')
                 ORDER BY sc.joined_at DESC""",
                 (student["id"],),
             )
@@ -104,6 +104,7 @@ def get_joined_classes():
                             "join_code": enrollment.get("join_code"),
                             "instructor_name": instructor_name,
                             "joined_at": joined_at_iso,
+                            "status": enrollment.get("status"),
                         }
                     )
                 except Exception as e:
@@ -1027,11 +1028,21 @@ def student_analytics():
                         except Exception as e:
                             logger.warning(f"Snapshot JSON decode failed: {e}")
 
-                    # For each assessment, check if score exists in snapshot; if not, or if score is None/0, count as missing
-                    for assessment in assessments:
-                        score = snapshot_scores.get(assessment["id"])
-                        if score is None or float(score) == 0.0:
-                            missing_assessments.append(assessment["name"])
+                    # For each assessment, check if score exists in snapshot; if not, count as missing
+                    # Only mark as missing if: 1) No grade snapshot exists, OR 2) No score recorded for this assessment
+                    # Do NOT count 0 as missing - 0 is a valid score
+                    # If there's a released grade, don't show missing assessments (student has been graded)
+                    if not snapshot_row or not snapshot_scores:
+                        # No snapshot data at all - all assessments are missing
+                        missing_assessments = [a["name"] for a in assessments]
+                    else:
+                        # Snapshot exists - only count as missing if NO score recorded (None), not if score is 0
+                        for assessment in assessments:
+                            score = snapshot_scores.get(assessment["id"])
+                            # Missing = score not recorded at all (None or key doesn't exist)
+                            # NOT missing if score is 0 or any other number (including 0)
+                            if score is None:
+                                missing_assessments.append(assessment["name"])
                 except Exception as e:
                     logger.warning(
                         f"Failed to get missing assessments for class {cls['id']}: {e}"
@@ -1075,6 +1086,11 @@ def student_analytics():
                                 ),
                             }
                         )
+                    
+                    # If there are released grades, don't show missing assessments
+                    # (The grade has been finalized, so any past missing assessments should be resolved)
+                    if released_grades:
+                        missing_assessments = []
                 except Exception as e:
                     logger.warning(
                         f"Failed to get released grades for class {cls['id']}: {e}"

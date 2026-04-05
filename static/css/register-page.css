@@ -753,6 +753,35 @@ select:focus {
   }
 }
 
+/* Cloudflare Turnstile captcha container */
+.captcha-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  text-align: center;
+  margin: 20px 0;
+}
+
+/* Responsive captcha adjustments */
+@media (max-width: 768px) {
+  .captcha-container {
+    margin: 16px 0;
+    text-align: center;
+  }
+  
+  .cf-turnstile {
+    width: 100% !important;
+    max-width: 100%;
+    display: flex;
+    justify-content: center;
+  }
+  
+  .cf-turnstile iframe {
+    max-width: 100%;
+  }
+}
+
 /* Reduce motion for users who prefer it */
 @media (prefers-reduced-motion: reduce) {
   .floating-shape,
@@ -760,7 +789,7 @@ select:focus {
   .submit-btn::before {
     animation: none;
   }
-
+  
   * {
     transition-duration: 0.01ms !important;
   }

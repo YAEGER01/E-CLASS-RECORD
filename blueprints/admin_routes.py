@@ -2,6 +2,7 @@ import logging
 import traceback
 import uuid
 import random
+import threading
 from datetime import datetime
 from flask import Blueprint, request, jsonify, session
 from werkzeug.security import generate_password_hash
@@ -9,6 +10,17 @@ from werkzeug.security import generate_password_hash
 from utils.db_conn import get_db_connection
 from utils.auth_utils import login_required, validate_password_policy
 from utils.email_service import email_service
+
+
+def _send_email_async(email_fn, *args, **kwargs):
+    """Run email function in a background thread to avoid blocking the response."""
+    def _target():
+        try:
+            email_fn(*args, **kwargs)
+        except Exception as e:
+            logger.error(f"Background email failed: {e}")
+    thread = threading.Thread(target=_target, daemon=True)
+    thread.start()
 
 logger = logging.getLogger(__name__)
 
@@ -2262,25 +2274,24 @@ def approve_registration(student_id):
 
         get_db_connection().commit()
 
-        # Send approval email notification
         full_name = f"{student['first_name']} {student['last_name']}"
-        email_sent = email_service.send_registration_approval_email(
-            student_email=student["email"],
-            student_name=full_name,
-            school_id=student["school_id"],
-            course=student["course"],
-            year_level=student["year_level"],
+        _send_email_async(
+            email_service.send_registration_approval_email,
+            student["email"],
+            full_name,
+            student["school_id"],
+            student["course"],
+            student["year_level"],
         )
 
         logger.info(
-            f"Admin {session.get('school_id')} approved registration for student {student['school_id']}. Email sent: {email_sent}"
+            f"Admin {session.get('school_id')} approved registration for student {student['school_id']}"
         )
 
         return jsonify(
             {
                 "success": True,
                 "message": "Student registration approved successfully",
-                "email_sent": email_sent,
             }
         )
 
@@ -2359,24 +2370,23 @@ def reject_registration(student_id):
 
         get_db_connection().commit()
 
-        # Send rejection email notification
         full_name = f"{student['first_name']} {student['last_name']}"
-        email_sent = email_service.send_registration_rejection_email(
-            student_email=student["email"],
-            student_name=full_name,
-            school_id=student["school_id"],
-            rejection_reason=rejection_reason if rejection_reason else None,
+        _send_email_async(
+            email_service.send_registration_rejection_email,
+            student["email"],
+            full_name,
+            student["school_id"],
+            rejection_reason if rejection_reason else None,
         )
 
         logger.info(
-            f"Admin {session.get('school_id')} rejected and deleted registration for student {student['school_id']}. Email sent: {email_sent}"
+            f"Admin {session.get('school_id')} rejected and deleted registration for student {student['school_id']}"
         )
 
         return jsonify(
             {
                 "success": True,
                 "message": "Student registration rejected",
-                "email_sent": email_sent,
             }
         )
 

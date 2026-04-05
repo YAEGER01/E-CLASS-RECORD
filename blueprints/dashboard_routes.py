@@ -138,18 +138,55 @@ def instructor_dashboard():
         flash("Unauthorized access.", "error")
         return redirect(url_for("auth.login"))
 
-    # Get user data from database
+    # Get user and instructor data from database
     try:
         with get_db_connection().cursor() as cursor:
+            # Get user data
             cursor.execute("SELECT * FROM users WHERE id = %s", (session["user_id"],))
             user = cursor.fetchone()
+
+            if not user:
+                session.clear()
+                flash("Session expired. Please log in again.", "error")
+                return redirect(url_for("auth.login"))
+
+            # Get instructor profile data with personal info
+            cursor.execute(
+                """SELECT i.*, pi.first_name, pi.last_name, pi.middle_name
+                FROM instructors i
+                LEFT JOIN personal_info pi ON i.personal_info_id = pi.id
+                WHERE i.user_id = %s""",
+                (session["user_id"],),
+            )
+            instructor_data = cursor.fetchone()
+
+            # Add instructor data to user object
+            if instructor_data:
+                user["instructor_profile"] = instructor_data
+                # Canonical name resolution from users -> instructors -> personal_info.
+                cursor.execute(
+                    """SELECT COALESCE(
+                        NULLIF(TRIM(CONCAT_WS(' ', pi.first_name, pi.middle_name, pi.last_name)), ''),
+                        u.school_id
+                    ) AS full_name
+                    FROM users u
+                    LEFT JOIN instructors i ON i.user_id = u.id
+                    LEFT JOIN personal_info pi ON pi.id = i.personal_info_id
+                    WHERE u.id = %s
+                    LIMIT 1""",
+                    (session["user_id"],),
+                )
+                full_name_row = cursor.fetchone() or {}
+                user["full_name"] = (
+                    full_name_row.get("full_name")
+                    or user.get("school_id")
+                    or "Instructor"
+                )
+            else:
+                user["full_name"] = user["school_id"]
+
     except Exception as e:
         logger.error(f"Database error during instructor dashboard: {str(e)}")
-        session.clear()
-        flash("Session expired. Please log in again.", "error")
-        return redirect(url_for("auth.login"))
-
-    if not user:
         session.clear()
         flash("Session expired. Please log in again.", "error")
         return redirect(url_for("auth.login"))

@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Grade Builder v2 - E-Class Record</title>
+    <title>Grade Structure Builder - E-Class Record</title>
     <meta name="theme-color" content="#6b7280">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -18,8 +18,59 @@
     {% if preselect_class_id %}data-preselect-class-id="{{ preselect_class_id }}"{% endif %}
     >
     {% set active_page = 'gradebuilder' %}
-    {% set header_subtitle = 'Grade Builder' %}
+    {% set header_subtitle = 'Grade Structure Builder' %}
     {% include '_instructor_header.html' %}
+
+    <!-- Sidebar Navigation -->
+    <aside class="sidebar-nav" id="sidebar-nav">
+        <div class="sidebar-content">
+            <div class="sidebar-brand">
+                <img src="/static/images/isu.png" alt="ISU Logo" class="sidebar-logo" />
+                <div class="sidebar-user-info">
+                    <span class="sidebar-user-name">{{ _display_name }}</span>
+                    <span class="sidebar-user-role">Instructor</span>
+                </div>
+            </div>
+            <nav class="sidebar-menu">
+                <a href="{{ url_for('dashboard.instructor_dashboard') }}" class="sidebar-link {% if _active == 'dashboard' %}active{% endif %}" data-tooltip="Dashboard">
+                    <i class="fas fa-home"></i>
+                    <span class="sidebar-text">Dashboard</span>
+                </a>
+                <a href="{{ url_for('instructor.instructor_classes') }}" class="sidebar-link {% if _active == 'classes' %}active{% endif %}" data-tooltip="Manage Classes">
+                    <i class="fas fa-book"></i>
+                    <span class="sidebar-text">Classes</span>
+                </a>
+                <a href="#" onclick="openStudentsView(); return false;" class="sidebar-link {% if _active == 'students' %}active{% endif %}" data-tooltip="Student Management">
+                    <i class="fas fa-users"></i>
+                    <span class="sidebar-text">Students</span>
+                </a>
+                <a href="{{ url_for('instructor.gradebuilder_v2') }}" class="sidebar-link {% if _active == 'gradebuilder' %}active{% endif %}" data-tooltip="Grade Structure Builder">
+                    <i class="fas fa-sliders-h"></i>
+                    <span class="sidebar-text">Grade Structure Builder</span>
+                </a>
+                <a href="{{ url_for('instructor.release_grades') }}" class="sidebar-link {% if _active == 'release_grades' %}active{% endif %}" data-tooltip="Release Grades">
+                    <i class="fas fa-star"></i>
+                    <span class="sidebar-text">Release Grades</span>
+                </a>
+                <a href="{{ url_for('instructor.instructor_statistics') }}" class="sidebar-link {% if _active == 'statistics' %}active{% endif %}" data-tooltip="View Statistics">
+                    <i class="fas fa-chart-bar"></i>
+                    <span class="sidebar-text">Statistics</span>
+                </a>
+                <a href="#" onclick="openGradeSheetReportView(); return false;" class="sidebar-link {% if _active == 'grade_sheet' %}active{% endif %}" data-tooltip="Grade Sheet Reports">
+                    <i class="fas fa-file-alt"></i>
+                    <span class="sidebar-text">Grade Sheet</span>
+                </a>
+                <div class="sidebar-divider"></div>
+                <a href="{{ url_for('auth.logout') }}" class="sidebar-link logout-link" data-tooltip="Logout">
+                    <i class="fas fa-sign-out-alt"></i>
+                    <span class="sidebar-text">Logout</span>
+                </a>
+            </nav>
+        </div>
+    </aside>
+
+    <!-- Sidebar Overlay -->
+    <div class="sidebar-overlay" id="sidebar-overlay"></div>
 
     <!-- Main Content -->
     <main class="main-content">
@@ -161,6 +212,54 @@
 
     <script src="{{ url_for('static', filename='js/swal.js') }}"></script>
     <script>
+        // Sidebar navigation functionality
+        function initSidebar() {
+            const sidebar = document.getElementById('sidebar-nav');
+            const overlay = document.getElementById('sidebar-overlay');
+            const toggle = document.querySelector('.sidebar-toggle');
+
+            if (!sidebar || !overlay || !toggle) return;
+
+            function toggleSidebar() {
+                const isOpen = sidebar.classList.contains('open');
+                const expanded = toggle.getAttribute('aria-expanded') === 'true';
+
+                if (isOpen) {
+                    sidebar.classList.remove('open');
+                    overlay.classList.remove('active');
+                    toggle.classList.remove('active');
+                    toggle.setAttribute('aria-expanded', 'false');
+                    document.body.classList.remove('sidebar-open');
+                } else {
+                    sidebar.classList.add('open');
+                    overlay.classList.add('active');
+                    toggle.classList.add('active');
+                    toggle.setAttribute('aria-expanded', 'true');
+                    document.body.classList.add('sidebar-open');
+                }
+            }
+
+            toggle.addEventListener('click', toggleSidebar);
+            overlay.addEventListener('click', toggleSidebar);
+
+            // Close sidebar on escape key
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape' && sidebar.classList.contains('open')) {
+                    toggleSidebar();
+                }
+            });
+
+            // Close sidebar when clicking on a link (for mobile)
+            const sidebarLinks = sidebar.querySelectorAll('.sidebar-link');
+            sidebarLinks.forEach(link => {
+                link.addEventListener('click', function() {
+                    if (window.innerWidth <= 1024) {
+                        setTimeout(toggleSidebar, 100);
+                    }
+                });
+            });
+        }
+
         // Pass preselected class_id from server to JavaScript via data attribute
         (function() {
             var bodyEl = document.body;
@@ -387,6 +486,9 @@
         }
 
         document.addEventListener('DOMContentLoaded', ()=>{
+            // Initialize sidebar navigation
+            initSidebar();
+
             const upload = document.getElementById('xlsx-upload');
             const importBtn = document.getElementById('import-btn');
             if (upload) upload.addEventListener('change', e => { const f = e.target.files && e.target.files[0]; if (f) handleFile(f); });

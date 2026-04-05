@@ -2,7 +2,7 @@
 {# Provide safe fallbacks when `user` may be undefined (prevents template errors) #}
 {% if user is defined and user is not none %}
     {% set _uid_full = user.school_id|string %}
-    {% set _display_name = user.school_id %}
+    {% set _display_name = user.get('full_name', user.school_id) %}
 {% else %}
     {% set _uid_full = 'GU' %}
     {% set _display_name = 'Guest' %}
@@ -23,75 +23,22 @@
             </div>
         </div>
 
-        <button class="nav-toggle" aria-expanded="false" aria-label="Toggle navigation">
-            <span class="bar"></span>
-            <span class="bar"></span>
-            <span class="bar"></span>
-        </button>
-
-        <div class="header-nav">
-            <nav class="main-nav" id="main-nav">
-                <a href="{{ url_for('dashboard.instructor_dashboard') }}" class="nav-link {% if _active == 'dashboard' %}active{% endif %}">
-                    <i class="fas fa-home"></i>
-                    <span class="nav-text">Dashboard</span>
-                </a>
-                <a href="{{ url_for('instructor.instructor_classes') }}" class="nav-link {% if _active == 'classes' %}active{% endif %}">
-                    <i class="fas fa-book"></i>
-                    <span class="nav-text">Classes</span>
-                </a>
-                <a href="#" onclick="openStudentsView(); return false;" class="nav-link {% if _active == 'students' %}active{% endif %}">
-                    <i class="fas fa-users"></i>
-                    <span class="nav-text">Students</span>
-                </a>
-                <a href="{{ url_for('instructor.gradebuilder_v2') }}" class="nav-link {% if _active == 'gradebuilder' %}active{% endif %}">
-                    <i class="fas fa-sliders-h"></i>
-                    <span class="nav-text">Grade Builder</span>
-                </a>
-                <a href="{{ url_for('instructor.release_grades') }}" class="nav-link {% if _active == 'release_grades' %}active{% endif %}">
-                    <i class="fas fa-star"></i>
-                    <span class="nav-text">Release Grades</span>
-                </a>
-                <a href="{{ url_for('instructor.instructor_statistics') }}" class="nav-link {% if _active == 'statistics' %}active{% endif %}">
-                    <i class="fas fa-chart-bar"></i>
-                    <span class="nav-text">Statistics</span>
-                </a>
-                <a href="#" onclick="openGradeSheetReportView(); return false;" class="nav-link {% if _active == 'grade_sheet' %}active{% endif %}">
-                    <i class="fas fa-file-alt"></i>
-                    <span class="nav-text">Grade Sheet</span>
-                </a>
-            </nav>
-        </div>
-
         <div class="header-user">
-            <div class="user-info">
-                <div class="user-details">
-                    <span class="user-name">{{ _display_name }}</span>
-                    <span class="user-role">Instructor</span>
-                </div>
-            </div>
-            <a href="{{ url_for('auth.logout') }}" class="logout-btn glass">Logout</a>
+            <button class="nav-toggle sidebar-toggle" aria-expanded="false" aria-label="Toggle sidebar navigation">
+                <span class="bar"></span>
+                <span class="bar"></span>
+                <span class="bar"></span>
+            </button>
         </div>
     </div>
 </header>
 
 <script>
-    // Minimal toggle script for the header navigation (safe to include in every template)
-    (function(){
-        const toggle = document.querySelector('.nav-toggle');
-        const nav = document.getElementById('main-nav');
-        if (!toggle || !nav) return;
-        toggle.addEventListener('click', function(){
-            const expanded = toggle.getAttribute('aria-expanded') === 'true';
-            toggle.setAttribute('aria-expanded', String(!expanded));
-            nav.classList.toggle('open');
-        });
-    })();
-    
     // Students view function - use hash to signal dashboard to open modal
     function openStudentsView() {
         window.location.href = "{{ url_for('dashboard.instructor_dashboard') }}#open-students-modal";
     }
-    
+
     // Grade Sheet Report view function - use hash to signal dashboard to open modal
     function openGradeSheetReportView() {
         window.location.href = "{{ url_for('dashboard.instructor_dashboard') }}#open-grade-sheet-modal";
@@ -102,7 +49,7 @@
     // Ensure shared instructor stylesheet is present for pages that didn't include it.
     (function() {
         try {
-            var href = '{{ url_for('static', filename='css/instructor-dashboard.css') }}';
+            var href = "{{ url_for('static', filename='css/instructor-dashboard.css') }}";
             // If a link tag for this href already exists, do nothing.
             var exists = Array.from(document.querySelectorAll('link[rel="stylesheet"]')).some(function(l){
                 return l.getAttribute('href') === href || (l.getAttribute('href') || '').endsWith('instructor-dashboard.css');

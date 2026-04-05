@@ -53,6 +53,58 @@
     {% set header_subtitle = 'Instructor Dashboard' %}
     {% include '_instructor_header.html' %}
 
+    <!-- Sidebar Navigation -->
+    <aside class="sidebar-nav" id="sidebar-nav">
+        <div class="sidebar-content">
+            <div class="sidebar-brand">
+                <img src="/static/images/isu.png" alt="ISU Logo" class="sidebar-logo" />
+                <div class="sidebar-user-info">
+                    <span class="sidebar-user-name">{{ user.get('full_name', user.school_id) }}</span>
+                    <span class="sidebar-user-id">{{ user.school_id }}</span>
+                    <span class="sidebar-user-role">Instructor</span>
+                </div>
+            </div>
+            <nav class="sidebar-menu">
+                <a href="{{ url_for('dashboard.instructor_dashboard') }}" class="sidebar-link {% if _active == 'dashboard' %}active{% endif %}" data-tooltip="Dashboard">
+                    <i class="fas fa-home"></i>
+                    <span class="sidebar-text">Dashboard</span>
+                </a>
+                <a href="{{ url_for('instructor.instructor_classes') }}" class="sidebar-link {% if _active == 'classes' %}active{% endif %}" data-tooltip="Manage Classes">
+                    <i class="fas fa-book"></i>
+                    <span class="sidebar-text">Classes</span>
+                </a>
+                <a href="#" onclick="openStudentsView(); return false;" class="sidebar-link {% if _active == 'students' %}active{% endif %}" data-tooltip="Student Management">
+                    <i class="fas fa-users"></i>
+                    <span class="sidebar-text">Students</span>
+                </a>
+                <a href="{{ url_for('instructor.gradebuilder_v2') }}" class="sidebar-link {% if _active == 'gradebuilder' %}active{% endif %}" data-tooltip="Grade Structure Builder">
+                    <i class="fas fa-sliders-h"></i>
+                    <span class="sidebar-text">Grade Structure Builder</span>
+                </a>
+                <a href="{{ url_for('instructor.release_grades') }}" class="sidebar-link {% if _active == 'release_grades' %}active{% endif %}" data-tooltip="Release Grades">
+                    <i class="fas fa-star"></i>
+                    <span class="sidebar-text">Release Grades</span>
+                </a>
+                <a href="{{ url_for('instructor.instructor_statistics') }}" class="sidebar-link {% if _active == 'statistics' %}active{% endif %}" data-tooltip="View Statistics">
+                    <i class="fas fa-chart-bar"></i>
+                    <span class="sidebar-text">Statistics</span>
+                </a>
+                <a href="#" onclick="openGradeSheetReportView(); return false;" class="sidebar-link {% if _active == 'grade_sheet' %}active{% endif %}" data-tooltip="Grade Sheet Reports">
+                    <i class="fas fa-file-alt"></i>
+                    <span class="sidebar-text">Grade Sheet</span>
+                </a>
+                <div class="sidebar-divider"></div>
+                <a href="{{ url_for('auth.logout') }}" class="sidebar-link logout-link" data-tooltip="Logout">
+                    <i class="fas fa-sign-out-alt"></i>
+                    <span class="sidebar-text">Logout</span>
+                </a>
+            </nav>
+        </div>
+    </aside>
+
+    <!-- Sidebar Overlay -->
+    <div class="sidebar-overlay" id="sidebar-overlay"></div>
+
     <!-- Main Content -->
     <main class="main-content">
         <div class="content-container">
@@ -69,7 +121,7 @@
                         </a>
                         <a href="{{ url_for('instructor.gradebuilder_v2') }}" class="action-card">
                             <div class="card-content">
-                                <h3>Grade Builder</h3>
+                                <h3>Grade Structure Builder</h3>
                                 <p>Set up grading structures</p>
                             </div>
                         </a>
@@ -186,7 +238,55 @@
         let classes = [];
         let currentClassId = null;
         let currentClassName = null;
-        
+
+        // Sidebar navigation functionality
+        function initSidebar() {
+            const sidebar = document.getElementById('sidebar-nav');
+            const overlay = document.getElementById('sidebar-overlay');
+            const toggle = document.querySelector('.sidebar-toggle');
+
+            if (!sidebar || !overlay || !toggle) return;
+
+            function toggleSidebar() {
+                const isOpen = sidebar.classList.contains('open');
+                const expanded = toggle.getAttribute('aria-expanded') === 'true';
+
+                if (isOpen) {
+                    sidebar.classList.remove('open');
+                    overlay.classList.remove('active');
+                    toggle.classList.remove('active');
+                    toggle.setAttribute('aria-expanded', 'false');
+                    document.body.classList.remove('sidebar-open');
+                } else {
+                    sidebar.classList.add('open');
+                    overlay.classList.add('active');
+                    toggle.classList.add('active');
+                    toggle.setAttribute('aria-expanded', 'true');
+                    document.body.classList.add('sidebar-open');
+                }
+            }
+
+            toggle.addEventListener('click', toggleSidebar);
+            overlay.addEventListener('click', toggleSidebar);
+
+            // Close sidebar on escape key
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape' && sidebar.classList.contains('open')) {
+                    toggleSidebar();
+                }
+            });
+
+            // Close sidebar when clicking on a link (for mobile)
+            const sidebarLinks = sidebar.querySelectorAll('.sidebar-link');
+            sidebarLinks.forEach(link => {
+                link.addEventListener('click', function() {
+                    if (window.innerWidth <= 1024) {
+                        setTimeout(toggleSidebar, 100);
+                    }
+                });
+            });
+        }
+
         // Check if we're opening a modal via hash
         const hasModalHash = window.location.hash === '#open-students-modal' || window.location.hash === '#open-grade-sheet-modal';
 
@@ -495,7 +595,7 @@
                         <h3 style="margin:0;">No grading structure found</h3>
                         <p style="margin:0; color:#64748b;">Create a grading structure first to enable grade entry for this class.</p>
                         <div style="display:flex; gap:.5rem; margin-top:.5rem; flex-wrap:wrap; justify-content:center;">
-                            <button class="btn btn-secondary" onclick="window.location.href='/gradebuilder-v2?class_id=${currentClassId}'">Open Grade Builder (v2)</button>
+                            <button class="btn btn-secondary" onclick="window.location.href='/gradebuilder-v2?class_id=${currentClassId}'">Open Grade Structure Builder (v2)</button>
                             <button class="btn btn-ghost" onclick="closeModal()">Close</button>
                         </div>
                     </div>
@@ -769,10 +869,13 @@
 
         document.addEventListener('DOMContentLoaded', async function () {
             console.log('Dashboard loaded'); // Debug log
-            
+
+            // Initialize sidebar navigation
+            initSidebar();
+
             // Load pending requests count on page load
             loadPendingRequestsCount();
-            
+
             // Only show welcome modal if we're not opening a specific modal
             if (!hasModalHash) {
                 setTimeout(() => {

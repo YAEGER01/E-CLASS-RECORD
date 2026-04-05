@@ -121,6 +121,12 @@ def _verify_turnstile_for_current_request(flow_name: str):
 
     token = (request.form.get("cf-turnstile-response") or "").strip()
     if not token:
+        logger.warning(f"Turnstile: No token provided for {flow_name}")
+        # Always fail-open if no token in development to debug ngrok issues
+        is_dev = os.environ.get("FLASK_ENV", "development") != "production"
+        if is_dev:
+            logger.warning(f"Turnstile fail-open (no token) in development for {flow_name}.")
+            return True, ""
         return False, "Please complete the CAPTCHA challenge."
 
     payload = urllib.parse.urlencode(
@@ -156,6 +162,11 @@ def _verify_turnstile_for_current_request(flow_name: str):
     logger.warning(
         f"Turnstile verification failed for {flow_name}: {','.join(error_codes)}"
     )
+    # Fail-open in development for any failure to test registration
+    is_dev = os.environ.get("FLASK_ENV", "development") != "production"
+    if is_dev and CAPTCHA_FAIL_OPEN_DEVELOPMENT:
+        logger.warning(f"Turnstile fail-open (non-exception) in development for {flow_name}.")
+        return True, ""
     return False, "CAPTCHA verification failed. Please try again."
 
 
@@ -190,6 +201,14 @@ def _has_valid_mfa_trust_cookie(user_id: int, role: str) -> bool:
         logger.debug("MFA trust device disabled")
         return False
 
+    # First check database for trusted device
+    if _has_trusted_device_in_db(user_id, role):
+        logger.info(
+            f"Trusted device found in database for user_id={user_id}, role={role}"
+        )
+        return True
+
+    # Fall back to cookie check
     raw_token = (request.cookies.get(MFA_TRUST_COOKIE_NAME) or "").strip()
     if not raw_token:
         logger.debug(f"No trust cookie found (looking for {MFA_TRUST_COOKIE_NAME})")
@@ -280,6 +299,77 @@ def _set_mfa_trust_cookie(response, user_id: int, role: str):
         samesite="Lax",
         path="/",
     )
+
+
+def _store_mfa_trusted_device(user_id: int, role: str):
+    """Store a trusted device in the database for MFA bypass"""
+    try:
+        device_fingerprint = _mfa_device_fingerprint()
+        ip_address = get_client_ip()
+        expires_at = datetime.now() + timedelta(days=MFA_TRUST_DAYS)
+
+        with get_db_connection().cursor() as cursor:
+            # Insert or update trusted device
+            cursor.execute(
+                """
+                INSERT INTO mfa_trusted_devices
+                (user_id, role, device_fingerprint, ip_address, user_agent_hash, expires_at)
+                VALUES (%s, %s, %s, %s, %s, %s)
+                ON DUPLICATE KEY UPDATE
+                expires_at = VALUES(expires_at),
+                created_at = CURRENT_TIMESTAMP
+                """,
+                (
+                    user_id,
+                    role,
+                    device_fingerprint,
+                    ip_address,
+                    (
+                        _mfa_user_agent_fingerprint()
+                        if MFA_TRUST_BIND_USER_AGENT
+                        else None
+                    ),
+                    expires_at,
+                ),
+            )
+            get_db_connection().commit()
+        logger.info(f"Stored trusted device for user_id={user_id}, role={role}")
+    except Exception as e:
+        logger.error(f"Failed to store trusted device for user_id={user_id}: {e}")
+
+
+def _mfa_device_fingerprint() -> str:
+    """Generate a device fingerprint based on IP and user agent"""
+    ip = get_client_ip()
+    ua = _mfa_user_agent_fingerprint()
+    combined = f"{ip}:{ua}"
+    return hashlib.sha256(combined.encode("utf-8")).hexdigest()[:32]
+
+
+def _has_trusted_device_in_db(user_id: int, role: str) -> bool:
+    """Check if user has a trusted device in database"""
+    if not MFA_TRUST_DEVICE_ENABLED:
+        return False
+
+    try:
+        device_fingerprint = _mfa_device_fingerprint()
+        now = datetime.now()
+
+        with get_db_connection().cursor() as cursor:
+            cursor.execute(
+                """
+                SELECT id FROM mfa_trusted_devices
+                WHERE user_id = %s AND role = %s AND device_fingerprint = %s
+                AND expires_at > %s
+                LIMIT 1
+                """,
+                (user_id, role, device_fingerprint, now),
+            )
+            result = cursor.fetchone()
+            return result is not None
+    except Exception as e:
+        logger.error(f"Error checking trusted device in DB for user_id={user_id}: {e}")
+        return False
 
 
 def _mask_email(email: str) -> str:
@@ -1325,15 +1415,16 @@ def mfa_verify():
 
         response = _complete_mfa_login(pending)
         if remember_device_checked:
-            logger.info(f"User checked 'Remember this device' - setting trust cookie")
+            logger.info(
+                f"User checked 'Remember this device' - setting trust cookie and storing in database"
+            )
+            user_id = int(pending.get("user_id") or 0)
+            role = str(pending.get("role") or "")
             try:
-                _set_mfa_trust_cookie(
-                    response,
-                    int(pending.get("user_id") or 0),
-                    str(pending.get("role") or ""),
-                )
+                _set_mfa_trust_cookie(response, user_id, role)
+                _store_mfa_trusted_device(user_id, role)
             except Exception as e:
-                logger.warning(f"Failed to set MFA trust cookie: {e}")
+                logger.warning(f"Failed to set MFA trust mechanisms: {e}")
         else:
             logger.debug("User did not check 'Remember this device'")
         return response
@@ -1457,7 +1548,9 @@ def register():
             return render_template("register.html")
 
         if existing_email:
-            errors.append("Email address already registered. Please use another email address.")
+            errors.append(
+                "Email address already registered. Please use another email address."
+            )
             logger.warning(f"Registration failed: Email {email} already exists")
 
         if not first_name:
@@ -1609,7 +1702,10 @@ def register():
             logger.info(
                 f"User registration pending approval: {school_id}. Confirmation email sent: {email_sent}"
             )
-            flash("✓ Registration submitted successfully! Check your email for updates.", "registration_pending")
+            flash(
+                "✓ Registration submitted successfully! Check your email for updates.",
+                "registration_pending",
+            )
             return redirect(url_for("auth.register"))
 
         except Exception as e:
@@ -1632,7 +1728,11 @@ def register():
     return render_template("register.html")
 
 
-@auth_bp.route("/api/check-registration-availability", methods=["POST"], endpoint="check_registration_availability")
+@auth_bp.route(
+    "/api/check-registration-availability",
+    methods=["POST"],
+    endpoint="check_registration_availability",
+)
 def check_registration_availability():
     """Check if email or school ID is available during registration (real-time validation)"""
     try:
@@ -1651,14 +1751,13 @@ def check_registration_availability():
                 )
                 result = cursor.fetchone()
                 if result:
-                    return jsonify({
-                        "available": False,
-                        "message": f"❌ This email address is already registered. Please use another email."
-                    })
-                return jsonify({
-                    "available": True,
-                    "message": "✓ Email is available"
-                })
+                    return jsonify(
+                        {
+                            "available": False,
+                            "message": f"❌ This email address is already registered. Please use another email.",
+                        }
+                    )
+                return jsonify({"available": True, "message": "✓ Email is available"})
 
             elif field_type == "school_id":
                 cursor.execute(
@@ -1667,17 +1766,21 @@ def check_registration_availability():
                 )
                 result = cursor.fetchone()
                 if result:
-                    return jsonify({
-                        "available": False,
-                        "message": f"❌ This School ID is already registered. Please use another School ID."
-                    })
-                return jsonify({
-                    "available": True,
-                    "message": "✓ School ID is available"
-                })
+                    return jsonify(
+                        {
+                            "available": False,
+                            "message": f"❌ This School ID is already registered. Please use another School ID.",
+                        }
+                    )
+                return jsonify(
+                    {"available": True, "message": "✓ School ID is available"}
+                )
 
             else:
-                return jsonify({"available": False, "message": "Invalid field type"}), 400
+                return (
+                    jsonify({"available": False, "message": "Invalid field type"}),
+                    400,
+                )
 
     except Exception as e:
         logger.error(f"Error checking registration availability: {str(e)}")

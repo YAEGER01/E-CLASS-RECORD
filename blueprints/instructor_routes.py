@@ -1,6 +1,7 @@
 import logging
 import json
 import re
+import threading
 from datetime import datetime
 from flask import (
     Blueprint,
@@ -24,6 +25,19 @@ from utils.live import (
     _grouped_cache_put,
 )
 from flask_wtf.csrf import generate_csrf
+
+
+def _send_email_async(email_fn, *args, **kwargs):
+    """Run email function in a background thread to avoid blocking the response."""
+
+    def _target():
+        try:
+            email_fn(*args, **kwargs)
+        except Exception as e:
+            logger.error(f"Background email failed: {e}")
+
+    thread = threading.Thread(target=_target, daemon=True)
+    thread.start()
 
 logger = logging.getLogger(__name__)
 
@@ -5513,35 +5527,24 @@ def approve_join_request(request_id):
 
             conn.commit()
 
-            # Send approval email
-            try:
-                student_name = (
-                    f"{join_request['first_name']} {join_request['last_name']}"
-                )
+            student_name = (
+                f"{join_request['first_name']} {join_request['last_name']}"
+            )
 
-                # Get instructor name
-                cursor.execute(
-                    "SELECT pi.first_name, pi.last_name FROM instructors i JOIN personal_info pi ON i.personal_info_id = pi.id WHERE i.id = %s",
-                    (instructor["id"],),
-                )
-                instructor_info = cursor.fetchone()
-                instructor_name = None
-                if instructor_info:
-                    instructor_name = f"{instructor_info['first_name']} {instructor_info['last_name']}"
+            instructor_name = None
+            if "first_name" in instructor and "last_name" in instructor:
+                instructor_name = f"{instructor['first_name']} {instructor['last_name']}"
 
-                email_service.send_class_join_approval_email(
-                    student_email=join_request["email"],
-                    student_name=student_name,
-                    class_name=join_request["class_code"]
-                    or f"Class {join_request['class_id']}",
-                    subject_name=join_request["subject"] or "Subject",
-                    course=join_request["course"],
-                    section=join_request["section"],
-                    instructor_name=instructor_name,
-                )
-                logger.info(f"Approval email sent to {join_request['email']}")
-            except Exception as email_error:
-                logger.error(f"Failed to send approval email: {str(email_error)}")
+            _send_email_async(
+                email_service.send_class_join_approval_email,
+                join_request["email"],
+                student_name,
+                join_request["class_code"] or f"Class {join_request['class_id']}",
+                join_request["subject"] or "Subject",
+                join_request["course"],
+                join_request["section"],
+                instructor_name,
+            )
 
             # Emit live update
             try:
@@ -5625,36 +5628,23 @@ def reject_join_request(request_id):
 
             conn.commit()
 
-            # Send rejection email
-            try:
-                student_name = (
-                    f"{join_request['first_name']} {join_request['last_name']}"
-                )
+            student_name = f"{join_request['first_name']} {join_request['last_name']}"
 
-                # Get instructor name
-                cursor.execute(
-                    "SELECT pi.first_name, pi.last_name FROM instructors i JOIN personal_info pi ON i.personal_info_id = pi.id WHERE i.id = %s",
-                    (instructor["id"],),
-                )
-                instructor_info = cursor.fetchone()
-                instructor_name = None
-                if instructor_info:
-                    instructor_name = f"{instructor_info['first_name']} {instructor_info['last_name']}"
+            instructor_name = None
+            if "first_name" in instructor and "last_name" in instructor:
+                instructor_name = f"{instructor['first_name']} {instructor['last_name']}"
 
-                email_service.send_class_join_rejection_email(
-                    student_email=join_request["email"],
-                    student_name=student_name,
-                    class_name=join_request["class_code"]
-                    or f"Class {join_request['class_id']}",
-                    subject_name=join_request["subject"] or "Subject",
-                    course=join_request["course"],
-                    section=join_request["section"],
-                    rejection_reason=rejection_reason if rejection_reason else None,
-                    instructor_name=instructor_name,
-                )
-                logger.info(f"Rejection email sent to {join_request['email']}")
-            except Exception as email_error:
-                logger.error(f"Failed to send rejection email: {str(email_error)}")
+            _send_email_async(
+                email_service.send_class_join_rejection_email,
+                join_request["email"],
+                student_name,
+                join_request["class_code"] or f"Class {join_request['class_id']}",
+                join_request["subject"] or "Subject",
+                join_request["course"],
+                join_request["section"],
+                rejection_reason if rejection_reason else None,
+                instructor_name,
+            )
 
             logger.info(
                 f"Instructor {session.get('school_id')} rejected join request {request_id}"
